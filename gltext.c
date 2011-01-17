@@ -165,6 +165,19 @@ drawable_swap_buffers (GdkDrawable *drawable)
   eglSwapBuffers (e->display, e->surface);
 }
 
+static GdkPixmap *
+drawable_create_glyph_pixmap (GdkDrawable *drawable)
+{
+  int width, height;
+  GdkPixmap *pixmap;
+
+  width = height = 300;
+
+  pixmap = gdk_pixmap_new (drawable, width, height, -1);
+
+  return pixmap;
+}
+
 static EGLImageKHR
 pixmap_create_texture_image (Pixmap pixmap)
 {
@@ -198,7 +211,7 @@ gboolean expose_cb (GtkWidget *widget,
 
   glUniformMatrix4fv (GPOINTER_TO_INT (user_data), 1, GL_FALSE, mat);
 
-  glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+  glDrawArrays (GL_TRIANGLE_FAN, 0, 4);
 
   drawable_swap_buffers (widget->window);
 
@@ -243,7 +256,7 @@ main (int argc, char** argv)
 
   gtk_widget_show_all (window);
 
-  pixmap = gdk_pixmap_new (window->window, 300, 300, -1);
+  pixmap = drawable_create_glyph_pixmap (window->window);
 
   drawable_make_current (window->window);
 
