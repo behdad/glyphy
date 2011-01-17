@@ -170,11 +170,13 @@ setup_texture (void)
 {
 #define FONTSIZE 256
 #define FONTFAMILY "serif"
-#define TEXT "ab"
+#define TEXT "abc"
+#define FILTERWIDTH 16
   int width = 0, height = 0;
   cairo_surface_t *image = NULL;
   cairo_t *cr;
-  int i;
+  unsigned char *data;
+  int i, x, y;
 
   for (i = 0; i < 2; i++) {
     cairo_text_extents_t extents;
@@ -189,15 +191,17 @@ setup_texture (void)
     cairo_select_font_face (cr, FONTFAMILY, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size (cr, FONTSIZE);
     cairo_text_extents (cr, TEXT, &extents);
-    width = ceil (extents.x_bearing + extents.width) - floor (extents.x_bearing);
-    height = ceil (extents.y_bearing + extents.height) - floor (extents.y_bearing);
-    cairo_move_to (cr, -floor (extents.x_bearing), -floor (extents.y_bearing));
+    width = 2*FILTERWIDTH + ceil (extents.x_bearing + extents.width) - floor (extents.x_bearing);
+    width = (width+3)&~3;
+    height = 2*FILTERWIDTH + ceil (extents.y_bearing + extents.height) - floor (extents.y_bearing);
+    cairo_move_to (cr, FILTERWIDTH -floor (extents.x_bearing), FILTERWIDTH -floor (extents.y_bearing));
     cairo_show_text (cr, TEXT);
     cairo_destroy (cr);
   }
 
+  data = cairo_image_surface_get_data (image);
 
-  glTexImage2D (GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, cairo_image_surface_get_data (image));
+  glTexImage2D (GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, data);
   cairo_surface_write_to_png (image, "glyph.png");
 
   cairo_surface_destroy (image);
@@ -250,13 +254,13 @@ main (int argc, char** argv)
   GtkWidget *window;
   GLuint vshader, fshader, program, a_pos_loc, a_tex_loc;
   const GLfloat w_vertices[] = { -0.50, -0.50, +0.00,
-				 +1.00, +0.00,
+				 +10.00, +0.00,
 				 +0.50, -0.50, +0.00,
 				 +0.00, +0.00,
 				 +0.50, +0.50, +0.00,
-				 +0.00, +1.00,
+				 +0.00, +10.00,
 				 -0.50, +0.50, +0.00,
-				 +1.00, +1.00 };
+				 +10.00, +10.00 };
 
 
   gtk_init (&argc, &argv);
@@ -303,8 +307,8 @@ main (int argc, char** argv)
   glBindTexture (GL_TEXTURE_2D, texture);
   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  //glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  //glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
   setup_texture ();
 
