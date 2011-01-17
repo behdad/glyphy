@@ -114,7 +114,7 @@ create_egl_for_drawable (EGLDisplay edpy, GdkDrawable *drawable, EGLSurface *sur
 }
 
 static GQuark
-egl_drawable_quark (void)
+drawable_egl_quark (void)
 {
   static GQuark quark = 0;
   if (G_UNLIKELY (!quark))
@@ -126,26 +126,26 @@ typedef struct {
   EGLDisplay display;
   EGLSurface surface;
   EGLContext context;
-} egl_drawable_t;
+} drawable_egl_t;
 
 static void
-egl_drawable_destroy (egl_drawable_t *e)
+drawable_egl_destroy (drawable_egl_t *e)
 {
   eglDestroyContext (e->display, e->context);
   eglDestroySurface (e->display, e->surface);
-  g_slice_free (egl_drawable_t, e);
+  g_slice_free (drawable_egl_t, e);
 }
 
-static egl_drawable_t *
+static drawable_egl_t *
 drawable_get_egl (GdkDrawable *drawable)
 {
-  egl_drawable_t *e;
+  drawable_egl_t *e;
 
-  if (G_UNLIKELY (!(e = (egl_drawable_t *) g_object_get_qdata ((GObject *) drawable, egl_drawable_quark ())))) {
-    e = g_slice_new (egl_drawable_t);
+  if (G_UNLIKELY (!(e = (drawable_egl_t *) g_object_get_qdata ((GObject *) drawable, drawable_egl_quark ())))) {
+    e = g_slice_new (drawable_egl_t);
     e->display = eglGetDisplay (GDK_DRAWABLE_XDISPLAY (drawable));
     create_egl_for_drawable (e->display, drawable, &e->surface, &e->context);
-    g_object_set_qdata_full (G_OBJECT (drawable), egl_drawable_quark (), e, (GDestroyNotify) egl_drawable_destroy);
+    g_object_set_qdata_full (G_OBJECT (drawable), drawable_egl_quark (), e, (GDestroyNotify) drawable_egl_destroy);
   }
 
   return e;
@@ -154,26 +154,56 @@ drawable_get_egl (GdkDrawable *drawable)
 static void
 drawable_make_current (GdkDrawable *drawable)
 {
-  egl_drawable_t *e = drawable_get_egl (drawable);
+  drawable_egl_t *e = drawable_get_egl (drawable);
   eglMakeCurrent(e->display, e->surface, e->surface, e->context);
 }
 
 static void
 drawable_swap_buffers (GdkDrawable *drawable)
 {
-  egl_drawable_t *e = drawable_get_egl (drawable);
+  drawable_egl_t *e = drawable_get_egl (drawable);
   eglSwapBuffers (e->display, e->surface);
 }
 
 static GdkPixmap *
 drawable_create_glyph_pixmap (GdkDrawable *drawable)
 {
+#define FONTSIZE 128
+#define FONTFAMILY "serif"
+#define TEXT "ab"
   int width, height;
+  cairo_t *cr;
+  cairo_surface_t *image;
   GdkPixmap *pixmap;
 
-  width = height = 300;
+  for (width = height = 0; !height; ) {
+    cairo_text_extents_t extents;
+    image = cairo_image_surface_create (CAIRO_FORMAT_RGB24, width, height);
+    cr = cairo_create (image);
+    cairo_set_source_rgb (cr, 1., 1., 1.);
+    cairo_paint (cr);
+    cairo_set_source_rgb (cr, 0., 0., 0.);
+
+    cairo_select_font_face (cr, FONTFAMILY, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_set_font_size (cr, FONTSIZE);
+    cairo_text_extents (cr, TEXT, &extents);
+    cairo_move_to (cr, -floor (extents.x_bearing), -floor (extents.y_bearing));
+    //cairo_show_text (cr, TEXT);
+    width = ceil (extents.x_bearing + extents.width) - floor (extents.x_bearing);
+    height = ceil (extents.y_bearing + extents.height) - floor (extents.y_bearing);
+    cairo_destroy (cr);
+    if (!height)
+      cairo_surface_destroy (image);
+  }
 
   pixmap = gdk_pixmap_new (drawable, width, height, -1);
+  cr = gdk_cairo_create (pixmap);
+  cairo_set_source_rgb (cr, 1., 1., 1.);
+  //cairo_mask_surface (cr, image, 0, 0);
+  cairo_set_source_surface (cr, image, 0, 0);
+  cairo_paint (cr);
+  cairo_destroy (cr);
+  cairo_surface_destroy (image);
 
   return pixmap;
 }
