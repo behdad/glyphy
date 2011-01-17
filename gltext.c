@@ -214,7 +214,7 @@ setup_texture (void)
 	    if (0 <= dy+i && dy+i < height && 0 <= dx+j && dx+j < width && data[(dy+i) * width + (dx+j)] >= 128)
 	      c = MIN (c, i*i + j*j);
 
-        dd[dy * width + dx] = c / (1.*FILTERWIDTH*2) * 255.;
+        dd[dy * width + dx] = sqrt (c) / (FILTERWIDTH*2) * 255;
       }
     data = cairo_image_surface_get_data (dest);
   }
@@ -323,9 +323,7 @@ main (int argc, char** argv)
 	float ddx = length (dFdx (v_texCoord));
 	float ddy = length (dFdy (v_texCoord));
 	float m = max (ddx, ddy);
-	gl_FragColor = smoothstep (.0, m, texture2D(tex, v_texCoord));
-	if (m > .25)
-	  gl_FragColor.r = .5;
+	gl_FragColor = smoothstep (.0, 2 * m, texture2D(tex, v_texCoord));
       }
   );
   program = create_program (vshader, fshader);
