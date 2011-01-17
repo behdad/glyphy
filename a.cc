@@ -22,15 +22,24 @@ die (const char *msg)
 }
 
 static void
-create_egl_for_drawable (EGLDisplay edpy, XID window, const EGLint *attribs, EGLSurface *surface, EGLContext *context)
+create_egl_for_drawable (EGLDisplay edpy, GdkDrawable *drawable, EGLSurface *surface, EGLContext *context)
 {
   EGLConfig econfig;
   EGLint num_configs;
+  const EGLint attribs[] = {
+    EGL_BUFFER_SIZE, 32,
+    EGL_RED_SIZE, 8,
+    EGL_GREEN_SIZE, 8,
+    EGL_BLUE_SIZE, 8,
+    EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+    EGL_SURFACE_TYPE, GDK_IS_WINDOW (drawable) ? EGL_WINDOW_BIT : EGL_PIXMAP_BIT,
+    EGL_NONE
+  };
 
   if (!eglChooseConfig(edpy, attribs, &econfig, 1, &num_configs) || !num_configs)
     die ("Could not find EGL config");
 
-  if (!(*surface = eglCreateWindowSurface (edpy, econfig, window, NULL)))
+  if (!(*surface = eglCreateWindowSurface (edpy, econfig, GDK_DRAWABLE_XID (drawable), NULL)))
     die ("Could not create EGL surface");
 
   EGLint ctx_attribs[] = {
@@ -40,36 +49,6 @@ create_egl_for_drawable (EGLDisplay edpy, XID window, const EGLint *attribs, EGL
 
   if (!(*context = eglCreateContext (edpy, econfig, EGL_NO_CONTEXT, ctx_attribs)))
     die ("Could not create EGL context");
-}
-
-static void
-create_egl_for_window (EGLDisplay edpy, XID window, EGLSurface *surface, EGLContext *context) {
-  const EGLint attribs[] = {
-    EGL_BUFFER_SIZE, 32,
-    EGL_RED_SIZE, 8,
-    EGL_GREEN_SIZE, 8,
-    EGL_BLUE_SIZE, 8,
-    EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-    EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-    EGL_NONE
-  };
-
-  create_egl_for_drawable (edpy, window, attribs, surface, context);
-}
-
-static void
-create_egl_for_pixmap (EGLDisplay edpy, XID pixmap, EGLSurface *surface, EGLContext *context) {
-  const EGLint attribs[] = {
-    EGL_BUFFER_SIZE, 32,
-    EGL_RED_SIZE, 8,
-    EGL_GREEN_SIZE, 8,
-    EGL_BLUE_SIZE, 8,
-    EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-    EGL_SURFACE_TYPE, EGL_PIXMAP_BIT,
-    EGL_NONE
-  };
-
-  create_egl_for_drawable (edpy, pixmap, attribs, surface, context);
 }
 
 static GLuint
@@ -114,6 +93,57 @@ compile_fragment_shader (const GLchar* source)
   return compile_shader (GL_FRAGMENT_SHADER, source);
 }
 
+GQuark
+egl_drawable_quark (void)
+{
+  static GQuark quark = 0;
+  if (G_UNLIKELY (!quark))
+    quark = g_quark_from_string ("egl_drawable");
+  return quark;
+}
+
+typedef struct {
+  EGLDisplay display;
+  EGLSurface surface;
+  EGLContext context;
+} egl_drawable_t;
+
+static void
+egl_drawable_destroy (egl_drawable_t *e)
+{
+  eglDestroyContext (e->display, e->context);
+  eglDestroySurface (e->display, e->surface);
+  g_slice_free (egl_drawable_t, e);
+}
+
+egl_drawable_t *
+drawable_get_egl (GdkDrawable *drawable)
+{
+  egl_drawable_t *e;
+
+  if (G_UNLIKELY (!(e = (egl_drawable_t *) g_object_get_qdata ((GObject *) drawable, egl_drawable_quark ())))) {
+    e = g_slice_new (egl_drawable_t);
+    e->display = eglGetDisplay (GDK_DRAWABLE_XDISPLAY (drawable));
+    create_egl_for_drawable (e->display, drawable, &e->surface, &e->context);
+    g_object_set_qdata_full (G_OBJECT (drawable), egl_drawable_quark (), e, (GDestroyNotify) egl_drawable_destroy);
+  }
+
+  return e;
+}
+
+void
+drawable_make_current (GdkDrawable *drawable)
+{
+  egl_drawable_t *e = drawable_get_egl (drawable);
+  eglMakeCurrent(e->display, e->surface, e->surface, e->context);
+}
+
+void
+drawable_swap_buffers (GdkDrawable *drawable)
+{
+  egl_drawable_t *e = drawable_get_egl (drawable);
+  eglSwapBuffers (e->display, e->surface);
+}
 
 int
 main(int argc, char** argv)
@@ -141,20 +171,14 @@ main(int argc, char** argv)
   xwindow = GDK_WINDOW_XID (window->window);
 
   int width = 300, height = 300;
-    XID pixmap;
+  GdkDrawable *pixmap;
   {
 
     printf("Egl %d.%d\n", major, minor);
 
-    XWindowAttributes gwa;
-    XGetWindowAttributes(dpy, xwindow, &gwa);
-    pixmap = XCreatePixmap(dpy, xwindow, width, height, gwa.depth);
+    pixmap = gdk_pixmap_new (window->window, width, height, -1);
 
-    EGLSurface egl_pixmap;
-    EGLContext p_context;
-    create_egl_for_pixmap (edpy, pixmap, &egl_pixmap, &p_context);
-
-    eglMakeCurrent(edpy, egl_pixmap, egl_pixmap, p_context);
+    drawable_make_current (pixmap);
 
     GLuint p_vert_shader = compile_vertex_shader(
 	"attribute vec4 vPosition;"
@@ -201,13 +225,7 @@ main(int argc, char** argv)
     }
   }
   {
-      // Create an image wrapper for the pixmap and bind that to a texture
-    EGLSurface egl_window;
-    EGLContext w_context;
-
-    create_egl_for_window (edpy, xwindow, &egl_window, &w_context);
-
-    eglMakeCurrent(edpy, egl_window, egl_window, w_context);
+    drawable_make_current (window->window);
 
     GLuint w_vert_shader = compile_vertex_shader(
         "attribute vec4 a_position;"
@@ -235,7 +253,7 @@ main(int argc, char** argv)
 
     // Texture from pixmap.
     EGLImageKHR i_pixmap = eglCreateImageKHR(
-        edpy, w_context, EGL_NATIVE_PIXMAP_KHR, (void*) pixmap, NULL);
+        edpy, drawable_get_egl (window->window)->context, EGL_NATIVE_PIXMAP_KHR, (void*) GDK_PIXMAP_XID (pixmap), NULL);
     GLuint pixmap_tex;
     glGenTextures(1, &pixmap_tex);
     glActiveTexture(GL_TEXTURE0);
@@ -288,7 +306,7 @@ main(int argc, char** argv)
 
       glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
-      eglSwapBuffers(edpy, egl_window);
+      drawable_swap_buffers (window->window);
     }
   }
 
