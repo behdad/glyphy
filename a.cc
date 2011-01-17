@@ -1,4 +1,3 @@
-#include <X11/Xlib.h>
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
 
@@ -33,11 +32,11 @@ compile_shader (GLenum type, const GLchar* source)
   glCompileShader (shader);
 
   GLint compiled;
-  glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+  glGetShaderiv (shader, GL_COMPILE_STATUS, &compiled);
   if (!compiled) {
     fprintf(stderr, "Shader compile error\n");
     GLint info_len = 0;
-    glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &info_len);
+    glGetShaderiv (shader, GL_INFO_LOG_LENGTH, &info_len);
 
     if (info_len > 0) {
       char *info_log = (char*) malloc (info_len);
@@ -49,6 +48,34 @@ compile_shader (GLenum type, const GLchar* source)
   }
 
   return shader;
+}
+#define COMPILE_SHADER(Type,Src) compile_shader (Type, #Src)
+
+static GLuint
+create_program (GLuint vshader, GLuint fshader)
+{
+  GLuint program = glCreateProgram();
+  glAttachShader(program, vshader);
+  glAttachShader(program, fshader);
+  glLinkProgram(program);
+
+  GLint linked;
+  glGetProgramiv (program, GL_LINK_STATUS, &linked);
+  if (!linked) {
+    fprintf(stderr, "Program linking error\n");
+    GLint info_len = 0;
+    glGetProgramiv (program, GL_INFO_LOG_LENGTH, &info_len);
+
+    if (info_len > 0) {
+      char *info_log = (char*) malloc (info_len);
+      glGetProgramInfoLog (program, info_len, NULL, info_log);
+
+      fprintf (stderr, "%s\n", info_log);
+      free (info_log);
+    }
+  }
+
+  return program;
 }
 
 
@@ -105,7 +132,7 @@ egl_drawable_destroy (egl_drawable_t *e)
   g_slice_free (egl_drawable_t, e);
 }
 
-egl_drawable_t *
+static egl_drawable_t *
 drawable_get_egl (GdkDrawable *drawable)
 {
   egl_drawable_t *e;
@@ -120,83 +147,124 @@ drawable_get_egl (GdkDrawable *drawable)
   return e;
 }
 
-void
+static void
 drawable_make_current (GdkDrawable *drawable)
 {
   egl_drawable_t *e = drawable_get_egl (drawable);
   eglMakeCurrent(e->display, e->surface, e->surface, e->context);
 }
 
-void
+static void
 drawable_swap_buffers (GdkDrawable *drawable)
 {
   egl_drawable_t *e = drawable_get_egl (drawable);
   eglSwapBuffers (e->display, e->surface);
 }
 
-int
-main(int argc, char** argv)
+static EGLImageKHR
+pixmap_create_texture_image (GdkPixmap *pixmap)
 {
+  return eglCreateImageKHR (eglGetCurrentDisplay (),
+			    eglGetCurrentContext (),
+			    EGL_NATIVE_PIXMAP_KHR,
+			    (EGLClientBuffer) GDK_PIXMAP_XID (pixmap),
+			    NULL);
+}
+
+
+static
+gboolean expose_cb (GtkWidget *widget,
+		    GdkEventExpose *event,
+		    gpointer user_data)
+{
+  GtkAllocation allocation;
+  static int i = 0;
+
+  i++;
+
+  gtk_widget_get_allocation (widget, &allocation);
+
+  drawable_make_current (widget->window);
+
+  double theta = M_PI / 360.0 * i;
+  GLfloat mat[] = { +cos(theta), +sin(theta), 0., 0.,
+		    -sin(theta), +cos(theta), 0., 0.,
+			     0.,          0., 1., 0.,
+			     0.,          0., 0., 1., };
+
+  glViewport(0, 0, allocation.width, allocation.height);
+  glClearColor(0., 0., 0., 0.);
+  glClear(GL_COLOR_BUFFER_BIT);
+
+  glUniformMatrix4fv (GPOINTER_TO_INT (user_data), 1, GL_FALSE, mat);
+
+  glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+  drawable_swap_buffers (widget->window);
+
+  return TRUE;
+}
+
+static gboolean
+step (gpointer data)
+{
+  gdk_window_invalidate_rect (GDK_WINDOW (data), NULL, TRUE);
+  return TRUE;
+}
+
+int
+main (int argc, char** argv)
+{
+  GdkDrawable *pixmap;
   GtkWidget *window;
 
   gtk_init (&argc, &argv);
 
-  window = (GtkWidget *) gtk_window_new (GTK_WINDOW_TOPLEVEL);
+  window = GTK_WIDGET (gtk_window_new (GTK_WINDOW_TOPLEVEL));
+  gtk_window_set_default_size (GTK_WINDOW (window), 500, 500);
   g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (gtk_main_quit), NULL);
 
-  Display* dpy = gdk_x11_display_get_xdisplay (gtk_widget_get_display (window));
-  EGLDisplay edpy = eglGetDisplay(dpy);
+  EGLDisplay edpy = eglGetDisplay (gdk_x11_display_get_xdisplay (gtk_widget_get_display (window)));
   EGLint major, minor;
-  eglInitialize(edpy, &major, &minor);
-
-  if (!eglBindAPI(EGL_OPENGL_ES_API)) {
-    fprintf(stderr, "failed to bind EGL_OPENGL_ES_API\n");
-    return 0;
-  }
+  eglInitialize (edpy, &major, &minor);
+  if (!eglBindAPI (EGL_OPENGL_ES_API))
+    die ("Failed to bind OpenGL ES API");
 
   gtk_widget_show_all (window);
 
-  XID xwindow;
-  xwindow = GDK_WINDOW_XID (window->window);
-
   int width = 300, height = 300;
-  GdkDrawable *pixmap;
+  pixmap = gdk_pixmap_new (window->window, width, height, -1);
+
   {
-
-    printf("Egl %d.%d\n", major, minor);
-
-    pixmap = gdk_pixmap_new (window->window, width, height, -1);
+    GLuint vshader, fshader, program;
 
     drawable_make_current (pixmap);
 
-    GLuint p_vert_shader = compile_shader (GL_VERTEX_SHADER,
-	"attribute vec4 vPosition;"
-	"uniform mat4 u_matViewProjection;"
-	"void main()"
-	"{"
-	"   gl_Position = u_matViewProjection * vPosition;"
-	"}");
+    vshader = COMPILE_SHADER (GL_VERTEX_SHADER,
+	attribute vec4 vPosition;
+	uniform mat4 u_matViewProjection;
+	void main()
+	{
+	   gl_Position = u_matViewProjection * vPosition;
+	}
+    );
+    fshader = COMPILE_SHADER (GL_FRAGMENT_SHADER,
+	precision mediump float;
+	void main()
+	{
+	  gl_FragColor = vec4(1.0, 1.0, 0.0, 1.0);
+	}
+    );
+    program = create_program (vshader, fshader);
 
-    GLuint p_frag_shader = compile_shader(GL_FRAGMENT_SHADER,
-	"precision mediump float;"
-	"void main()"
-	"{"
-	"  gl_FragColor = vec4(1.0, 1.0, 0.0, 1.0);"
-	"}");
-
-    GLuint p_program = glCreateProgram();
-    glAttachShader(p_program, p_vert_shader);
-    glAttachShader(p_program, p_frag_shader);
-    glLinkProgram(p_program);
-
-    glUseProgram(p_program);
+    glUseProgram(program);
     GLfloat p_vertices[] = { +0.50, +0.00, +0.00,
 			   -0.25, +0.43, +0.00,
 			   -0.25, -0.43, +0.00 };
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, p_vertices);
     glEnableVertexAttribArray(0);
 
-    GLint p_mat_loc = glGetUniformLocation(p_program, "u_matViewProjection");
+    GLint p_mat_loc = glGetUniformLocation (program, "u_matViewProjection");
 
     {
       glViewport(0, 0, width, height);
@@ -214,35 +282,32 @@ main(int argc, char** argv)
     }
   }
   {
+    GLuint vshader, fshader, program;
     drawable_make_current (window->window);
 
-    GLuint w_vert_shader = compile_shader (GL_VERTEX_SHADER,
-        "attribute vec4 a_position;"
-        "attribute vec2 a_texCoord;"
-        "uniform mat4 u_matViewProjection;"
-        "varying vec2 v_texCoord;"
-        "void main()"
-        "{"
-        "  gl_Position = u_matViewProjection * a_position;"
-        "  v_texCoord = a_texCoord;"
-        "}");
+    vshader = COMPILE_SHADER (GL_VERTEX_SHADER,
+        attribute vec4 a_position;
+        attribute vec2 a_texCoord;
+        uniform mat4 u_matViewProjection;
+        varying vec2 v_texCoord;
+        void main()
+        {
+          gl_Position = u_matViewProjection * a_position;
+          v_texCoord = a_texCoord;
+        }
+    );
+    fshader = COMPILE_SHADER (GL_FRAGMENT_SHADER,
+        uniform sampler2D tex;
+        varying vec2 v_texCoord;
+        void main()
+        {
+          gl_FragColor = texture2D(tex, v_texCoord);
+        }
+    );
+    program = create_program (vshader, fshader);
 
-    GLuint w_frag_shader = compile_shader (GL_FRAGMENT_SHADER,
-        "uniform sampler2D tex;"
-        "varying vec2 v_texCoord;"
-        "void main()"
-        "{"
-        "  gl_FragColor = texture2D(tex, v_texCoord);"
-        "}");
 
-    GLuint w_program = glCreateProgram();
-    glAttachShader(w_program, w_vert_shader);
-    glAttachShader(w_program, w_frag_shader);
-    glLinkProgram(w_program);
-
-    // Texture from pixmap.
-    EGLImageKHR i_pixmap = eglCreateImageKHR(
-        edpy, drawable_get_egl (window->window)->context, EGL_NATIVE_PIXMAP_KHR, (void*) GDK_PIXMAP_XID (pixmap), NULL);
+    EGLImageKHR image = pixmap_create_texture_image (pixmap);
     GLuint pixmap_tex;
     glGenTextures(1, &pixmap_tex);
     glActiveTexture(GL_TEXTURE0);
@@ -251,14 +316,14 @@ main(int argc, char** argv)
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, i_pixmap);
+    glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, image);
 
     // Bind to program.
-    glUseProgram(w_program);
-    GLint w_tex_loc = glGetUniformLocation(w_program, "tex");
+    glUseProgram(program);
+    GLint w_tex_loc = glGetUniformLocation(program, "tex");
     glUniform1i(w_tex_loc, 0);
 
-    GLint w_mat_loc = glGetUniformLocation(w_program, "u_matViewProjection");
+    GLint w_mat_loc = glGetUniformLocation(program, "u_matViewProjection");
 
     GLfloat w_vertices[] = { -0.50, -0.50, +0.00,
                              +1.00, +0.00,
@@ -269,8 +334,8 @@ main(int argc, char** argv)
                              -0.50, +0.50, +0.00,
                              +1.00, +1.00 };
 
-    GLuint w_a_pos_loc = glGetAttribLocation(w_program, "a_position");
-    GLuint w_a_tex_loc = glGetAttribLocation(w_program, "a_texCoord");
+    GLuint w_a_pos_loc = glGetAttribLocation(program, "a_position");
+    GLuint w_a_tex_loc = glGetAttribLocation(program, "a_texCoord");
 
     glVertexAttribPointer(w_a_pos_loc, 3, GL_FLOAT, 
                           GL_FALSE, 5 * sizeof(GLfloat), w_vertices);
@@ -280,24 +345,13 @@ main(int argc, char** argv)
     glEnableVertexAttribArray(w_a_pos_loc);
     glEnableVertexAttribArray(w_a_tex_loc);
 
-    for(int i=0; i<10000; i++) {
-      double theta = M_PI / 360.0 * i;
-      GLfloat mat[] = { +cos(theta), +sin(theta), 0., 0.,
-                        -sin(theta), +cos(theta), 0., 0.,
-                                 0.,          0., 1., 0.,
-                                 0.,          0., 0., 1., };
-
-      glViewport(0, 0, width, height);
-      glClearColor(0., 0., 0., 0.);
-      glClear(GL_COLOR_BUFFER_BIT);
-
-      glUniformMatrix4fv(w_mat_loc, 1, GL_FALSE, mat);
-
-      glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-
-      drawable_swap_buffers (window->window);
-    }
+    gtk_widget_set_app_paintable (window, TRUE);
+    gtk_widget_set_double_buffered (window, FALSE);
+    gtk_widget_set_redraw_on_allocate (window, TRUE);
+    g_signal_connect (G_OBJECT (window), "expose-event", G_CALLBACK (expose_cb), GINT_TO_POINTER (w_mat_loc));
   }
+
+ g_timeout_add (1000 / 60, step, window->window);
 
   gtk_main ();
 }
