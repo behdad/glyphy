@@ -21,36 +21,6 @@ die (const char *msg)
   exit (1);
 }
 
-static void
-create_egl_for_drawable (EGLDisplay edpy, GdkDrawable *drawable, EGLSurface *surface, EGLContext *context)
-{
-  EGLConfig econfig;
-  EGLint num_configs;
-  const EGLint attribs[] = {
-    EGL_BUFFER_SIZE, 32,
-    EGL_RED_SIZE, 8,
-    EGL_GREEN_SIZE, 8,
-    EGL_BLUE_SIZE, 8,
-    EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-    EGL_SURFACE_TYPE, GDK_IS_WINDOW (drawable) ? EGL_WINDOW_BIT : EGL_PIXMAP_BIT,
-    EGL_NONE
-  };
-
-  if (!eglChooseConfig(edpy, attribs, &econfig, 1, &num_configs) || !num_configs)
-    die ("Could not find EGL config");
-
-  if (!(*surface = eglCreateWindowSurface (edpy, econfig, GDK_DRAWABLE_XID (drawable), NULL)))
-    die ("Could not create EGL surface");
-
-  EGLint ctx_attribs[] = {
-    EGL_CONTEXT_CLIENT_VERSION, 2,
-    EGL_NONE
-  };
-
-  if (!(*context = eglCreateContext (edpy, econfig, EGL_NO_CONTEXT, ctx_attribs)))
-    die ("Could not create EGL context");
-}
-
 static GLuint
 compile_shader (GLenum type, const GLchar* source)
 {
@@ -91,6 +61,36 @@ static GLuint
 compile_fragment_shader (const GLchar* source)
 {
   return compile_shader (GL_FRAGMENT_SHADER, source);
+}
+
+static void
+create_egl_for_drawable (EGLDisplay edpy, GdkDrawable *drawable, EGLSurface *surface, EGLContext *context)
+{
+  EGLConfig econfig;
+  EGLint num_configs;
+  const EGLint attribs[] = {
+    EGL_BUFFER_SIZE, 32,
+    EGL_RED_SIZE, 8,
+    EGL_GREEN_SIZE, 8,
+    EGL_BLUE_SIZE, 8,
+    EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+    EGL_SURFACE_TYPE, GDK_IS_WINDOW (drawable) ? EGL_WINDOW_BIT : EGL_PIXMAP_BIT,
+    EGL_NONE
+  };
+
+  if (!eglChooseConfig(edpy, attribs, &econfig, 1, &num_configs) || !num_configs)
+    die ("Could not find EGL config");
+
+  if (!(*surface = eglCreateWindowSurface (edpy, econfig, GDK_DRAWABLE_XID (drawable), NULL)))
+    die ("Could not create EGL surface");
+
+  EGLint ctx_attribs[] = {
+    EGL_CONTEXT_CLIENT_VERSION, 2,
+    EGL_NONE
+  };
+
+  if (!(*context = eglCreateContext (edpy, econfig, EGL_NO_CONTEXT, ctx_attribs)))
+    die ("Could not create EGL context");
 }
 
 GQuark
