@@ -1,4 +1,6 @@
 #include <X11/Xlib.h>
+#include <gtk/gtk.h>
+#include <gdk/gdkx.h>
 
 #include <GLES2/gl2.h>
 #define GL_GLEXT_PROTOTYPES
@@ -12,39 +14,10 @@
 #include <stdio.h>
 #include <unistd.h>
 
-void CreateWindow(Display *dpy,
-                  unsigned int width,
-                  unsigned int height,
-                  XID* window,
-                  XID parent = 0) {
-  int screen = DefaultScreen(dpy);
-  XSetWindowAttributes swa;
-  swa.event_mask = StructureNotifyMask;
-
-  *window =
-    XCreateWindow(dpy,
-                  parent ? parent : RootWindow(dpy, screen), /* parent */
-		  0, 0, width, height,
-		  0, // border width
-		  CopyFromParent, // depth
-		  InputOutput,
-		  CopyFromParent, // visual
-		  CWEventMask, &swa);
-  XMapWindow(dpy, *window);
-
-  while(1) {
-    XEvent event;
-    XNextEvent(dpy, &event);
-    if ((event.type == MapNotify) && (event.xmap.window == *window))
-      break;
-  }
-}
-
 // Creates a EGLContext backed by a window.
 void CreateWindowContext(Display* dpy, int width, int height,
-                         XID* window, EGLSurface* surface,
+                         XID window, EGLSurface* surface,
                          EGLContext* context) {
-  CreateWindow(dpy, width, height, window);
   EGLDisplay edpy = eglGetDisplay(dpy);
 
   const EGLint attribs[] = {
@@ -71,7 +44,7 @@ void CreateWindowContext(Display* dpy, int width, int height,
     return;
   }
 
-  if (!(*surface = eglCreateWindowSurface(edpy, econfig, *window, NULL))) {
+  if (!(*surface = eglCreateWindowSurface(edpy, econfig, window, NULL))) {
     fprintf(stderr,"Couldn't create window surface.\n");
     *surface = *context = NULL;
     return;
@@ -171,9 +144,17 @@ GLuint CompileShader(GLenum type, const GLchar* source) {
   return shader;
 }
 
-int main(int argc, char** argv) {
+int
+main(int argc, char** argv)
+{
+  GtkWidget *window;
 
-  Display* dpy = XOpenDisplay(NULL);
+  gtk_init (&argc, &argv);
+
+  window = (GtkWidget *) gtk_window_new (GTK_WINDOW_TOPLEVEL);
+  g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (gtk_main_quit), NULL);
+
+  Display* dpy = gdk_x11_display_get_xdisplay (gtk_widget_get_display (window));
   EGLDisplay edpy = eglGetDisplay(dpy);
   EGLint major, minor;
   eglInitialize(edpy, &major, &minor);
@@ -183,7 +164,9 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  int width = 800, height = 800;
+  gtk_widget_show_all (window);
+
+  int width = 400, height = 300;
     XID pixmap;
   {
 
@@ -249,11 +232,13 @@ int main(int argc, char** argv) {
   }
   {
       // Create an image wrapper for the pixmap and bind that to a texture
-    XID window;
+    XID xwindow;
     EGLSurface egl_window;
     EGLContext w_context;
+    xwindow = GDK_WINDOW_XID (window->window);
+
     CreateWindowContext(dpy, width, height,
-                        &window, &egl_window, &w_context);
+                        xwindow, &egl_window, &w_context);
 
     GLuint w_vert_shader = CompileShader(
         GL_VERTEX_SHADER,
@@ -321,14 +306,14 @@ int main(int argc, char** argv) {
     glEnableVertexAttribArray(w_a_pos_loc);
     glEnableVertexAttribArray(w_a_tex_loc);
 
-    for(int i=0; i<50000; i++) {
+      eglMakeCurrent(edpy, egl_window, egl_window, w_context);
+    for(int i=0; i<10000; i++) {
       double theta = M_PI / 360.0 * i;
       GLfloat mat[] = { +cos(theta), +sin(theta), 0., 0.,
                         -sin(theta), +cos(theta), 0., 0.,
                                  0.,          0., 1., 0.,
                                  0.,          0., 0., 1., };
       // Render to screen
-      eglMakeCurrent(edpy, egl_window, egl_window, w_context);
 
       glViewport(0, 0, width, height);
       glClearColor(0., 0., 0., 0.);
@@ -341,4 +326,5 @@ int main(int argc, char** argv) {
       eglSwapBuffers(edpy, egl_window);
     }
   }
+  //gtk_main ();
 }
