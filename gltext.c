@@ -182,10 +182,8 @@ setup_texture (void)
     if (image)
       cairo_surface_destroy (image);
 
-    image = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, width, height);
+    image = cairo_image_surface_create (CAIRO_FORMAT_A8, width, height);
     cr = cairo_create (image);
-    cairo_set_source_rgb (cr, 1., 1., 1.);
-    cairo_paint (cr);
     cairo_set_source_rgb (cr, 0., 0., 0.);
 
     cairo_select_font_face (cr, FONTFAMILY, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
@@ -199,7 +197,7 @@ setup_texture (void)
   }
 
 
-  glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, cairo_image_surface_get_data (image));
+  glTexImage2D (GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, cairo_image_surface_get_data (image));
   cairo_surface_write_to_png (image, "glyph.png");
 
   cairo_surface_destroy (image);
