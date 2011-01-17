@@ -52,7 +52,7 @@ compile_shader (GLenum type, const GLchar* source)
 
   return shader;
 }
-#define COMPILE_SHADER(Type,Src) compile_shader (Type, #Src)
+#define COMPILE_SHADER(Type,Src) compile_shader (Type, "#version 130\n" #Src)
 
 static GLuint
 create_program (GLuint vshader, GLuint fshader)
@@ -168,15 +168,15 @@ drawable_swap_buffers (GdkDrawable *drawable)
 static void
 setup_texture (void)
 {
-#define FONTSIZE 256
+#define FONTSIZE 64
 #define FONTFAMILY "serif"
 #define TEXT "abc"
-#define FILTERWIDTH 16
+#define FILTERWIDTH 32
   int width = 0, height = 0;
-  cairo_surface_t *image = NULL;
+  cairo_surface_t *image = NULL, *dest;
   cairo_t *cr;
   unsigned char *data;
-  int i, x, y;
+  int i;
 
   for (i = 0; i < 2; i++) {
     cairo_text_extents_t extents;
@@ -199,7 +199,25 @@ setup_texture (void)
     cairo_destroy (cr);
   }
 
-  data = cairo_image_surface_get_data (image);
+  {
+    unsigned char *dd;
+    int dx, dy, i, j;
+    data = cairo_image_surface_get_data (image);
+    dest = cairo_image_surface_create (CAIRO_FORMAT_A8, width, height);
+    dd = cairo_image_surface_get_data (dest);
+    for (dy = 0; dy < height; dy++)
+      for (dx = 0; dx < width; dx++) {
+        int c = 0;
+        c =  FILTERWIDTH * 2;
+	for (i = -FILTERWIDTH; i <= FILTERWIDTH; i++)
+	  for (j = -FILTERWIDTH; j <= FILTERWIDTH; j++)
+	    if (0 <= dy+i && dy+i < height && 0 <= dx+j && dx+j < width && data[(dy+i) * width + (dx+j)] >= 128)
+	      c = MIN (c, i*i + j*j);
+
+        dd[dy * width + dx] = c / (1.*FILTERWIDTH*2) * 255.;
+      }
+    data = cairo_image_surface_get_data (dest);
+  }
 
   glTexImage2D (GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, data);
   cairo_surface_write_to_png (image, "glyph.png");
@@ -208,7 +226,15 @@ setup_texture (void)
 }
 
 
-GLuint texture;
+static
+gboolean configure_cb (GtkWidget *widget,
+		       GdkEventConfigure *event,
+		       gpointer user_data)
+{
+  gdk_window_invalidate_rect (widget->window, NULL, TRUE);
+  return FALSE;
+}
+
 static
 gboolean expose_cb (GtkWidget *widget,
 		    GdkEventExpose *event,
@@ -224,7 +250,6 @@ gboolean expose_cb (GtkWidget *widget,
 
   drawable_make_current (widget->window);
 
-  glBindTexture (GL_TEXTURE_2D, texture);
   gtk_widget_get_allocation (widget, &allocation);
   glViewport(0, 0, allocation.width, allocation.height);
   glClearColor(0., 1., 0., 0.);
@@ -252,15 +277,16 @@ int
 main (int argc, char** argv)
 {
   GtkWidget *window;
-  GLuint vshader, fshader, program, a_pos_loc, a_tex_loc;
+  GLuint vshader, fshader, program, texture, a_pos_loc, a_tex_loc;
+#define ZOOM 1
   const GLfloat w_vertices[] = { -0.50, -0.50, +0.00,
-				 +10.00, +0.00,
+				 +0.00, ZOOM,
 				 +0.50, -0.50, +0.00,
-				 +0.00, +0.00,
+				 ZOOM, ZOOM,
 				 +0.50, +0.50, +0.00,
-				 +0.00, +10.00,
+				 ZOOM, +0.00,
 				 -0.50, +0.50, +0.00,
-				 +10.00, +10.00 };
+				 +0.00, +0.00 };
 
 
   gtk_init (&argc, &argv);
@@ -291,10 +317,15 @@ main (int argc, char** argv)
   fshader = COMPILE_SHADER (GL_FRAGMENT_SHADER,
       uniform sampler2D tex;
       varying vec2 v_texCoord;
+      varying float x;
       void main()
       {
-	gl_FragColor = texture2D(tex, v_texCoord);
-	gl_FragColor.a = .5;
+	float ddx = length (dFdx (v_texCoord));
+	float ddy = length (dFdy (v_texCoord));
+	float m = max (ddx, ddy);
+	gl_FragColor = smoothstep (.0, m, texture2D(tex, v_texCoord));
+	if (m > .25)
+	  gl_FragColor.r = .5;
       }
   );
   program = create_program (vshader, fshader);
@@ -321,12 +352,12 @@ main (int argc, char** argv)
   glEnableVertexAttribArray(a_pos_loc);
   glEnableVertexAttribArray(a_tex_loc);
 
-  gtk_widget_set_app_paintable (window, TRUE);
   gtk_widget_set_double_buffered (window, FALSE);
   gtk_widget_set_redraw_on_allocate (window, TRUE);
   g_signal_connect (G_OBJECT (window), "expose-event", G_CALLBACK (expose_cb), GINT_TO_POINTER (glGetUniformLocation (program, "u_matViewProjection")));
+  g_signal_connect (G_OBJECT (window), "configure-event", G_CALLBACK (configure_cb), NULL);
 
-  g_timeout_add (1000 / 60, step, window->window);
+//  g_timeout_add (1000 / 60, step, window->window);
 
   gtk_main ();
 
