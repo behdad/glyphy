@@ -165,20 +165,24 @@ drawable_swap_buffers (GdkDrawable *drawable)
   eglSwapBuffers (e->display, e->surface);
 }
 
-static GdkPixmap *
-drawable_create_glyph_pixmap (GdkDrawable *drawable)
+static void
+setup_texture (void)
 {
-#define FONTSIZE 128
+#define FONTSIZE 256
 #define FONTFAMILY "serif"
 #define TEXT "ab"
-  int width, height;
+  int width = 0, height = 0;
+  cairo_surface_t *image = NULL;
   cairo_t *cr;
-  cairo_surface_t *image;
-  GdkPixmap *pixmap;
+  int i;
 
-  for (width = height = 0; !height; ) {
+  for (i = 0; i < 2; i++) {
     cairo_text_extents_t extents;
-    image = cairo_image_surface_create (CAIRO_FORMAT_RGB24, width, height);
+
+    if (image)
+      cairo_surface_destroy (image);
+
+    image = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, width, height);
     cr = cairo_create (image);
     cairo_set_source_rgb (cr, 1., 1., 1.);
     cairo_paint (cr);
@@ -187,38 +191,22 @@ drawable_create_glyph_pixmap (GdkDrawable *drawable)
     cairo_select_font_face (cr, FONTFAMILY, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size (cr, FONTSIZE);
     cairo_text_extents (cr, TEXT, &extents);
-    cairo_move_to (cr, -floor (extents.x_bearing), -floor (extents.y_bearing));
-    //cairo_show_text (cr, TEXT);
     width = ceil (extents.x_bearing + extents.width) - floor (extents.x_bearing);
     height = ceil (extents.y_bearing + extents.height) - floor (extents.y_bearing);
+    cairo_move_to (cr, -floor (extents.x_bearing), -floor (extents.y_bearing));
+    cairo_show_text (cr, TEXT);
     cairo_destroy (cr);
-    if (!height)
-      cairo_surface_destroy (image);
   }
 
-  pixmap = gdk_pixmap_new (drawable, width, height, -1);
-  cr = gdk_cairo_create (pixmap);
-  cairo_set_source_rgb (cr, 1., 1., 1.);
-  //cairo_mask_surface (cr, image, 0, 0);
-  cairo_set_source_surface (cr, image, 0, 0);
-  cairo_paint (cr);
-  cairo_destroy (cr);
+
+  glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, cairo_image_surface_get_data (image));
+  cairo_surface_write_to_png (image, "glyph.png");
+
   cairo_surface_destroy (image);
-
-  return pixmap;
-}
-
-static EGLImageKHR
-pixmap_create_texture_image (Pixmap pixmap)
-{
-  return eglCreateImageKHR (eglGetCurrentDisplay (),
-			    eglGetCurrentContext (),
-			    EGL_NATIVE_PIXMAP_KHR,
-			    (EGLClientBuffer) pixmap,
-			    NULL);
 }
 
 
+GLuint texture;
 static
 gboolean expose_cb (GtkWidget *widget,
 		    GdkEventExpose *event,
@@ -234,9 +222,10 @@ gboolean expose_cb (GtkWidget *widget,
 
   drawable_make_current (widget->window);
 
+  glBindTexture (GL_TEXTURE_2D, texture);
   gtk_widget_get_allocation (widget, &allocation);
   glViewport(0, 0, allocation.width, allocation.height);
-  glClearColor(0., 0., 0., 0.);
+  glClearColor(0., 1., 0., 0.);
   glClear(GL_COLOR_BUFFER_BIT);
 
   glUniformMatrix4fv (GPOINTER_TO_INT (user_data), 1, GL_FALSE, mat);
@@ -260,10 +249,8 @@ step (gpointer data)
 int
 main (int argc, char** argv)
 {
-  GdkDrawable *pixmap;
   GtkWidget *window;
-  GLuint vshader, fshader, program, texture, a_pos_loc, a_tex_loc;
-  EGLImageKHR image;
+  GLuint vshader, fshader, program, a_pos_loc, a_tex_loc;
   const GLfloat w_vertices[] = { -0.50, -0.50, +0.00,
 				 +1.00, +0.00,
 				 +0.50, -0.50, +0.00,
@@ -286,8 +273,6 @@ main (int argc, char** argv)
 
   gtk_widget_show_all (window);
 
-  pixmap = drawable_create_glyph_pixmap (window->window);
-
   drawable_make_current (window->window);
 
   vshader = COMPILE_SHADER (GL_VERTEX_SHADER,
@@ -307,11 +292,12 @@ main (int argc, char** argv)
       void main()
       {
 	gl_FragColor = texture2D(tex, v_texCoord);
+	gl_FragColor.a = .5;
       }
   );
   program = create_program (vshader, fshader);
 
-
+  glUseProgram(program);
   glUniform1i(glGetUniformLocation(program, "tex"), 0);
   glActiveTexture (GL_TEXTURE0);
 
@@ -322,10 +308,7 @@ main (int argc, char** argv)
   glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-  image = pixmap_create_texture_image (GDK_PIXMAP_XID (pixmap));
-  glEGLImageTargetTexture2DOES (GL_TEXTURE_2D, image);
-
-  glUseProgram(program);
+  setup_texture ();
 
   a_pos_loc = glGetAttribLocation(program, "a_position");
   a_tex_loc = glGetAttribLocation(program, "a_texCoord");
