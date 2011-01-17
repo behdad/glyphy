@@ -13,7 +13,7 @@
 #include <unistd.h>
 
 void CreateWindow(Display *dpy,
-                  unsigned int width, 
+                  unsigned int width,
                   unsigned int height,
                   XID* window,
                   XID parent = 0) {
@@ -55,8 +55,7 @@ void CreateWindowContext(Display* dpy, int width, int height,
     EGL_BLUE_SIZE, 8,
     EGL_DEPTH_SIZE, 16,
     EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-    //EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-    EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
+    EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
     EGL_NONE };
 
   EGLConfig econfig;
@@ -78,13 +77,8 @@ void CreateWindowContext(Display* dpy, int width, int height,
     return;
   }
 
-  if (!eglBindAPI(EGL_OPENGL_API)) {
-    fprintf(stderr, "failed to bind EGL_OPENGL_API\n");
-    return;
-  }
-
   EGLint ctx_attribs[] = {
-    //EGL_CONTEXT_CLIENT_VERSION, 2,
+    EGL_CONTEXT_CLIENT_VERSION, 2,
     EGL_NONE
   };
 
@@ -115,8 +109,7 @@ void CreatePixmapContext(Display* dpy, int width, int height,
     EGL_GREEN_SIZE, 8,
     EGL_BLUE_SIZE, 8,
     EGL_DEPTH_SIZE, 16,
-    //EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-    EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
+    EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
     EGL_SURFACE_TYPE, EGL_PIXMAP_BIT,
     EGL_NONE };
 
@@ -140,13 +133,8 @@ void CreatePixmapContext(Display* dpy, int width, int height,
     return;
   }
 
-  if (!eglBindAPI(EGL_OPENGL_API)) {
-    fprintf(stderr, "failed to bind EGL_OPENGL_API\n");
-    return;
-  }
-
   EGLint ctx_attribs[] = {
-    //EGL_CONTEXT_CLIENT_VERSION, 2,
+    EGL_CONTEXT_CLIENT_VERSION, 2,
     EGL_NONE
   };
 
@@ -184,26 +172,29 @@ GLuint CompileShader(GLenum type, const GLchar* source) {
 }
 
 int main(int argc, char** argv) {
+
   Display* dpy = XOpenDisplay(NULL);
   EGLDisplay edpy = eglGetDisplay(dpy);
   EGLint major, minor;
   eglInitialize(edpy, &major, &minor);
-  printf("Egl %d.%d\n", major, minor);
+
+  if (!eglBindAPI(EGL_OPENGL_ES_API)) {
+    fprintf(stderr, "failed to bind EGL_OPENGL_ES_API\n");
+    return 0;
+  }
 
   int width = 800, height = 800;
-  if (argc == 1) {
     XID pixmap;
+  {
+
+    printf("Egl %d.%d\n", major, minor);
+
     EGLSurface egl_pixmap;
     EGLContext p_context;
     CreatePixmapContext(dpy, width, height,
                         &pixmap, &egl_pixmap, &p_context);
 
-    printf("GLES version %s\n", glGetString(GL_VERSION));
-
-    char str_pixmap[100];
-    snprintf(str_pixmap, 100, "%ld", pixmap);
-
-    if (fork()) {
+    {
       GLuint p_vert_shader = CompileShader(
           GL_VERTEX_SHADER,
           "attribute vec4 vPosition;"
@@ -235,7 +226,7 @@ int main(int argc, char** argv) {
 
       GLint p_mat_loc = glGetUniformLocation(p_program, "u_matViewProjection");
 
-      for(int i=0; i<50000; i++) {
+      for(int i=0; i<1; i++) {
         // Render to texture
         eglMakeCurrent(edpy, egl_pixmap, egl_pixmap, p_context);
 
@@ -254,10 +245,9 @@ int main(int argc, char** argv) {
 
         eglSwapBuffers(edpy, egl_pixmap);
       }
-    } else {
-      execl(argv[0], argv[0], str_pixmap, NULL);
     }
-  } else {
+  }
+  {
       // Create an image wrapper for the pixmap and bind that to a texture
     XID window;
     EGLSurface egl_window;
@@ -292,8 +282,6 @@ int main(int argc, char** argv) {
     glLinkProgram(w_program);
 
     // Texture from pixmap.
-    XID pixmap;
-    sscanf(argv[1], "%ld", &pixmap);
     EGLImageKHR i_pixmap = eglCreateImageKHR(
         edpy, w_context, EGL_NATIVE_PIXMAP_KHR, (void*) pixmap, NULL);
     GLuint pixmap_tex;
