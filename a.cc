@@ -51,17 +51,6 @@ compile_shader (GLenum type, const GLchar* source)
   return shader;
 }
 
-static GLuint
-compile_vertex_shader (const GLchar* source)
-{
-  return compile_shader (GL_VERTEX_SHADER, source);
-}
-
-static GLuint
-compile_fragment_shader (const GLchar* source)
-{
-  return compile_shader (GL_FRAGMENT_SHADER, source);
-}
 
 static void
 create_egl_for_drawable (EGLDisplay edpy, GdkDrawable *drawable, EGLSurface *surface, EGLContext *context)
@@ -180,7 +169,7 @@ main(int argc, char** argv)
 
     drawable_make_current (pixmap);
 
-    GLuint p_vert_shader = compile_vertex_shader(
+    GLuint p_vert_shader = compile_shader (GL_VERTEX_SHADER,
 	"attribute vec4 vPosition;"
 	"uniform mat4 u_matViewProjection;"
 	"void main()"
@@ -188,7 +177,7 @@ main(int argc, char** argv)
 	"   gl_Position = u_matViewProjection * vPosition;"
 	"}");
 
-    GLuint p_frag_shader = compile_fragment_shader(
+    GLuint p_frag_shader = compile_shader(GL_FRAGMENT_SHADER,
 	"precision mediump float;"
 	"void main()"
 	"{"
@@ -227,7 +216,7 @@ main(int argc, char** argv)
   {
     drawable_make_current (window->window);
 
-    GLuint w_vert_shader = compile_vertex_shader(
+    GLuint w_vert_shader = compile_shader (GL_VERTEX_SHADER,
         "attribute vec4 a_position;"
         "attribute vec2 a_texCoord;"
         "uniform mat4 u_matViewProjection;"
@@ -238,7 +227,7 @@ main(int argc, char** argv)
         "  v_texCoord = a_texCoord;"
         "}");
 
-    GLuint w_frag_shader = compile_fragment_shader(
+    GLuint w_frag_shader = compile_shader (GL_FRAGMENT_SHADER,
         "uniform sampler2D tex;"
         "varying vec2 v_texCoord;"
         "void main()"
