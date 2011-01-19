@@ -344,8 +344,8 @@ main (int argc, char** argv)
   a_pos_loc = glGetAttribLocation(program, "a_position");
   a_tex_loc = glGetAttribLocation(program, "a_texCoord");
 
-  glVertexAttribPointer(a_pos_loc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), w_vertices);
-  glVertexAttribPointer(a_tex_loc, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), &w_vertices[3]);
+  glVertexAttribPointer(a_pos_loc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), w_vertices+0);
+  glVertexAttribPointer(a_tex_loc, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), w_vertices+3);
 
   glEnableVertexAttribArray(a_pos_loc);
   glEnableVertexAttribArray(a_tex_loc);
