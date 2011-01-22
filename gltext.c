@@ -322,14 +322,14 @@ main (int argc, char** argv)
       {
 	float ddx = length (dFdx (v_texCoord));
 	float ddy = length (dFdy (v_texCoord));
-	float m = max (ddx, ddy);
+	float m = max (ddx, ddy); /* isotropic antialiasing */
 	gl_FragColor = smoothstep (.0, 2 * m, texture2D(tex, v_texCoord));
       }
   );
   program = create_program (vshader, fshader);
 
-  glUseProgram(program);
-  glUniform1i(glGetUniformLocation(program, "tex"), 0);
+  glUseProgram (program);
+  glUniform1i (glGetUniformLocation(program, "tex"), 0);
   glActiveTexture (GL_TEXTURE0);
 
   glGenTextures (1, &texture);
