@@ -169,11 +169,12 @@ drawable_swap_buffers (GdkDrawable *drawable)
 static void
 setup_texture (void)
 {
-#define FONTSIZE 256
+#define TEXSIZE 64
 #define SAMPLING 8
+#define FONTSIZE (TEXSIZE * SAMPLING)
 #define FONTFAMILY "serif"
 #define TEXT "abc"
-#define FILTERWIDTH 12
+#define FILTERWIDTH 8
   int width = 0, height = 0, swidth, sheight;
   cairo_surface_t *image = NULL, *dest;
   cairo_t *cr;
@@ -225,18 +226,18 @@ setup_texture (void)
 #define S(x,y) ((x)<0||(y)<0||(x)>=swidth||(y)>=sheight ? 0 : data[(y)*swidth+(x)])
 	if (S(sx,sy) >= 128) {
 	  /* in */
-	  for (i = -FILTERWIDTH; i <= FILTERWIDTH; i++)
-	    for (j = -FILTERWIDTH; j <= FILTERWIDTH; j++)
+	  for (i = -FILTERWIDTH*SAMPLING; i <= FILTERWIDTH*SAMPLING; i++)
+	    for (j = -FILTERWIDTH*SAMPLING; j <= FILTERWIDTH*SAMPLING; j++)
 	      if (S(sx+i,sy+j) < 128)
 		c = MIN (c, sqrt (i*i + j*j) - (128 - S(sx+i,sy+j)) / 256.);
-	  dd[y*width+x] = 128 - MIN (c, FILTERWIDTH) * (128. / FILTERWIDTH);
+	  dd[y*width+x] = 128 - MIN (c, FILTERWIDTH*SAMPLING) * 128. / (FILTERWIDTH*SAMPLING);
 	} else {
 	  /* out */
-	  for (i = -FILTERWIDTH; i <= FILTERWIDTH; i++)
-	    for (j = -FILTERWIDTH; j <= FILTERWIDTH; j++)
+	  for (i = -FILTERWIDTH*SAMPLING; i <= FILTERWIDTH*SAMPLING; i++)
+	    for (j = -FILTERWIDTH*SAMPLING; j <= FILTERWIDTH*SAMPLING; j++)
 	      if (S(sx+i,sy+j) >= 128)
 		c = MIN (c, sqrt (i*i + j*j) + (S(sx+i,sy+j)-128) / 256.);
-	  dd[y*width+x] = 127 + MIN (c, FILTERWIDTH) * (128 / FILTERWIDTH);
+	  dd[y*width+x] = 127 + MIN (c, FILTERWIDTH*SAMPLING) * 128. / (FILTERWIDTH*SAMPLING);
 	}
       }
     data = cairo_image_surface_get_data (dest);
@@ -284,7 +285,7 @@ gboolean expose_cb (GtkWidget *widget,
 
   drawable_swap_buffers (widget->window);
 
-  i++;
+  //i++;
 
   return TRUE;
 }
@@ -301,7 +302,7 @@ main (int argc, char** argv)
 {
   GtkWidget *window;
   GLuint vshader, fshader, program, texture, a_pos_loc, a_tex_loc;
-#define ZOOM 10
+#define ZOOM 1
   const GLfloat w_vertices[] = { -1.00, -1.00, +0.00,
 				 +0.00, ZOOM,
 				 +1.00, -1.00, +0.00,
@@ -346,7 +347,7 @@ main (int argc, char** argv)
 	float ddx = length (dFdx (v_texCoord));
 	float ddy = length (dFdy (v_texCoord));
 	float m = max (ddx, ddy); /* isotropic antialiasing */
-	float mm = m * 128 / FILTERWIDTH;
+	float mm = m * 128. / (FILTERWIDTH*SAMPLING);
 
 	gl_FragColor = smoothstep (-mm, mm, texture2D(tex, v_texCoord) - .5);
 	//gl_FragColor = texture2D(tex, v_texCoord);
