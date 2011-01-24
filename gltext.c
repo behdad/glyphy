@@ -52,7 +52,8 @@ compile_shader (GLenum type, const GLchar* source)
 
   return shader;
 }
-#define COMPILE_SHADER(Type,Src) compile_shader (Type, "#version 130\n" #Src)
+#define COMPILE_SHADER1(Type,Src) compile_shader (Type, "#version 130\n" #Src)
+#define COMPILE_SHADER(Type,Src) COMPILE_SHADER1(Type,Src)
 
 static GLuint
 create_program (GLuint vshader, GLuint fshader)
@@ -168,11 +169,12 @@ drawable_swap_buffers (GdkDrawable *drawable)
 static void
 setup_texture (void)
 {
-#define FONTSIZE 64
+#define FONTSIZE 256
+#define SAMPLING 8
 #define FONTFAMILY "serif"
 #define TEXT "abc"
-#define FILTERWIDTH 32
-  int width = 0, height = 0;
+#define FILTERWIDTH 12
+  int width = 0, height = 0, swidth, sheight;
   cairo_surface_t *image = NULL, *dest;
   cairo_t *cr;
   unsigned char *data;
@@ -191,30 +193,51 @@ setup_texture (void)
     cairo_select_font_face (cr, FONTFAMILY, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size (cr, FONTSIZE);
     cairo_text_extents (cr, TEXT, &extents);
-    width = 2*FILTERWIDTH + ceil (extents.x_bearing + extents.width) - floor (extents.x_bearing);
-    width = (width+3)&~3;
-    height = 2*FILTERWIDTH + ceil (extents.y_bearing + extents.height) - floor (extents.y_bearing);
-    cairo_move_to (cr, FILTERWIDTH -floor (extents.x_bearing), FILTERWIDTH -floor (extents.y_bearing));
+    width = ceil (extents.x_bearing + extents.width) - floor (extents.x_bearing);
+    height = ceil (extents.y_bearing + extents.height) - floor (extents.y_bearing);
+    width = (width+3)&~3;;
+    cairo_move_to (cr, -floor (extents.x_bearing), -floor (extents.y_bearing));
     cairo_show_text (cr, TEXT);
     cairo_destroy (cr);
   }
 
+  swidth = width;
+  sheight = height;
+
+  width = (width + SAMPLING-1) / SAMPLING + 2 * FILTERWIDTH;
+  height = (height + SAMPLING-1) / SAMPLING + 2 * FILTERWIDTH;
+  width = (width+3)&~3;;
   {
     unsigned char *dd;
-    int dx, dy, i, j;
+    int x, y;
     data = cairo_image_surface_get_data (image);
     dest = cairo_image_surface_create (CAIRO_FORMAT_A8, width, height);
     dd = cairo_image_surface_get_data (dest);
-    for (dy = 0; dy < height; dy++)
-      for (dx = 0; dx < width; dx++) {
-        int c = 0;
-        c =  FILTERWIDTH * 2;
-	for (i = -FILTERWIDTH; i <= FILTERWIDTH; i++)
-	  for (j = -FILTERWIDTH; j <= FILTERWIDTH; j++)
-	    if (0 <= dy+i && dy+i < height && 0 <= dx+j && dx+j < width && data[(dy+i) * width + (dx+j)] >= 128)
-	      c = MIN (c, i*i + j*j);
+    for (y = 0; y < height; y++)
+      for (x = 0; x < width; x++) {
+        int sx, sy, i, j;
+        double c;
 
-        dd[dy * width + dx] = sqrt (c) / (FILTERWIDTH*2) * 255;
+	sx = (x - FILTERWIDTH) * SAMPLING;
+	sy = (y - FILTERWIDTH) * SAMPLING;
+
+        c =  1e10;
+#define S(x,y) ((x)<0||(y)<0||(x)>=swidth||(y)>=sheight ? 0 : data[(y)*swidth+(x)])
+	if (S(sx,sy) >= 128) {
+	  /* in */
+	  for (i = -FILTERWIDTH; i <= FILTERWIDTH; i++)
+	    for (j = -FILTERWIDTH; j <= FILTERWIDTH; j++)
+	      if (S(sx+i,sy+j) < 128)
+		c = MIN (c, sqrt (i*i + j*j) - (128 - S(sx+i,sy+j)) / 256.);
+	  dd[y*width+x] = 128 - MIN (c, FILTERWIDTH) * (128. / FILTERWIDTH);
+	} else {
+	  /* out */
+	  for (i = -FILTERWIDTH; i <= FILTERWIDTH; i++)
+	    for (j = -FILTERWIDTH; j <= FILTERWIDTH; j++)
+	      if (S(sx+i,sy+j) >= 128)
+		c = MIN (c, sqrt (i*i + j*j) + (S(sx+i,sy+j)-128) / 256.);
+	  dd[y*width+x] = 127 + MIN (c, FILTERWIDTH) * (128 / FILTERWIDTH);
+	}
       }
     data = cairo_image_surface_get_data (dest);
   }
@@ -242,7 +265,7 @@ gboolean expose_cb (GtkWidget *widget,
 {
   GtkAllocation allocation;
   static int i = 0;
-  double theta = M_PI / 360.0 * i;
+  double theta = M_PI / 360.0 * i / 3.;
   GLfloat mat[] = { +cos(theta), +sin(theta), 0., 0.,
 		    -sin(theta), +cos(theta), 0., 0.,
 			     0.,          0., 1., 0.,
@@ -278,21 +301,21 @@ main (int argc, char** argv)
 {
   GtkWidget *window;
   GLuint vshader, fshader, program, texture, a_pos_loc, a_tex_loc;
-#define ZOOM 1
-  const GLfloat w_vertices[] = { -0.50, -0.50, +0.00,
+#define ZOOM 10
+  const GLfloat w_vertices[] = { -1.00, -1.00, +0.00,
 				 +0.00, ZOOM,
-				 +0.50, -0.50, +0.00,
+				 +1.00, -1.00, +0.00,
 				 ZOOM, ZOOM,
-				 +0.50, +0.50, +0.00,
+				 +1.00, +1.00, +0.00,
 				 ZOOM, +0.00,
-				 -0.50, +0.50, +0.00,
+				 -1.00, +1.00, +0.00,
 				 +0.00, +0.00 };
 
 
   gtk_init (&argc, &argv);
 
   window = GTK_WIDGET (gtk_window_new (GTK_WINDOW_TOPLEVEL));
-  gtk_window_set_default_size (GTK_WINDOW (window), 500, 500);
+  gtk_window_set_default_size (GTK_WINDOW (window), 300, 300);
   g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (gtk_main_quit), NULL);
 
   eglInitialize (eglGetDisplay (gdk_x11_display_get_xdisplay (gtk_widget_get_display (window))), NULL, NULL);
@@ -323,7 +346,10 @@ main (int argc, char** argv)
 	float ddx = length (dFdx (v_texCoord));
 	float ddy = length (dFdy (v_texCoord));
 	float m = max (ddx, ddy); /* isotropic antialiasing */
-	gl_FragColor = smoothstep (.0, 2 * m, texture2D(tex, v_texCoord));
+	float mm = m * 128 / FILTERWIDTH;
+
+	gl_FragColor = smoothstep (-mm, mm, texture2D(tex, v_texCoord) - .5);
+	//gl_FragColor = texture2D(tex, v_texCoord);
       }
   );
   program = create_program (vshader, fshader);
@@ -355,7 +381,7 @@ main (int argc, char** argv)
   g_signal_connect (G_OBJECT (window), "expose-event", G_CALLBACK (expose_cb), GINT_TO_POINTER (glGetUniformLocation (program, "u_matViewProjection")));
   g_signal_connect (G_OBJECT (window), "configure-event", G_CALLBACK (configure_cb), NULL);
 
-//  g_timeout_add (1000 / 60, step, window->window);
+  g_timeout_add (1000 / 60, step, window->window);
 
   gtk_main ();
 
