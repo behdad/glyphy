@@ -224,20 +224,21 @@ setup_texture (void)
 
         c =  1e10;
 #define S(x,y) ((x)<0||(y)<0||(x)>=swidth||(y)>=sheight ? 0 : data[(y)*swidth+(x)])
+#define D(x,y) (dd[(y)*width+(x)])
 	if (S(sx,sy) >= 128) {
 	  /* in */
 	  for (i = -FILTERWIDTH*SAMPLING; i <= FILTERWIDTH*SAMPLING; i++)
 	    for (j = -FILTERWIDTH*SAMPLING; j <= FILTERWIDTH*SAMPLING; j++)
 	      if (S(sx+i,sy+j) < 128)
-		c = MIN (c, sqrt (i*i + j*j) - (128 - S(sx+i,sy+j)) / 256.);
-	  dd[y*width+x] = 128 - MIN (c, FILTERWIDTH*SAMPLING) * 128. / (FILTERWIDTH*SAMPLING);
+		c = MIN (c, sqrt (i*i + j*j));
+	  D(x,y) = 128 - MIN (c, FILTERWIDTH*SAMPLING) * 128. / (FILTERWIDTH*SAMPLING);
 	} else {
 	  /* out */
 	  for (i = -FILTERWIDTH*SAMPLING; i <= FILTERWIDTH*SAMPLING; i++)
 	    for (j = -FILTERWIDTH*SAMPLING; j <= FILTERWIDTH*SAMPLING; j++)
 	      if (S(sx+i,sy+j) >= 128)
-		c = MIN (c, sqrt (i*i + j*j) + (S(sx+i,sy+j)-128) / 256.);
-	  dd[y*width+x] = 127 + MIN (c, FILTERWIDTH*SAMPLING) * 128. / (FILTERWIDTH*SAMPLING);
+		c = MIN (c, sqrt (i*i + j*j));
+	  D(x,y) = 127 + MIN (c, FILTERWIDTH*SAMPLING) * 128. / (FILTERWIDTH*SAMPLING);
 	}
       }
     data = cairo_image_surface_get_data (dest);
