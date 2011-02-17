@@ -18,7 +18,9 @@ typedef int bool;
 #define false FALSE
 #define true TRUE
 
+typedef struct { double x, y; } vector_t;
 typedef struct { double x, y; } point_t;
+typedef struct { point_t c; double r; } circle_t;
 typedef struct { double a, b, c; } line_t; /* a*x + b*y = c */
 
 static void
@@ -77,36 +79,71 @@ bezier_derivatives (double t,
 }
 
 static void
-points_difference (point_t A, point_t B, point_t *d)
+points_difference (const point_t A, const point_t B, vector_t *d)
 {
   d->x = B.x - A.x;
   d->y = B.y - A.y;
 }
 
 static double
-points_distance (point_t A, point_t B)
+vector_length (const vector_t v)
 {
-  point_t d;
+  return hypot (v.x, v.y);
+}
+
+static double
+points_distance (const point_t A, const point_t B)
+{
+  vector_t d;
   points_difference (A, B, &d);
-  return hypot (d.x, d.y);
+  return vector_length (d);
 }
 
 static void
-vector_normal (point_t v, point_t *n)
+vector_perpendicular (vector_t v, vector_t *n)
 {
   n->x = -v.y;
   n->y =  v.x;
 }
 
-static void
-segments_to_line (point_t p0, point_t p1, line_t *l)
+static bool
+vector_normal (vector_t v, vector_t *n)
 {
-  point_t d, n;
+  double d = vector_length (v);
+  if (!d) {
+    /* degenerate vector of zero */
+    n->x = n->y = 0;
+    return false;
+  }
+
+  vector_perpendicular (v, n);
+  n->x /= d;
+  n->y /= d;
+  return true;
+}
+
+static void
+line_from_two_points (point_t p0, point_t p1, line_t *l)
+{
+  vector_t d, n;
   points_difference (p0, p1, &d);
-  vector_normal (d, &n);
+  vector_perpendicular (d, &n);
   l->a = n.x;
   l->b = n.y;
   l->c = n.x * p0.x + n.y * p0.y;
+}
+
+static bool
+line_normalize (line_t *l)
+{
+  double d = hypot (l->a, l->b);
+
+  if (!d) return false;
+
+  l->a /= d;
+  l->b /= d;
+  l->c /= d;
+  return true;
 }
 
 static bool
@@ -133,10 +170,22 @@ segments_intersection (point_t p0,
 {
   line_t l0, l1;
 
-  segments_to_line (p0, p1, &l0);
-  segments_to_line (p3, p2, &l1);
+  line_from_two_points (p0, p1, &l0);
+  line_from_two_points (p3, p2, &l1);
 
   return lines_intersection (l0, l1, p);
+}
+
+static double
+point_distance_to_line (point_t p, line_t l)
+{
+  return (l.a * p.x + l.b * p.y - l.c) / hypot (l.a, l.b);
+}
+
+static double
+point_distance_to_normal_line (point_t p, line_t l)
+{
+  return l.a * p.x + l.b * p.y - l.c;
 }
 
 /* https://secure.wikimedia.org/wikipedia/en/wiki/Incentre#Coordinates_of_the_incenter */
@@ -160,6 +209,34 @@ incenter_point (point_t A,
   g->x = (a * A.x + b * B.x + c * C.x) / P;
   g->y = (a * A.y + b * B.y + c * C.y) / P;
 }
+
+static bool
+circle_by_two_points_and_tangent (point_t p0, point_t p1, point_t p3, circle_t *c)
+{
+  double d, x, r;
+  line_t tangent;
+
+  line_from_two_points (p0, p1, &tangent);
+
+  if (!line_normalize (&tangent))
+    goto degenerate;
+
+  x = point_distance_to_normal_line (p3, tangent);
+  d = points_distance (p0, p3);
+  r = d * d / (2 * x);
+
+  c->r = r;
+  c->c.x = p0.x + r * tangent.a;
+  c->c.y = p0.y + r * tangent.b;
+
+  return true;
+
+degenerate:
+  c->c.x = c->c.y = c->r = 0;
+  return false;
+}
+
+
 
 void fancy_cairo_stroke (cairo_t *cr);
 void fancy_cairo_stroke_preserve (cairo_t *cr);
@@ -222,19 +299,31 @@ _fancy_cairo_stroke (cairo_t *cr, cairo_bool_t preserve)
 
 	  point_t p0 = P(current_point), p1 = P(data[1]), p2 = P(data[2]), p3 = P(data[3]);
 	  point_t v, g;
+	  circle_t c0, c1;
 
 	  /* XXX */ segments_intersection (p0, p1, p2, p3, &v);
 
 	  incenter_point (p0, v, p3, &g);
+	  circle_by_two_points_and_tangent (p0, p1, g, &c0);
+	  circle_by_two_points_and_tangent (p3, p2, g, &c1);
+	  c1.r = -c1.r; /* adjust direction */
 
 	  cairo_save (cr);
+	  cairo_set_line_cap (cr, CAIRO_LINE_CAP_ROUND);
+
 	  cairo_move_to (cr, v.x, v.y);
 	  cairo_rel_line_to (cr, 0, 0);
 	  cairo_move_to (cr, g.x, g.y);
 	  cairo_rel_line_to (cr, 0, 0);
 	  cairo_set_line_width (cr, line_width * 4);
-	  cairo_set_line_cap (cr, CAIRO_LINE_CAP_ROUND);
 	  cairo_stroke (cr);
+
+	  cairo_set_line_width (cr, line_width * .25);
+	  cairo_arc (cr, c0.c.x, c0.c.y, c0.r, 0, 2*M_PI);
+	  cairo_stroke (cr);
+	  cairo_arc (cr, c1.c.x, c1.c.y, c1.r, 0, 2*M_PI);
+	  cairo_stroke (cr);
+
 	  cairo_restore (cr);
 
 	  {
@@ -373,7 +462,7 @@ draw_wow (cairo_t *cr)
   cairo_move_to (cr, 50, 380);
   cairo_scale (cr, 2, 2);
 
-  cairo_rel_curve_to (cr, 50, -50, 150, -50, 200, 0);
+  cairo_rel_curve_to (cr, 50, -50, 250, -60, 330, 20);
 
   cairo_set_line_width (cr, 2.0);
   cairo_set_source_rgba (cr, 0.3, 1.0, 0.3, 1.0);
