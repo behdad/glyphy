@@ -24,15 +24,15 @@ typedef struct { point_t c; double r; } circle_t;
 typedef struct { double a, b, c; } line_t; /* a*x + b*y = c */
 
 static void
-bezier_derivatives (double t,
-		    point_t p0,
-		    point_t p1,
-		    point_t p2,
-		    point_t p3,
-		    point_t *p,
-		    point_t *dp,
-		    point_t *ddp
-		    )
+bezier_calculate (double t,
+		  point_t p0,
+		  point_t p1,
+		  point_t p2,
+		  point_t p3,
+		  point_t *p,
+		  vector_t *dp,
+		  vector_t *ddp
+		  )
 {
   double t_1_0, t_0_1;
   double t_2_0, t_0_2;
@@ -53,29 +53,35 @@ bezier_derivatives (double t,
   _1__4t_1_0_3t_2_0 = 1 - 4 * t_1_0 + 3 * t_2_0;
   _2t_1_0_3t_2_0    =     2 * t_1_0 - 3 * t_2_0;
 
-  /* Bezier polynomial */
-  p->x = p0.x * t_0_3
-   + 3 * p1.x * t_1_2
-   + 3 * p2.x * t_2_1
-   +     p3.x * t_3_0;
-  p->y = p0.y * t_0_3
-   + 3 * p1.y * t_1_2
-   + 3 * p2.y * t_2_1
-   +     p3.y * t_3_0;
+  if (p) {
+    /* Bezier polynomial */
+    p->x = p0.x * t_0_3
+     + 3 * p1.x * t_1_2
+     + 3 * p2.x * t_2_1
+     +     p3.x * t_3_0;
+    p->y = p0.y * t_0_3
+     + 3 * p1.y * t_1_2
+     + 3 * p2.y * t_2_1
+     +     p3.y * t_3_0;
+  }
 
-  /* Bezier gradient */
-  dp->x = -3 * p0.x * t_0_2
-	 + 3 * p1.x * _1__4t_1_0_3t_2_0
-	 + 3 * p2.x * _2t_1_0_3t_2_0
-	 + 3 * p3.x * t_2_0;
-  dp->y = -3 * p0.y * t_0_2
-	 + 3 * p1.y * _1__4t_1_0_3t_2_0
-	 + 3 * p2.y * _2t_1_0_3t_2_0
-	 + 3 * p3.y * t_2_0;
+  if (dp) {
+    /* Bezier gradient */
+    dp->x = -3 * p0.x * t_0_2
+	   + 3 * p1.x * _1__4t_1_0_3t_2_0
+	   + 3 * p2.x * _2t_1_0_3t_2_0
+	   + 3 * p3.x * t_2_0;
+    dp->y = -3 * p0.y * t_0_2
+	   + 3 * p1.y * _1__4t_1_0_3t_2_0
+	   + 3 * p2.y * _2t_1_0_3t_2_0
+	   + 3 * p3.y * t_2_0;
+  }
 
-  /* Bezier second derivatives */
-  ddp->x = 6 * ( (-p0.x+3*p1.x-3*p2.x+p3.x) * t + (p0.x-2*p1.x+p2.x));
-  ddp->y = 6 * ( (-p0.y+3*p1.y-3*p2.y+p3.y) * t + (p0.y-2*p1.y+p2.y));
+  if (ddp) {
+    /* Bezier second derivatives */
+    ddp->x = 6 * ( (-p0.x+3*p1.x-3*p2.x+p3.x) * t + (p0.x-2*p1.x+p2.x));
+    ddp->y = 6 * ( (-p0.y+3*p1.y-3*p2.y+p3.y) * t + (p0.y-2*p1.y+p2.y));
+  }
 }
 
 static void
@@ -329,14 +335,14 @@ _fancy_cairo_stroke (cairo_t *cr, cairo_bool_t preserve)
 	  {
 	    double t;
 	    for (t = 0; t <= 1; t += .01) {
-	      point_t p, dp, ddp, nv, cv;
+	      point_t p;
+	      vector_t dp, ddp, nv, cv;
 	      double len, curvature;
-	      bezier_derivatives (t, P(current_point), P(data[1]), P(data[2]), P(data[3]), &p, &dp, &ddp);
+	      bezier_calculate (t, p0, p1, p2, p3, &p, &dp, &ddp);
 
 	      /* normal vector len squared */
-	      len = sqrt (dp.x*dp.x + dp.y*dp.y);
-	      nv.x = -dp.y / len;
-	      nv.y =  dp.x / len;
+	      len = vector_length (dp);
+	      vector_normal (dp, &nv);
 
 	      curvature = (ddp.y * dp.x - ddp.x * dp.y) / (len*len*len);
 	      cv.x = nv.x / curvature;
