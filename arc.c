@@ -419,6 +419,40 @@ print_path_stats (const cairo_path_t *path)
   printf ("%d lines, %d arcs, %d curves\n", lines, arcs, curves);
 }
 
+double
+max_dev (double d0, double d1)
+{
+  double e;
+  unsigned int i;
+  double candidates[4] = {0,1};
+  unsigned int num_candidates = 2;
+  double delta = d0*d0 - d0*d1 + d1*d1;
+  if (d0 == d1)
+    candidates[num_candidates++] = .5;
+  if (delta == 0)
+    candidates[num_candidates++] = (2*d0-d1) / (3*(d0-d1));
+  else if (delta > 0) {
+    candidates[num_candidates++] = ((2*d0-d1) - sqrt (delta)) / (3*(d0-d1));
+    candidates[num_candidates++] = ((2*d0-d1) + sqrt (delta)) / (3*(d0-d1));
+  }
+  e = 0;
+  for (i = 0; i < num_candidates; i++) {
+    double t = candidates[i];
+    double ee;
+    if (t < 0 || t > 1)
+      continue;
+    ee = 3 * t * (1-t) * (d0*(1-t)+d1*t);
+    e = MAX (e, fabs(ee));
+  }
+  {
+    double e0, e1;
+    e0 = 3./4.*MAX(fabs(d0),fabs(d1));
+    e1 = 4./9.*(fabs(d0)+fabs(d1));
+    printf ("max_dev(%g,%g) = %g ... %g=MIN(%g,%g)\n", d0, d1, e, MIN(e0, e1), e0, e1);
+  }
+  return e;
+}
+
 static void
 demo_curve (cairo_t *cr)
 {
@@ -454,7 +488,7 @@ demo_curve (cairo_t *cr)
 	    point_t v, g;
 	    circle_t c0, c1, cg;
 	    double a0, a1, a2, a3, a40, a41, _4_3_tan_a40, _4_3_tan_a41 ;
-	    double ea, ea0, ea1, eb, d0, d1, eb0, eb1, e;
+	    double ea, ea0, ea1, eb, d0, d1, e;
 	    point_t p1s, p2s;
 	    /* biarc incenter */
 	    segments_intersection (p0, p1, p2, p3, &v);
@@ -487,10 +521,17 @@ demo_curve (cairo_t *cr)
 	    ea = ea0 + ea1;
 	    d0 = points_distance (p1, p1s);
 	    d1 = points_distance (p2, p2s);
-	    eb0 = 3./4.*MAX(d0,d1);
-	    eb1 = 4./9.*(d0+d1);
-	    e = ea + MIN(eb0,eb1);
-	    printf ("Calculated biarc error uppper bound (%g+MIN(%g+%g) = %g\n", ea, eb0, eb1, e);
+	    {
+	      vector_t v0, v1, v;
+	      v0 = points_difference (p1, p1s);
+	      v1 = points_difference (p2, p2s);
+	      v.x = max_dev (v0.x, v1.x);
+	      v.y = max_dev (v0.y, v1.y);
+	      eb = vector_length (v);
+	    }
+	    //eb = max_dev (d0, d1);
+	    e = ea + eb;
+	    printf ("Calculated biarc error uppper bound %g+%g = %g\n", ea, eb, e);
 
 	    {
 	      double t;
@@ -502,9 +543,9 @@ demo_curve (cairo_t *cr)
 		a_0 = atan_two_points (c0.c, p);
 		a_1 = atan_two_points (c1.c, p);
 		if (a0 <= a_0 && a_0 <= a1)
-		  e = MAX (e, abs (points_distance (p, c0.c) - c0.r));
+		  e = MAX (e, fabs (points_distance (p, c0.c) - c0.r));
 		else if (a2 <= a_1 && a_1 <= a3)
-		  e = MAX (e, abs (points_distance (p, c1.c) - c1.r));
+		  e = MAX (e, fabs (points_distance (p, c1.c) - c1.r));
 		else
 		  printf ("umm, something went wrong: %g %g %g %g %g %g\n", a0, a1, a2, a3, a_0, a_1);
 	      }
@@ -546,7 +587,7 @@ demo_curve (cairo_t *cr)
 	    circle_t cm;
 	    point_t m;
 	    double a0, a1, a4, _4_3_tan_a4;
-	    double ea, eb, d0, d1, eb0, eb1, e;
+	    double ea, eb, d0, d1, e;
 	    point_t p1s, p2s;
 	    bezier_calculate (.5, p0, p1, p2, p3, &m, NULL, NULL);
 	    circle_by_three_points (p0, m, p3, &cm);
@@ -568,10 +609,17 @@ demo_curve (cairo_t *cr)
 	    ea = 4./27.*cm.r*pow(sin(a4),6)/pow(cos(a4)/4.,2);
 	    d0 = points_distance (p1, p1s);
 	    d1 = points_distance (p2, p2s);
-	    eb0 = 3./4.*MAX(d0,d1);
-	    eb1 = 4./9.*(d0+d1);
-	    e = ea + MIN(eb0,eb1);
-	    printf ("Calculated arc error uppper bound (%g+MIN(%g+%g) = %g\n", ea, eb0, eb1, e);
+	    {
+	      vector_t v0, v1, v;
+	      v0 = points_difference (p1, p1s);
+	      v1 = points_difference (p2, p2s);
+	      v.x = max_dev (v0.x, v1.x);
+	      v.y = max_dev (v0.y, v1.y);
+	      eb = vector_length (v);
+	    }
+	    //eb = max_dev (d0, d1);
+	    e = ea + eb;
+	    printf ("Calculated arc error uppper bound %g+%g = %g\n", ea, eb, e);
 
 	    {
 	      double t;
@@ -579,7 +627,7 @@ demo_curve (cairo_t *cr)
 	      for (t = 0; t <= 1; t += .01) {
 		point_t p;
 		bezier_calculate (t, p0, p1, p2, p3, &p, NULL, NULL);
-		e = MAX (e, abs (points_distance (p, cm.c) - cm.r));
+		e = MAX (e, fabs (points_distance (p, cm.c) - cm.r));
 	      }
 	      printf ("Actual arc max error %g\n", e);
 	    }
@@ -606,6 +654,10 @@ demo_curve (cairo_t *cr)
 	    cairo_line_to (cr, p1s.x, p1s.y);
 	    cairo_move_to (cr, p3.x, p3.y);
 	    cairo_line_to (cr, p2s.x, p2s.y);
+	    cairo_stroke (cr);
+	    cairo_set_source_rgb (cr, 0, 0, 0);
+	    cairo_move_to (cr, p0.x, p0.y);
+	    cairo_curve_to (cr, p1s.x, p1s.y, p2s.x, p2s.y, p3.x, p3.y);
 	    cairo_stroke (cr);
 
 	    cairo_restore (cr);
@@ -704,8 +756,8 @@ draw_raskus_simple (cairo_t *cr)
   cairo_new_path (cr);
 
   cairo_save (cr);
-  cairo_translate (cr, -500, 400);
-  cairo_scale (cr, 100, -100);
+  cairo_translate (cr, -1600, 500);
+  cairo_scale (cr, 250, -250);
   cairo_translate (cr, -10, -1);
   cairo_move_to (cr, 16.9753, .7421);
   cairo_curve_to (cr, 18.2203, 2.2238, 21.0939, 2.4017, 23.1643, 1.6148);
@@ -755,7 +807,7 @@ int main (int argc, char **argv)
   filename = argv[1];
 
   surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32,
-					1000, 800);
+					1900, 1000);
   cr = cairo_create (surface);
 
   cairo_set_source_rgb (cr, 1.0, 1.0, 1.0);
