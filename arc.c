@@ -444,7 +444,7 @@ max_dev (double d0, double d1)
     ee = 3 * t * (1-t) * (d0*(1-t)+d1*t);
     e = MAX (e, fabs(ee));
   }
-  {
+  if (0) {
     double e0, e1;
     e0 = 3./4.*MAX(fabs(d0),fabs(d1));
     e1 = 4./9.*(fabs(d0)+fabs(d1));
@@ -488,7 +488,7 @@ demo_curve (cairo_t *cr)
 	    point_t v, g;
 	    circle_t c0, c1, cg;
 	    double a0, a1, a2, a3, a40, a41, _4_3_tan_a40, _4_3_tan_a41 ;
-	    double ea, ea0, ea1, eb, d0, d1, e;
+	    double ea, ea0, ea1, eb, e;
 	    point_t p1s, p2s;
 	    /* biarc incenter */
 	    segments_intersection (p0, p1, p2, p3, &v);
@@ -519,8 +519,7 @@ demo_curve (cairo_t *cr)
 	    ea0 = 4./27.*c0.r*pow(sin(a40),6)/pow(cos(a40)/4.,2);
 	    ea1 = 4./27.*c1.r*pow(sin(a41),6)/pow(cos(a41)/4.,2);
 	    ea = ea0 + ea1;
-	    d0 = points_distance (p1, p1s);
-	    d1 = points_distance (p2, p2s);
+	    //eb = max_dev (points_distance (p1, p1s), points_distance (p2, p2s));
 	    {
 	      vector_t v0, v1, v;
 	      v0 = points_difference (p1, p1s);
@@ -529,7 +528,6 @@ demo_curve (cairo_t *cr)
 	      v.y = max_dev (v0.y, v1.y);
 	      eb = vector_length (v);
 	    }
-	    //eb = max_dev (d0, d1);
 	    e = ea + eb;
 	    printf ("Calculated biarc error uppper bound %g+%g = %g\n", ea, eb, e);
 
@@ -587,7 +585,7 @@ demo_curve (cairo_t *cr)
 	    circle_t cm;
 	    point_t m;
 	    double a0, a1, a4, _4_3_tan_a4;
-	    double ea, eb, d0, d1, e;
+	    double ea, eb, e;
 	    point_t p1s, p2s;
 	    bezier_calculate (.5, p0, p1, p2, p3, &m, NULL, NULL);
 	    circle_by_three_points (p0, m, p3, &cm);
@@ -607,8 +605,7 @@ demo_curve (cairo_t *cr)
 		      ), _4_3_tan_a4));
 
 	    ea = 4./27.*cm.r*pow(sin(a4),6)/pow(cos(a4)/4.,2);
-	    d0 = points_distance (p1, p1s);
-	    d1 = points_distance (p2, p2s);
+	    //eb = max_dev (points_distance (p1, p1s), points_distance (p2, p2s));
 	    {
 	      vector_t v0, v1, v;
 	      v0 = points_difference (p1, p1s);
@@ -617,7 +614,6 @@ demo_curve (cairo_t *cr)
 	      v.y = max_dev (v0.y, v1.y);
 	      eb = vector_length (v);
 	    }
-	    //eb = max_dev (d0, d1);
 	    e = ea + eb;
 	    printf ("Calculated arc error uppper bound %g+%g = %g\n", ea, eb, e);
 
