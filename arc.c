@@ -84,11 +84,21 @@ bezier_calculate (double t,
   }
 }
 
-static void
-points_difference (const point_t A, const point_t B, vector_t *d)
+static point_t
+point_add (point_t p, const vector_t v)
 {
-  d->x = B.x - A.x;
-  d->y = B.y - A.y;
+  p.x += v.x;
+  p.y += v.y;
+  return p;
+}
+
+static vector_t
+points_difference (const point_t A, const point_t B)
+{
+  vector_t d;
+  d.x = B.x - A.x;
+  d.y = B.y - A.y;
+  return d;
 }
 
 static double
@@ -100,40 +110,46 @@ vector_length (const vector_t v)
 static double
 points_distance (const point_t A, const point_t B)
 {
-  vector_t d;
-  points_difference (A, B, &d);
-  return vector_length (d);
+  return vector_length (points_difference (A, B));
 }
 
-static void
-vector_perpendicular (const vector_t v, vector_t *n)
+static vector_t
+vector_perpendicular (const vector_t v)
 {
-  n->x = -v.y;
-  n->y =  v.x;
+  vector_t n;
+  n.x = -v.y;
+  n.y =  v.x;
+  return n;
 }
 
-static bool
-vector_normal (const vector_t v, vector_t *n)
+static vector_t
+vector_normal (const vector_t v)
 {
   double d = vector_length (v);
   if (!d) {
     /* degenerate vector of zero */
-    n->x = n->y = 0;
-    return false;
+    vector_t n = {0, 0};
+    return n;
   }
 
-  vector_perpendicular (v, n);
-  n->x /= d;
-  n->y /= d;
-  return true;
+  vector_t n = vector_perpendicular (v);
+  n.x /= d;
+  n.y /= d;
+  return n;
+}
+
+static vector_t
+vector_scale (vector_t v, double scale)
+{
+  v.x *= scale;
+  v.y *= scale;
+  return v;
 }
 
 static void
 line_from_two_points (const point_t p0, const point_t p1, line_t *l)
 {
-  vector_t d, n;
-  points_difference (p0, p1, &d);
-  vector_perpendicular (d, &n);
+  vector_t n = vector_perpendicular (points_difference (p0, p1));
   l->a = n.x;
   l->b = n.y;
   l->c = n.x * p0.x + n.y * p0.y;
@@ -142,9 +158,7 @@ line_from_two_points (const point_t p0, const point_t p1, line_t *l)
 static void
 segment_axis_line (const point_t p0, const point_t p1, line_t *l)
 {
-  vector_t d;
-
-  points_difference (p0, p1, &d);
+  vector_t d = points_difference (p0, p1);
 
   l->a = d.x;
   l->b = d.y;
@@ -228,6 +242,12 @@ incenter_point (const point_t A,
   g->y = (a * A.y + b * B.y + c * C.y) / P;
 }
 
+static double
+atan_two_points (const point_t p0, const point_t p1)
+{
+  return atan2 (p1.y - p0.y, p1.x - p0.x);
+}
+
 static void
 circle_by_two_points_and_tangent (const point_t p0, const point_t p1, const point_t p3, circle_t *c)
 {
@@ -262,6 +282,10 @@ circle_by_three_points (const point_t p0, const point_t p1, const point_t p2, ci
 void fancy_cairo_stroke (cairo_t *cr);
 void fancy_cairo_stroke_preserve (cairo_t *cr);
 
+
+#define MY_CAIRO_PATH_ARC_TO (CAIRO_PATH_CLOSE_PATH+1)
+
+
 /* A fancy cairo_stroke[_preserve]() that draws points and control
  * points, and connects them together.
  */
@@ -271,8 +295,7 @@ _fancy_cairo_stroke (cairo_t *cr, cairo_bool_t preserve)
   int i;
   double line_width;
   cairo_path_t *path;
-  cairo_path_data_t *data, current_point;
-  const double dash[] = {10, 10};
+  cairo_path_data_t *data;
 
   cairo_save (cr);
   cairo_set_source_rgb (cr, 1.0, 0.0, 0.0);
@@ -283,7 +306,6 @@ _fancy_cairo_stroke (cairo_t *cr, cairo_bool_t preserve)
 
   cairo_save (cr);
   cairo_set_line_width (cr, line_width / 3);
-  cairo_set_dash (cr, dash, G_N_ELEMENTS (dash), 0);
   for (i=0; i < path->num_data; i += path->data[i].header.length) {
     data = &path->data[i];
     switch (data->header.type) {
@@ -302,106 +324,6 @@ _fancy_cairo_stroke (cairo_t *cr, cairo_bool_t preserve)
 	g_assert_not_reached ();
     }
   }
-  cairo_stroke (cr);
-  cairo_restore (cr);
-
-  cairo_save (cr);
-  cairo_set_line_width (cr, line_width / 32);
-  for (i=0; i < path->num_data; i += path->data[i].header.length) {
-    data = &path->data[i];
-    switch (data->header.type) {
-    case CAIRO_PATH_MOVE_TO:
-    case CAIRO_PATH_LINE_TO:
-	current_point = data[1];
-	break;
-    case CAIRO_PATH_CURVE_TO:
-	{
-#define P(d) (*(point_t *)&(d).point)
-
-	  point_t p0 = P(current_point), p1 = P(data[1]), p2 = P(data[2]), p3 = P(data[3]);
-	  point_t m;
-	  circle_t cm;
-
-	  if (0)
-	  {
-	    point_t v, g;
-	    circle_t c0, c1, cg;
-	    /* biarc incenter */
-	    segments_intersection (p0, p1, p2, p3, &v);
-	    incenter_point (p0, v, p3, &g);
-	    circle_by_two_points_and_tangent (p0, p1, g, &c0);
-	    circle_by_two_points_and_tangent (p3, p2, g, &c1);
-	    c1.r = -c1.r; /* adjust direction */
-
-	    circle_by_three_points (p0, g, p3, &cg);
-
-	    cairo_save (cr);
-	    cairo_set_line_cap (cr, CAIRO_LINE_CAP_ROUND);
-	    cairo_move_to (cr, g.x, g.y);
-	    cairo_rel_line_to (cr, 0, 0);
-	    cairo_move_to (cr, v.x, v.y);
-	    cairo_rel_line_to (cr, 0, 0);
-	    cairo_set_line_width (cr, line_width * 4);
-	    cairo_stroke (cr);
-	    cairo_set_line_width (cr, line_width * .25);
-	    cairo_arc (cr, c0.c.x, c0.c.y, c0.r, 0, 2*M_PI);
-	    cairo_stroke (cr);
-	    cairo_arc (cr, c1.c.x, c1.c.y, c1.r, 0, 2*M_PI);
-	    cairo_stroke (cr);
-	    cairo_arc (cr, cg.c.x, cg.c.y, cg.r, 0, 2*M_PI);
-	    cairo_stroke (cr);
-	    cairo_restore (cr);
-	  }
-
-
-	  {
-	    bezier_calculate (.5, p0, p1, p2, p3, &m, NULL, NULL);
-	    circle_by_three_points (p0, m, p3, &cm);
-
-	    cairo_save (cr);
-	    cairo_set_line_cap (cr, CAIRO_LINE_CAP_ROUND);
-	    cairo_move_to (cr, m.x, m.y);
-	    cairo_rel_line_to (cr, 0, 0);
-	    cairo_set_line_width (cr, line_width * 4);
-	    cairo_stroke (cr);
-
-	    cairo_set_line_width (cr, line_width * .25);
-	    cairo_arc (cr, cm.c.x, cm.c.y, cm.r, 0, 2*M_PI);
-	    cairo_stroke (cr);
-
-	    cairo_restore (cr);
-	  }
-
-	  {
-	    double t;
-	    for (t = 0; t <= 1; t += .01) {
-	      point_t p;
-	      vector_t dp, ddp, nv, cv;
-	      double len, curvature;
-	      bezier_calculate (t, p0, p1, p2, p3, &p, &dp, &ddp);
-
-	      /* normal vector len squared */
-	      len = vector_length (dp);
-	      vector_normal (dp, &nv);
-
-	      curvature = (ddp.y * dp.x - ddp.x * dp.y) / (len*len*len);
-	      cv.x = nv.x / curvature;
-	      cv.y = nv.y / curvature;
-
-	      cairo_move_to (cr, p.x, p.y);
-	      cairo_rel_line_to (cr, cv.x, cv.y);
-	    }
-	  }
-	}
-	current_point = data[3];
-	break;
-    case CAIRO_PATH_CLOSE_PATH:
-	break;
-    default:
-	g_assert_not_reached ();
-    }
-  }
-  cairo_set_source_rgb (cr, 0, 0, 0);
   cairo_stroke (cr);
   cairo_restore (cr);
 
@@ -437,31 +359,12 @@ _fancy_cairo_stroke (cairo_t *cr, cairo_bool_t preserve)
   cairo_stroke (cr);
   cairo_restore (cr);
 
-  for (i=0; i < path->num_data; i += path->data[i].header.length) {
-    data = &path->data[i];
-    switch (data->header.type) {
-    case CAIRO_PATH_MOVE_TO:
-	cairo_move_to (cr, data[1].point.x, data[1].point.y);
-	break;
-    case CAIRO_PATH_LINE_TO:
-	cairo_line_to (cr, data[1].point.x, data[1].point.y);
-	break;
-    case CAIRO_PATH_CURVE_TO:
-	cairo_curve_to (cr, data[1].point.x, data[1].point.y,
-			    data[2].point.x, data[2].point.y,
-			    data[3].point.x, data[3].point.y);
-	break;
-    case CAIRO_PATH_CLOSE_PATH:
-	cairo_close_path (cr);
-	break;
-    default:
-	g_assert_not_reached ();
-    }
-  }
-  cairo_stroke (cr);
+  cairo_append_path (cr, path);
 
   if (preserve)
-    cairo_append_path (cr, path);
+    cairo_stroke_preserve (cr);
+  else
+    cairo_stroke (cr);
 
   cairo_path_destroy (path);
 
@@ -486,25 +389,320 @@ fancy_cairo_stroke_preserve (cairo_t *cr)
   _fancy_cairo_stroke (cr, TRUE);
 }
 
+static void
+print_path_stats (const cairo_path_t *path)
+{
+  int i;
+  cairo_path_data_t *data;
+  int lines = 0, curves = 0, arcs = 0;
+
+  for (i=0; i < path->num_data; i += path->data[i].header.length) {
+    data = &path->data[i];
+    switch (data->header.type) {
+    case CAIRO_PATH_MOVE_TO:
+        break;
+    case CAIRO_PATH_LINE_TO:
+	lines++;
+	break;
+    case CAIRO_PATH_CURVE_TO:
+	curves++;
+	break;
+    case MY_CAIRO_PATH_ARC_TO:
+	arcs++;
+	break;
+    case CAIRO_PATH_CLOSE_PATH:
+	break;
+    default:
+	g_assert_not_reached ();
+    }
+  }
+  printf ("%d lines, %d arcs, %d curves\n", lines, arcs, curves);
+}
+
+static void
+demo_curve (cairo_t *cr)
+{
+  int i;
+  double line_width;
+  cairo_path_t *path;
+  cairo_path_data_t *data, current_point;
+
+  fancy_cairo_stroke_preserve (cr);
+  path = cairo_copy_path (cr);
+  cairo_new_path (cr);
+
+  print_path_stats (path);
+
+  cairo_save (cr);
+  line_width = cairo_get_line_width (cr);
+  cairo_set_line_width (cr, line_width / 16);
+  for (i=0; i < path->num_data; i += path->data[i].header.length) {
+    data = &path->data[i];
+    switch (data->header.type) {
+    case CAIRO_PATH_MOVE_TO:
+    case CAIRO_PATH_LINE_TO:
+	current_point = data[1];
+	break;
+    case CAIRO_PATH_CURVE_TO:
+	{
+#define P(d) (*(point_t *)&(d).point)
+
+	  point_t p0 = P(current_point), p1 = P(data[1]), p2 = P(data[2]), p3 = P(data[3]);
+
+	  if (1)
+	  {
+	    point_t v, g;
+	    circle_t c0, c1, cg;
+	    double a0, a1, a2, a3, a40, a41, _4_3_tan_a40, _4_3_tan_a41 ;
+	    double ea, ea0, ea1, eb, d0, d1, eb0, eb1, e;
+	    point_t p1s, p2s;
+	    /* biarc incenter */
+	    segments_intersection (p0, p1, p2, p3, &v);
+	    incenter_point (p0, v, p3, &g);
+	    circle_by_two_points_and_tangent (p0, p1, g, &c0);
+	    circle_by_two_points_and_tangent (p3, p2, g, &c1);
+	    c1.r = -c1.r; /* adjust direction */
+	    a0 = atan_two_points (c0.c, p0);
+	    a1 = atan_two_points (c0.c, g);
+	    a2 = atan_two_points (c1.c, g);
+	    a3 = atan_two_points (c1.c, p3);
+
+	    a40 = (a1 - a0) / 4.;
+	    a41 = (a3 - a2) / 4.;
+	    _4_3_tan_a40 = 4./3.*tan (a40);
+	    _4_3_tan_a41 = 4./3.*tan (a41);
+	    p1s = point_add (p0,
+		    vector_scale (
+		      vector_perpendicular (
+			points_difference (c0.c, p0)
+		      ), _4_3_tan_a40 * (c0.r*a40+c1.r*a41)/(c0.r*a40)));
+	    p2s = point_add (p3,
+		    vector_scale (
+		      vector_perpendicular (
+			points_difference (p3, c1.c)
+		      ), _4_3_tan_a41 * (c0.r*a40+c1.r*a41)/(c1.r*a41)));
+
+	    ea0 = 4./27.*c0.r*pow(sin(a40),6)/pow(cos(a40)/4.,2);
+	    ea1 = 4./27.*c1.r*pow(sin(a41),6)/pow(cos(a41)/4.,2);
+	    ea = ea0 + ea1;
+	    d0 = points_distance (p1, p1s);
+	    d1 = points_distance (p2, p2s);
+	    eb0 = 3./4.*MAX(d0,d1);
+	    eb1 = 4./9.*(d0+d1);
+	    e = ea + MIN(eb0,eb1);
+	    printf ("Calculated biarc error uppper bound (%g+MIN(%g+%g) = %g\n", ea, eb0, eb1, e);
+
+	    {
+	      double t;
+	      double e = 0;
+	      double a_0, a_1;
+	      for (t = 0; t <= 1; t += .01) {
+		point_t p;
+		bezier_calculate (t, p0, p1, p2, p3, &p, NULL, NULL);
+		a_0 = atan_two_points (c0.c, p);
+		a_1 = atan_two_points (c1.c, p);
+		if (a0 <= a_0 && a_0 <= a1)
+		  e = MAX (e, abs (points_distance (p, c0.c) - c0.r));
+		else if (a2 <= a_1 && a_1 <= a3)
+		  e = MAX (e, abs (points_distance (p, c1.c) - c1.r));
+		else
+		  printf ("umm, something went wrong: %g %g %g %g %g %g\n", a0, a1, a2, a3, a_0, a_1);
+	      }
+	      printf ("Actual arc max error %g\n", e);
+	    }
+
+	    cairo_save (cr);
+	    cairo_set_source_rgba (cr, 0.0, 0.0, 1.0, 1.0);
+
+	    cairo_set_line_cap (cr, CAIRO_LINE_CAP_ROUND);
+	    cairo_move_to (cr, g.x, g.y);
+	    cairo_rel_line_to (cr, 0, 0);
+	    //cairo_move_to (cr, v.x, v.y);
+	    //cairo_rel_line_to (cr, 0, 0);
+	    cairo_move_to (cr, p1s.x, p1s.y);
+	    cairo_rel_line_to (cr, 0, 0);
+	    cairo_move_to (cr, p2s.x, p2s.y);
+	    cairo_rel_line_to (cr, 0, 0);
+	    cairo_set_line_width (cr, line_width * 4);
+	    cairo_stroke (cr);
+	    cairo_set_line_width (cr, line_width * 1);
+	    cairo_arc (cr, c0.c.x, c0.c.y, c0.r, a0, a1);
+	    cairo_stroke (cr);
+	    cairo_arc (cr, c1.c.x, c1.c.y, c1.r, a2, a3);
+	    cairo_stroke (cr);
+
+	    cairo_set_line_width (cr, line_width * .25);
+	    cairo_move_to (cr, p0.x, p0.y);
+	    cairo_line_to (cr, p1s.x, p1s.y);
+	    cairo_move_to (cr, p3.x, p3.y);
+	    cairo_line_to (cr, p2s.x, p2s.y);
+	    cairo_stroke (cr);
+
+	    cairo_restore (cr);
+	  }
+
+	  if (1)
+	  {
+	    circle_t cm;
+	    point_t m;
+	    double a0, a1, a4, _4_3_tan_a4;
+	    double ea, eb, d0, d1, eb0, eb1, e;
+	    point_t p1s, p2s;
+	    bezier_calculate (.5, p0, p1, p2, p3, &m, NULL, NULL);
+	    circle_by_three_points (p0, m, p3, &cm);
+	    a0 = atan_two_points (cm.c, p0);
+	    a1 = atan_two_points (cm.c, p3);
+	    a4 = (a1 - a0) / 4.;
+	    _4_3_tan_a4 = 4./3.*tan (a4);
+	    p1s = point_add (p0,
+		    vector_scale (
+		      vector_perpendicular (
+			points_difference (cm.c, p0)
+		      ), _4_3_tan_a4));
+	    p2s = point_add (p3,
+		    vector_scale (
+		      vector_perpendicular (
+			points_difference (p3, cm.c)
+		      ), _4_3_tan_a4));
+
+	    ea = 4./27.*cm.r*pow(sin(a4),6)/pow(cos(a4)/4.,2);
+	    d0 = points_distance (p1, p1s);
+	    d1 = points_distance (p2, p2s);
+	    eb0 = 3./4.*MAX(d0,d1);
+	    eb1 = 4./9.*(d0+d1);
+	    e = ea + MIN(eb0,eb1);
+	    printf ("Calculated arc error uppper bound (%g+MIN(%g+%g) = %g\n", ea, eb0, eb1, e);
+
+	    {
+	      double t;
+	      double e = 0;
+	      for (t = 0; t <= 1; t += .01) {
+		point_t p;
+		bezier_calculate (t, p0, p1, p2, p3, &p, NULL, NULL);
+		e = MAX (e, abs (points_distance (p, cm.c) - cm.r));
+	      }
+	      printf ("Actual arc max error %g\n", e);
+	    }
+
+	    cairo_save (cr);
+	    cairo_set_source_rgba (cr, 0.0, 1.0, 0.0, 1.0);
+
+	    cairo_set_line_cap (cr, CAIRO_LINE_CAP_ROUND);
+	    cairo_move_to (cr, m.x, m.y);
+	    cairo_rel_line_to (cr, 0, 0);
+	    cairo_move_to (cr, p1s.x, p1s.y);
+	    cairo_rel_line_to (cr, 0, 0);
+	    cairo_move_to (cr, p2s.x, p2s.y);
+	    cairo_rel_line_to (cr, 0, 0);
+	    cairo_set_line_width (cr, line_width * 4);
+	    cairo_stroke (cr);
+
+	    cairo_set_line_width (cr, line_width * 1);
+	    cairo_arc (cr, cm.c.x, cm.c.y, cm.r, a0, a1);
+	    cairo_stroke (cr);
+
+	    cairo_set_line_width (cr, line_width * .25);
+	    cairo_move_to (cr, p0.x, p0.y);
+	    cairo_line_to (cr, p1s.x, p1s.y);
+	    cairo_move_to (cr, p3.x, p3.y);
+	    cairo_line_to (cr, p2s.x, p2s.y);
+	    cairo_stroke (cr);
+
+	    cairo_restore (cr);
+	  }
+
+	  {
+	    double t;
+	    for (t = 0; t <= 1; t += .01) {
+	      point_t p;
+	      vector_t dp, ddp, nv, cv;
+	      double len, curvature;
+	      bezier_calculate (t, p0, p1, p2, p3, &p, &dp, &ddp);
+
+	      /* normal vector len squared */
+	      len = vector_length (dp);
+	      nv = vector_normal (dp);
+
+	      curvature = (ddp.y * dp.x - ddp.x * dp.y) / (len*len*len);
+	      cv.x = nv.x / curvature;
+	      cv.y = nv.y / curvature;
+
+	      cairo_move_to (cr, p.x, p.y);
+	      cairo_rel_line_to (cr, cv.x, cv.y);
+	    }
+	  }
+	}
+	current_point = data[3];
+	break;
+    case CAIRO_PATH_CLOSE_PATH:
+	break;
+    default:
+	g_assert_not_reached ();
+    }
+  }
+  cairo_set_source_rgb (cr, 0, 0, 0);
+  cairo_stroke (cr);
+  cairo_restore (cr);
+
+#if 0
+  cairo_save (cr);
+  for (i=0; i < path->num_data; i += path->data[i].header.length) {
+    data = &path->data[i];
+    switch (data->header.type) {
+    case CAIRO_PATH_MOVE_TO:
+	cairo_move_to (cr, data[1].point.x, data[1].point.y);
+	break;
+    case CAIRO_PATH_LINE_TO:
+	cairo_line_to (cr, data[1].point.x, data[1].point.y);
+	break;
+    case CAIRO_PATH_CURVE_TO:
+	cairo_curve_to (cr, data[1].point.x, data[1].point.y,
+			    data[2].point.x, data[2].point.y,
+			    data[3].point.x, data[3].point.y);
+	break;
+    case CAIRO_PATH_CLOSE_PATH:
+	cairo_close_path (cr);
+	break;
+    default:
+	g_assert_not_reached ();
+    }
+  }
+  cairo_stroke (cr);
+  cairo_restore (cr);
+#endif
+  cairo_path_destroy (path);
+}
 
 static void
 draw_dream (cairo_t *cr)
 {
+  printf ("SAMPLE: dream line\n");
+
+  cairo_save (cr);
+  cairo_new_path (cr);
+
   cairo_move_to (cr, 50, 650);
 
   cairo_rel_line_to (cr, 250, 50);
   cairo_rel_curve_to (cr, 250, 50, 600, -50, 600, -250);
   cairo_rel_curve_to (cr, 0, -400, -300, -100, -800, -300);
 
-  cairo_set_line_width (cr, 1.5);
-  cairo_set_source_rgba (cr, 0.3, 0.3, 1.0, 0.3);
+  cairo_set_line_width (cr, 5);
+  cairo_set_source_rgba (cr, 0.3, 1.0, 0.3, 0.3);
 
-  fancy_cairo_stroke (cr);
+  demo_curve (cr);
+
+  cairo_restore (cr);
 }
 
 static void
-draw_raskus (cairo_t *cr)
+draw_raskus_simple (cairo_t *cr)
 {
+  printf ("SAMPLE: raskus simple\n");
+
+  cairo_save (cr);
+  cairo_new_path (cr);
+
   cairo_save (cr);
   cairo_translate (cr, -500, 400);
   cairo_scale (cr, 100, -100);
@@ -514,14 +712,21 @@ draw_raskus (cairo_t *cr)
   cairo_restore (cr);
 
   cairo_set_line_width (cr, 2.0);
-  cairo_set_source_rgba (cr, 0.3, 1.0, 0.3, 1.0);
+  cairo_set_source_rgba (cr, 0.0, 0.0, 0.0, 1.0);
 
-  fancy_cairo_stroke (cr);
+  demo_curve (cr);
+
+  cairo_restore (cr);
 }
 
 static void
-draw_wow (cairo_t *cr)
+draw_skewed (cairo_t *cr)
 {
+  printf ("SAMPLE: skewed\n");
+
+  cairo_save (cr);
+  cairo_new_path (cr);
+
   cairo_move_to (cr, 50, 380);
   cairo_scale (cr, 2, 2);
   cairo_rel_curve_to (cr, 0, -100, 250, -50, 330, 10);
@@ -529,7 +734,9 @@ draw_wow (cairo_t *cr)
   cairo_set_line_width (cr, 2.0);
   cairo_set_source_rgba (cr, 0.3, 1.0, 0.3, 1.0);
 
-  fancy_cairo_stroke (cr);
+  demo_curve (cr);
+
+  cairo_restore (cr);
 }
 
 int main (int argc, char **argv)
@@ -554,8 +761,9 @@ int main (int argc, char **argv)
   cairo_set_source_rgb (cr, 1.0, 1.0, 1.0);
   cairo_paint (cr);
 
-  //draw_dream (cr);
-  draw_wow (cr);
+//  draw_skewed (cr);
+  draw_raskus_simple (cr);
+//  draw_dream (cr);
 
   cairo_destroy (cr);
 
