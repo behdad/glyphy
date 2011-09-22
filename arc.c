@@ -93,6 +93,14 @@ point_add (point_t p, const vector_t v)
 }
 
 static vector_t
+vector_add (vector_t u, const vector_t v)
+{
+  u.x += v.x;
+  u.y += v.y;
+  return u;
+}
+
+static vector_t
 points_difference (const point_t A, const point_t B)
 {
   vector_t d;
@@ -114,6 +122,18 @@ points_distance (const point_t A, const point_t B)
 }
 
 static vector_t
+vector_normalize (vector_t v)
+{
+  double d = vector_length (v);
+  if (!d)
+    return v;
+
+  v.x /= d;
+  v.y /= d;
+  return v;
+}
+
+static vector_t
 vector_perpendicular (const vector_t v)
 {
   vector_t n;
@@ -125,17 +145,17 @@ vector_perpendicular (const vector_t v)
 static vector_t
 vector_normal (const vector_t v)
 {
-  double d = vector_length (v);
-  if (!d) {
-    /* degenerate vector of zero */
-    vector_t n = {0, 0};
-    return n;
-  }
+  return vector_normalize (vector_perpendicular (v));
+}
 
-  vector_t n = vector_perpendicular (v);
-  n.x /= d;
-  n.y /= d;
-  return n;
+/* b should be normal */
+static vector_t
+vector_rebase (const vector_t v, const vector_t b)
+{
+  vector_t u;
+  u.x = v.x * b.x + v.y * b.y;
+  u.y = v.x * -b.y + v.y * b.x;
+  return u;
 }
 
 static vector_t
@@ -420,9 +440,8 @@ print_path_stats (const cairo_path_t *path)
 }
 
 double
-max_dev (double d0, double d1)
+extreme_dev (double d0, double d1, double *min, double *max)
 {
-  double e;
   unsigned int i;
   double candidates[4] = {0,1};
   unsigned int num_candidates = 2;
@@ -435,22 +454,33 @@ max_dev (double d0, double d1)
     candidates[num_candidates++] = ((2*d0-d1) - sqrt (delta)) / (3*(d0-d1));
     candidates[num_candidates++] = ((2*d0-d1) + sqrt (delta)) / (3*(d0-d1));
   }
-  e = 0;
   for (i = 0; i < num_candidates; i++) {
     double t = candidates[i];
     double ee;
     if (t < 0 || t > 1)
       continue;
     ee = 3 * t * (1-t) * (d0*(1-t)+d1*t);
-    e = MAX (e, fabs(ee));
+    if (i == 0)
+      *min = *max = ee;
+    else
+      *min = MIN (*min, ee), *max = MAX (*max, ee);
   }
+  printf ("extreme_dev (%g,%g) = [%g,%g]\n", d0, d1, *min, *max);
+}
+
+double
+max_dev (double d0, double d1)
+{
+  double min, max;
+  extreme_dev (d0, d1, &min, &max);
+  return MAX (fabs (min), fabs (max));
+
   if (0) {
     double e0, e1;
     e0 = 3./4.*MAX(fabs(d0),fabs(d1));
     e1 = 4./9.*(fabs(d0)+fabs(d1));
-    printf ("max_dev(%g,%g) = %g ... %g=MIN(%g,%g)\n", d0, d1, e, MIN(e0, e1), e0, e1);
+    printf ("approx max_dev(%g,%g) = %g=MIN(%g,%g)\n", d0, d1, MIN(e0, e1), e0, e1);
   }
-  return e;
 }
 
 static void
@@ -483,7 +513,7 @@ demo_curve (cairo_t *cr)
 
 	  point_t p0 = P(current_point), p1 = P(data[1]), p2 = P(data[2]), p3 = P(data[3]);
 
-	  if (1)
+	  if (0)
 	  {
 	    point_t v, g;
 	    circle_t c0, c1, cg;
@@ -547,7 +577,7 @@ demo_curve (cairo_t *cr)
 		else
 		  printf ("umm, something went wrong: %g %g %g %g %g %g\n", a0, a1, a2, a3, a_0, a_1);
 	      }
-	      printf ("Actual arc max error %g\n", e);
+	      printf ("Actual biarc max error %g\n", e);
 	    }
 
 	    cairo_save (cr);
@@ -607,12 +637,22 @@ demo_curve (cairo_t *cr)
 	    ea = 4./27.*cm.r*pow(sin(a4),6)/pow(cos(a4)/4.,2);
 	    //eb = max_dev (points_distance (p1, p1s), points_distance (p2, p2s));
 	    {
-	      vector_t v0, v1, v;
+	      vector_t v0, v1, v, u;
 	      v0 = points_difference (p1, p1s);
 	      v1 = points_difference (p2, p2s);
+
+	      vector_t b = vector_normalize (vector_add (points_difference (cm.c, p0), points_difference (cm.c, p3)));
+	      v0 = vector_rebase (v0, b);
+	      v1 = vector_rebase (v1, b);
+
 	      v.x = max_dev (v0.x, v1.x);
 	      v.y = max_dev (v0.y, v1.y);
-	      eb = vector_length (v);
+
+	      vector_t b2 = vector_normalize (vector_rebase (points_difference (cm.c, p3), b));
+	      u = vector_rebase (v, b2);
+	      eb = sqrt ((cm.r+u.x)*(cm.r+u.x) + u.y*u.y) - cm.r;
+	      //printf ("eb=%g v.x=%g\n", eb, v.x);
+	      eb = MAX (eb, v.x);
 	    }
 	    e = ea + eb;
 	    printf ("Calculated arc error uppper bound %g+%g = %g\n", ea, eb, e);
