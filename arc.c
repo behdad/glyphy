@@ -448,7 +448,20 @@ print_path_stats (const cairo_path_t *path)
   printf ("%d lines, %d arcs, %d curves\n", lines, arcs, curves);
 }
 
-double
+/* This is a fast approximation of max_dev(). */
+static double
+max_dev_approx (double d0, double d1)
+{
+  double e0, e1;
+  d0 = fabs (d0);
+  d1 = fabs (d1);
+  e0 = 3./4. * MAX (d0, d1);
+  e1 = 4./9. * (d0 + d1);
+  return MIN (e0, e1);
+}
+
+/* Returns max(abs(d₀ t (1-t)² + d₁ t² (1-t)) for 0≤t≤1. */
+static double
 max_dev (double d0, double d1)
 {
   double e;
@@ -456,30 +469,30 @@ max_dev (double d0, double d1)
   double candidates[4] = {0,1};
   unsigned int num_candidates = 2;
   double delta = d0*d0 - d0*d1 + d1*d1;
+  /* This code can be optimized to avoid the sqrt if the solution
+   * is not feasible (ie. lies outside (0,1)).  I have implemented
+   * that in cairo-spline.c:_cairo_spline_bound().  Can be reused
+   * here.
+   */
   if (d0 == d1)
     candidates[num_candidates++] = .5;
   else if (delta == 0)
-    candidates[num_candidates++] = (2*d0-d1) / (3*(d0-d1));
+    candidates[num_candidates++] = (2 * d0 - d1) / (3 * (d0 - d1));
   else if (delta > 0) {
-    candidates[num_candidates++] = ((2*d0-d1) - sqrt (delta)) / (3*(d0-d1));
-    candidates[num_candidates++] = ((2*d0-d1) + sqrt (delta)) / (3*(d0-d1));
+    double t0 = 2 * d0 - d1, t1 = sqrt (delta), t2 = 1. / (3 * (d0 - d1));
+    candidates[num_candidates++] = (t0 - t1) * t2;
+    candidates[num_candidates++] = (t0 + t1) * t2;
   }
+
   for (i = 0; i < num_candidates; i++) {
     double t = candidates[i];
     double ee;
-    if (t < 0 || t > 1)
+    if (t < 0. || t > 1.)
       continue;
-    ee = 3 * t * (1-t) * (d0*(1-t)+d1*t);
+    ee = 3 * t * (1-t) * (d0 * (1 - t) + d1 * t);
     e = MAX (e, fabs (ee));
   }
 
-  /* This is a fast approximation */
-  if (0) {
-    double e0, e1;
-    e0 = 3./4. * MAX(fabs (d0), fabs (d1));
-    e1 = 4./9. * (fabs (d0) + fabs (d1));
-    e = MIN (e0, e1);
-  }
 
   return e;
 }
