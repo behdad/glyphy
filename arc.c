@@ -449,8 +449,9 @@ print_path_stats (const cairo_path_t *path)
 }
 
 double
-extreme_dev (double d0, double d1, double *min, double *max)
+max_dev (double d0, double d1)
 {
+  double e;
   unsigned int i;
   double candidates[4] = {0,1};
   unsigned int num_candidates = 2;
@@ -469,27 +470,18 @@ extreme_dev (double d0, double d1, double *min, double *max)
     if (t < 0 || t > 1)
       continue;
     ee = 3 * t * (1-t) * (d0*(1-t)+d1*t);
-    if (i == 0)
-      *min = *max = ee;
-    else
-      *min = MIN (*min, ee), *max = MAX (*max, ee);
+    e = MAX (e, fabs (ee));
   }
-  printf ("extreme_dev (%g,%g) = [%g,%g]\n", d0, d1, *min, *max);
-}
 
-double
-max_dev (double d0, double d1)
-{
-  double min, max;
-  extreme_dev (d0, d1, &min, &max);
-  return MAX (fabs (min), fabs (max));
-
+  /* This is a fast approximation */
   if (0) {
     double e0, e1;
-    e0 = 3./4.*MAX(fabs(d0),fabs(d1));
-    e1 = 4./9.*(fabs(d0)+fabs(d1));
-    printf ("approx max_dev(%g,%g) = %g=MIN(%g,%g)\n", d0, d1, MIN(e0, e1), e0, e1);
+    e0 = 3./4. * MAX(fabs (d0), fabs (d1));
+    e1 = 4./9. * (fabs (d0) + fabs (d1));
+    e = MIN (e0, e1);
   }
+
+  return e;
 }
 
 double
