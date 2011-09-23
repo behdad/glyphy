@@ -536,8 +536,6 @@ arc_bezier_error (const point_t p0,
     vector_t b2 = vector_normalize (vector_rebase (points_difference (cm.c, p3), b));
     u = vector_rebase (v, b2);
     eb = sqrt ((cm.r+u.x)*(cm.r+u.x) + u.y*u.y) - cm.r;
-    //printf ("eb=%g v.x=%g\n", eb, v.x);
-    eb = MAX (eb, v.x);
   }
   e = ea + eb;
   printf ("Calculated arc error uppper bound %g+%g = %g\n", ea, eb, e);
