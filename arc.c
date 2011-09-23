@@ -519,7 +519,7 @@ arc_bezier_error (const point_t p0,
 	      points_difference (p3, cm.c)
 	    ), _4_3_tan_a4));
 
-  ea = 4./27.*cm.r*pow(sin(a4),6)/pow(cos(a4)/4.,2);
+  ea = 2./27.*cm.r*pow(sin(a4),6)/pow(cos(a4)/4.,2);
   //eb = max_dev (points_distance (p1, p1s), points_distance (p2, p2s));
   {
     vector_t v0, v1, v, u;
@@ -538,7 +538,6 @@ arc_bezier_error (const point_t p0,
     eb = sqrt ((cm.r+u.x)*(cm.r+u.x) + u.y*u.y) - cm.r;
   }
   e = ea + eb;
-  printf ("Calculated arc error uppper bound %g+%g = %g\n", ea, eb, e);
 
   cairo_save (cr);
   double line_width = cairo_get_line_width (cr);
@@ -635,8 +634,8 @@ demo_curve (cairo_t *cr)
 			points_difference (p3, c1.c)
 		      ), _4_3_tan_a41 * (c0.r*a40+c1.r*a41)/(c1.r*a41)));
 
-	    ea0 = 4./27.*c0.r*pow(sin(a40),6)/pow(cos(a40)/4.,2);
-	    ea1 = 4./27.*c1.r*pow(sin(a41),6)/pow(cos(a41)/4.,2);
+	    ea0 = 2./27.*c0.r*pow(sin(a40),6)/pow(cos(a40)/4.,2);
+	    ea1 = 2./27.*c1.r*pow(sin(a41),6)/pow(cos(a41)/4.,2);
 	    ea = ea0 + ea1;
 	    //eb = max_dev (points_distance (p1, p1s), points_distance (p2, p2s));
 	    {
@@ -850,8 +849,8 @@ draw_raskus_simple (cairo_t *cr)
   cairo_new_path (cr);
 
   cairo_save (cr);
-  cairo_translate (cr, -1600, 500);
-  cairo_scale (cr, 250, -250);
+  cairo_translate (cr, -1300, 500);
+  cairo_scale (cr, 200, -200);
   cairo_translate (cr, -10, -1);
   cairo_move_to (cr, 16.9753, .7421);
   cairo_curve_to (cr, 18.2203, 2.2238, 21.0939, 2.4017, 23.1643, 1.6148);
