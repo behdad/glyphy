@@ -96,30 +96,12 @@ vector_rebase (const vector_t v, const vector_t b)
 		   v.dx * -b.dy + v.dy * b.dx);
 }
 
-static double
-point_distance_to_line (const point_t p, line_t l)
-{
-  return (l.a * p.x + l.b * p.y - l.c) / hypot (l.a, l.b);
-}
-
-static double
-point_distance_to_normal_line (point_t p, line_t l)
-{
-  return l.a * p.x + l.b * p.y - l.c;
-}
-
-static double
-atan_two_points (const point_t p0, const point_t p1)
-{
-  return atan2 (p1.y - p0.y, p1.x - p0.x);
-}
-
 static circle_t
 circle_by_two_points_and_tangent (const point_t p0, const point_t p1, const point_t p3)
 {
   line_t tangent = line_t (p0, p1).normalized ();
 
-  double x = point_distance_to_normal_line (p3, tangent);
+  double x = p3 - tangent;
   double d = (p3 - p0).len ();
   double r = d * d / (2 * x);
 
@@ -328,8 +310,8 @@ arc_bezier_error (const point_t p0,
   point_t p1s (0,0), p2s (0,0);
   double ea, eb, e;
 
-  a0 = atan_two_points (c.c, p0);
-  a1 = atan_two_points (c.c, p3);
+  a0 = (p0 - c.c).angle ();
+  a1 = (p3 - c.c).angle ();
   a4 = (a1 - a0) / 4.;
   _4_3_tan_a4 = 4./3.*tan (a4);
   p1s = p0 + (p0 - c.c).perpendicular () * _4_3_tan_a4;
@@ -461,9 +443,8 @@ demo_curve (cairo_t *cr)
 
 	    cairo_set_line_width (cr, line_width * 1);
 	    {
-	      double a0, a1;
-	      a0 = atan_two_points (c.c, p0);
-	      a1 = atan_two_points (c.c, p3);
+	      double a0 = (p0 - c.c).angle ();
+	      double a1 = (p3 - c.c).angle ();
 	      cairo_arc (cr, c.c.x, c.c.y, c.r, a0, a1);
 	    }
 	    cairo_stroke (cr);
@@ -472,18 +453,16 @@ demo_curve (cairo_t *cr)
 	  }
 
 	  {
-	    double t;
-	    for (t = 0; t <= 1; t += .05) {
-	      double len, curvature;
-
-	      vector_t dp (0, 0), ddp (0, 0);
+	    for (double t = 0; t <= 1; t += .05)
+	    {
+	      vector_t dp (0,0), ddp (0,0);
 	      point_t p = bezier_calculate (t, p0, p1, p2, p3, &dp, &ddp);
 
 	      /* normal vector len squared */
-	      len = dp.len ();
+	      double len = dp.len ();
 	      vector_t nv = dp.normal ();
 
-	      curvature = (ddp.dy * dp.dx - ddp.dx * dp.dy) / (len * len * len);
+	      double curvature = (ddp.dy * dp.dx - ddp.dx * dp.dy) / (len * len * len);
 	      vector_t cv (nv.dx / curvature,
 			   nv.dy / curvature);
 
