@@ -601,103 +601,6 @@ demo_curve (cairo_t *cr)
 
 	  point_t p0 = P(current_point), p1 = P(data[1]), p2 = P(data[2]), p3 = P(data[3]);
 
-	  if (0)
-	  {
-	    point_t v, g;
-	    circle_t c0, c1, cg;
-	    double a0, a1, a2, a3, a40, a41, _4_3_tan_a40, _4_3_tan_a41 ;
-	    double ea, ea0, ea1, eb, e;
-	    point_t p1s, p2s;
-	    /* biarc incenter */
-	    segments_intersection (p0, p1, p2, p3, &v);
-	    incenter_point (p0, v, p3, &g);
-	    circle_by_two_points_and_tangent (p0, p1, g, &c0);
-	    circle_by_two_points_and_tangent (p3, p2, g, &c1);
-	    c1.r = -c1.r; /* adjust direction */
-	    a0 = atan_two_points (c0.c, p0);
-	    a1 = atan_two_points (c0.c, g);
-	    a2 = atan_two_points (c1.c, g);
-	    a3 = atan_two_points (c1.c, p3);
-
-	    a40 = (a1 - a0) / 4.;
-	    a41 = (a3 - a2) / 4.;
-	    _4_3_tan_a40 = 4./3.*tan (a40);
-	    _4_3_tan_a41 = 4./3.*tan (a41);
-	    p1s = point_add (p0,
-		    vector_scale (
-		      vector_perpendicular (
-			points_difference (c0.c, p0)
-		      ), _4_3_tan_a40 * (c0.r*a40+c1.r*a41)/(c0.r*a40)));
-	    p2s = point_add (p3,
-		    vector_scale (
-		      vector_perpendicular (
-			points_difference (p3, c1.c)
-		      ), _4_3_tan_a41 * (c0.r*a40+c1.r*a41)/(c1.r*a41)));
-
-	    ea0 = 2./27.*c0.r*pow(sin(a40),6)/pow(cos(a40)/4.,2);
-	    ea1 = 2./27.*c1.r*pow(sin(a41),6)/pow(cos(a41)/4.,2);
-	    ea = ea0 + ea1;
-	    //eb = max_dev (points_distance (p1, p1s), points_distance (p2, p2s));
-	    {
-	      vector_t v0, v1, v;
-	      v0 = points_difference (p1, p1s);
-	      v1 = points_difference (p2, p2s);
-	      v.x = max_dev (v0.x, v1.x);
-	      v.y = max_dev (v0.y, v1.y);
-	      eb = vector_length (v);
-	    }
-	    e = ea + eb;
-	    printf ("Calculated biarc error uppper bound %g+%g = %g\n", ea, eb, e);
-
-	    {
-	      double t;
-	      double e = 0;
-	      double a_0, a_1;
-	      for (t = 0; t <= 1; t += .01) {
-		point_t p;
-		bezier_calculate (t, p0, p1, p2, p3, &p, NULL, NULL);
-		a_0 = atan_two_points (c0.c, p);
-		a_1 = atan_two_points (c1.c, p);
-		if (a0 <= a_0 && a_0 <= a1)
-		  e = MAX (e, fabs (points_distance (p, c0.c) - c0.r));
-		else if (a2 <= a_1 && a_1 <= a3)
-		  e = MAX (e, fabs (points_distance (p, c1.c) - c1.r));
-		else
-		  printf ("umm, something went wrong: %g %g %g %g %g %g\n", a0, a1, a2, a3, a_0, a_1);
-	      }
-	      printf ("Actual biarc max error %g\n", e);
-	    }
-
-	    cairo_save (cr);
-	    cairo_set_source_rgba (cr, 0.0, 0.0, 1.0, 1.0);
-
-	    cairo_set_line_cap (cr, CAIRO_LINE_CAP_ROUND);
-	    cairo_move_to (cr, g.x, g.y);
-	    cairo_rel_line_to (cr, 0, 0);
-	    //cairo_move_to (cr, v.x, v.y);
-	    //cairo_rel_line_to (cr, 0, 0);
-	    cairo_move_to (cr, p1s.x, p1s.y);
-	    cairo_rel_line_to (cr, 0, 0);
-	    cairo_move_to (cr, p2s.x, p2s.y);
-	    cairo_rel_line_to (cr, 0, 0);
-	    cairo_set_line_width (cr, line_width * 4);
-	    cairo_stroke (cr);
-	    cairo_set_line_width (cr, line_width * 1);
-	    cairo_arc (cr, c0.c.x, c0.c.y, c0.r, a0, a1);
-	    cairo_stroke (cr);
-	    cairo_arc (cr, c1.c.x, c1.c.y, c1.r, a2, a3);
-	    cairo_stroke (cr);
-
-	    cairo_set_line_width (cr, line_width * .25);
-	    cairo_move_to (cr, p0.x, p0.y);
-	    cairo_line_to (cr, p1s.x, p1s.y);
-	    cairo_move_to (cr, p3.x, p3.y);
-	    cairo_line_to (cr, p2s.x, p2s.y);
-	    cairo_stroke (cr);
-
-	    cairo_restore (cr);
-	  }
-
 	  if (1)
 	  {
 	    circle_t cm;
@@ -900,7 +803,7 @@ int main (int argc, char **argv)
   filename = argv[1];
 
   surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32,
-					1900, 1000);
+					1400, 1000);
   cr = cairo_create (surface);
 
   cairo_set_source_rgb (cr, 1.0, 1.0, 1.0);
