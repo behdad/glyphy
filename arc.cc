@@ -14,10 +14,6 @@
 #include <stdint.h>
 #include <pango/pangocairo.h>
 
-typedef int bool;
-#define false FALSE
-#define true TRUE
-
 typedef struct { double x, y; } vector_t;
 typedef struct { double x, y; } point_t;
 typedef struct { point_t c; double r; } circle_t;
@@ -427,7 +423,7 @@ print_path_stats (const cairo_path_t *path)
 
   for (i=0; i < path->num_data; i += path->data[i].header.length) {
     data = &path->data[i];
-    switch (data->header.type) {
+    switch ((int) data->header.type) {
     case CAIRO_PATH_MOVE_TO:
         break;
     case CAIRO_PATH_LINE_TO:
