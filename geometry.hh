@@ -31,36 +31,34 @@ typedef double Coord;
 
 template <typename Coord>
 struct Vector {
-  Vector (Coord dx_, Coord dy_) : dx (dx_), dy (dy_);
+  Vector (Coord dx_, Coord dy_) : dx (dx_), dy (dy_) {};
   Coord dx, dy;
 };
 
 template <typename Coord>
 struct Point {
-  Point (Coord x_, Coord y_) : x (x_), y (y_);
+  Point (Coord x_, Coord y_) : x (x_), y (y_) {};
   Coord x, y;
 };
 
 template <typename Coord, typename Radius>
-struct Circle<typename Coord> {
-  Circle (Point<Coord> c_, double r_) : c (c_), r (r_);
+struct Circle {
+  Circle (Point<Coord> c_, double r_) : c (c_), r (r_) {};
 
   Point<Coord> c;
   Radius r;
 };
 
-template <typename Type>
+template <typename Coord>
 struct Line {
-  Line (Type a_, Type b_, Type c_) : a (a_), b (b_), c (c_);
+  Line (Coord a_, Coord b_, Coord c_) : a (a_), b (b_), c (c_) {};
 
-  Type a, b, c; /* a*x + b*y = c */
+  Coord a, b, c; /* a*x + b*y = c */
 };
 
-typedef struct { double x, y; } vector_t;
-typedef struct { double x, y; } point_t;
-
-typedef struct { point_t c; double r; } circle_t;
-
-typedef struct { double a, b, c; } line_t; /* a*x + b*y = c */
+typedef Vector<Coord> vector_t;
+typedef Point<Coord> point_t;
+typedef Circle<Coord, double> circle_t;
+typedef Line<Coord> line_t;
 
 #endif

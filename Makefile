@@ -5,5 +5,7 @@ LDFLAGS = `pkg-config --libs ${PKGS}`
 
 all: arc
 
+arc: arc.cc geometry.hh
+
 clean:
 	$(RM) arc
