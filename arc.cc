@@ -24,7 +24,6 @@
  * Google Author(s): Behdad Esfahbod
  */
 
-#include <math.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <pango/pangocairo.h>
@@ -89,134 +88,12 @@ bezier_calculate (double t,
 		  +     p3.y * t_3_0);
 }
 
-static point_t
-point_add (point_t p, const vector_t v)
-{
-  p.x += v.dx;
-  p.y += v.dy;
-  return p;
-}
-
-static vector_t
-vector_add (vector_t u, const vector_t v)
-{
-  u.dx += v.dx;
-  u.dy += v.dy;
-  return u;
-}
-
-static vector_t
-points_difference (const point_t A, const point_t B)
-{
-  return vector_t (B.x - A.x, B.y - A.y);
-}
-
-static point_t
-mid_point (const point_t A, const point_t B)
-{
-  return point_t ((A.x + B.x) / 2, (A.y + B.y) / 2);
-}
-
-static double
-vector_length (const vector_t v)
-{
-  return hypot (v.dx, v.dy);
-}
-
-static double
-points_distance (const point_t A, const point_t B)
-{
-  return vector_length (points_difference (A, B));
-}
-
-static vector_t
-vector_normalize (vector_t v)
-{
-  double d = vector_length (v);
-  if (!d)
-    return v;
-
-  v.dx /= d;
-  v.dy /= d;
-  return v;
-}
-
-static vector_t
-vector_perpendicular (const vector_t v)
-{
-  return vector_t (-v.dy, v.dx);
-}
-
-static vector_t
-vector_normal (const vector_t v)
-{
-  return vector_normalize (vector_perpendicular (v));
-}
-
 /* b should be normal */
 static vector_t
 vector_rebase (const vector_t v, const vector_t b)
 {
   return vector_t (v.dx *  b.dx + v.dy * b.dy,
 		   v.dx * -b.dy + v.dy * b.dx);
-}
-
-static vector_t
-vector_scale (vector_t v, double scale)
-{
-  v.dx *= scale;
-  v.dy *= scale;
-  return v;
-}
-
-static line_t
-line_from_two_points (const point_t p0, const point_t p1)
-{
-  vector_t n = vector_perpendicular (points_difference (p0, p1));
-  return line_t (n.dx, n.dy, n.dx * p0.x + n.dy * p0.y);
-}
-
-static line_t
-segment_axis_line (const point_t p0, const point_t p1)
-{
-  vector_t d = points_difference (p0, p1);
-  return line_t (d.dx, d.dy,
-		 ((d.dx*p0.x + d.dy*p0.y) + (d.dx*p1.x + d.dy*p1.y)) / 2);
-}
-
-static bool
-line_normalize (line_t *l)
-{
-  double d = hypot (l->a, l->b);
-
-  if (!d) return false;
-
-  l->a /= d;
-  l->b /= d;
-  l->c /= d;
-  return true;
-}
-
-static point_t
-lines_intersection (const line_t l0, const line_t l1)
-{
-  double det = l0.a * l1.b - l1.a * l0.b;
-
-  if (!det)
-    return point_t (INFINITY, /* XXX point_t:: */INFINITY);
-
-  return point_t ((l0.c * l1.b - l1.c * l0.b) / det,
-		  (l0.a * l1.c - l1.a * l0.c) / det);
-}
-
-static point_t
-segments_intersection (const point_t p0,
-		       const point_t p1,
-		       const point_t p2,
-		       const point_t p3)
-{
-  return lines_intersection (line_from_two_points (p0, p1),
-			     line_from_two_points (p3, p2));
 }
 
 static double
@@ -231,56 +108,22 @@ point_distance_to_normal_line (point_t p, line_t l)
   return l.a * p.x + l.b * p.y - l.c;
 }
 
-/* https://secure.wikimedia.org/wikipedia/en/wiki/Incentre#Coordinates_of_the_incenter */
-static void
-incenter_point (const point_t A,
-		const point_t B,
-		const point_t C,
-		point_t *g)
-{
-  double a = points_distance (B, C);
-  double b = points_distance (C, A);
-  double c = points_distance (A, B);
-  double P = a + b + c;
-
-  if (P == 0) {
-    /* Degenerate case: A = B = C */
-    *g = A;
-    return;
-  }
-
-  g->x = (a * A.x + b * B.x + c * C.x) / P;
-  g->y = (a * A.y + b * B.y + c * C.y) / P;
-}
-
 static double
 atan_two_points (const point_t p0, const point_t p1)
 {
   return atan2 (p1.y - p0.y, p1.x - p0.x);
 }
 
-static void
-circle_by_two_points_and_tangent (const point_t p0, const point_t p1, const point_t p3, circle_t *c)
-{
-  double d, x, r;
-  line_t tangent = line_from_two_points (p0, p1);
-  line_normalize (&tangent);
-
-  x = point_distance_to_normal_line (p3, tangent);
-  d = points_distance (p0, p3);
-  r = d * d / (2 * x);
-
-  c->r = r;
-  c->c.x = p0.x + r * tangent.a;
-  c->c.y = p0.y + r * tangent.b;
-}
-
 static circle_t
-circle_by_three_points (const point_t p0, const point_t p1, const point_t p2)
+circle_by_two_points_and_tangent (const point_t p0, const point_t p1, const point_t p3)
 {
-  point_t c = lines_intersection (segment_axis_line (p0, p1),
-				  segment_axis_line (p1, p2));
-  return circle_t (c, points_distance (p0, c));
+  line_t tangent = line_t (p0, p1).normalized ();
+
+  double x = point_distance_to_normal_line (p3, tangent);
+  double d = (p3 - p0).len ();
+  double r = d * d / (2 * x);
+
+  return circle_t (p0 + tangent.normal () * r, r);
 }
 
 
@@ -489,31 +332,23 @@ arc_bezier_error (const point_t p0,
   a1 = atan_two_points (c.c, p3);
   a4 = (a1 - a0) / 4.;
   _4_3_tan_a4 = 4./3.*tan (a4);
-  p1s = point_add (p0,
-	  vector_scale (
-	    vector_perpendicular (
-	      points_difference (c.c, p0)
-	    ), _4_3_tan_a4));
-  p2s = point_add (p3,
-	  vector_scale (
-	    vector_perpendicular (
-	      points_difference (p3, c.c)
-	    ), _4_3_tan_a4));
+  p1s = p0 + (p0 - c.c).perpendicular () * _4_3_tan_a4;
+  p2s = p3 + (c.c - p3).perpendicular () * _4_3_tan_a4;
 
   ea = 2./27.*c.r*pow(sin(a4),6)/pow(cos(a4)/4.,2);
-  //eb = max_dev (points_distance (p1, p1s), points_distance (p2, p2s));
+  //eb = max_dev ((p1s - p1).len (), (p2s - p2).len ());
   {
-    vector_t v0 = points_difference (p1, p1s);
-    vector_t v1 = points_difference (p2, p2s);
+    vector_t v0 = p1s - p1;
+    vector_t v1 = p2s - p2;
 
-    vector_t b = vector_normalize (vector_add (points_difference (c.c, p0), points_difference (c.c, p3)));
+    vector_t b = (p0 - c.c + p3 - c.c).normalized ();
     v0 = vector_rebase (v0, b);
     v1 = vector_rebase (v1, b);
 
     vector_t v (max_dev (v0.dx, v1.dx),
 		max_dev (v0.dy, v1.dy));
 
-    vector_t b2 = vector_normalize (vector_rebase (points_difference (c.c, p3), b));
+    vector_t b2 = vector_rebase (p3 - c.c, b).normalized ();
     vector_t u = vector_rebase (v, b2);
 
     eb = sqrt ((c.r + u.dx) * (c.r + u.dx) + u.dy * u.dy) - c.r;
@@ -588,15 +423,15 @@ demo_curve (cairo_t *cr)
 	  if (1)
 	  {
 	    /* divide the curve into two */
-	    point_t p01 = mid_point (p0, p1);
-	    point_t p12 = mid_point (p1, p2);
-	    point_t p23 = mid_point (p2, p3);
-	    point_t p012 = mid_point (p01, p12);
-	    point_t p123 = mid_point (p12, p23);
-	    point_t p0123 = mid_point (p012, p123);
+	    point_t p01 = p0 + p1;
+	    point_t p12 = p1 + p2;
+	    point_t p23 = p2 + p3;
+	    point_t p012 = p01 + p12;
+	    point_t p123 = p12 + p23;
+	    point_t p0123 = p012 + p123;
 	    point_t m = p0123;
 
-	    circle_t c = circle_by_three_points (p0, m, p3);
+	    circle_t c (p0, m, p3);
 
 	    double e0 = arc_bezier_error (p0, p01, p012, p0123, c, cr);
 	    double e1 = arc_bezier_error (p0123, p123, p23, p3, c, cr);
@@ -610,7 +445,7 @@ demo_curve (cairo_t *cr)
 	      double e = 0;
 	      for (t = 0; t <= 1; t += .001) {
 		point_t p = bezier_calculate (t, p0, p1, p2, p3, NULL, NULL);
-		e = MAX (e, fabs (points_distance (p, c.c) - c.r));
+		e = MAX (e, fabs ((c.c - p).len () - c.r));
 	      }
 	      printf ("Actual arc max error %g\n", e);
 	    }
@@ -645,8 +480,8 @@ demo_curve (cairo_t *cr)
 	      point_t p = bezier_calculate (t, p0, p1, p2, p3, &dp, &ddp);
 
 	      /* normal vector len squared */
-	      len = vector_length (dp);
-	      vector_t nv = vector_normal (dp);
+	      len = dp.len ();
+	      vector_t nv = dp.normal ();
 
 	      curvature = (ddp.dy * dp.dx - ddp.dx * dp.dy) / (len * len * len);
 	      vector_t cv (nv.dx / curvature,

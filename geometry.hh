@@ -24,41 +24,303 @@
  * Google Author(s): Behdad Esfahbod
  */
 
+#include <math.h>
+
 #ifndef GEOMETRY_HH
 #define GEOMETRY_HH
 
 typedef double Coord;
+typedef double Scalar;
+
+template <typename Coord> struct Vector;
+template <typename Coord> struct Point;
+template <typename Coord> struct Line;
+template <typename Coord> struct Triangle;
+template <typename Coord, typename Scalar> struct Circle;
+
 
 template <typename Coord>
 struct Vector {
-  Vector (Coord dx_, Coord dy_) : dx (dx_), dy (dy_) {};
+  inline Vector (Coord dx_, Coord dy_) : dx (dx_), dy (dy_) {};
+  inline explicit Vector (Point<Coord> p) : dx (p.x), dy (p.y) {};
+
+  inline bool operator == (const Vector<Coord> &v) const;
+  inline bool operator != (const Vector<Coord> &v) const;
+  inline const Vector<Coord> operator- (void) const;
+  inline Vector<Coord>& operator+= (const Vector<Coord> &v);
+  inline Vector<Coord>& operator-= (const Vector<Coord> &v);
+  template <typename Scalar>
+  inline Vector<Coord>& operator*= (const Scalar &s);
+  template <typename Scalar>
+  inline Vector<Coord>& operator/= (const Scalar &s);
+  inline const Vector<Coord> operator+ (const Vector<Coord> &v) const;
+  inline const Vector<Coord> operator- (const Vector<Coord> &v) const;
+  template <typename Scalar>
+  inline const Vector<Coord> operator* (const Scalar &s) const;
+  template <typename Scalar>
+  inline const Vector<Coord> operator/ (const Scalar &s) const;
+  inline const Point<Coord> operator+ (const Point<Coord> &p) const;
+
+  inline Scalar len (void) const;
+  inline const Vector<Coord> normalized (void) const;
+  inline const Vector<Coord> perpendicular (void) const;
+  inline const Vector<Coord> normal (void) const; /* perpendicular().normalized() */
+
   Coord dx, dy;
 };
 
 template <typename Coord>
 struct Point {
-  Point (Coord x_, Coord y_) : x (x_), y (y_) {};
+  inline Point (Coord x_, Coord y_) : x (x_), y (y_) {};
+  inline explicit Point (Vector<Coord> v) : x (v.dx), y (v.dy) {};
+
+  inline bool operator == (const Point<Coord> &p) const;
+  inline bool operator != (const Point<Coord> &p) const;
+  inline Point<Coord>& operator+= (const Vector<Coord> &v);
+  inline Point<Coord>& operator-= (const Vector<Coord> &v);
+  inline const Point<Coord> operator+ (const Vector<Coord> &v) const;
+  inline const Point<Coord> operator- (const Vector<Coord> &v) const;
+  inline const Vector<Coord> operator- (const Point<Coord> &p) const;
+  inline const Point<Coord> operator+ (const Point<Coord> &v) const; /* mid-point! */
+  inline const Line<Coord> operator| (const Point<Coord> &p) const; /* segment axis line! */
+
   Coord x, y;
-};
-
-template <typename Coord, typename Radius>
-struct Circle {
-  Circle (Point<Coord> c_, double r_) : c (c_), r (r_) {};
-
-  Point<Coord> c;
-  Radius r;
 };
 
 template <typename Coord>
 struct Line {
-  Line (Coord a_, Coord b_, Coord c_) : a (a_), b (b_), c (c_) {};
+  inline Line (Coord a_, Coord b_, Coord c_) : a (a_), b (b_), c (c_) {};
+  inline Line (const Point<Coord> &p0, const Point<Coord> &p1);
+
+  inline const Point<Coord> operator+ (const Line<Coord> &l) const; /* line intersection! */
+
+  inline const Line<Coord> normalized (void) const;
+  inline const Vector<Coord> normal (void) const;
 
   Coord a, b, c; /* a*x + b*y = c */
 };
 
+template <typename Coord>
+struct Triangle {
+  Triangle (const Point<Coord> &a_, const Point<Coord> &b_, const Point<Coord> &c_) : a (a_), b (b_), c (c_) {};
+
+  inline const Point<Coord> incenter (void) const;
+
+  Point<Coord> a, b, c;
+};
+
+template <typename Coord, typename Scalar>
+struct Circle {
+  Circle (const Point<Coord> &c_, Scalar r_) : c (c_), r (r_) {};
+  Circle (const Point<Coord> &p0, const Point<Coord> &p1, const Point<Coord> &p2);
+
+  inline bool operator == (const Circle<Coord, Scalar> &c) const;
+  inline bool operator != (const Circle<Coord, Scalar> &c) const;
+
+  Point<Coord> c;
+  Scalar r;
+};
+
+
+/* Implementations */
+
+/* Vector */
+
+template <typename Coord>
+inline bool Vector<Coord>::operator == (const Vector<Coord> &v) const {
+  return dx == v.dx && dy == v.dy;
+}
+template <typename Coord>
+inline bool Vector<Coord>::operator != (const Vector<Coord> &v) const {
+  return !(*this == v);
+}
+template <typename Coord>
+inline const Vector<Coord> Vector<Coord>::operator- (void) const {
+  return Vector<Coord> (-dx, -dy);
+}
+template <typename Coord>
+inline Vector<Coord>& Vector<Coord>::operator+= (const Vector<Coord> &v) {
+  dx += v.dx;
+  dy += v.dy;
+  return *this;
+}
+template <typename Coord>
+inline Vector<Coord>& Vector<Coord>::operator-= (const Vector<Coord> &v) {
+  dx -= v.dx;
+  dy -= v.dy;
+  return *this;
+}
+template <typename Coord> template <typename Scalar>
+inline Vector<Coord>& Vector<Coord>::operator*= (const Scalar &s) {
+  dx *= s;
+  dy *= s;
+  return *this;
+}
+template <typename Coord> template <typename Scalar>
+inline Vector<Coord>& Vector<Coord>::operator/= (const Scalar &s) {
+  dx /= s;
+  dy /= s;
+  return *this;
+}
+template <typename Coord>
+inline const Vector<Coord> Vector<Coord>::operator+ (const Vector<Coord> &v) const {
+  return Vector<Coord> (*this) += v;
+}
+template <typename Coord>
+inline const Vector<Coord> Vector<Coord>::operator- (const Vector<Coord> &v) const {
+  return Vector<Coord> (*this) -= v;
+}
+template <typename Coord> template <typename Scalar>
+inline const Vector<Coord> Vector<Coord>::operator* (const Scalar &s) const {
+  return Vector<Coord> (*this) *= s;
+}
+template <typename Coord> template <typename Scalar>
+inline const Vector<Coord> Vector<Coord>::operator/ (const Scalar &s) const {
+  return Vector<Coord> (*this) /= s;
+}
+template <typename Coord>
+inline const Point<Coord> Vector<Coord>::operator+ (const Point<Coord> &p) const {
+  return p + *this;
+}
+
+template <typename Coord>
+inline Scalar Vector<Coord>::len (void) const {
+  return hypot (dx, dy);
+}
+template <typename Coord>
+inline const Vector<Coord> Vector<Coord>::normalized (void) const {
+  Scalar d = len ();
+  return d ? *this / d : *this;
+}
+template <typename Coord>
+inline const Vector<Coord> Vector<Coord>::perpendicular (void) const {
+  return Vector<Coord> (-dy, dx);
+}
+template <typename Coord>
+inline const Vector<Coord> Vector<Coord>::normal (void) const {
+  return perpendicular ().normalized ();
+}
+
+
+/* Point */
+
+template <typename Coord>
+inline bool Point<Coord>::operator == (const Point<Coord> &p) const {
+  return x == p.x && y == p.y;
+}
+template <typename Coord>
+inline bool Point<Coord>::operator != (const Point<Coord> &p) const {
+  return !(*this == p);
+}
+template <typename Coord>
+inline Point<Coord>& Point<Coord>::operator+= (const Vector<Coord> &v) {
+  x += v.dx;
+  y += v.dy;
+  return *this;
+}
+template <typename Coord>
+inline Point<Coord>& Point<Coord>::operator-= (const Vector<Coord> &v) {
+  x -= v.dx;
+  y -= v.dy;
+  return *this;
+}
+template <typename Coord>
+inline const Point<Coord> Point<Coord>::operator+ (const Vector<Coord> &v) const {
+  return Point<Coord> (*this) += v;
+}
+template <typename Coord>
+inline const Point<Coord> Point<Coord>::operator- (const Vector<Coord> &v) const {
+  return Point<Coord> (*this) -= v;
+}
+template <typename Coord>
+inline const Vector<Coord> Point<Coord>::operator- (const Point<Coord> &p) const {
+  return Vector<Coord> (x - p.x, y - p.y);
+}
+
+template <typename Coord>
+inline const Point<Coord> Point<Coord>::operator+ (const Point<Coord> &p) const { /* mid-point! */
+  return *this + (p - *this) / 2;
+}
+template <typename Coord>
+inline const Line<Coord> Point<Coord>::operator| (const Point<Coord> &p) const { /* segment axis line! */
+  Vector<Coord> d = p - *this;
+  return Line<Coord> (d.dx * 2, d.dy * 2,
+		      (d.dx * p.x + d.dy * p.y /* XXX times */) +
+		      (d.dx *   x + d.dy *   y /* XXX times */));
+}
+
+
+/* Line */
+template <typename Coord>
+Line<Coord>::Line (const Point<Coord> &p0, const Point<Coord> &p1)
+{
+  Vector<Coord> n = (p1 - p0).perpendicular ();
+  a = n.dx;
+  b = n.dy;
+  c = n.dx * p0.x + n.dy * p0.y /* XXX times */;
+}
+template <typename Coord>
+inline const Point<Coord> Line<Coord>::operator+ (const Line<Coord> &l) const {
+  Scalar det = a * l.b - b * l.a;
+  if (!det)
+    /* XXX Point<Coord>::infinite() */
+    return Point<Coord> (/* XXX point_t */ INFINITY, /* XXX point_t:: */INFINITY);
+  return Point<Coord> ((c * l.b - b * l.c) / det,
+		       (a * l.c - c * l.a) / det);
+}
+
+template <typename Coord>
+inline const Line<Coord> Line<Coord>::normalized (void) const {
+  Scalar d = normal ().len ();
+  return d ? Line<Coord> (a / d, b / d, c / d) : *this;
+}
+template <typename Coord>
+inline const Vector<Coord> Line<Coord>::normal (void) const {
+  return Vector<Coord> (a, b);
+}
+
+
+/* Triangle */
+
+/* https://secure.wikimedia.org/wikipedia/en/wiki/Incentre#Coordinates_of_the_incenter */
+template <typename Coord>
+inline const Point<Coord> Triangle<Coord>::incenter (void) const {
+  double A = (c - b).len ();
+  double B = (a - c).len ();
+  double C = (b - a).len ();
+  double P = A + B + C;
+
+  if (P == 0)
+    /* Degenerate case: a == b == c */
+    return a;
+
+  return Point<Coord> ((A * a.x + B * b.x + C * c.x) / P,
+		       (A * a.y + B * b.y + C * c.y) / P);
+}
+
+
+/* Circle */
+
+template <typename Coord, typename Scalar>
+inline bool Circle<Coord, Scalar>::operator == (const Circle<Coord, Scalar> &c_) const {
+  return c == c_.c && r == c_.r;
+}
+template <typename Coord,  typename Scalar>
+inline bool Circle<Coord, Scalar>::operator != (const Circle<Coord, Scalar> &c) const {
+  return !(*this == c);
+}
+template <typename Coord, typename Scalar>
+Circle<Coord, Scalar>::Circle (const Point<Coord> &p0, const Point<Coord> &p1, const Point<Coord> &p2) :
+  c ((p0|p1) + (p2|p1)),
+  r ((c - p0).len ())
+{}
+
+
+
+
 typedef Vector<Coord> vector_t;
 typedef Point<Coord> point_t;
-typedef Circle<Coord, double> circle_t;
+typedef Circle<Coord, Scalar> circle_t;
 typedef Line<Coord> line_t;
 
 #endif
