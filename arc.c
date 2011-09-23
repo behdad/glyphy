@@ -109,6 +109,15 @@ points_difference (const point_t A, const point_t B)
   return d;
 }
 
+static point_t
+mid_point (const point_t A, const point_t B)
+{
+  point_t C;
+  C.x = .5 * (A.x + B.x);
+  C.y = .5 * (A.y + B.y);
+  return C;
+}
+
 static double
 vector_length (const vector_t v)
 {
@@ -483,6 +492,88 @@ max_dev (double d0, double d1)
   }
 }
 
+double
+arc_bezier_error (const point_t p0,
+		  const point_t p1,
+		  const point_t p2,
+		  const point_t p3,
+		  const circle_t cm,
+		  cairo_t *cr)
+{
+  double a0, a1, a4, _4_3_tan_a4;
+  point_t p1s, p2s;
+  double ea, eb, e;
+
+  a0 = atan_two_points (cm.c, p0);
+  a1 = atan_two_points (cm.c, p3);
+  a4 = (a1 - a0) / 4.;
+  _4_3_tan_a4 = 4./3.*tan (a4);
+  p1s = point_add (p0,
+	  vector_scale (
+	    vector_perpendicular (
+	      points_difference (cm.c, p0)
+	    ), _4_3_tan_a4));
+  p2s = point_add (p3,
+	  vector_scale (
+	    vector_perpendicular (
+	      points_difference (p3, cm.c)
+	    ), _4_3_tan_a4));
+
+  ea = 4./27.*cm.r*pow(sin(a4),6)/pow(cos(a4)/4.,2);
+  //eb = max_dev (points_distance (p1, p1s), points_distance (p2, p2s));
+  {
+    vector_t v0, v1, v, u;
+    v0 = points_difference (p1, p1s);
+    v1 = points_difference (p2, p2s);
+
+    vector_t b = vector_normalize (vector_add (points_difference (cm.c, p0), points_difference (cm.c, p3)));
+    v0 = vector_rebase (v0, b);
+    v1 = vector_rebase (v1, b);
+
+    v.x = max_dev (v0.x, v1.x);
+    v.y = max_dev (v0.y, v1.y);
+
+    vector_t b2 = vector_normalize (vector_rebase (points_difference (cm.c, p3), b));
+    u = vector_rebase (v, b2);
+    eb = sqrt ((cm.r+u.x)*(cm.r+u.x) + u.y*u.y) - cm.r;
+    //printf ("eb=%g v.x=%g\n", eb, v.x);
+    eb = MAX (eb, v.x);
+  }
+  e = ea + eb;
+  printf ("Calculated arc error uppper bound %g+%g = %g\n", ea, eb, e);
+
+  cairo_save (cr);
+  double line_width = cairo_get_line_width (cr);
+  cairo_set_source_rgba (cr, 0.0, 1.0, 0.0, 1.0);
+
+  cairo_set_line_cap (cr, CAIRO_LINE_CAP_ROUND);
+  cairo_move_to (cr, p1s.x, p1s.y);
+  cairo_rel_line_to (cr, 0, 0);
+  cairo_move_to (cr, p2s.x, p2s.y);
+  cairo_rel_line_to (cr, 0, 0);
+  cairo_set_line_width (cr, line_width * 4);
+  cairo_stroke (cr);
+
+  cairo_set_line_width (cr, line_width * 1);
+  cairo_arc (cr, cm.c.x, cm.c.y, cm.r, a0, a1);
+  cairo_stroke (cr);
+
+  cairo_set_line_width (cr, line_width * .25);
+  cairo_move_to (cr, p0.x, p0.y);
+  cairo_line_to (cr, p1s.x, p1s.y);
+  cairo_move_to (cr, p3.x, p3.y);
+  cairo_line_to (cr, p2s.x, p2s.y);
+  cairo_stroke (cr);
+  cairo_set_source_rgb (cr, 0, 0, 0);
+  cairo_move_to (cr, p0.x, p0.y);
+  cairo_curve_to (cr, p1s.x, p1s.y, p2s.x, p2s.y, p3.x, p3.y);
+  cairo_stroke (cr);
+
+  cairo_restore (cr);
+
+  return e;
+}
+
 static void
 demo_curve (cairo_t *cr)
 {
@@ -614,53 +705,32 @@ demo_curve (cairo_t *cr)
 	  {
 	    circle_t cm;
 	    point_t m;
-	    double a0, a1, a4, _4_3_tan_a4;
-	    double ea, eb, e;
-	    point_t p1s, p2s;
-	    bezier_calculate (.5, p0, p1, p2, p3, &m, NULL, NULL);
+
+	    /* divide the curve into two */
+	    point_t p01, p12, p23, p012, p123, p0123;
+	    p01 = mid_point (p0, p1);
+	    p12 = mid_point (p1, p2);
+	    p23 = mid_point (p2, p3);
+	    p012 = mid_point (p01, p12);
+	    p123 = mid_point (p12, p23);
+	    p0123 = mid_point (p012, p123);
+	    m = p0123;
+
 	    circle_by_three_points (p0, m, p3, &cm);
-	    a0 = atan_two_points (cm.c, p0);
-	    a1 = atan_two_points (cm.c, p3);
-	    a4 = (a1 - a0) / 4.;
-	    _4_3_tan_a4 = 4./3.*tan (a4);
-	    p1s = point_add (p0,
-		    vector_scale (
-		      vector_perpendicular (
-			points_difference (cm.c, p0)
-		      ), _4_3_tan_a4));
-	    p2s = point_add (p3,
-		    vector_scale (
-		      vector_perpendicular (
-			points_difference (p3, cm.c)
-		      ), _4_3_tan_a4));
 
-	    ea = 4./27.*cm.r*pow(sin(a4),6)/pow(cos(a4)/4.,2);
-	    //eb = max_dev (points_distance (p1, p1s), points_distance (p2, p2s));
-	    {
-	      vector_t v0, v1, v, u;
-	      v0 = points_difference (p1, p1s);
-	      v1 = points_difference (p2, p2s);
+	    double e, e0, e1;
+	    e0 = arc_bezier_error (p0, p01, p012, p0123, cm, cr);
+	    e1 = arc_bezier_error (p0123, p123, p23, p3, cm, cr);
+	    e = MAX (e0, e1);
 
-	      vector_t b = vector_normalize (vector_add (points_difference (cm.c, p0), points_difference (cm.c, p3)));
-	      v0 = vector_rebase (v0, b);
-	      v1 = vector_rebase (v1, b);
+	    printf ("%g %g = %g\n", e0, e1, e);
 
-	      v.x = max_dev (v0.x, v1.x);
-	      v.y = max_dev (v0.y, v1.y);
-
-	      vector_t b2 = vector_normalize (vector_rebase (points_difference (cm.c, p3), b));
-	      u = vector_rebase (v, b2);
-	      eb = sqrt ((cm.r+u.x)*(cm.r+u.x) + u.y*u.y) - cm.r;
-	      //printf ("eb=%g v.x=%g\n", eb, v.x);
-	      eb = MAX (eb, v.x);
-	    }
-	    e = ea + eb;
-	    printf ("Calculated arc error uppper bound %g+%g = %g\n", ea, eb, e);
+	    //e1 = arc_bezier_error (p0, p1, p2, m, cm, cr);
 
 	    {
 	      double t;
 	      double e = 0;
-	      for (t = 0; t <= 1; t += .01) {
+	      for (t = 0; t <= 1; t += .001) {
 		point_t p;
 		bezier_calculate (t, p0, p1, p2, p3, &p, NULL, NULL);
 		e = MAX (e, fabs (points_distance (p, cm.c) - cm.r));
@@ -674,26 +744,16 @@ demo_curve (cairo_t *cr)
 	    cairo_set_line_cap (cr, CAIRO_LINE_CAP_ROUND);
 	    cairo_move_to (cr, m.x, m.y);
 	    cairo_rel_line_to (cr, 0, 0);
-	    cairo_move_to (cr, p1s.x, p1s.y);
-	    cairo_rel_line_to (cr, 0, 0);
-	    cairo_move_to (cr, p2s.x, p2s.y);
-	    cairo_rel_line_to (cr, 0, 0);
 	    cairo_set_line_width (cr, line_width * 4);
 	    cairo_stroke (cr);
 
 	    cairo_set_line_width (cr, line_width * 1);
-	    cairo_arc (cr, cm.c.x, cm.c.y, cm.r, a0, a1);
-	    cairo_stroke (cr);
-
-	    cairo_set_line_width (cr, line_width * .25);
-	    cairo_move_to (cr, p0.x, p0.y);
-	    cairo_line_to (cr, p1s.x, p1s.y);
-	    cairo_move_to (cr, p3.x, p3.y);
-	    cairo_line_to (cr, p2s.x, p2s.y);
-	    cairo_stroke (cr);
-	    cairo_set_source_rgb (cr, 0, 0, 0);
-	    cairo_move_to (cr, p0.x, p0.y);
-	    cairo_curve_to (cr, p1s.x, p1s.y, p2s.x, p2s.y, p3.x, p3.y);
+	    {
+	      double a0, a1;
+	      a0 = atan_two_points (cm.c, p0);
+	      a1 = atan_two_points (cm.c, p3);
+	      cairo_arc (cr, cm.c.x, cm.c.y, cm.r, a0, a1);
+	    }
 	    cairo_stroke (cr);
 
 	    cairo_restore (cr);
@@ -701,7 +761,7 @@ demo_curve (cairo_t *cr)
 
 	  {
 	    double t;
-	    for (t = 0; t <= 1; t += .01) {
+	    for (t = 0; t <= 1; t += .05) {
 	      point_t p;
 	      vector_t dp, ddp, nv, cv;
 	      double len, curvature;
