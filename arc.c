@@ -458,7 +458,7 @@ max_dev (double d0, double d1)
   double delta = d0*d0 - d0*d1 + d1*d1;
   if (d0 == d1)
     candidates[num_candidates++] = .5;
-  if (delta == 0)
+  else if (delta == 0)
     candidates[num_candidates++] = (2*d0-d1) / (3*(d0-d1));
   else if (delta > 0) {
     candidates[num_candidates++] = ((2*d0-d1) - sqrt (delta)) / (3*(d0-d1));
