@@ -334,10 +334,7 @@ demo_curve (cairo_t *cr)
 	    cairo_stroke (cr);
 
 	    cairo_set_line_width (cr, line_width * 1);
-	    {
-	      arc_t a (c, b.p0, b.p3);
-	      cairo_arc (cr, c.c.x, c.c.y, c.r, a.a0, a.a1);
-	    }
+	    cairo_arc (cr, c.c.x, c.c.y, c.r, (b.p0 - c.c).angle (), (b.p3 - c.c).angle ());
 	    cairo_stroke (cr);
 
 	    cairo_restore (cr);
