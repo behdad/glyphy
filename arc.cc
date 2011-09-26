@@ -30,71 +30,14 @@
 
 #include "geometry.hh"
 
-static point_t
-bezier_calculate (double t,
-		  point_t p0,
-		  point_t p1,
-		  point_t p2,
-		  point_t p3,
-		  vector_t *dp,
-		  vector_t *ddp
-		  )
-{
-  double t_1_0, t_0_1;
-  double t_2_0, t_0_2;
-  double t_3_0, t_2_1, t_1_2, t_0_3;
-  double _1__4t_1_0_3t_2_0, _2t_1_0_3t_2_0;
 
-  t_1_0 = t;
-  t_0_1 = 1 - t;
+typedef Vector<Coord> vector_t;
+typedef Point<Coord> point_t;
+typedef Line<Coord> line_t;
+typedef Circle<Coord, Scalar> circle_t;
+typedef Arc<Coord, Scalar> arc_t;
+typedef Bezier<Coord> bezier_t;
 
-  t_2_0 = t_1_0 * t_1_0; /*      t  *      t  */
-  t_0_2 = t_0_1 * t_0_1; /* (1 - t) * (1 - t) */
-
-  t_3_0 = t_2_0 * t_1_0; /*      t  *      t  *      t  */
-  t_2_1 = t_2_0 * t_0_1; /*      t  *      t  * (1 - t) */
-  t_1_2 = t_1_0 * t_0_2; /*      t  * (1 - t) * (1 - t) */
-  t_0_3 = t_0_1 * t_0_2; /* (1 - t) * (1 - t) * (1 - t) */
-
-  _1__4t_1_0_3t_2_0 = 1 - 4 * t_1_0 + 3 * t_2_0;
-  _2t_1_0_3t_2_0    =     2 * t_1_0 - 3 * t_2_0;
-
-  if (dp) {
-    /* Bezier gradient */
-    dp->dx = -3 * p0.x * t_0_2
-	     +3 * p1.x * _1__4t_1_0_3t_2_0
-	     +3 * p2.x * _2t_1_0_3t_2_0
-	     +3 * p3.x * t_2_0;
-    dp->dy = -3 * p0.y * t_0_2
-	     +3 * p1.y * _1__4t_1_0_3t_2_0
-	     +3 * p2.y * _2t_1_0_3t_2_0
-	     +3 * p3.y * t_2_0;
-  }
-
-  if (ddp) {
-    /* Bezier second derivatives */
-    ddp->dx = 6 * ( (-p0.x+3*p1.x-3*p2.x+p3.x) * t + (p0.x-2*p1.x+p2.x));
-    ddp->dy = 6 * ( (-p0.y+3*p1.y-3*p2.y+p3.y) * t + (p0.y-2*p1.y+p2.y));
-  }
-
-  /* Bezier polynomial */
-  return point_t (      p0.x * t_0_3
-		  + 3 * p1.x * t_1_2
-		  + 3 * p2.x * t_2_1
-		  +     p3.x * t_3_0,
-		        p0.y * t_0_3
-		  + 3 * p1.y * t_1_2
-		  + 3 * p2.y * t_2_1
-		  +     p3.y * t_3_0);
-}
-
-/* b should be normal */
-static vector_t
-vector_rebase (const vector_t v, const vector_t b)
-{
-  return vector_t (v.dx *  b.dx + v.dy * b.dy,
-		   v.dx * -b.dy + v.dy * b.dx);
-}
 
 void fancy_cairo_stroke (cairo_t *cr);
 void fancy_cairo_stroke_preserve (cairo_t *cr);
@@ -240,11 +183,10 @@ print_path_stats (const cairo_path_t *path)
 static double
 max_dev_approx (double d0, double d1)
 {
-  double e0, e1;
   d0 = fabs (d0);
   d1 = fabs (d1);
-  e0 = 3./4. * MAX (d0, d1);
-  e1 = 4./9. * (d0 + d1);
+  double e0 = 3./4. * MAX (d0, d1);
+  double e1 = 4./9. * (d0 + d1);
   return MIN (e0, e1);
 }
 
@@ -252,47 +194,49 @@ max_dev_approx (double d0, double d1)
 static double
 max_dev (double d0, double d1)
 {
-  double e;
-  unsigned int i;
   double candidates[4] = {0,1};
   unsigned int num_candidates = 2;
-  double delta = d0*d0 - d0*d1 + d1*d1;
-  /* This code can be optimized to avoid the sqrt if the solution
-   * is not feasible (ie. lies outside (0,1)).  I have implemented
-   * that in cairo-spline.c:_cairo_spline_bound().  Can be reused
-   * here.
-   */
   if (d0 == d1)
     candidates[num_candidates++] = .5;
-  else if (delta == 0)
-    candidates[num_candidates++] = (2 * d0 - d1) / (3 * (d0 - d1));
-  else if (delta > 0) {
-    double t0 = 2 * d0 - d1, t1 = sqrt (delta), t2 = 1. / (3 * (d0 - d1));
-    candidates[num_candidates++] = (t0 - t1) * t2;
-    candidates[num_candidates++] = (t0 + t1) * t2;
+  else {
+    double delta = d0*d0 - d0*d1 + d1*d1;
+    double t2 = 1. / (3 * (d0 - d1));
+    double t0 = (2 * d0 - d1) * t2;
+    if (delta == 0)
+      candidates[num_candidates++] = t0;
+    else if (delta > 0) {
+      /* This code can be optimized to avoid the sqrt if the solution
+       * is not feasible (ie. lies outside (0,1)).  I have implemented
+       * that in cairo-spline.c:_cairo_spline_bound().  Can be reused
+       * here.
+       */
+      double t1 = sqrt (delta) * t2;
+      candidates[num_candidates++] = t0 - t1;
+      candidates[num_candidates++] = t0 + t1;
+    }
   }
 
-  for (i = 0; i < num_candidates; i++) {
+  double e = 0;
+  for (unsigned int i = 0; i < num_candidates; i++) {
     double t = candidates[i];
     double ee;
     if (t < 0. || t > 1.)
       continue;
-    ee = 3 * t * (1-t) * (d0 * (1 - t) + d1 * t);
-    e = MAX (e, fabs (ee));
+    ee = fabs (3 * t * (1-t) * (d0 * (1 - t) + d1 * t));
+    e = MAX (e, ee);
   }
-
 
   return e;
 }
 
 double
-arc_bezier_error (const point_t p0,
-		  const point_t p1,
-		  const point_t p2,
-		  const point_t p3,
-		  const circle_t c,
-		  cairo_t *cr)
+arc_bezier_error (const bezier_t &b,
+		  const circle_t &c)
 {
+  point_t p0 = b.p0;
+  point_t p1 = b.p1;
+  point_t p2 = b.p2;
+  point_t p3 = b.p3;
   double a0, a1, a4, _4_3_tan_a4;
   point_t p1s (0,0), p2s (0,0);
   double ea, eb, e;
@@ -311,47 +255,18 @@ arc_bezier_error (const point_t p0,
     vector_t v1 = p2s - p2;
 
     vector_t b = (p0 - c.c + p3 - c.c).normalized ();
-    v0 = vector_rebase (v0, b);
-    v1 = vector_rebase (v1, b);
+    v0 = v0.rebase (b);
+    v1 = v1.rebase (b);
 
     vector_t v (max_dev (v0.dx, v1.dx),
 		max_dev (v0.dy, v1.dy));
 
-    vector_t b2 = vector_rebase (p3 - c.c, b).normalized ();
-    vector_t u = vector_rebase (v, b2);
+    vector_t b2 = (p3 - c.c).rebase (b).normalized ();
+    vector_t u = v.rebase (b2);
 
     eb = sqrt ((c.r + u.dx) * (c.r + u.dx) + u.dy * u.dy) - c.r;
   }
   e = ea + eb;
-
-  cairo_save (cr);
-  double line_width = cairo_get_line_width (cr);
-  cairo_set_source_rgba (cr, 0.0, 1.0, 0.0, 1.0);
-
-  cairo_set_line_cap (cr, CAIRO_LINE_CAP_ROUND);
-  cairo_move_to (cr, p1s.x, p1s.y);
-  cairo_rel_line_to (cr, 0, 0);
-  cairo_move_to (cr, p2s.x, p2s.y);
-  cairo_rel_line_to (cr, 0, 0);
-  cairo_set_line_width (cr, line_width * 4);
-  cairo_stroke (cr);
-
-  cairo_set_line_width (cr, line_width * 1);
-  cairo_arc (cr, c.c.x, c.c.y, c.r, a0, a1);
-  cairo_stroke (cr);
-
-  cairo_set_line_width (cr, line_width * .25);
-  cairo_move_to (cr, p0.x, p0.y);
-  cairo_line_to (cr, p1s.x, p1s.y);
-  cairo_move_to (cr, p3.x, p3.y);
-  cairo_line_to (cr, p2s.x, p2s.y);
-  cairo_stroke (cr);
-  cairo_set_source_rgb (cr, 0, 0, 0);
-  cairo_move_to (cr, p0.x, p0.y);
-  cairo_curve_to (cr, p1s.x, p1s.y, p2s.x, p2s.y, p3.x, p3.y);
-  cairo_stroke (cr);
-
-  cairo_restore (cr);
 
   return e;
 }
@@ -383,29 +298,21 @@ demo_curve (cairo_t *cr)
     case CAIRO_PATH_CURVE_TO:
 	{
 #define P(d) (point_t (d.point.x, d.point.y))
-
-	  point_t p0 = P (current_point);
-	  point_t p1 = P (data[1]);
-	  point_t p2 = P (data[2]);
-	  point_t p3 = P (data[3]);
+	  bezier_t b (P (current_point), P (data[1]), P (data[2]), P (data[3]));
+#undef P
 
 	  if (1)
 	  {
 	    /* divide the curve into two */
-	    point_t p01 = p0 + p1;
-	    point_t p12 = p1 + p2;
-	    point_t p23 = p2 + p3;
-	    point_t p012 = p01 + p12;
-	    point_t p123 = p12 + p23;
-	    point_t p0123 = p012 + p123;
-	    point_t m = p0123;
+	    Pair<bezier_t> pair = b.halve ();
+	    point_t m = pair.second.p0;
 
-	    circle_t c (p0, m, p3);
+	    circle_t c (b.p0, m, b.p3);
 
-	    double e0 = arc_bezier_error (p0, p01, p012, p0123, c, cr);
-	    double e1 = arc_bezier_error (p0123, p123, p23, p3, c, cr);
+	    double e0 = arc_bezier_error (pair.first, c);
+	    double e1 = arc_bezier_error (pair.second, c);
 	    double e = MAX (e0, e1);
-	    //double e = arc_bezier_error (p0, p1, p2, m, c, cr);
+	    //double e = arc_bezier_error (b, c);
 
 	    printf ("%g %g = %g\n", e0, e1, e);
 
@@ -413,7 +320,7 @@ demo_curve (cairo_t *cr)
 	      double t;
 	      double e = 0;
 	      for (t = 0; t <= 1; t += .001) {
-		point_t p = bezier_calculate (t, p0, p1, p2, p3, NULL, NULL);
+		point_t p = b.point (t);
 		e = MAX (e, fabs ((c.c - p).len () - c.r));
 	      }
 	      printf ("Actual arc max error %g\n", e);
@@ -430,9 +337,8 @@ demo_curve (cairo_t *cr)
 
 	    cairo_set_line_width (cr, line_width * 1);
 	    {
-	      double a0 = (p0 - c.c).angle ();
-	      double a1 = (p3 - c.c).angle ();
-	      cairo_arc (cr, c.c.x, c.c.y, c.r, a0, a1);
+	      arc_t a (c, b.p0, b.p3);
+	      cairo_arc (cr, c.c.x, c.c.y, c.r, a.a0, a.a1);
 	    }
 	    cairo_stroke (cr);
 
@@ -442,8 +348,9 @@ demo_curve (cairo_t *cr)
 	  {
 	    for (double t = 0; t <= 1; t += .05)
 	    {
-	      vector_t dp (0,0), ddp (0,0);
-	      point_t p = bezier_calculate (t, p0, p1, p2, p3, &dp, &ddp);
+	      point_t p = b.point (t);
+	      vector_t dp = b.tangent (t);
+	      vector_t ddp = b.normal (t);
 
 	      /* normal vector len squared */
 	      double len = dp.len ();
