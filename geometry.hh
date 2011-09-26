@@ -132,16 +132,20 @@ struct Circle {
 
 template <typename Coord, typename Scalar>
 struct Arc {
-  inline Arc (const Circle<Coord, Scalar> &c_, Scalar a0_, Scalar a1_) :
-	      c (c_), a0 (a0_), a1 (a1_) {};
-  inline Arc (const Circle<Coord, Scalar> &c_, const Point<Coord> &p0_, const Point<Coord> &p1_) :
-	      c (c_), a0 ((p0_ - c_.c).angle ()), a1 ((p1_ - c_.c).angle ()) {};
+  inline Arc (const Point<Coord> &p0_, const Point<Coord> &pm, const Point<Coord> &p1_) :
+	      p0 (p0_), p1 (p1_),
+	      d (p0_ == pm || p1_ == pm ? 0 :
+		 tan (M_PI_2 - ((p1_-pm).angle () - (p0_-pm).angle ()) / 2) / 2) {}
+  inline Arc (const Circle<Coord, Scalar> &c, Scalar a0, Scalar a1) :
+	      p0 (c.c + Vector<Coord> (cos(a0),sin(a0)) * c.r),
+	      p1 (c.c + Vector<Coord> (cos(a1),sin(a1)) * c.r),
+	      d (tan ((a1 - a0) / 4) / 2) {}
 
   inline bool operator == (const Arc<Coord, Scalar> &a) const;
   inline bool operator != (const Arc<Coord, Scalar> &a) const;
 
-  Circle<Coord, Scalar> c;
-  Scalar a0, a1;
+  Point<Coord> p0, p1;
+  Scalar d; /* Depth */
 };
 
 template <typename Coord>
@@ -375,7 +379,7 @@ inline bool Circle<Coord, Scalar>::operator != (const Circle<Coord, Scalar> &c) 
 
 template <typename Coord, typename Scalar>
 inline bool Arc<Coord, Scalar>::operator == (const Arc<Coord, Scalar> &a) const {
-  return c == a.c && a0 == a.a0 && a1 == a.a1;
+  return p0 == a.p0 && p1 == a.p1 && d == a.d;
 }
 template <typename Coord,  typename Scalar>
 inline bool Arc<Coord, Scalar>::operator != (const Arc<Coord, Scalar> &a) const {
