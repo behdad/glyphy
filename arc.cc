@@ -96,19 +96,6 @@ vector_rebase (const vector_t v, const vector_t b)
 		   v.dx * -b.dy + v.dy * b.dx);
 }
 
-static circle_t
-circle_by_two_points_and_tangent (const point_t p0, const point_t p1, const point_t p3)
-{
-  line_t tangent = line_t (p0, p1).normalized ();
-
-  double x = p3 - tangent;
-  double d = (p3 - p0).len ();
-  double r = d * d / (2 * x);
-
-  return circle_t (p0 + tangent.normal () * r, r);
-}
-
-
 void fancy_cairo_stroke (cairo_t *cr);
 void fancy_cairo_stroke_preserve (cairo_t *cr);
 

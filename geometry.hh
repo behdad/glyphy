@@ -35,7 +35,6 @@ typedef double Scalar;
 template <typename Coord> struct Vector;
 template <typename Coord> struct Point;
 template <typename Coord> struct Line;
-template <typename Coord> struct Triangle;
 template <typename Coord, typename Scalar> struct Circle;
 
 
@@ -103,17 +102,6 @@ struct Line {
   inline const Vector<Coord> normal (void) const;
 
   Coord a, b, c; /* a*x + b*y = c */
-};
-
-template <typename Coord>
-struct Triangle {
-  Triangle (const Point<Coord> &a_, const Point<Coord> &b_, const Point<Coord> &c_) : a (a_), b (b_), c (c_) {};
-
-  inline operator bool (void) const;
-
-  inline const Point<Coord> incenter (void) const;
-
-  Point<Coord> a, b, c;
 };
 
 template <typename Coord, typename Scalar>
@@ -306,30 +294,6 @@ inline const Line<Coord> Line<Coord>::normalized (void) const {
 template <typename Coord>
 inline const Vector<Coord> Line<Coord>::normal (void) const {
   return Vector<Coord> (a, b);
-}
-
-
-/* Triangle */
-
-template <typename Coord>
-inline Triangle<Coord>::operator bool (void) const {
-  return (a - b) && (b - c) && (c - a);
-}
-
-/* https://secure.wikimedia.org/wikipedia/en/wiki/Incentre#Coordinates_of_the_incenter */
-template <typename Coord>
-inline const Point<Coord> Triangle<Coord>::incenter (void) const {
-  double A = (c - b).len ();
-  double B = (a - c).len ();
-  double C = (b - a).len ();
-  double P = A + B + C;
-
-  if (P == 0)
-    /* Degenerate case: a == b == c */
-    return a;
-
-  return Point<Coord> ((A * a.x + B * b.x + C * c.x) / P,
-		       (A * a.y + B * b.y + C * c.y) / P);
 }
 
 
