@@ -70,11 +70,11 @@ struct Vector {
   inline const Point<Coord> operator+ (const Point<Coord> &p) const;
 
   inline bool is_nonzero (void) const;
-  inline Scalar len (void) const;
+  inline const Scalar len (void) const;
   inline const Vector<Coord> normalized (void) const;
   inline const Vector<Coord> perpendicular (void) const;
   inline const Vector<Coord> normal (void) const; /* perpendicular().normalized() */
-  inline Scalar angle (void) const;
+  inline const Scalar angle (void) const;
 
   inline const Vector<Coord> rebase (const Vector<Coord> &bx, const Vector<Coord> &by) const;
   inline const Vector<Coord> rebase (const Vector<Coord> &bx) const;
@@ -99,7 +99,7 @@ struct Point {
   inline const Line<Coord> operator| (const Point<Coord> &p) const; /* segment axis line! */
 
   inline bool is_finite (void) const;
-  inline const Point<Coord> lerp (Scalar a, const Point<Coord> &p) const;
+  inline const Point<Coord> lerp (const Scalar &a, const Point<Coord> &p) const;
 
   Coord x, y;
 };
@@ -155,16 +155,22 @@ struct Bezier {
 		 p0 (p0_), p1 (p1_), p2 (p2_), p3 (p3_) {}
 
   template <typename Scalar>
-  inline const Point<Coord> point (Scalar t) const;
+  inline const Point<Coord> point (const Scalar &t) const;
 
   template <typename Scalar>
-  inline const Vector<Coord> tangent (Scalar t) const;
+  inline const Vector<Coord> tangent (const Scalar &t) const;
 
   template <typename Scalar>
-  inline const Vector<Coord> normal (Scalar t) const;
+  inline const Vector<Coord> d_tangent (const Scalar &t) const;
 
   template <typename Scalar>
-  inline const Pair<Bezier<Coord> > split (Scalar t) const;
+  inline const Scalar curvature (const Scalar &t) const;
+
+  template <typename Scalar>
+  inline const Circle<Coord, Scalar> osculating_circle (const Scalar &t) const;
+
+  template <typename Scalar>
+  inline const Pair<Bezier<Coord> > split (const Scalar &t) const;
 
   inline const Pair<Bezier<Coord> > halve (void) const;
 
@@ -242,7 +248,7 @@ inline bool Vector<Coord>::is_nonzero (void) const {
   return dx || dy;
 }
 template <typename Coord>
-inline Scalar Vector<Coord>::len (void) const {
+inline const Scalar Vector<Coord>::len (void) const {
   return hypot (dx, dy);
 }
 template <typename Coord>
@@ -259,7 +265,7 @@ inline const Vector<Coord> Vector<Coord>::normal (void) const {
   return perpendicular ().normalized ();
 }
 template <typename Coord>
-inline Scalar Vector<Coord>::angle (void) const {
+inline const Scalar Vector<Coord>::angle (void) const {
   return atan2 (dy, dx);
 }
 
@@ -328,7 +334,7 @@ inline bool Point<Coord>::is_finite (void) const {
   return isfinite (x) && isfinite (y);
 }
 template <typename Coord>
-inline const Point<Coord> Point<Coord>::lerp (Scalar a, const Point<Coord> &p) const {
+inline const Point<Coord> Point<Coord>::lerp (const Scalar &a, const Point<Coord> &p) const {
   return Point<Coord> ((1-a) * x + a * p.x, (1-a) * y + a * p.y);
 }
 
@@ -390,7 +396,7 @@ inline bool Arc<Coord, Scalar>::operator != (const Arc<Coord, Scalar> &a) const 
 /* Bezier */
 
 template <typename Coord> template <typename Scalar>
-inline const Point<Coord> Bezier<Coord>::point (Scalar t) const {
+inline const Point<Coord> Bezier<Coord>::point (const Scalar &t) const {
   Point<Coord> p01 = p0.lerp (t, p1);
   Point<Coord> p12 = p1.lerp (t, p2);
   Point<Coord> p23 = p2.lerp (t, p3);
@@ -401,7 +407,7 @@ inline const Point<Coord> Bezier<Coord>::point (Scalar t) const {
 }
 
 template <typename Coord> template <typename Scalar>
-inline const Vector<Coord> Bezier<Coord>::tangent (Scalar t) const
+inline const Vector<Coord> Bezier<Coord>::tangent (const Scalar &t) const
 {
   double t_2_0 = t * t;
   double t_0_2 = (1 - t) * (1 - t);
@@ -420,13 +426,32 @@ inline const Vector<Coord> Bezier<Coord>::tangent (Scalar t) const
 }
 
 template <typename Coord> template <typename Scalar>
-inline const Vector<Coord> Bezier<Coord>::normal (Scalar t) const {
+inline const Vector<Coord> Bezier<Coord>::d_tangent (const Scalar &t) const {
   return Vector<Coord> (6 * ((-p0.x + 3*p1.x - 3*p2.x + p3.x) * t + (p0.x - 2*p1.x + p2.x)),
 			6 * ((-p0.y + 3*p1.y - 3*p2.y + p3.y) * t + (p0.y - 2*p1.y + p2.y)));
 }
 
 template <typename Coord> template <typename Scalar>
-inline const Pair<Bezier<Coord> > Bezier<Coord>::split (Scalar t) const {
+inline const Scalar Bezier<Coord>::curvature (const Scalar &t) const {
+  Vector<Coord> dpp = tangent (t).perpendicular ();
+  Vector<Coord> ddp = d_tangent (t);
+  /* normal vector len squared */
+  double len = dpp.len ();
+  double curvature = (dpp * ddp) / (len * len * len);
+}
+
+template <typename Coord> template <typename Scalar>
+inline const Circle<Coord, Scalar> Bezier<Coord>::osculating_circle (const Scalar &t) const {
+  Vector<Coord> dpp = tangent (t).perpendicular ();
+  Vector<Coord> ddp = d_tangent (t);
+  /* normal vector len squared */
+  double len = dpp.len ();
+  double curvature = (dpp * ddp) / (len * len * len);
+  return Circle<Coord, Scalar> (point (t) + dpp.normalized () / curvature, 1 / curvature);
+}
+
+template <typename Coord> template <typename Scalar>
+inline const Pair<Bezier<Coord> > Bezier<Coord>::split (const Scalar &t) const {
   Point<Coord> p01 = p0.lerp (t, p1);
   Point<Coord> p12 = p1.lerp (t, p2);
   Point<Coord> p23 = p2.lerp (t, p3);

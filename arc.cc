@@ -344,19 +344,9 @@ demo_curve (cairo_t *cr)
 	    for (double t = 0; t <= 1; t += .05)
 	    {
 	      point_t p = b.point (t);
-	      vector_t dp = b.tangent (t);
-	      vector_t ddp = b.normal (t);
-
-	      /* normal vector len squared */
-	      double len = dp.len ();
-	      vector_t nv = dp.normal ();
-
-	      double curvature = (ddp.dy * dp.dx - ddp.dx * dp.dy) / (len * len * len);
-	      vector_t cv (nv.dx / curvature,
-			   nv.dy / curvature);
-
+	      circle_t cv = b.osculating_circle (t);
 	      cairo_move_to (cr, p.x, p.y);
-	      cairo_rel_line_to (cr, cv.dx, cv.dy);
+	      cairo_line_to (cr, cv.c.x, cv.c.y);
 	    }
 	  }
 	}
