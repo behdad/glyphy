@@ -135,11 +135,11 @@ struct Arc {
   inline Arc (const Point<Coord> &p0_, const Point<Coord> &pm, const Point<Coord> &p1_) :
 	      p0 (p0_), p1 (p1_),
 	      d (p0_ == pm || p1_ == pm ? 0 :
-		 tan (M_PI_2 - ((p1_-pm).angle () - (p0_-pm).angle ()) / 2) / 2) {}
+		 tan (M_PI_2 - ((p1_-pm).angle () - (p0_-pm).angle ()) / 2)) {}
   inline Arc (const Circle<Coord, Scalar> &c, Scalar a0, Scalar a1) :
 	      p0 (c.c + Vector<Coord> (cos(a0),sin(a0)) * c.r),
 	      p1 (c.c + Vector<Coord> (cos(a1),sin(a1)) * c.r),
-	      d (tan ((a1 - a0) / 4) / 2) {}
+	      d (tan ((a1 - a0) / 4)) {}
 
   inline bool operator == (const Arc<Coord, Scalar> &a) const;
   inline bool operator != (const Arc<Coord, Scalar> &a) const;
