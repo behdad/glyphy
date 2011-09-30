@@ -27,8 +27,14 @@
 #include <assert.h>
 #include <pango/pangocairo.h>
 
+#include <deque>
+
 #include "geometry.hh"
 
+using namespace std;
+
+#define MAX_ITERS 20
+#define EPSILON 1
 
 typedef Vector<Coord> vector_t;
 typedef Point<Coord> point_t;
@@ -259,6 +265,240 @@ double bezier_arc_error (const bezier_t &b0,
   return ea + eb;
 }
 
+
+double
+arc_bezier_error (const bezier_t &b,
+		  const circle_t &c)
+{
+  point_t p0 = b.p0;
+  point_t p1 = b.p1;
+  point_t p2 = b.p2;
+  point_t p3 = b.p3;
+  double a0, a1, a4, _4_3_tan_a4;
+  point_t p1s (0,0), p2s (0,0);
+  double ea, eb, e;
+
+  a0 = (p0 - c.c).angle ();
+  a1 = (p3 - c.c).angle ();
+  a4 = (a1 - a0) / 4.;
+  _4_3_tan_a4 = 4./3.*tan (a4);
+  p1s = p0 + (p0 - c.c).perpendicular () * _4_3_tan_a4;
+  p2s = p3 + (c.c - p3).perpendicular () * _4_3_tan_a4;
+
+  ea = 2./27.*c.r*pow(sin(a4),6)/pow(cos(a4)/4.,2);
+  //eb = max_dev ((p1s - p1).len (), (p2s - p2).len ());
+  {
+    vector_t v0 = p1s - p1;
+    vector_t v1 = p2s - p2;
+
+    vector_t b = (p0 - c.c + p3 - c.c).normalized ();
+    v0 = v0.rebase (b);
+    v1 = v1.rebase (b);
+
+    vector_t v (max_dev (v0.dx, v1.dx),
+		max_dev (v0.dy, v1.dy));
+
+    vector_t b2 = (p3 - c.c).rebase (b).normalized ();
+    vector_t u = v.rebase (b2);
+
+    eb = sqrt ((c.r + u.dx) * (c.r + u.dx) + u.dy * u.dy) - c.r;
+  }
+  e = ea + eb;
+
+  return e;
+}
+
+/********** This should be used more. *************/
+double 
+arc_bezier_error_improved (const bezier_t &b)
+{
+	Pair<bezier_t> pair = b.halve ();
+	point_t m = pair.second.p0;
+	circle_t c (b.p0, m, b.p3);
+	return MAX (arc_bezier_error (pair.first, c), arc_bezier_error (pair.second, c));
+}
+
+
+/********************************************
+ *  TODO: use arc_bezier_error_improved     *
+ *        for much cleaner code!!           *
+ ********************************************/
+static double 
+binary_find_cut_L (const bezier_t &b,
+                   double i,
+                   double epsilon)
+{
+  double low, mid, high, cut_point, error;
+  
+  /* Find circle going through Bezier at i, (i + 1)/2, and 1. */
+	point_t b_low = b.point(i);
+	point_t b_mid = b.point((i + 1.0) / 2.0);
+	point_t b_high = b.p3;
+	circle_t c (b_low, b_mid, b_high);
+//	printf("Error looks like %g\n", arc_bezier_error_improved (b.segment(i, 1))); 
+
+	error = arc_bezier_error_improved (b.segment (i, 1));
+ 
+
+  /* Compute error between Bezier [i, 1] and circle. */
+	/* divide the curve into two */
+	Pair<bezier_t> pair = b.split (i);
+  pair = pair.second.halve();
+
+  error = MAX (arc_bezier_error (pair.first, c), arc_bezier_error (pair.second, c));
+//	printf("Arc error between %g and %g: %g.\n", i, 1.00, error);
+
+
+  /* If error < epsilon, return 1. */
+  if (error < epsilon)
+		return 1.0;
+
+  /* Use binary search to find a good cut_point such that error(bezier cut at cut_point) ~= epsilon. */
+  low = i;
+  high = 1.0;
+  
+  /* Perform [MAX_ITERS] steps of a binary search. */
+  int count;
+  for (count = 1; count <= MAX_ITERS; count++) {
+		cut_point = (low + high) / 2.0;
+    mid = (i + cut_point) / 2.0;
+
+
+    /* Find circle going through Bezier at low, mid, and high. */
+		b_low = b.point(i);
+		b_mid = b.point(mid);
+		b_high = b.point(cut_point);
+		circle_t c (b_low, b_mid, b_high);
+
+
+    /* Compute error between Bezier [i, cut_point] and circle. */
+		bezier_t b_i_cut = b.segment(i, cut_point);
+		pair = b_i_cut.halve();
+  	error = MAX (arc_bezier_error (pair.first, c), arc_bezier_error (pair.second, c));
+//		printf("  Arc error between %g and %g: %g.\n", i, cut_point, error);
+		
+    if (error == epsilon)
+      return cut_point;
+    if (error < epsilon)
+			low = cut_point;
+    else
+      high = cut_point;
+  }
+
+	/* By now, mid should be close enough to the desired value. 
+   * NOTE: We ***might*** be slightly above epsilon... */
+	return cut_point;    
+
+}
+
+
+/********** NOT CURRENTLY USED. *************/
+static double 
+binary_find_cut_R (const bezier_t &b,
+                   double j,
+                   double epsilon)
+{
+  double low, mid, high, cut_point, error;
+  
+  /* Find circle going through Bezier at 0, j/2, and j. */
+	point_t b_low = b.p0;
+	point_t b_mid = b.point (j / 2.0);
+	point_t b_high = b.point (j);
+	circle_t c (b_low, b_mid, b_high);
+ 
+
+  /* Compute error between Bezier [0, j] and circle. */
+	/* divide the curve into two */
+	Pair<bezier_t> pair = b.split (j);
+  pair = pair.first.halve();
+
+  error = MAX (arc_bezier_error (pair.first, c), arc_bezier_error (pair.second, c));
+//	printf("Arc error between %g and %g: %g.\n", i, 1.00, error);
+
+
+  /* If error < epsilon, return 0. */
+  if (error < epsilon)
+		return 0.0;
+
+  /* Use binary search to find a good cut_point such that error(bezier cut at cut_point) ~= epsilon. */
+  low = 0.0;
+  high = j;
+  
+  /* Perform [MAX_ITERS] steps of a binary search. */
+  int count;
+  for (count = 1; count <= MAX_ITERS; count++) {
+		cut_point = (low + high) / 2.0;
+    mid = (cut_point + j) / 2.0;
+
+
+    /* Find circle going through Bezier at low, mid, and high. */
+		b_low = b.point(cut_point);
+		b_mid = b.point(mid);
+		b_high = b.point(j);
+		circle_t c (b_low, b_mid, b_high);
+
+
+    /* Compute error between Bezier [i, cut_point] and circle. */
+		bezier_t b_cut_j = b.segment(cut_point, j);
+		pair = b_cut_j.halve();
+  	error = MAX (arc_bezier_error (pair.first, c), arc_bezier_error (pair.second, c));
+//		printf("  Arc error between %g and %g: %g.\n", i, cut_point, error);
+		
+    if (error == epsilon)
+      return cut_point;
+    if (error < epsilon)
+			high = cut_point;
+    else
+      low = cut_point;
+  }
+
+	/* By now, mid should be close enough to the desired value. 
+   * NOTE: We ***might*** be slightly above epsilon... */
+	return cut_point;    
+
+}
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void 
+find_cut_points_L (const bezier_t &b, double epsilon, deque<double> &left_cuts)
+{  
+	double t = 0;
+	while (t < 1) {
+		t = binary_find_cut_L (b, t, epsilon);
+		left_cuts.push_back (t);
+	}
+}
+
+
+
+static void
+find_cut_points_R (const bezier_t &b, double epsilon, deque<double> &right_cuts)
+{
+	double t = 1;
+	while (t > 0) {
+		t = binary_find_cut_R (b, t, epsilon);
+		right_cuts.push_front (t);
+	}
+}
 static void
 demo_curve (cairo_t *cr)
 {
@@ -333,6 +573,119 @@ demo_curve (cairo_t *cr)
 	    cairo_stroke (cr);
 
 	    cairo_restore (cr);
+	  }
+
+	  if (1) {
+	      /* Test binary cut. */
+	      deque<double> left_cuts, right_cuts;		
+	      find_cut_points_L (b, EPSILON, left_cuts);
+
+	      double previous_cut = 0.0;
+	      double current_cut;
+	      while (!left_cuts.empty()) {				
+		      current_cut = left_cuts.front();
+		      printf(">> Beginning a new arc segment: %g to %g.\n", previous_cut, current_cut);
+
+		      left_cuts.pop_front();
+		      circle_t cm (b.point(previous_cut), b.point((previous_cut + current_cut) / 2.0), b.point(current_cut));
+		      bezier_t small_b = b.segment(previous_cut, current_cut);
+      
+		      double t;
+		      for (t = 0; t <= 1; t += .01) {
+			point_t p = small_b.point (t);
+
+			/* Draw a line from the curve to the centre of the circle. */
+			cairo_set_source_rgb (cr, 0, 0, 1);
+			cairo_move_to (cr, p.x, p.y);
+			cairo_line_to (cr, cm.c.x, cm.c.y);
+
+			cairo_stroke (cr);
+		      }
+		      previous_cut = current_cut;
+
+
+
+		      /* divide the curve into two */
+		Pair<bezier_t> pair = small_b.halve ();
+		point_t m = pair.second.p0;
+
+		circle_t c (small_b.p0, m, small_b.p3);
+
+		double e0 = arc_bezier_error (pair.first, c);
+		double e1 = arc_bezier_error (pair.second, c);
+		double e = MAX (e0, e1);
+
+		printf   ("Estim. arc max error %g\n", e);
+
+		{
+		  double t;
+		  double e = 0;
+		  for (t = 0; t <= 1; t += .001) {
+				      point_t p = small_b.point (t);
+				      e = MAX (e, fabs ((c.c - p).len () - c.r));
+		  }
+		  printf ("Actual arc max error %g\n", e);
+		}
+
+		      cairo_save (cr);
+		cairo_set_source_rgba (cr, 0.0, 1.0, 0.0, 1.0);
+
+		cairo_set_line_cap (cr, CAIRO_LINE_CAP_ROUND);
+		cairo_move_to (cr, small_b.p0.x, small_b.p0.y);
+		cairo_rel_line_to (cr, 0, 0);
+		cairo_set_line_width (cr, line_width * 2);
+		cairo_stroke (cr);
+
+		cairo_set_line_width (cr, line_width * 0.5);
+#if 0
+		{
+		  arc_t a (c, small_b.p0, small_b.p3);
+
+			      printf("Arc from %g to %g.\n", a.a0, a.a1);
+
+			      if (a.a0 < a.a1)
+		      cairo_arc (cr, c.c.x, c.c.y, c.r, a.a0, a.a1);
+			      else
+		      cairo_arc_negative (cr, c.c.x, c.c.y, c.r, a.a0, a.a1);
+      
+		}
+#endif
+		cairo_stroke (cr);
+
+		cairo_restore (cr);
+
+	      }
+
+
+
+	      /* Make arrays storing cut bounds, cut positions, and error values. */
+/*			double cut_low [right_cuts.size()];
+	      double cut_high [left_cuts.size()];
+	      double cut_place [left_cuts.size() + 2];
+	      double arc_error [left_cuts.size() + 1];
+
+	      int cut_index = 0;
+
+	      cut_place [0] = 0;
+	      cut_place [left_cuts.size() + 1] = 1.0;
+	      printf ("The cut ranges are as follows:\n");
+	      while (!left_cuts.empty())
+	{
+		      cut_low [cut_index] = right_cuts.front();
+		      cut_high [cut_index] = left_cuts.front();
+		      cut_place [cut_index + 1] = cut_high [cut_index]; // (cut_low [cut_index] + cut_high [cut_index]) / 2.0;
+		      arc_error [cut_index] = arc_bezier_error_improved (b.segment (cut_place[cut_index], cut_place [cut_index + 1]));
+
+	printf("[%g (%g) %g] ~ %g\n", cut_low [cut_index], cut_place[cut_index + 1], cut_high[cut_index], arc_error[cut_index]);
+		      
+	left_cuts.pop_front();
+		      right_cuts.pop_front();
+
+		      cut_index++;
+      }  
+	      printf("\n"); */
+
+	      
 	  }
 
 	  {
