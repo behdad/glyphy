@@ -259,48 +259,6 @@ double bezier_arc_error (const bezier_t &b0,
   return ea + eb;
 }
 
-double
-arc_bezier_error (const bezier_t &b,
-		  const circle_t &c)
-{
-  point_t p0 = b.p0;
-  point_t p1 = b.p1;
-  point_t p2 = b.p2;
-  point_t p3 = b.p3;
-  double a0, a1, a4, _4_3_tan_a4;
-  point_t p1s (0,0), p2s (0,0);
-  double ea, eb, e;
-
-  a0 = (p0 - c.c).angle ();
-  a1 = (p3 - c.c).angle ();
-  a4 = (a1 - a0) / 4.;
-  _4_3_tan_a4 = 4./3.*tan (a4);
-  p1s = p0 + (p0 - c.c).perpendicular () * _4_3_tan_a4;
-  p2s = p3 + (c.c - p3).perpendicular () * _4_3_tan_a4;
-
-  ea = 2./27.*c.r*pow(sin(a4),6)/pow(cos(a4),2);
-  //eb = max_dev ((p1s - p1).len (), (p2s - p2).len ());
-  {
-    vector_t v0 = p1s - p1;
-    vector_t v1 = p2s - p2;
-
-    vector_t b = (p0 - c.c + p3 - c.c).normalized ();
-    v0 = v0.rebase (b);
-    v1 = v1.rebase (b);
-
-    vector_t v (max_dev (v0.dx, v1.dx),
-		max_dev (v0.dy, v1.dy));
-
-    vector_t b2 = (p3 - c.c).rebase (b).normalized ();
-    vector_t u = v.rebase (b2);
-
-    eb = sqrt ((c.r + u.dx) * (c.r + u.dx) + u.dy * u.dy) - c.r;
-  }
-  e = ea + eb;
-
-  return e;
-}
-
 static void
 demo_curve (cairo_t *cr)
 {
@@ -339,22 +297,16 @@ demo_curve (cairo_t *cr)
 
 	    circle_t c (b.p0, m, b.p3);
 
-	    double e0 = arc_bezier_error (pair.first, c);
-	    double e1 = arc_bezier_error (pair.second, c);
-	    double e = MAX (e0, e1);
-
 	    arc_t a0 (b.p0, m, b.p3, true);
 	    arc_t a1 (m, b.p3, b.p0, true);
-	    double ee0 = bezier_arc_error (pair.first, a0);
-	    double ee1 = bezier_arc_error (pair.second, a1);
-	    double ee = MAX (ee0, ee1);
+	    double e0 = bezier_arc_error (pair.first, a0);
+	    double e1 = bezier_arc_error (pair.second, a1);
+	    double e = MAX (e0, e1);
 
-	    arc_t a (b.p0, b.p3, m, false);
-	    double eeenew = bezier_arc_error (b, a);
-	    double eeeold = arc_bezier_error (b, c);
+	    //arc_t a (b.p0, b.p3, m, false);
+	    //double e = bezier_arc_error (b, a);
 
-	    printf ("%g %g = %g e\n", e0, e1, e);
-	    printf ("%g %g = %g ee\n", ee0, ee1, ee);
+	    printf ("%g %g = %g\n", e0, e1, e);
 
 	    {
 	      double t;
