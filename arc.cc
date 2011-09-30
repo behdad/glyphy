@@ -637,19 +637,22 @@ demo_curve (cairo_t *cr)
 		cairo_stroke (cr);
 
 		cairo_set_line_width (cr, line_width * 0.5);
-#if 0
+
 		{
-		  arc_t a (c, small_b.p0, small_b.p3);
+		  arc_t a (small_b.p0, small_b.p3, m, true);
+		  circle_t c  = a.circle ();
 
-			      printf("Arc from %g to %g.\n", a.a0, a.a1);
+		  double a0 = (a.p0 - c.c).angle ();
+		  double a1 = (a.p1 - c.c).angle ();
+		  printf("Arc from %g to %g.\n", a0, a1);
 
-			      if (a.a0 < a.a1)
-		      cairo_arc (cr, c.c.x, c.c.y, c.r, a.a0, a.a1);
-			      else
-		      cairo_arc_negative (cr, c.c.x, c.c.y, c.r, a.a0, a.a1);
-      
+		  if (a0 < a1)
+		    cairo_arc (cr, c.c.x, c.c.y, c.r, a0, a1);
+		  else
+		    cairo_arc_negative (cr, c.c.x, c.c.y, c.r, a0, a1);
+
 		}
-#endif
+
 		cairo_stroke (cr);
 
 		cairo_restore (cr);
