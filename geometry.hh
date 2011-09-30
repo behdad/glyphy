@@ -132,10 +132,11 @@ struct Circle {
 
 template <typename Coord, typename Scalar>
 struct Arc {
-  inline Arc (const Point<Coord> &p0_, const Point<Coord> &pm, const Point<Coord> &p1_) :
+  inline Arc (const Point<Coord> &p0_, const Point<Coord> &p1_, const Point<Coord> &pm, bool complement) :
 	      p0 (p0_), p1 (p1_),
 	      d (p0_ == pm || p1_ == pm ? 0 :
-		 tan (M_PI_2 - ((p1_-pm).angle () - (p0_-pm).angle ()) / 2)) {}
+		 tan ((complement ? 0 : M_PI_2) - ((p1_-pm).angle () - (p0_-pm).angle ()) / 2))
+	      {}
   inline Arc (const Circle<Coord, Scalar> &c, Scalar a0, Scalar a1) :
 	      p0 (c.c + Vector<Coord> (cos(a0),sin(a0)) * c.r),
 	      p1 (c.c + Vector<Coord> (cos(a1),sin(a1)) * c.r),
@@ -143,6 +144,11 @@ struct Arc {
 
   inline bool operator == (const Arc<Coord, Scalar> &a) const;
   inline bool operator != (const Arc<Coord, Scalar> &a) const;
+
+  inline Scalar radius (void) const;
+  inline Point<Coord> center (void) const;
+
+  inline Bezier<Coord> approximate_bezier (Scalar *error) const;
 
   Point<Coord> p0, p1;
   Scalar d; /* Depth */
@@ -229,6 +235,10 @@ inline const Vector<Coord> Vector<Coord>::operator- (const Vector<Coord> &v) con
 template <typename Coord> template <typename Scalar>
 inline const Vector<Coord> Vector<Coord>::operator* (const Scalar &s) const {
   return Vector<Coord> (*this) *= s;
+}
+template <typename Scalar>
+inline const Vector<Coord> operator* (const Scalar &s, const Vector<Coord> &v) {
+  return v * s;
 }
 template <typename Coord> template <typename Scalar>
 inline const Vector<Coord> Vector<Coord>::operator/ (const Scalar &s) const {
@@ -390,6 +400,28 @@ inline bool Arc<Coord, Scalar>::operator == (const Arc<Coord, Scalar> &a) const 
 template <typename Coord,  typename Scalar>
 inline bool Arc<Coord, Scalar>::operator != (const Arc<Coord, Scalar> &a) const {
   return !(*this == a);
+}
+
+template <typename Coord,  typename Scalar>
+inline Scalar Arc<Coord, Scalar>::radius (void) const
+{
+  return (p1 - p0).len () * (d*d + 1) / (4 * d);
+}
+
+template <typename Coord,  typename Scalar>
+inline Point<Coord> Arc<Coord, Scalar>::center (void) const
+{
+}
+
+template <typename Coord,  typename Scalar>
+inline Bezier<Coord> Arc<Coord, Scalar>::approximate_bezier (Scalar *error) const {
+  if (error)
+    *error = (p1 - p0).len () * pow (fabs (d), 5) / (54 * (1 + d*d));
+
+  Point<Coord> p0s = p0 + ((1 - d*d) / 3) * (p1 - p0) + (2 * d / 3) * (p1 - p0).perpendicular ();
+  Point<Coord> p1s = p1 + ((1 - d*d) / 3) * (p0 - p1) + (2 * d / 3) * (p1 - p0).perpendicular ();
+
+  return Bezier<Coord> (p0, p0s, p1s, p1);
 }
 
 

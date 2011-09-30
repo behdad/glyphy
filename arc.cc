@@ -24,6 +24,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
+#include <assert.h>
 #include <pango/pangocairo.h>
 
 #include "geometry.hh"
@@ -227,6 +228,37 @@ max_dev (double d0, double d1)
   return e;
 }
 
+double bezier_arc_error (const bezier_t &b0,
+			 const arc_t &a)
+{
+  double ea;
+  bezier_t b1 = a.approximate_bezier (&ea);
+
+  assert (b0.p0 == b1.p0);
+  assert (b0.p3 == b1.p3);
+
+//  return max_dev ((b1.p1 - b0.p1).len (), (b1.p2 - b0.p2).len ());
+
+  vector_t v0 = b1.p1 - b0.p1;
+  vector_t v1 = b1.p2 - b0.p2;
+
+  vector_t b = (b0.p3 - b0.p0).normal ();
+  v0 = v0.rebase (b);
+  v1 = v1.rebase (b);
+
+  vector_t v (max_dev (v0.dx, v1.dx),
+	      max_dev (v0.dy, v1.dy));
+
+  vector_t b2 = (b1.p3 - b1.p2).rebase (b).normal ();
+  vector_t u = v.rebase (b2);
+
+  Scalar c = (b1.p3 - b1.p0).len ();
+  double r = fabs (c * (a.d * a.d + 1) / (4 * a.d));
+  double eb = sqrt ((r + u.dx) * (r + u.dx) + u.dy * u.dy) - r;
+
+  return ea + eb;
+}
+
 double
 arc_bezier_error (const bezier_t &b,
 		  const circle_t &c)
@@ -246,7 +278,7 @@ arc_bezier_error (const bezier_t &b,
   p1s = p0 + (p0 - c.c).perpendicular () * _4_3_tan_a4;
   p2s = p3 + (c.c - p3).perpendicular () * _4_3_tan_a4;
 
-  ea = 2./27.*c.r*pow(sin(a4),6)/pow(cos(a4)/4.,2);
+  ea = 2./27.*c.r*pow(sin(a4),6)/pow(cos(a4),2);
   //eb = max_dev ((p1s - p1).len (), (p2s - p2).len ());
   {
     vector_t v0 = p1s - p1;
@@ -310,9 +342,19 @@ demo_curve (cairo_t *cr)
 	    double e0 = arc_bezier_error (pair.first, c);
 	    double e1 = arc_bezier_error (pair.second, c);
 	    double e = MAX (e0, e1);
-	    //double e = arc_bezier_error (b, c);
 
-	    printf ("%g %g = %g\n", e0, e1, e);
+	    arc_t a0 (b.p0, m, b.p3, true);
+	    arc_t a1 (m, b.p3, b.p0, true);
+	    double ee0 = bezier_arc_error (pair.first, a0);
+	    double ee1 = bezier_arc_error (pair.second, a1);
+	    double ee = MAX (ee0, ee1);
+
+	    arc_t a (b.p0, b.p3, m, false);
+	    double eeenew = bezier_arc_error (b, a);
+	    double eeeold = arc_bezier_error (b, c);
+
+	    printf ("%g %g = %g e\n", e0, e1, e);
+	    printf ("%g %g = %g ee\n", ee0, ee1, ee);
 
 	    {
 	      double t;
