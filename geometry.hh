@@ -19,7 +19,7 @@
  * ON AN "AS IS" BASIS, AND THE COPYRIGHT HOLDER HAS NO OBLIGATION TO
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  *
- * Google Author(s): Behdad Esfahbod
+ * Google Author(s): Behdad Esfahbod, Maysum Panju
  */
 
 #include <math.h>
@@ -180,6 +180,8 @@ struct Bezier {
   inline const Pair<Bezier<Coord> > split (const Scalar &t) const;
 
   inline const Pair<Bezier<Coord> > halve (void) const;
+
+  inline const Bezier<Coord> segment (Scalar t1, Scalar t2) const;
 
   Point<Coord> p0, p1, p2, p3;
 };
@@ -515,5 +517,10 @@ inline const Pair<Bezier<Coord> > Bezier<Coord>::halve (void) const
 			       Bezier<Coord> (p0123, p123, p23, p3));
 }
 
+template <typename Coord>
+inline const Bezier<Coord> Bezier<Coord>::segment (Scalar t1, Scalar t2) const
+{
+  return split (t1).second.split ((t2 - t1) / (1 - t1)).first;
+}
 
 #endif
