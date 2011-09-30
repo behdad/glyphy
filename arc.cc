@@ -23,15 +23,19 @@
  */
 
 #include <stdlib.h>
-#include <stdint.h>
+#include <stdio.h>
 #include <assert.h>
-#include <pango/pangocairo.h>
+#include <glib.h>
 
 #include <deque>
 
 #include "geometry.hh"
+#include "cairo-helper.hh"
+
 
 using namespace std;
+using namespace Geometry;
+using namespace CairoHelper;
 
 #define MAX_ITERS 20
 #define EPSILON 1
@@ -43,146 +47,6 @@ typedef Circle<Coord, Scalar> circle_t;
 typedef Arc<Coord, Scalar> arc_t;
 typedef Bezier<Coord> bezier_t;
 
-
-void fancy_cairo_stroke (cairo_t *cr);
-void fancy_cairo_stroke_preserve (cairo_t *cr);
-
-
-#define MY_CAIRO_PATH_ARC_TO (CAIRO_PATH_CLOSE_PATH+1)
-
-
-/* A fancy cairo_stroke[_preserve]() that draws points and control
- * points, and connects them together.
- */
-static void
-_fancy_cairo_stroke (cairo_t *cr, cairo_bool_t preserve)
-{
-  int i;
-  double line_width;
-  cairo_path_t *path;
-  cairo_path_data_t *data;
-
-  cairo_save (cr);
-  cairo_set_source_rgb (cr, 1.0, 0.0, 0.0);
-
-  line_width = cairo_get_line_width (cr);
-  path = cairo_copy_path (cr);
-  cairo_new_path (cr);
-
-  cairo_save (cr);
-  cairo_set_line_width (cr, line_width / 3);
-  for (i=0; i < path->num_data; i += path->data[i].header.length) {
-    data = &path->data[i];
-    switch (data->header.type) {
-    case CAIRO_PATH_MOVE_TO:
-    case CAIRO_PATH_LINE_TO:
-	cairo_move_to (cr, data[1].point.x, data[1].point.y);
-	break;
-    case CAIRO_PATH_CURVE_TO:
-	cairo_line_to (cr, data[1].point.x, data[1].point.y);
-	cairo_move_to (cr, data[2].point.x, data[2].point.y);
-	cairo_line_to (cr, data[3].point.x, data[3].point.y);
-	break;
-    case CAIRO_PATH_CLOSE_PATH:
-	break;
-    default:
-	g_assert_not_reached ();
-    }
-  }
-  cairo_stroke (cr);
-  cairo_restore (cr);
-
-  cairo_save (cr);
-  cairo_set_line_width (cr, line_width * 4);
-  cairo_set_line_cap (cr, CAIRO_LINE_CAP_ROUND);
-  for (i=0; i < path->num_data; i += path->data[i].header.length) {
-    data = &path->data[i];
-    switch (data->header.type) {
-    case CAIRO_PATH_MOVE_TO:
-	cairo_move_to (cr, data[1].point.x, data[1].point.y);
-	break;
-    case CAIRO_PATH_LINE_TO:
-	cairo_rel_line_to (cr, 0, 0);
-	cairo_move_to (cr, data[1].point.x, data[1].point.y);
-	break;
-    case CAIRO_PATH_CURVE_TO:
-	cairo_rel_line_to (cr, 0, 0);
-	cairo_move_to (cr, data[1].point.x, data[1].point.y);
-	cairo_rel_line_to (cr, 0, 0);
-	cairo_move_to (cr, data[2].point.x, data[2].point.y);
-	cairo_rel_line_to (cr, 0, 0);
-	cairo_move_to (cr, data[3].point.x, data[3].point.y);
-	break;
-    case CAIRO_PATH_CLOSE_PATH:
-	cairo_rel_line_to (cr, 0, 0);
-	break;
-    default:
-	g_assert_not_reached ();
-    }
-  }
-  cairo_rel_line_to (cr, 0, 0);
-  cairo_stroke (cr);
-  cairo_restore (cr);
-
-  cairo_append_path (cr, path);
-
-  if (preserve)
-    cairo_stroke_preserve (cr);
-  else
-    cairo_stroke (cr);
-
-  cairo_path_destroy (path);
-
-  cairo_restore (cr);
-}
-
-/* A fancy cairo_stroke() that draws points and control points, and
- * connects them together.
- */
-void
-fancy_cairo_stroke (cairo_t *cr)
-{
-  _fancy_cairo_stroke (cr, FALSE);
-}
-
-/* A fancy cairo_stroke_preserve() that draws points and control
- * points, and connects them together.
- */
-void
-fancy_cairo_stroke_preserve (cairo_t *cr)
-{
-  _fancy_cairo_stroke (cr, TRUE);
-}
-
-static void
-print_path_stats (const cairo_path_t *path)
-{
-  int i;
-  cairo_path_data_t *data;
-  int lines = 0, curves = 0, arcs = 0;
-
-  for (i=0; i < path->num_data; i += path->data[i].header.length) {
-    data = &path->data[i];
-    switch ((int) data->header.type) {
-    case CAIRO_PATH_MOVE_TO:
-        break;
-    case CAIRO_PATH_LINE_TO:
-	lines++;
-	break;
-    case CAIRO_PATH_CURVE_TO:
-	curves++;
-	break;
-    case MY_CAIRO_PATH_ARC_TO:
-	arcs++;
-	break;
-    case CAIRO_PATH_CLOSE_PATH:
-	break;
-    default:
-	g_assert_not_reached ();
-    }
-  }
-  printf ("%d lines, %d arcs, %d curves\n", lines, arcs, curves);
-}
 
 /* This is a fast approximation of max_dev(). */
 static double
@@ -584,11 +448,12 @@ demo_curve (cairo_t *cr)
   cairo_path_t *path;
   cairo_path_data_t *data, current_point;
 
-  fancy_cairo_stroke_preserve (cr);
+  cairo_set_source_rgb (cr, 1, 0, 0);
+  cairo_fancy_stroke_preserve (cr);
   path = cairo_copy_path (cr);
   cairo_new_path (cr);
 
-  print_path_stats (path);
+  cairo_path_print_stats (path);
 
   cairo_save (cr);
   line_width = cairo_get_line_width (cr);
@@ -837,7 +702,7 @@ demo_curve (cairo_t *cr)
     case CAIRO_PATH_CLOSE_PATH:
 	break;
     default:
-	g_assert_not_reached ();
+	break;
     }
   }
   cairo_set_source_rgb (cr, 0, 0, 0);
@@ -864,7 +729,7 @@ demo_curve (cairo_t *cr)
 	cairo_close_path (cr);
 	break;
     default:
-	g_assert_not_reached ();
+	break;
     }
   }
   cairo_stroke (cr);
@@ -883,11 +748,12 @@ demo_curve_good (cairo_t *cr)
   cairo_path_t *path;
   cairo_path_data_t *data, current_point;
 
-  fancy_cairo_stroke_preserve (cr);
+  cairo_set_source_rgb (cr, 1, 0, 0);
+  cairo_fancy_stroke_preserve (cr);
   path = cairo_copy_path (cr);
   cairo_new_path (cr);
 
-  print_path_stats (path);
+  cairo_path_print_stats (path);
 
   cairo_save (cr);
   line_width = cairo_get_line_width (cr);
@@ -1037,7 +903,7 @@ demo_curve_good (cairo_t *cr)
     case CAIRO_PATH_CLOSE_PATH:
 	break;
     default:
-	g_assert_not_reached ();
+	break;
     }
   }
   cairo_set_source_rgb (cr, 0, 0, 0);
@@ -1064,7 +930,7 @@ demo_curve_good (cairo_t *cr)
 	cairo_close_path (cr);
 	break;
     default:
-	g_assert_not_reached ();
+	break;
     }
   }
   cairo_stroke (cr);
@@ -1131,8 +997,10 @@ draw_raskus_complicated (cairo_t *cr)
   cairo_translate (cr, -500, 400);
   cairo_scale (cr, 100, -100);
   cairo_translate (cr, -10, -1);
-  cairo_move_to (cr, 17.5415, 0.9003);
-  cairo_curve_to (cr, 18.4778, 3.8448, 22.4037, -0.9109, 22.563, 0.7782);
+  cairo_curve (cr, bezier_t (point_t (17.5415, 0.9003),
+			     point_t (18.4778, 3.8448),
+			     point_t (22.4037, -0.9109),
+			     point_t (22.563, 0.7782)));
   cairo_restore (cr);
 
   cairo_set_line_width (cr, 5.0); //2.0
@@ -1195,11 +1063,10 @@ int main (int argc, char **argv)
   cairo_status_t status;
   cairo_surface_t *surface;
 
-  if (argc != 2)
-    {
-      g_printerr ("Usage: cairotwisted OUTPUT_FILENAME\n");
-      return 1;
-    }
+  if (argc != 2) {
+    fprintf (stderr, "Usage: arc OUTPUT_FILENAME\n");
+    return 1;
+  }
 
   filename = argv[1];
 

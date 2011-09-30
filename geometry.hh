@@ -27,6 +27,8 @@
 #ifndef GEOMETRY_HH
 #define GEOMETRY_HH
 
+namespace Geometry {
+
 typedef double Coord;
 typedef double Scalar;
 
@@ -522,5 +524,7 @@ inline const Bezier<Coord> Bezier<Coord>::segment (Scalar t1, Scalar t2) const
 {
   return split (t1).second.split ((t2 - t1) / (1 - t1)).first;
 }
+
+} /* namespace Geometry */
 
 #endif

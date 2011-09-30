@@ -5,7 +5,7 @@ LDFLAGS = `pkg-config --libs ${PKGS}`
 
 all: arc
 
-arc: arc.cc geometry.hh
+arc: arc.cc geometry.hh cairo-helper.hh
 
 clean:
 	$(RM) arc
