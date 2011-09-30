@@ -147,6 +147,7 @@ struct Arc {
 
   inline Scalar radius (void) const;
   inline Point<Coord> center (void) const;
+  inline Circle<Coord, Scalar> circle (void) const;
 
   inline Bezier<Coord> approximate_bezier (Scalar *error) const;
 
@@ -405,12 +406,19 @@ inline bool Arc<Coord, Scalar>::operator != (const Arc<Coord, Scalar> &a) const 
 template <typename Coord,  typename Scalar>
 inline Scalar Arc<Coord, Scalar>::radius (void) const
 {
-  return (p1 - p0).len () * (d*d + 1) / (4 * d);
+  return fabs ((p1 - p0).len () * (1 + d*d) / (4 * d));
 }
 
 template <typename Coord,  typename Scalar>
 inline Point<Coord> Arc<Coord, Scalar>::center (void) const
 {
+  return (p0 + p1) + (p0 - p1).perpendicular () * ((1 - d*d) / (4 * d));
+}
+
+template <typename Coord,  typename Scalar>
+inline Circle<Coord, Scalar> Arc<Coord, Scalar>::circle (void) const
+{
+  return Circle<Coord, Scalar> (center (), radius ());
 }
 
 template <typename Coord,  typename Scalar>

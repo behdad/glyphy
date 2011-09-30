@@ -295,18 +295,19 @@ demo_curve (cairo_t *cr)
 	    Pair<bezier_t> pair = b.halve ();
 	    point_t m = pair.second.p0;
 
-	    circle_t c (b.p0, m, b.p3);
-
 	    arc_t a0 (b.p0, m, b.p3, true);
 	    arc_t a1 (m, b.p3, b.p0, true);
+	    point_t cc (0,0);
 	    double e0 = bezier_arc_error (pair.first, a0);
 	    double e1 = bezier_arc_error (pair.second, a1);
 	    double e = MAX (e0, e1);
 
-	    //arc_t a (b.p0, b.p3, m, false);
 	    //double e = bezier_arc_error (b, a);
 
 	    printf ("%g %g = %g\n", e0, e1, e);
+
+	    arc_t a (b.p0, b.p3, m, false);
+	    circle_t c = a.circle ();
 
 	    {
 	      double t;
