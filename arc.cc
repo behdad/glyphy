@@ -433,6 +433,55 @@ draw_raskus_simple (cairo_t *cr)
 }
 
 static void
+draw_raskus_complicated (cairo_t *cr)
+{
+  printf ("SAMPLE: raskus complicated\n");
+
+  cairo_save (cr);
+  cairo_new_path (cr);
+
+  cairo_save (cr);
+  cairo_translate (cr, -500, 400);
+  cairo_scale (cr, 100, -100);
+  cairo_translate (cr, -10, -1);
+  cairo_move_to (cr, 17.5415, 0.9003);
+  cairo_curve_to (cr, 18.4778, 3.8448, 22.4037, -0.9109, 22.563, 0.7782);
+  cairo_restore (cr);
+
+  cairo_set_line_width (cr, 5.0); //2.0
+  cairo_set_source_rgba (cr, 0.3, 1.0, 0.3, 1.0);
+
+  demo_curve (cr);
+
+  cairo_restore (cr);
+}
+
+static void
+draw_raskus_complicated2 (cairo_t *cr)
+{
+  printf ("SAMPLE: raskus complicated2\n");
+
+  cairo_save (cr);
+  cairo_new_path (cr);
+
+  cairo_save (cr);
+  cairo_translate (cr, -500, 400);
+  cairo_scale (cr, 100, -100);
+  cairo_translate (cr, -10, -1);
+  cairo_move_to (cr, 18.4778, 3.8448);
+  cairo_curve_to (cr, 17.5415, 0.9003, 22.563, 0.7782, 22.4037, -0.9109);
+  cairo_restore (cr);
+
+  cairo_set_line_width (cr, 5.0); //2.0
+  cairo_set_source_rgba (cr, 0.3, 1.0, 0.3, 1.0);
+
+  demo_curve (cr);
+
+  cairo_restore (cr);
+}
+
+
+static void
 draw_skewed (cairo_t *cr)
 {
   printf ("SAMPLE: skewed\n");
@@ -475,7 +524,9 @@ int main (int argc, char **argv)
   cairo_paint (cr);
 
 //  draw_skewed (cr);
-  draw_raskus_simple (cr);
+//  draw_raskus_simple (cr);
+  draw_raskus_complicated (cr);
+//  draw_raskus_complicated2 (cr);
 //  draw_dream (cr);
 
   cairo_destroy (cr);
