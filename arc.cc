@@ -488,7 +488,7 @@ demo_curve (cairo_t *cr)
 
 	    printf ("%g %g = %g\n", e0, e1, e);
 
-	    arc_t a (b.p0, b.p3, m, false);
+	    arc_t a (b.p0, b.p3, m, true);
 	    circle_t c = a.circle ();
 
 	    {
@@ -503,17 +503,8 @@ demo_curve (cairo_t *cr)
 
 	    cairo_save (cr);
 	    cairo_set_source_rgba (cr, 0.0, 1.0, 0.0, 1.0);
-
-	    cairo_set_line_cap (cr, CAIRO_LINE_CAP_ROUND);
-	    cairo_move_to (cr, m.x, m.y);
-	    cairo_rel_line_to (cr, 0, 0);
-	    cairo_set_line_width (cr, line_width * 4);
-	    cairo_stroke (cr);
-
-	    cairo_set_line_width (cr, line_width * 1);
-	    cairo_arc (cr, c.c.x, c.c.y, c.r, (b.p0 - c.c).angle (), (b.p3 - c.c).angle ());
-	    cairo_stroke (cr);
-
+	    cairo_demo_point (cr, m);
+//	    cairo_demo_arc (cr, a);
 	    cairo_restore (cr);
 	  }
 
@@ -580,29 +571,16 @@ demo_curve (cairo_t *cr)
 				current_cut = cut_point [cut_count + 1];
 				printf(">> Beginning a new arc segment: %g to %g.\n", previous_cut, current_cut);
 
-				circle_t cm (b.point(previous_cut), b.point((previous_cut + current_cut) / 2.0), b.point(current_cut));
 				bezier_t small_b = b.segment(previous_cut, current_cut);
-		
-				double t;
-				for (t = 0; t <= 1; t += .01) {
-				  point_t p = small_b.point (t);
 
-				  /* Draw a line from the curve to the centre of the circle. */
-				  cairo_set_source_rgb (cr, 0, 0, 1);
-				  cairo_move_to (cr, p.x, p.y);
-				  cairo_line_to (cr, cm.c.x, cm.c.y);
-
-				  cairo_stroke (cr);
-				}
 				previous_cut = current_cut;
 
-
-
-				/* divide the curve into two */
+			  /* divide the curve into two */
 			  Pair<bezier_t> pair = small_b.halve ();
 			  point_t m = pair.second.p0;
 
-			  circle_t c (small_b.p0, m, small_b.p3);
+			  arc_t a (small_b.p0, small_b.p3, m, true);
+			  circle_t c = a.circle ();
 
 			  double e0 = arc_bezier_error (pair.first, c);
 			  double e1 = arc_bezier_error (pair.second, c);
@@ -614,39 +592,19 @@ demo_curve (cairo_t *cr)
 			    double t;
 			    double e = 0;
 			    for (t = 0; t <= 1; t += .001) {
-						point_t p = small_b.point (t);
-						e = MAX (e, fabs ((c.c - p).len () - c.r));
+			      point_t p = small_b.point (t);
+			      e = MAX (e, fabs ((c.c - p).len () - c.r));
 			    }
 			    printf ("Actual arc max error %g\n", e);
 			  }
 
-				cairo_save (cr);
+			  cairo_save (cr);
 			  cairo_set_source_rgba (cr, 0.0, 1.0, 0.0, 1.0);
 
-			  cairo_set_line_cap (cr, CAIRO_LINE_CAP_ROUND);
-			  cairo_move_to (cr, small_b.p0.x, small_b.p0.y);
-			  cairo_rel_line_to (cr, 0, 0);
-			  cairo_set_line_width (cr, line_width * 2);
-			  cairo_stroke (cr);
-
 			  cairo_set_line_width (cr, line_width * 0.5);
-			  {
-			    arc_t a (small_b.p0, small_b.p3, m, true);
-			    circle_t c  = a.circle ();
-
-			    double a0 = (a.p0 - c.c).angle ();
-			    double a1 = (a.p1 - c.c).angle ();
-			    printf("Arc from %g to %g.\n", a0, a1);
-
-			    if (a0 < a1)
-			      cairo_arc (cr, c.c.x, c.c.y, c.r, a0, a1);
-			    else
-			      cairo_arc_negative (cr, c.c.x, c.c.y, c.r, a0, a1);
-			  }
-			  cairo_stroke (cr);
+			  cairo_demo_arc (cr, a);
 
 			  cairo_restore (cr);
-
 			}
 
 
@@ -678,17 +636,10 @@ demo_curve (cairo_t *cr)
   		}  
 			printf("\n"); */
 
-			
-
-
-
-	    
-
-	    
 	  }
 
-	  {
-	    for (double t = 0; t <= 1; t += .05)
+	  if (0) {
+	    for (double t = 0; t <= 1; t += .01)
 	    {
 	      point_t p = b.point (t);
 	      circle_t cv = b.osculating_circle (t);
@@ -1078,8 +1029,8 @@ int main (int argc, char **argv)
   cairo_paint (cr);
 
 //  draw_skewed (cr);
-//  draw_raskus_simple (cr);
-  draw_raskus_complicated (cr);
+  draw_raskus_simple (cr);
+//  draw_raskus_complicated (cr);
 //  draw_raskus_complicated2 (cr);
 //  draw_dream (cr);
 

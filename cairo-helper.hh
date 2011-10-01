@@ -94,9 +94,9 @@ void cairo_circle (cairo_t *cr, const Circle<Coord, Scalar> &c)
 template <typename Coord, typename Scalar>
 void cairo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
 {
-  if (!a.t) {
-    cairo_move_to (a.p0);
-    cairo_line_to (a.p1);
+  if (!a.d) {
+    cairo_move_to (cr, a.p0);
+    cairo_line_to (cr, a.p1);
     return;
   }
 
@@ -104,7 +104,7 @@ void cairo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
   double a0 = (a.p0 - c.c).angle ();
   double a1 = (a.p1 - c.c).angle ();
   cairo_new_sub_path (cr);
-  if (a.t < 0)
+  if (a.d > 0)
     cairo_arc (cr, c.c.x, c.c.y, c.r, a0, a1);
   else
     cairo_arc_negative (cr, c.c.x, c.c.y, c.r, a0, a1);
@@ -122,6 +122,73 @@ void cairo_curve (cairo_t *cr, const Bezier<Coord> &b)
 
 
 
+template <typename Coord>
+void cairo_demo_point (cairo_t *cr, const Point<Coord> &p)
+{
+  cairo_save (cr);
+  cairo_set_line_cap (cr, CAIRO_LINE_CAP_ROUND);
+  cairo_move_to (cr, p);
+  cairo_rel_line_to (cr, 0, 0);
+  cairo_set_line_width (cr, cairo_get_line_width (cr) * 3);
+  cairo_stroke (cr);
+  cairo_restore (cr);
+}
+
+template <typename Coord>
+void cairo_demo_curve (cairo_t *cr, const Bezier<Coord> &b)
+{
+  cairo_demo_point (cr, b.p0);
+  cairo_demo_point (cr, b.p1);
+  cairo_demo_point (cr, b.p2);
+  cairo_demo_point (cr, b.p3);
+
+  cairo_save (cr);
+  cairo_move_to (cr, b.p0);
+  cairo_line_to (cr, b.p1);
+  cairo_move_to (cr, b.p2);
+  cairo_line_to (cr, b.p3);
+  cairo_set_line_width (cr, cairo_get_line_width (cr) / 3);
+  cairo_stroke (cr);
+  cairo_restore (cr);
+
+  cairo_curve (cr, b);
+  cairo_stroke (cr);
+}
+
+template <typename Coord>
+void cairo_demo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
+{
+  if (!a.d) {
+    cairo_move_to (cr, a.p0);
+    cairo_line_to (cr, a.p1);
+    cairo_stroke (cr);
+    return;
+  }
+
+  Circle<Coord, Scalar> c  = a.circle ();
+
+  cairo_demo_point (cr, c.c);
+  cairo_demo_point (cr, a.p0);
+  cairo_demo_point (cr, a.p1);
+
+  cairo_save (cr);
+  cairo_move_to (cr, a.p0);
+  cairo_line_to (cr, c.c);
+  cairo_line_to (cr, a.p1);
+  cairo_set_line_width (cr, cairo_get_line_width (cr) / 3);
+  cairo_stroke (cr);
+  cairo_restore (cr);
+
+  cairo_new_sub_path (cr);
+  double a0 = (a.p0 - c.c).angle ();
+  double a1 = (a.p1 - c.c).angle ();
+  if (a.d > 0)
+    cairo_arc (cr, c.c.x, c.c.y, c.r, a0, a1);
+  else
+    cairo_arc_negative (cr, c.c.x, c.c.y, c.r, a0, a1);
+
+  cairo_stroke (cr);
+}
 
 #define MY_CAIRO_PATH_ARC_TO (CAIRO_PATH_CLOSE_PATH+1)
 
