@@ -247,12 +247,13 @@ class BezierArcsApproximatorSpring
 									 double tolerance,
 									 double *perror,
 									 int max_segments = 100,
-									 int max_jiggle = 100)
+									 int max_jiggle = 20)
   {
     std::vector<double> t;
     std::vector<double> e;
     std::vector<Arc<Coord, Scalar> > &arcs = * new std::vector<Arc<Coord, Scalar> >;
     double max_e, min_e;
+    int n_jiggle = 0;
     for (unsigned int n = 1; n <= max_segments; n++) {
       t.resize (n + 1);
       e.resize (n);
@@ -307,8 +308,9 @@ class BezierArcsApproximatorSpring
 	  }
 	  printf ("n %d jiggle %d max_e %g min_e %g\n", n, s, max_e, min_e);
 
-//	  if (max_e < tolerance || (max_e < 1.2 * min_e && min_e > 1.2 * tolerance))
-//	    break;
+	  n_jiggle++;
+	  if (max_e < tolerance || (2 * min_e - max_e > tolerance))
+	    break;
 	}
       }
 
@@ -317,6 +319,7 @@ class BezierArcsApproximatorSpring
     }
     if (perror)
       *perror = max_e;
+    printf ("n_jiggle %d\n", n_jiggle);
     return arcs;
   }
 };
