@@ -196,7 +196,6 @@ void cairo_demo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
     cairo_restore (cr);
   }
 
-  cairo_demo_point (cr, c.c);
   cairo_demo_point (cr, a.p0);
   cairo_demo_point (cr, a.p1);
 

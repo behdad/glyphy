@@ -62,7 +62,7 @@ scale_and_translate (cairo_t *cr, const bezier_t &b)
   cairo_new_path (cr);
 
   double scale = .8 / std::max ((px2 - px1) / (cx2 - cx1), (py2 - py1) / (cy2 - cy1));
-  cairo_scale (cr, scale, scale);
+  cairo_scale (cr, scale, -scale);
   cairo_set_line_width (cr, cairo_get_line_width (cr) / scale);
 
   cairo_translate (cr, -(px1 + px2) * .5, -(py1 + py2) * .5);
@@ -92,20 +92,20 @@ demo_curve (cairo_t *cr, const bezier_t &b)
   typedef BezierArcApproximatorMidpointTwoPart<Error> BezierArcApproximatorBehdad;
   typedef BezierArcsApproximatorSpring<BezierArcApproximatorBehdad> SpringBehdad;
 
-  int max_segments = 10;
+  int max_segments = 50;
+  double tolerance = 0.00001;
   double e;
-//  static std::vector<Arc<Coord, Scalar> > &arcs = SpringBehdad::approximate_bezier_with_arcs (b, 1, &e, max_segments);
+  static std::vector<Arc<Coord, Scalar> > &arcs = SpringBehdad::approximate_bezier_with_arcs (b, tolerance, &e, max_segments);
 
   double real_e;
-  static std::vector<Arc<Coord, Scalar> > &arcs2 = SpringSampling::approximate_bezier_with_arcs (b, 1, &real_e, max_segments);
+  static std::vector<Arc<Coord, Scalar> > &arcs2 = SpringSampling::approximate_bezier_with_arcs (b, tolerance, &real_e, max_segments);
 
   printf ("Approximation error %g; Sampling error %g; Percentage off %g; %s\n",
 	  e, real_e, round (100 * (e - real_e) / real_e), e >= real_e ? "PASS" : "FAIL");
 
   cairo_set_source_rgba (cr, 0.0, 1.0, 0.0, 1.0);
-  for (unsigned int i = 0; i < arcs2.size (); i++) {
-    cairo_demo_arc (cr, arcs2[i]);
-  }
+  for (unsigned int i = 0; i < arcs.size (); i++)
+    cairo_demo_arc (cr, arcs[i]);
 
   cairo_restore (cr);
 }
@@ -132,8 +132,8 @@ int main (int argc, char **argv)
   cairo_paint (cr);
 
 //  demo_curve (cr, sample_curve_skewed ());
-  demo_curve (cr, sample_curve_riskus_simple ());
-//  demo_curve (cr, sample_curve_riskus_complicated ());
+//  demo_curve (cr, sample_curve_riskus_simple ());
+  demo_curve (cr, sample_curve_riskus_complicated ());
 //  demo_curve (cr, sample_curve_riskus_complicated2 ());
 
   cairo_destroy (cr);

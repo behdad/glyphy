@@ -275,7 +275,7 @@ class BezierArcsApproximatorSpring
 
       if (candidate) {
 	printf ("n %d e %g\n", n, *error);
-        for (unsigned int s = 0; s < max_segments; s++) {
+        for (unsigned int s = 0; s < 10 + 0*max_segments; s++) {
 	  std::vector<double> l;
 	  std::vector<double> k_inv;
 
@@ -300,12 +300,11 @@ class BezierArcsApproximatorSpring
 	    Bezier<Coord> segment = b.segment (t[i], t[i + 1]);
 	    arcs.push_back (BezierArcApproximator::approximate_bezier_with_arc (segment, &e[i]));
 
-	    printf ("n %d s %d i %d e %g\n", n, s, i, e[i]);
 	    *error = max (*error, e[i]);
 	    if (*error > tolerance)
 	      done = false;
 	  }
-	  printf ("jiggle %d error %g\n", s, *error);
+//	  printf ("n %d jiggle %d error %g\n", n, s, *error);
 	}
       }
 
