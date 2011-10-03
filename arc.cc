@@ -31,11 +31,13 @@
 
 #include "geometry.hh"
 #include "cairo-helper.hh"
+#include "sample-curves.hh"
 
 
 using namespace std;
 using namespace Geometry;
 using namespace CairoHelper;
+using namespace SampleCurves;
 
 typedef Vector<Coord> vector_t;
 typedef Point<Coord> point_t;
@@ -127,237 +129,67 @@ double bezier_arc_error (const bezier_t &b0,
 }
 
 static void
-demo_curve (cairo_t *cr)
+demo_curve (cairo_t *cr, const bezier_t &b)
 {
-  int i;
-  double line_width;
-  cairo_path_t *path;
-  cairo_path_data_t *data, current_point;
+  cairo_save (cr);
+
+  double cx1, cy1, cx2, cy2;
+  cairo_clip_extents (cr, &cx1, &cy1, &cx2, &cy2);
+  cairo_translate (cr, (cx1 + cx2) * .5, (cy1 + cy2) * .5);
+
+  cairo_curve (cr, b);
+
+  double px1, py1, px2, py2;
+  cairo_path_extents (cr, &px1, &py1, &px2, &py2);
+
+  double scale = .8 / MAX ((px2 - px1) / (cx2 - cx1), (py2 - py1) / (cy2 - cy1));
+  printf ("%g\n", scale);
+  cairo_scale (cr, scale, scale);
+
+  cairo_translate (cr, -(px1 + px2) * .5, -(py1 + py2) * .5);
+  cairo_new_path (cr);
 
   cairo_set_source_rgb (cr, 1, 0, 0);
-  cairo_fancy_stroke_preserve (cr);
-  path = cairo_copy_path (cr);
-  cairo_new_path (cr);
+  cairo_set_line_width (cr, 3. / scale);
 
-  cairo_path_print_stats (path);
+  cairo_demo_curve (cr, b);
 
-  cairo_save (cr);
-  line_width = cairo_get_line_width (cr);
-  for (i=0; i < path->num_data; i += path->data[i].header.length) {
-    data = &path->data[i];
-    switch (data->header.type) {
-    case CAIRO_PATH_MOVE_TO:
-    case CAIRO_PATH_LINE_TO:
-	current_point = data[1];
-	break;
-    case CAIRO_PATH_CURVE_TO:
-	{
-#define P(d) (point_t (d.point.x, d.point.y))
-	  bezier_t b (P (current_point), P (data[1]), P (data[2]), P (data[3]));
-#undef P
+  if (1)
+  {
+    /* divide the curve into two */
+    Pair<bezier_t> pair = b.halve ();
+    point_t m = pair.second.p0;
 
-	  if (1)
-	  {
-	    /* divide the curve into two */
-	    Pair<bezier_t> pair = b.halve ();
-	    point_t m = pair.second.p0;
+    arc_t a0 (b.p0, m, b.p3, true);
+    arc_t a1 (m, b.p3, b.p0, true);
+    point_t cc (0,0);
+    double e0 = bezier_arc_error (pair.first, a0);
+    double e1 = bezier_arc_error (pair.second, a1);
+    double e = MAX (e0, e1);
 
-	    arc_t a0 (b.p0, m, b.p3, true);
-	    arc_t a1 (m, b.p3, b.p0, true);
-	    point_t cc (0,0);
-	    double e0 = bezier_arc_error (pair.first, a0);
-	    double e1 = bezier_arc_error (pair.second, a1);
-	    double e = MAX (e0, e1);
+    //double e = bezier_arc_error (b, a);
 
-	    //double e = bezier_arc_error (b, a);
+    printf ("%g %g = %g\n", e0, e1, e);
 
-	    printf ("%g %g = %g\n", e0, e1, e);
+    arc_t a (b.p0, b.p3, m, true);
+    circle_t c = a.circle ();
 
-	    arc_t a (b.p0, b.p3, m, true);
-	    circle_t c = a.circle ();
-
-	    {
-	      double t;
-	      double e = 0;
-	      for (t = 0; t <= 1; t += .001) {
-		point_t p = b.point (t);
-		e = MAX (e, fabs ((c.c - p).len () - c.r));
-	      }
-	      printf ("Actual arc max error %g\n", e);
-	    }
-
-	    cairo_save (cr);
-	    cairo_set_source_rgba (cr, 0.0, 1.0, 0.0, 1.0);
-	    cairo_demo_point (cr, m);
-	    cairo_demo_arc (cr, a);
-	    cairo_restore (cr);
-	  }
-
-	  if (0) {
-	    for (double t = 0; t <= 1; t += .01)
-	    {
-	      point_t p = b.point (t);
-	      circle_t cv = b.osculating_circle (t);
-	      cairo_move_to (cr, p.x, p.y);
-	      cairo_line_to (cr, cv.c.x, cv.c.y);
-	    }
-	  }
-	}
-	current_point = data[3];
-	break;
-    case CAIRO_PATH_CLOSE_PATH:
-	break;
-    default:
-	break;
+    {
+      double t;
+      double e = 0;
+      for (t = 0; t <= 1; t += .001) {
+	point_t p = b.point (t);
+	e = MAX (e, fabs ((c.c - p).len () - c.r));
+      }
+      printf ("Actual arc max error %g\n", e);
     }
+
+    cairo_save (cr);
+    cairo_set_source_rgba (cr, 0.0, 1.0, 0.0, 1.0);
+    cairo_demo_point (cr, m);
+    cairo_demo_arc (cr, a);
+    cairo_restore (cr);
   }
-  cairo_set_source_rgb (cr, 0, 0, 0);
-  cairo_stroke (cr);
-  cairo_restore (cr);
-
-#if 0
-  cairo_save (cr);
-  for (i=0; i < path->num_data; i += path->data[i].header.length) {
-    data = &path->data[i];
-    switch (data->header.type) {
-    case CAIRO_PATH_MOVE_TO:
-	cairo_move_to (cr, data[1].point.x, data[1].point.y);
-	break;
-    case CAIRO_PATH_LINE_TO:
-	cairo_line_to (cr, data[1].point.x, data[1].point.y);
-	break;
-    case CAIRO_PATH_CURVE_TO:
-	cairo_curve_to (cr, data[1].point.x, data[1].point.y,
-			    data[2].point.x, data[2].point.y,
-			    data[3].point.x, data[3].point.y);
-	break;
-    case CAIRO_PATH_CLOSE_PATH:
-	cairo_close_path (cr);
-	break;
-    default:
-	break;
-    }
-  }
-  cairo_stroke (cr);
-  cairo_restore (cr);
-#endif
-  cairo_path_destroy (path);
-}
-
-
-static void
-draw_dream (cairo_t *cr)
-{
-  printf ("SAMPLE: dream line\n");
-
-  cairo_save (cr);
-  cairo_new_path (cr);
-
-  cairo_move_to (cr, 50, 650);
-
-  cairo_rel_line_to (cr, 250, 50);
-  cairo_rel_curve_to (cr, 250, 50, 600, -50, 600, -250);
-  cairo_rel_curve_to (cr, 0, -400, -300, -100, -800, -300);
-
-  cairo_set_line_width (cr, 5);
-  cairo_set_source_rgba (cr, 0.3, 1.0, 0.3, 0.3);
-
-  demo_curve (cr);
-
-  cairo_restore (cr);
-}
-
-static void
-draw_raskus_simple (cairo_t *cr)
-{
-  printf ("SAMPLE: raskus simple\n");
-
-  cairo_save (cr);
-  cairo_new_path (cr);
-
-  cairo_save (cr);
-  cairo_translate (cr, -1300, 500);
-  cairo_scale (cr, 200, -200);
-  cairo_translate (cr, -10, -1);
-  cairo_move_to (cr, 16.9753, .7421);
-  cairo_curve_to (cr, 18.2203, 2.2238, 21.0939, 2.4017, 23.1643, 1.6148);
-  cairo_restore (cr);
-
-  cairo_set_line_width (cr, 2.0);
-  cairo_set_source_rgba (cr, 0.0, 0.0, 0.0, 1.0);
-
-  demo_curve (cr);
-
-  cairo_restore (cr);
-}
-
-static void
-draw_raskus_complicated (cairo_t *cr)
-{
-  printf ("SAMPLE: raskus complicated\n");
-
-  cairo_save (cr);
-  cairo_new_path (cr);
-
-  cairo_save (cr);
-  cairo_translate (cr, -500, 400);
-  cairo_scale (cr, 100, -100);
-  cairo_translate (cr, -10, -1);
-  cairo_curve (cr, bezier_t (point_t (17.5415, 0.9003),
-			     point_t (18.4778, 3.8448),
-			     point_t (22.4037, -0.9109),
-			     point_t (22.563, 0.7782)));
-  cairo_restore (cr);
-
-  cairo_set_line_width (cr, 5.0); //2.0
-  cairo_set_source_rgba (cr, 0.3, 1.0, 0.3, 1.0);
-
-  demo_curve (cr);
-
-  cairo_restore (cr);
-}
-
-static void
-draw_raskus_complicated2 (cairo_t *cr)
-{
-  printf ("SAMPLE: raskus complicated2\n");
-
-  cairo_save (cr);
-  cairo_new_path (cr);
-
-  cairo_save (cr);
-  cairo_translate (cr, -500, 400);
-  cairo_scale (cr, 100, -100);
-  cairo_translate (cr, -10, -1);
-  cairo_move_to (cr, 18.4778, 3.8448);
-  cairo_curve_to (cr, 17.5415, 0.9003, 22.563, 0.7782, 22.4037, -0.9109);
-  cairo_restore (cr);
-
-  cairo_set_line_width (cr, 5.0); //2.0
-  cairo_set_source_rgba (cr, 0.3, 1.0, 0.3, 1.0);
-
-  demo_curve (cr);
-
-  cairo_restore (cr);
-}
-
-
-static void
-draw_skewed (cairo_t *cr)
-{
-  printf ("SAMPLE: skewed\n");
-
-  cairo_save (cr);
-  cairo_new_path (cr);
-
-  cairo_move_to (cr, 50, 380);
-  cairo_scale (cr, 2, 2);
-  cairo_rel_curve_to (cr, 0, -100, 250, -50, 330, 10);
-
-  cairo_set_line_width (cr, 2.0);
-  cairo_set_source_rgba (cr, 0.3, 1.0, 0.3, 1.0);
-
-  demo_curve (cr);
 
   cairo_restore (cr);
 }
@@ -383,22 +215,20 @@ int main (int argc, char **argv)
   cairo_set_source_rgb (cr, 1.0, 1.0, 1.0);
   cairo_paint (cr);
 
-//  draw_skewed (cr);
-  draw_raskus_simple (cr);
-//  draw_raskus_complicated (cr);
-//  draw_raskus_complicated2 (cr);
-//  draw_dream (cr);
+//  demo_curve (cr, sample_curve_skewed ());
+//  demo_curve (cr, sample_curve_raskus_simple ());
+  demo_curve (cr, sample_curve_raskus_complicated ());
+//  demo_curve (cr, sample_curve_raskus_complicated2 ());
 
   cairo_destroy (cr);
 
   status = cairo_surface_write_to_png (surface, filename);
   cairo_surface_destroy (surface);
 
-  if (status != CAIRO_STATUS_SUCCESS)
-    {
-      g_printerr ("Could not save png to '%s'\n", filename);
-      return 1;
-    }
+  if (status != CAIRO_STATUS_SUCCESS) {
+    fprintf (stderr, "Could not save png to '%s'\n", filename);
+    return 1;
+  }
 
   return 0;
 }
