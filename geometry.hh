@@ -520,9 +520,11 @@ inline const Pair<Bezier<Coord> > Bezier<Coord>::halve (void) const
 }
 
 template <typename Coord>
-inline const Bezier<Coord> Bezier<Coord>::segment (Scalar t1, Scalar t2) const
+inline const Bezier<Coord> Bezier<Coord>::segment (Scalar t0, Scalar t1) const
 {
-  return split (t1).second.split ((t2 - t1) / (1 - t1)).first;
+  Bezier<Coord> b0 = split (t0).second;
+  Bezier<Coord> b1 = split (t1).first;
+  return Bezier<Coord> (b0.p0, b0.p1, b1.p2, b1.p3);
 }
 
 } /* namespace Geometry */
