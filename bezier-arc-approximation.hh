@@ -1,0 +1,189 @@
+/*
+ * Copyright © 2011  Google, Inc.
+ *
+ * Permission is hereby granted, without written agreement and without
+ * license or royalty fees, to use, copy, modify, and distribute this
+ * software and its documentation for any purpose, provided that the
+ * above copyright notice and the following two paragraphs appear in
+ * all copies of this software.
+ *
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE TO ANY PARTY FOR
+ * DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+ * ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN
+ * IF THE COPYRIGHT HOLDER HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH
+ * DAMAGE.
+ *
+ * THE COPYRIGHT HOLDER SPECIFICALLY DISCLAIMS ANY WARRANTIES, INCLUDING,
+ * BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+ * FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE PROVIDED HEREUNDER IS
+ * ON AN "AS IS" BASIS, AND THE COPYRIGHT HOLDER HAS NO OBLIGATION TO
+ * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
+ *
+ * Google Author(s): Behdad Esfahbod, Maysum Panju
+ */
+
+#include "geometry.hh"
+
+#include <assert.h>
+
+#ifndef BEZIER_ARC_APPROXIMATION_HH
+#define BEZIER_ARC_APPROXIMATION_HH
+
+namespace BezierArcApproximation {
+
+using namespace Geometry;
+
+template <typename T> const T min (const T &a, const T &b) { return a <= b ? a : b; }
+template <typename T> const T max (const T &a, const T &b) { return a >= b ? a : b; }
+
+class MaxDeviationApproximatorFast
+{
+  public:
+  /* Returns upper bound for max(abs(d₀ t (1-t)² + d₁ t² (1-t)) for 0≤t≤1. */
+  static double approximate_deviation (double d0, double d1)
+  {
+    d0 = fabs (d0);
+    d1 = fabs (d1);
+    double e0 = 3./4. * max (d0, d1);
+    double e1 = 4./9. * (d0 + d1);
+    return min (e0, e1);
+  }
+};
+
+class MaxDeviationApproximatorExact
+{
+  public:
+  /* Returns max(abs(d₀ t (1-t)² + d₁ t² (1-t)) for 0≤t≤1. */
+  static double approximate_deviation (double d0, double d1)
+  {
+    double candidates[4] = {0,1};
+    unsigned int num_candidates = 2;
+    if (d0 == d1)
+      candidates[num_candidates++] = .5;
+    else {
+      double delta = d0*d0 - d0*d1 + d1*d1;
+      double t2 = 1. / (3 * (d0 - d1));
+      double t0 = (2 * d0 - d1) * t2;
+      if (delta == 0)
+	candidates[num_candidates++] = t0;
+      else if (delta > 0) {
+	/* This code can be optimized to avoid the sqrt if the solution
+	 * is not feasible (ie. lies outside (0,1)).  I have implemented
+	 * that in cairo-spline.c:_cairo_spline_bound().  Can be reused
+	 * here.
+	 */
+	double t1 = sqrt (delta) * t2;
+	candidates[num_candidates++] = t0 - t1;
+	candidates[num_candidates++] = t0 + t1;
+      }
+    }
+
+    double e = 0;
+    for (unsigned int i = 0; i < num_candidates; i++) {
+      double t = candidates[i];
+      double ee;
+      if (t < 0. || t > 1.)
+	continue;
+      ee = fabs (3 * t * (1-t) * (d0 * (1 - t) + d1 * t));
+      e = max (e, ee);
+    }
+
+    return e;
+  }
+};
+
+template <class MaxDeviationApproximator>
+class BezierBezierErrorApproximatorSimpleMagnitude
+{
+  public:
+  static double approximate_bezier_bezier_error (const Bezier<Coord> &b0, const Bezier<Coord> &b1)
+  {
+    assert (b0.p0 == b1.p0);
+    assert (b0.p3 == b1.p3);
+
+    return MaxDeviationApproximator::approximate_deviation ((b1.p1 - b0.p1).len (),
+							    (b1.p2 - b0.p2).len ());
+  }
+};
+
+template <class MaxDeviationApproximator>
+class BezierBezierErrorApproximatorSimpleMagnitudeDecomposed
+{
+  public:
+  static double approximate_bezier_bezier_error (const Bezier<Coord> &b0, const Bezier<Coord> &b1)
+  {
+    assert (b0.p0 == b1.p0);
+    assert (b0.p3 == b1.p3);
+
+    return Vector<Coord> (MaxDeviationApproximator::approximate_deviation
+			  (b1.p1.x - b0.p1.x, b1.p2.x - b0.p2.x),
+			  MaxDeviationApproximator::approximate_deviation
+			  (b1.p1.y - b0.p1.y, b1.p2.y - b0.p2.y)).len ();
+  }
+};
+
+
+template <class BezierBezierErrorApproximator>
+class BezierArcErrorApproximatorViaBezier
+{
+  public:
+  static double approximate_bezier_arc_error (const Bezier<Coord> &b0, const Arc<Coord, Scalar> &a)
+  {
+    double ea;
+    Bezier<Coord> b1 = a.approximate_bezier (&ea);
+    double eb = BezierBezierErrorApproximator::approximate_bezier_bezier_error (b0, b1);
+    return ea + eb;
+  }
+};
+
+class BezierArcErrorApproximatorSampling
+{
+  public:
+  static double approximate_bezier_arc_error (const Bezier<Coord> &b, const Arc<Coord, Scalar> &a,
+					      double step = .001)
+  {
+    Circle<Coord, Scalar> c = a.circle ();
+    double e = 0;
+    for (double t = 0; t <= 1; t += step)
+      e = max (e, fabs ((c.c - b.point (t)).len () - c.r));
+    return e;
+  }
+};
+
+template <class MaxDeviationApproximator>
+class BezierArcErrorApproximatorSophisticated
+{
+  public:
+  static double approximate_bezier_arc_error (const Bezier<Coord> &b0, const Arc<Coord, Scalar> &a)
+  {
+    double ea;
+    Bezier<Coord> b1 = a.approximate_bezier (&ea);
+
+    assert (b0.p0 == b1.p0);
+    assert (b0.p3 == b1.p3);
+
+    Vector<Coord> v0 = b1.p1 - b0.p1;
+    Vector<Coord> v1 = b1.p2 - b0.p2;
+
+    Vector<Coord> b = (b0.p3 - b0.p0).normal ();
+    v0 = v0.rebase (b);
+    v1 = v1.rebase (b);
+
+    Vector<Coord> v (MaxDeviationApproximator::approximate_deviation (v0.dx, v1.dx),
+		     MaxDeviationApproximator::approximate_deviation (v0.dy, v1.dy));
+
+    Vector<Coord> b2 = (b1.p3 - b1.p2).rebase (b).normal ();
+    Vector<Coord> u = v.rebase (b2);
+
+    Scalar c = (b1.p3 - b1.p0).len ();
+    double r = fabs (c * (a.d * a.d + 1) / (4 * a.d));
+    double eb = sqrt ((r + u.dx) * (r + u.dx) + u.dy * u.dy) - r;
+
+    return ea + eb;
+  }
+};
+
+
+} /* namespace BezierArcApproxmation */
+
+#endif
