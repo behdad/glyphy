@@ -94,7 +94,7 @@ demo_curve (cairo_t *cr, const bezier_t &b)
 
   int max_segments = 10;
   double e;
-  static std::vector<Arc<Coord, Scalar> > &arcs = SpringBehdad::approximate_bezier_with_arcs (b, 1, &e, max_segments);
+//  static std::vector<Arc<Coord, Scalar> > &arcs = SpringBehdad::approximate_bezier_with_arcs (b, 1, &e, max_segments);
 
   double real_e;
   static std::vector<Arc<Coord, Scalar> > &arcs2 = SpringSampling::approximate_bezier_with_arcs (b, 1, &real_e, max_segments);
@@ -103,8 +103,8 @@ demo_curve (cairo_t *cr, const bezier_t &b)
 	  e, real_e, round (100 * (e - real_e) / real_e), e >= real_e ? "PASS" : "FAIL");
 
   cairo_set_source_rgba (cr, 0.0, 1.0, 0.0, 1.0);
-  for (unsigned int i = 0; i < arcs.size (); i++) {
-    cairo_demo_arc (cr, arcs[i]);
+  for (unsigned int i = 0; i < arcs2.size (); i++) {
+    cairo_demo_arc (cr, arcs2[i]);
   }
 
   cairo_restore (cr);

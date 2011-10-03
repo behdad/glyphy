@@ -252,15 +252,15 @@ class BezierArcsApproximatorSpring
     std::vector<double> e;
     std::vector<Arc<Coord, Scalar> > &arcs = * new std::vector<Arc<Coord, Scalar> >;
     for (unsigned int n = 1; n <= max_segments; n++) {
-      *error = 0;
       t.resize (n + 1);
       e.resize (n);
-      arcs.clear ();
 
       bool candidate = false, done = true;
       for (unsigned int i = 0; i <= n; i++)
         t[i] = double (i) / n;
 
+      arcs.clear ();
+      *error = 0;
       for (unsigned int i = 0; i < n; i++)
       {
 	Bezier<Coord> segment = b.segment (t[i], t[i + 1]);
@@ -274,7 +274,36 @@ class BezierArcsApproximatorSpring
       }
 
       if (candidate) {
-        printf ("n %d e %g\n", n, *error);
+	printf ("n %d e %g\n", n, *error);
+        for (unsigned int s = 0; s < 10; s++) {
+	  std::vector<double> l;
+	  std::vector<double> k_inv;
+
+	  l.resize (n);
+	  k_inv.resize (n);
+	  double total = 0;
+	  for (unsigned int i = 0; i < n; i++) {
+	    l[i] = t[i + 1] - t[i];
+	    k_inv[i] = l[i] / e[i];
+	    total += k_inv[i];
+	  }
+	  for (unsigned int i = 0; i < n; i++) {
+	    l[i] = k_inv[i] / total;
+	    t[i + 1] = t[i] + l[i];
+	  }
+
+	  arcs.clear ();
+	  *error = 0;
+	  for (unsigned int i = 0; i < n; i++)
+	  {
+	    Bezier<Coord> segment = b.segment (t[i], t[i + 1]);
+	    arcs.push_back (BezierArcApproximator::approximate_bezier_with_arc (segment, &e[i]));
+
+	    printf ("n %d s %d i %d e %g\n", n, s, i, e[i]);
+	    *error = max (*error, e[i]);
+	  }
+	  printf ("jiggle %d error %g\n", s, *error);
+	}
       }
 
       if (done)
