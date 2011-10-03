@@ -24,6 +24,8 @@
 
 #include "geometry.hh"
 
+#include <vector>
+
 #include <assert.h>
 
 #ifndef BEZIER_ARC_APPROXIMATION_HH
@@ -161,6 +163,9 @@ class BezierArcErrorApproximatorBehdad
   public:
   static double approximate_bezier_arc_error (const Bezier<Coord> &b0, const Arc<Coord, Scalar> &a)
   {
+    assert (b0.p0 == a.p0);
+    assert (b0.p3 == a.p1);
+
     double ea;
     Bezier<Coord> b1 = a.approximate_bezier (&ea);
 
@@ -229,6 +234,53 @@ class BezierArcApproximatorMidpointTwoPart
     *error = max (e0, e1);
 
     return Arc<Coord, Scalar> (b.p0, b.p3, m, false);
+  }
+};
+
+
+#include <stdio.h>
+template <class BezierArcApproximator>
+class BezierArcsApproximatorSpring
+{
+  public:
+  static std::vector<Arc<Coord, Scalar> > &approximate_bezier_with_arcs (const Bezier<Coord> &b,
+									 double tolerance,
+									 double *error,
+									 int max_segments = 10)
+  {
+    std::vector<double> t;
+    std::vector<double> e;
+    std::vector<Arc<Coord, Scalar> > &arcs = * new std::vector<Arc<Coord, Scalar> >;
+    for (unsigned int n = 1; n <= max_segments; n++) {
+      *error = 0;
+      t.resize (n + 1);
+      e.resize (n);
+      arcs.clear ();
+
+      bool candidate = false, done = true;
+      for (unsigned int i = 0; i <= n; i++)
+        t[i] = double (i) / n;
+
+      for (unsigned int i = 0; i < n; i++)
+      {
+	Bezier<Coord> segment = b.segment (t[i], t[i + 1]);
+	arcs.push_back (BezierArcApproximator::approximate_bezier_with_arc (segment, &e[i]));
+	if (e[i] <= tolerance)
+	  candidate = true;
+	else
+	  done = false;
+
+	*error = max (*error, e[i]);
+      }
+
+      if (candidate) {
+        printf ("n %d e %g\n", n, *error);
+      }
+
+      if (done)
+        break;
+    }
+    return arcs;
   }
 };
 

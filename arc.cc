@@ -25,7 +25,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-#include <glib.h>
 
 #include <deque>
 
@@ -60,8 +59,9 @@ scale_and_translate (cairo_t *cr, const bezier_t &b)
 
   double px1, py1, px2, py2;
   cairo_path_extents (cr, &px1, &py1, &px2, &py2);
+  cairo_new_path (cr);
 
-  double scale = .8 / MAX ((px2 - px1) / (cx2 - cx1), (py2 - py1) / (cy2 - cy1));
+  double scale = .8 / std::max ((px2 - px1) / (cx2 - cx1), (py2 - py1) / (cy2 - cy1));
   cairo_scale (cr, scale, scale);
   cairo_set_line_width (cr, cairo_get_line_width (cr) / scale);
 
@@ -86,15 +86,26 @@ demo_curve (cairo_t *cr, const bezier_t &b)
   //typedef BezierArcErrorApproximatorViaBezier<BezierError> Error;
   typedef BezierArcErrorApproximatorBehdad<MaxDev> Error;
 
-  double e;
-  arc_t a = BezierArcApproximatorMidpointTwoPart<Error>::approximate_bezier_with_arc (b, &e);
-  double real_e = BezierArcErrorApproximatorSampling::approximate_bezier_arc_error (b, a);
+  typedef BezierArcApproximatorMidpointTwoPart<BezierArcErrorApproximatorSampling> BezierArcApproximatorSampling;
+  typedef BezierArcsApproximatorSpring<BezierArcApproximatorSampling> SpringSampling;
 
-  printf ("Approximation error %g; Actual error %g; Percentage off %g; %s\n",
+  typedef BezierArcApproximatorMidpointTwoPart<Error> BezierArcApproximatorBehdad;
+  typedef BezierArcsApproximatorSpring<BezierArcApproximatorBehdad> SpringBehdad;
+
+  int max_segments = 10;
+  double e;
+  static std::vector<Arc<Coord, Scalar> > &arcs = SpringBehdad::approximate_bezier_with_arcs (b, 1, &e, max_segments);
+
+  double real_e;
+  static std::vector<Arc<Coord, Scalar> > &arcs2 = SpringSampling::approximate_bezier_with_arcs (b, 1, &real_e, max_segments);
+
+  printf ("Approximation error %g; Sampling error %g; Percentage off %g; %s\n",
 	  e, real_e, round (100 * (e - real_e) / real_e), e >= real_e ? "PASS" : "FAIL");
 
   cairo_set_source_rgba (cr, 0.0, 1.0, 0.0, 1.0);
-  cairo_demo_arc (cr, a);
+  for (unsigned int i = 0; i < arcs.size (); i++) {
+    cairo_demo_arc (cr, arcs[i]);
+  }
 
   cairo_restore (cr);
 }
@@ -121,9 +132,9 @@ int main (int argc, char **argv)
   cairo_paint (cr);
 
   demo_curve (cr, sample_curve_skewed ());
-  demo_curve (cr, sample_curve_raskus_simple ());
-  demo_curve (cr, sample_curve_raskus_complicated ());
-  demo_curve (cr, sample_curve_raskus_complicated2 ());
+//  demo_curve (cr, sample_curve_raskus_simple ());
+//  demo_curve (cr, sample_curve_raskus_complicated ());
+//  demo_curve (cr, sample_curve_raskus_complicated2 ());
 
   cairo_destroy (cr);
 
