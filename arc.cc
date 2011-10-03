@@ -131,10 +131,8 @@ double bezier_arc_error (const bezier_t &b0,
 }
 
 static void
-demo_curve (cairo_t *cr, const bezier_t &b)
+scale_and_translate (cairo_t *cr, const bezier_t &b)
 {
-  cairo_save (cr);
-
   double cx1, cy1, cx2, cy2;
   cairo_clip_extents (cr, &cx1, &cy1, &cx2, &cy2);
   cairo_translate (cr, (cx1 + cx2) * .5, (cy1 + cy2) * .5);
@@ -146,50 +144,38 @@ demo_curve (cairo_t *cr, const bezier_t &b)
 
   double scale = .8 / MAX ((px2 - px1) / (cx2 - cx1), (py2 - py1) / (cy2 - cy1));
   cairo_scale (cr, scale, scale);
+  cairo_set_line_width (cr, cairo_get_line_width (cr) / scale);
 
   cairo_translate (cr, -(px1 + px2) * .5, -(py1 + py2) * .5);
-  cairo_new_path (cr);
+}
+
+static void
+demo_curve (cairo_t *cr, const bezier_t &b)
+{
+  cairo_save (cr);
+  cairo_set_line_width (cr, 3);
+
+  scale_and_translate (cr, b);
 
   cairo_set_source_rgb (cr, 1, 0, 0);
-  cairo_set_line_width (cr, 3. / scale);
-
   cairo_demo_curve (cr, b);
 
-  //typedef MaxDeviationApproximatorFast MaxDev;
   typedef MaxDeviationApproximatorExact MaxDev;
+  //typedef MaxDeviationApproximatorFast MaxDev;
   //typedef BezierBezierErrorApproximatorSimpleMagnitude<MaxDev> BezierError;
-  typedef BezierBezierErrorApproximatorSimpleMagnitudeDecomposed<MaxDev> BezierError;
+  //typedef BezierBezierErrorApproximatorSimpleMagnitudeDecomposed<MaxDev> BezierError;
   //typedef BezierArcErrorApproximatorViaBezier<BezierError> Error;
   typedef BezierArcErrorApproximatorBehdad<MaxDev> Error;
-  if (1)
-  {
-    /* divide the curve into two */
-    Pair<bezier_t> pair = b.halve ();
-    point_t m = pair.second.p0;
 
-    arc_t a0 (b.p0, m, b.p3, true);
-    arc_t a1 (m, b.p3, b.p0, true);
-    arc_t a (b.p0, b.p3, m, false);
+  double e;
+  arc_t a = BezierArcApproximatorMidpointTwoPart<Error>::approximate_bezier_with_arc (b, &e);
+  double real_e = BezierArcErrorApproximatorSampling::approximate_bezier_arc_error (b, a);
 
-    double e0 = Error::approximate_bezier_arc_error (pair.first, a0);
-    double e1 = Error::approximate_bezier_arc_error (pair.second, a1);
-    double e = MAX (e0, e1);
+  printf ("Approximation error %g; Actual error %g; Percentage off %g; %s\n",
+	  e, real_e, round (100 * (e - real_e) / real_e), e >= real_e ? "PASS" : "FAIL");
 
-    double ee = Error::approximate_bezier_arc_error (b, a);
-
-    printf ("%g %g = %g; %g\n", e0, e1, e, ee);
-
-    printf ("Actual arc max error %g\n",
-	    BezierArcErrorApproximatorSampling::approximate_bezier_arc_error (b, a));
-
-    cairo_save (cr);
-    cairo_set_source_rgba (cr, 0.0, 1.0, 0.0, 1.0);
-    cairo_demo_point (cr, m);
-    cairo_demo_arc (cr, a);
-    //cairo_demo_arc (cr, a0);
-    //cairo_demo_arc (cr, a1);
-    cairo_restore (cr);
-  }
+  cairo_set_source_rgba (cr, 0.0, 1.0, 0.0, 1.0);
+  cairo_demo_arc (cr, a);
 
   cairo_restore (cr);
 }
@@ -215,9 +201,9 @@ int main (int argc, char **argv)
   cairo_set_source_rgb (cr, 1.0, 1.0, 1.0);
   cairo_paint (cr);
 
-//  demo_curve (cr, sample_curve_skewed ());
-//  demo_curve (cr, sample_curve_raskus_simple ());
-//  demo_curve (cr, sample_curve_raskus_complicated ());
+  demo_curve (cr, sample_curve_skewed ());
+  demo_curve (cr, sample_curve_raskus_simple ());
+  demo_curve (cr, sample_curve_raskus_complicated ());
   demo_curve (cr, sample_curve_raskus_complicated2 ());
 
   cairo_destroy (cr);

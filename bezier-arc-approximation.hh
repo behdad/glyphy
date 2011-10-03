@@ -195,41 +195,40 @@ class BezierArcErrorApproximatorBehdad
 
 
 
-template <class MaxDeviationApproximator>
-class BezierArcErrorApproximatorSophisticated
+template <class BezierArcErrorApproximator>
+class BezierArcApproximatorMidpointSimple
 {
   public:
-  static double approximate_bezier_arc_error (const Bezier<Coord> &b0, const Arc<Coord, Scalar> &a)
+  static const Arc<Coord, Scalar> approximate_bezier_with_arc (const Bezier<Coord> &b, double *error)
   {
-    double ea;
-    Bezier<Coord> b1 = a.approximate_bezier (&ea);
+    Pair<Bezier<Coord> > pair = b.halve ();
+    Point<Coord> m = pair.second.p0;
 
-    assert (b0.p0 == b1.p0);
-    assert (b0.p3 == b1.p3);
+    Arc<Coord, Scalar> a (b.p0, b.p3, m, false);
 
-    Vector<Coord> v0 = b1.p1 - b0.p1;
-    Vector<Coord> v1 = b1.p2 - b0.p2;
+    *error = BezierArcErrorApproximator::approximate_bezier_arc_error (b, a);
 
-    Vector<Coord> b = (b0.p3 - b0.p0).normalized ();
-    v0 = v0.rebase (b);
-    v1 = v1.rebase (b);
+    return a;
+  }
+};
 
-    Vector<Coord> v (MaxDeviationApproximator::approximate_deviation (v0.dx, v1.dx),
-		     MaxDeviationApproximator::approximate_deviation (v0.dy, v1.dy));
+template <class BezierArcErrorApproximator>
+class BezierArcApproximatorMidpointTwoPart
+{
+  public:
+  static const Arc<Coord, Scalar> approximate_bezier_with_arc (const Bezier<Coord> &b, double *error)
+  {
+    Pair<Bezier<Coord> > pair = b.halve ();
+    Point<Coord> m = pair.second.p0;
 
-    double tan_half_alpha = 2 * fabs (a.d) / (1 - a.d*a.d);
-    double tan_v = v.dx / v.dy;
-    double eb;
-    if (tan_half_alpha < 0 ||
-	(-tan_half_alpha <= tan_v && tan_v <= tan_half_alpha)) {
-      eb = v.len ();
-    } else {
-      Scalar c2 = (b1.p3 - b1.p0).len () / 2;
-      double r = c2 * (a.d * a.d + 1) / (2 * fabs (a.d));
-      eb = Vector<Coord> (c2/tan_half_alpha + v.dy, c2 + v.dx).len () - r;
-    }
+    Arc<Coord, Scalar> a0 (b.p0, m, b.p3, true);
+    Arc<Coord, Scalar> a1 (m, b.p3, b.p0, true);
 
-    return ea + eb;
+    double e0 = BezierArcErrorApproximator::approximate_bezier_arc_error (pair.first, a0);
+    double e1 = BezierArcErrorApproximator::approximate_bezier_arc_error (pair.second, a1);
+    *error = max (e0, e1);
+
+    return Arc<Coord, Scalar> (b.p0, b.p3, m, false);
   }
 };
 
