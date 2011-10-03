@@ -35,7 +35,7 @@ using namespace Geometry;
 #define P Point<Coord>
 
 static inline const Bezier<Coord>
-sample_curve_raskus_simple (void)
+sample_curve_riskus_simple (void)
 {
   return B (P (16.9753, .7421),
 	    P (18.2203, 2.2238),
@@ -44,7 +44,7 @@ sample_curve_raskus_simple (void)
 }
 
 static inline const Bezier<Coord>
-sample_curve_raskus_complicated (void)
+sample_curve_riskus_complicated (void)
 {
   return B (P (17.5415, 0.9003),
 	    P (18.4778, 3.8448),
@@ -53,7 +53,7 @@ sample_curve_raskus_complicated (void)
 }
 
 static inline const Bezier<Coord>
-sample_curve_raskus_complicated2 (void)
+sample_curve_riskus_complicated2 (void)
 {
   return B (P (18.4778, 3.8448),
 	    P (17.5415, 0.9003),
