@@ -92,16 +92,15 @@ demo_curve (cairo_t *cr, const bezier_t &b)
   typedef BezierArcApproximatorMidpointTwoPart<Error> BezierArcApproximatorBehdad;
   typedef BezierArcsApproximatorSpring<BezierArcApproximatorBehdad> SpringBehdad;
 
-  int max_segments = 50;
   double tolerance = 0.00001;
   double e;
-  static std::vector<Arc<Coord, Scalar> > &arcs = SpringBehdad::approximate_bezier_with_arcs (b, tolerance, &e, max_segments);
+  static std::vector<Arc<Coord, Scalar> > &arcs = SpringBehdad::approximate_bezier_with_arcs (b, tolerance, &e);
 
   double real_e;
-  static std::vector<Arc<Coord, Scalar> > &arcs2 = SpringSampling::approximate_bezier_with_arcs (b, tolerance, &real_e, max_segments);
+//  static std::vector<Arc<Coord, Scalar> > &arcs2 = SpringSampling::approximate_bezier_with_arcs (b, tolerance, &real_e);
 
-  printf ("Approximation error %g; Sampling error %g; Percentage off %g; %s\n",
-	  e, real_e, round (100 * (e - real_e) / real_e), e >= real_e ? "PASS" : "FAIL");
+  printf ("Approximation error %g; Tolerance %g; Percentage %g; %s\n",
+	  e, tolerance, round (100 * e / tolerance), e <= tolerance ? "PASS" : "FAIL");
 
   cairo_set_source_rgba (cr, 0.0, 1.0, 0.0, 1.0);
   for (unsigned int i = 0; i < arcs.size (); i++)
@@ -125,7 +124,7 @@ int main (int argc, char **argv)
   filename = argv[1];
 
   surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32,
-					1400, 900);
+					1400, 800);
   cr = cairo_create (surface);
 
   cairo_set_source_rgb (cr, 1.0, 1.0, 1.0);

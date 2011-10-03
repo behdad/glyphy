@@ -245,37 +245,39 @@ class BezierArcsApproximatorSpring
   public:
   static std::vector<Arc<Coord, Scalar> > &approximate_bezier_with_arcs (const Bezier<Coord> &b,
 									 double tolerance,
-									 double *error,
-									 int max_segments = 10)
+									 double *perror,
+									 int max_segments = 100,
+									 int max_jiggle = 100)
   {
     std::vector<double> t;
     std::vector<double> e;
     std::vector<Arc<Coord, Scalar> > &arcs = * new std::vector<Arc<Coord, Scalar> >;
+    double max_e, min_e;
     for (unsigned int n = 1; n <= max_segments; n++) {
       t.resize (n + 1);
       e.resize (n);
 
-      bool candidate = false, done = true;
+      bool candidate = false;
       for (unsigned int i = 0; i <= n; i++)
         t[i] = double (i) / n;
 
       arcs.clear ();
-      *error = 0;
+      max_e = 0;
+      min_e = INFINITY;
       for (unsigned int i = 0; i < n; i++)
       {
 	Bezier<Coord> segment = b.segment (t[i], t[i + 1]);
 	arcs.push_back (BezierArcApproximator::approximate_bezier_with_arc (segment, &e[i]));
 	if (e[i] <= tolerance)
 	  candidate = true;
-	else
-	  done = false;
 
-	*error = max (*error, e[i]);
+	max_e = max (max_e, e[i]);
+	min_e = min (min_e, e[i]);
       }
 
       if (candidate) {
-	printf ("n %d e %g\n", n, *error);
-        for (unsigned int s = 0; s < 10 + 0*max_segments; s++) {
+	printf ("candidate n %d max_e %g min_e %g\n", n, max_e, min_e);
+        for (unsigned int s = 0; s < max_jiggle; s++) {
 	  std::vector<double> l;
 	  std::vector<double> k_inv;
 
@@ -284,7 +286,7 @@ class BezierArcsApproximatorSpring
 	  double total = 0;
 	  for (unsigned int i = 0; i < n; i++) {
 	    l[i] = t[i + 1] - t[i];
-	    k_inv[i] = l[i] / sqrt (e[i]);
+	    k_inv[i] = l[i] / pow (e[i], .3);
 	    total += k_inv[i];
 	  }
 	  for (unsigned int i = 0; i < n; i++) {
@@ -293,24 +295,28 @@ class BezierArcsApproximatorSpring
 	  }
 
 	  arcs.clear ();
-	  done = true;
-	  *error = 0;
+	  max_e = 0;
+	  min_e = INFINITY;
 	  for (unsigned int i = 0; i < n; i++)
 	  {
 	    Bezier<Coord> segment = b.segment (t[i], t[i + 1]);
 	    arcs.push_back (BezierArcApproximator::approximate_bezier_with_arc (segment, &e[i]));
 
-	    *error = max (*error, e[i]);
-	    if (*error > tolerance)
-	      done = false;
+	    max_e = max (max_e, e[i]);
+	    min_e = min (min_e, e[i]);
 	  }
-//	  printf ("n %d jiggle %d error %g\n", n, s, *error);
+	  printf ("n %d jiggle %d max_e %g min_e %g\n", n, s, max_e, min_e);
+
+//	  if (max_e < tolerance || (max_e < 1.2 * min_e && min_e > 1.2 * tolerance))
+//	    break;
 	}
       }
 
-      if (done)
+      if (max_e <= tolerance)
         break;
     }
+    if (perror)
+      *perror = max_e;
     return arcs;
   }
 };
