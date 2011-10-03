@@ -155,6 +155,12 @@ demo_curve (cairo_t *cr, const bezier_t &b)
 
   cairo_demo_curve (cr, b);
 
+  //typedef MaxDeviationApproximatorFast MaxDev;
+  typedef MaxDeviationApproximatorExact MaxDev;
+  //typedef BezierBezierErrorApproximatorSimpleMagnitude<MaxDev> BezierError;
+  typedef BezierBezierErrorApproximatorSimpleMagnitudeDecomposed<MaxDev> BezierError;
+  //typedef BezierArcErrorApproximatorViaBezier<BezierError> Error;
+  typedef BezierArcErrorApproximatorBehdad<MaxDev> Error;
   if (1)
   {
     /* divide the curve into two */
@@ -163,16 +169,13 @@ demo_curve (cairo_t *cr, const bezier_t &b)
 
     arc_t a0 (b.p0, m, b.p3, true);
     arc_t a1 (m, b.p3, b.p0, true);
-    arc_t a (b.p0, b.p3, m, true);
+    arc_t a (b.p0, b.p3, m, false);
 
-    double e0 = BezierArcErrorApproximatorSophisticated<MaxDeviationApproximatorExact>
-		::approximate_bezier_arc_error (pair.first, a0);
-    double e1 = BezierArcErrorApproximatorSophisticated<MaxDeviationApproximatorExact>
-		::approximate_bezier_arc_error (pair.second, a1);
+    double e0 = Error::approximate_bezier_arc_error (pair.first, a0);
+    double e1 = Error::approximate_bezier_arc_error (pair.second, a1);
     double e = MAX (e0, e1);
 
-    double ee = BezierArcErrorApproximatorSophisticated<MaxDeviationApproximatorExact>
-		::approximate_bezier_arc_error (b, a);
+    double ee = Error::approximate_bezier_arc_error (b, a);
 
     printf ("%g %g = %g; %g\n", e0, e1, e, ee);
 
@@ -183,6 +186,8 @@ demo_curve (cairo_t *cr, const bezier_t &b)
     cairo_set_source_rgba (cr, 0.0, 1.0, 0.0, 1.0);
     cairo_demo_point (cr, m);
     cairo_demo_arc (cr, a);
+    //cairo_demo_arc (cr, a0);
+    //cairo_demo_arc (cr, a1);
     cairo_restore (cr);
   }
 
@@ -211,9 +216,9 @@ int main (int argc, char **argv)
   cairo_paint (cr);
 
 //  demo_curve (cr, sample_curve_skewed ());
-  demo_curve (cr, sample_curve_raskus_simple ());
+//  demo_curve (cr, sample_curve_raskus_simple ());
 //  demo_curve (cr, sample_curve_raskus_complicated ());
-//  demo_curve (cr, sample_curve_raskus_complicated2 ());
+  demo_curve (cr, sample_curve_raskus_complicated2 ());
 
   cairo_destroy (cr);
 

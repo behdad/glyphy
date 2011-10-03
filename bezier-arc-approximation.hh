@@ -36,6 +36,8 @@ using namespace Geometry;
 template <typename T> const T min (const T &a, const T &b) { return a <= b ? a : b; }
 template <typename T> const T max (const T &a, const T &b) { return a >= b ? a : b; }
 
+
+
 class MaxDeviationApproximatorFast
 {
   public:
@@ -92,6 +94,8 @@ class MaxDeviationApproximatorExact
   }
 };
 
+
+
 template <class MaxDeviationApproximator>
 class BezierBezierErrorApproximatorSimpleMagnitude
 {
@@ -123,6 +127,7 @@ class BezierBezierErrorApproximatorSimpleMagnitudeDecomposed
 };
 
 
+
 template <class BezierBezierErrorApproximator>
 class BezierArcErrorApproximatorViaBezier
 {
@@ -151,6 +156,46 @@ class BezierArcErrorApproximatorSampling
 };
 
 template <class MaxDeviationApproximator>
+class BezierArcErrorApproximatorBehdad
+{
+  public:
+  static double approximate_bezier_arc_error (const Bezier<Coord> &b0, const Arc<Coord, Scalar> &a)
+  {
+    double ea;
+    Bezier<Coord> b1 = a.approximate_bezier (&ea);
+
+    assert (b0.p0 == b1.p0);
+    assert (b0.p3 == b1.p3);
+
+    Vector<Coord> v0 = b1.p1 - b0.p1;
+    Vector<Coord> v1 = b1.p2 - b0.p2;
+
+    Vector<Coord> b = (b0.p3 - b0.p0).normalized ();
+    v0 = v0.rebase (b);
+    v1 = v1.rebase (b);
+
+    Vector<Coord> v (MaxDeviationApproximator::approximate_deviation (v0.dx, v1.dx),
+		     MaxDeviationApproximator::approximate_deviation (v0.dy, v1.dy));
+
+    double tan_half_alpha = 2 * fabs (a.d) / (1 - a.d*a.d);
+    double tan_v = v.dx / v.dy;
+    double eb;
+    if (tan_half_alpha < 0 ||
+	(-tan_half_alpha <= tan_v && tan_v <= tan_half_alpha)) {
+      eb = v.len ();
+    } else {
+      Scalar c2 = (b1.p3 - b1.p0).len () / 2;
+      double r = c2 * (a.d * a.d + 1) / (2 * fabs (a.d));
+      eb = Vector<Coord> (c2/tan_half_alpha + v.dy, c2 + v.dx).len () - r;
+    }
+
+    return ea + eb;
+  }
+};
+
+
+
+template <class MaxDeviationApproximator>
 class BezierArcErrorApproximatorSophisticated
 {
   public:
@@ -165,19 +210,24 @@ class BezierArcErrorApproximatorSophisticated
     Vector<Coord> v0 = b1.p1 - b0.p1;
     Vector<Coord> v1 = b1.p2 - b0.p2;
 
-    Vector<Coord> b = (b0.p3 - b0.p0).normal ();
+    Vector<Coord> b = (b0.p3 - b0.p0).normalized ();
     v0 = v0.rebase (b);
     v1 = v1.rebase (b);
 
     Vector<Coord> v (MaxDeviationApproximator::approximate_deviation (v0.dx, v1.dx),
 		     MaxDeviationApproximator::approximate_deviation (v0.dy, v1.dy));
 
-    Vector<Coord> b2 = (b1.p3 - b1.p2).rebase (b).normal ();
-    Vector<Coord> u = v.rebase (b2);
-
-    Scalar c = (b1.p3 - b1.p0).len ();
-    double r = fabs (c * (a.d * a.d + 1) / (4 * a.d));
-    double eb = sqrt ((r + u.dx) * (r + u.dx) + u.dy * u.dy) - r;
+    double tan_half_alpha = 2 * fabs (a.d) / (1 - a.d*a.d);
+    double tan_v = v.dx / v.dy;
+    double eb;
+    if (tan_half_alpha < 0 ||
+	(-tan_half_alpha <= tan_v && tan_v <= tan_half_alpha)) {
+      eb = v.len ();
+    } else {
+      Scalar c2 = (b1.p3 - b1.p0).len () / 2;
+      double r = c2 * (a.d * a.d + 1) / (2 * fabs (a.d));
+      eb = Vector<Coord> (c2/tan_half_alpha + v.dy, c2 + v.dx).len () - r;
+    }
 
     return ea + eb;
   }

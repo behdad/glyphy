@@ -103,7 +103,7 @@ void cairo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
   Circle<Coord, Scalar> c  = a.circle ();
   double a0 = (a.p0 - c.c).angle ();
   double a1 = (a.p1 - c.c).angle ();
-  if (a.d > 0)
+  if (a.d < 0)
     cairo_arc (cr, c.c.x, c.c.y, c.r, a0, a1);
   else
     cairo_arc_negative (cr, c.c.x, c.c.y, c.r, a0, a1);
@@ -211,7 +211,7 @@ void cairo_demo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
   cairo_new_sub_path (cr);
   double a0 = (a.p0 - c.c).angle ();
   double a1 = (a.p1 - c.c).angle ();
-  if (a.d > 0)
+  if (a.d < 0)
     cairo_arc (cr, c.c.x, c.c.y, c.r, a0, a1);
   else
     cairo_arc_negative (cr, c.c.x, c.c.y, c.r, a0, a1);
