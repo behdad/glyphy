@@ -246,8 +246,7 @@ class BezierArcsApproximatorSpring
   static std::vector<Arc<Coord, Scalar> > &approximate_bezier_with_arcs (const Bezier<Coord> &b,
 									 double tolerance,
 									 double *perror,
-									 int max_segments = 1000,
-									 int max_jiggle = 100)
+									 int max_segments = 1000)
   {
     std::vector<double> t;
     std::vector<double> e;
@@ -265,6 +264,7 @@ class BezierArcsApproximatorSpring
       arcs.clear ();
       max_e = 0;
       min_e = INFINITY;
+      /* Technically speaking we can bsearch for n. */
       for (unsigned int i = 0; i < n; i++)
       {
 	Bezier<Coord> segment = b.segment (t[i], t[i + 1]);
@@ -278,7 +278,9 @@ class BezierArcsApproximatorSpring
 
       if (candidate) {
 	printf ("candidate n %d max_e %g min_e %g\n", n, max_e, min_e);
-        for (unsigned int s = 0; s < max_jiggle; s++) {
+	unsigned int max_jiggle = log2 (n);
+	unsigned int s;
+        for (s = 0; s <= max_jiggle; s++) {
 	  std::vector<double> l;
 	  std::vector<double> k_inv;
 
@@ -306,12 +308,14 @@ class BezierArcsApproximatorSpring
 	    max_e = max (max_e, e[i]);
 	    min_e = min (min_e, e[i]);
 	  }
-	  printf ("n %d jiggle %d max_e %g min_e %g\n", n, s, max_e, min_e);
+//	  printf ("n %d jiggle %d max_e %g min_e %g\n", n, s, max_e, min_e);
 
 	  n_jiggle++;
 	  if (max_e < tolerance || (2 * min_e - max_e > tolerance))
 	    break;
 	}
+	if (s == max_jiggle)
+	  printf ("JIGGLE OVERFLOW n %d s %d\n", n, s);
       }
 
       if (max_e <= tolerance)
