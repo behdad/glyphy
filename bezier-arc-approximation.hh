@@ -282,21 +282,19 @@ class BezierArcsApproximatorSpring
 	printf ("candidate n %d max_e %g min_e %g\n", n, max_e, min_e);
 	unsigned int max_jiggle = log2 (n);
 	unsigned int s;
-        for (s = 0; s <= max_jiggle; s++) {
-	  std::vector<double> l;
-	  std::vector<double> k_inv;
-
-	  l.resize (n);
-	  k_inv.resize (n);
+        for (s = 0; s <= max_jiggle; s++)
+	{
 	  double total = 0;
 	  for (unsigned int i = 0; i < n; i++) {
-	    l[i] = t[i + 1] - t[i];
-	    k_inv[i] = l[i] * pow (e[i], -.3);
-	    total += k_inv[i];
+	    double l = t[i + 1] - t[i];
+	    double k_inv = l * pow (e[i], -.3);
+	    total += k_inv;
+	    e[i] = k_inv;
 	  }
 	  for (unsigned int i = 0; i < n; i++) {
-	    l[i] = k_inv[i] / total;
-	    t[i + 1] = t[i] + l[i];
+	    double k_inv = e[i];
+	    double l = k_inv / total;
+	    t[i + 1] = t[i] + l;
 	  }
 
 	  arcs.clear ();
