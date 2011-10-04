@@ -257,7 +257,6 @@ class BezierArcsApproximatorSpring
       t.resize (n + 1);
       e.resize (n);
 
-      bool candidate = false;
       for (unsigned int i = 0; i <= n; i++)
         t[i] = double (i) / n;
 
@@ -269,12 +268,15 @@ class BezierArcsApproximatorSpring
       {
 	Bezier<Coord> segment = b.segment (t[i], t[i + 1]);
 	arcs.push_back (BezierArcApproximator::approximate_bezier_with_arc (segment, &e[i]));
-	if (e[i] <= tolerance)
-	  candidate = true;
 
 	max_e = max (max_e, e[i]);
 	min_e = min (min_e, e[i]);
       }
+
+      bool candidate = false;
+      for (unsigned int i = 0; i < n; i++)
+	if (e[i] <= tolerance)
+	  candidate = true;
 
       if (candidate) {
 	printf ("candidate n %d max_e %g min_e %g\n", n, max_e, min_e);
@@ -289,7 +291,7 @@ class BezierArcsApproximatorSpring
 	  double total = 0;
 	  for (unsigned int i = 0; i < n; i++) {
 	    l[i] = t[i + 1] - t[i];
-	    k_inv[i] = l[i] / pow (e[i], .3);
+	    k_inv[i] = l[i] * pow (e[i], -.3);
 	    total += k_inv[i];
 	  }
 	  for (unsigned int i = 0; i < n; i++) {
