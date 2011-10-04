@@ -248,10 +248,11 @@ class BezierArcsApproximatorSpring
 				std::vector<Arc<Coord, Scalar> > &arcs,
 				double &max_e, double &min_e)
   {
+    unsigned int n = t.size () - 1;
+    e.resize (n);
     arcs.clear ();
     max_e = 0;
     min_e = INFINITY;
-    unsigned int n = t.size () - 1;
     for (unsigned int i = 0; i < n; i++)
     {
       Bezier<Coord> segment = b.segment (t[i], t[i + 1]);
@@ -277,7 +278,6 @@ class BezierArcsApproximatorSpring
     /* Technically speaking we can bsearch for n. */
     for (unsigned int n = 1; n <= max_segments; n++) {
       t.resize (n + 1);
-      e.resize (n);
 
       for (unsigned int i = 0; i <= n; i++)
         t[i] = double (i) / n;
