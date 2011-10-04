@@ -72,7 +72,7 @@ static void
 demo_curve (cairo_t *cr, const bezier_t &b)
 {
   cairo_save (cr);
-  cairo_set_line_width (cr, 3);
+  cairo_set_line_width (cr, 5);
 
   scale_and_translate (cr, b);
 
@@ -84,7 +84,7 @@ demo_curve (cairo_t *cr, const bezier_t &b)
   typedef BezierArcApproximatorMidpointTwoPart<BezierArcError> BezierArcApproximatorBehdad;
   typedef BezierArcsApproximatorSpring<BezierArcApproximatorBehdad> SpringBehdad;
 
-  double tolerance = 0.00001;
+  double tolerance = .5;
   double e;
   static std::vector<Arc<Coord, Scalar> > &arcs = SpringBehdad::approximate_bezier_with_arcs (b, tolerance, &e);
 
@@ -92,6 +92,7 @@ demo_curve (cairo_t *cr, const bezier_t &b)
 	  (int) arcs.size (), e, tolerance, round (100 * e / tolerance), e <= tolerance ? "PASS" : "FAIL");
 
   cairo_set_source_rgba (cr, 0.0, 1.0, 0.0, 1.0);
+  cairo_set_line_width (cr, cairo_get_line_width (cr) / 2);
   for (unsigned int i = 0; i < arcs.size (); i++)
     cairo_demo_arc (cr, arcs[i]);
 

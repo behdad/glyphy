@@ -88,7 +88,7 @@ template <typename Coord, typename Scalar>
 void cairo_circle (cairo_t *cr, const Circle<Coord, Scalar> &c)
 {
   cairo_new_sub_path (cr);
-  cairo_arc (cr, c.c.x, c.c.y, 0, M_2_PI);
+  cairo_arc (cr, c.c.x, c.c.y, 0, 2 * M_PI);
 }
 
 template <typename Coord, typename Scalar>
@@ -136,7 +136,7 @@ void cairo_demo_point (cairo_t *cr, const Point<Coord> &p)
 template <typename Coord>
 void cairo_demo_curve (cairo_t *cr, const Bezier<Coord> &b)
 {
-  if (0) {
+  {
     cairo_save (cr);
     for (double t = 0; t <= 1; t += .01)
     {
@@ -180,10 +180,17 @@ void cairo_demo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
 
   Circle<Coord, Scalar> c  = a.circle ();
 
-  if (0) {
+  {
     double a0 = (a.p0 - c.c).angle ();
     double a1 = (a.p1 - c.c).angle ();
     cairo_save (cr);
+    if (a.d < 0) {
+      if (a0 > a1)
+        a1 += 2 * M_PI;
+    } else {
+      if (a0 < a1)
+        a0 += 2 * M_PI;
+    }
     for (double t = 0; t <= 1; t += .01)
     {
       double a= a0 * t + a1 * (1 - t);
@@ -191,6 +198,8 @@ void cairo_demo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
       cairo_move_to (cr, p.x, p.y);
       cairo_line_to (cr, c.c.x, c.c.y);
     }
+    a0 = (a.p0 - c.c).angle ();
+    a1 = (a.p1 - c.c).angle ();
     cairo_set_line_width (cr, cairo_get_line_width (cr) / 30);
     cairo_stroke (cr);
     cairo_restore (cr);
