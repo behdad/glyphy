@@ -246,8 +246,8 @@ class BezierArcsApproximatorSpring
   static std::vector<Arc<Coord, Scalar> > &approximate_bezier_with_arcs (const Bezier<Coord> &b,
 									 double tolerance,
 									 double *perror,
-									 int max_segments = 100,
-									 int max_jiggle = 20)
+									 int max_segments = 1000,
+									 int max_jiggle = 100)
   {
     std::vector<double> t;
     std::vector<double> e;

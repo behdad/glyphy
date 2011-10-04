@@ -19,7 +19,7 @@
  * ON AN "AS IS" BASIS, AND THE COPYRIGHT HOLDER HAS NO OBLIGATION TO
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  *
- * Google Author(s): Behdad Esfahbod
+ * Google Author(s): Behdad Esfahbod, Maysum Panju
  */
 
 #include <stdlib.h>
@@ -130,9 +130,9 @@ int main (int argc, char **argv)
   cairo_set_source_rgb (cr, 1.0, 1.0, 1.0);
   cairo_paint (cr);
 
-//  demo_curve (cr, sample_curve_skewed ());
+  demo_curve (cr, sample_curve_skewed ());
 //  demo_curve (cr, sample_curve_riskus_simple ());
-  demo_curve (cr, sample_curve_riskus_complicated ());
+//  demo_curve (cr, sample_curve_riskus_complicated ());
 //  demo_curve (cr, sample_curve_riskus_complicated2 ());
 
   cairo_destroy (cr);
