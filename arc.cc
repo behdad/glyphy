@@ -26,8 +26,6 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include <deque>
-
 #include "geometry.hh"
 #include "cairo-helper.hh"
 #include "sample-curves.hh"
