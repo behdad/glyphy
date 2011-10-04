@@ -272,7 +272,7 @@ class BezierArcsApproximatorSpring
 			     unsigned int &n_jiggle)
   {
     unsigned int n = t.size () - 1;
-    printf ("candidate n %d max_e %g min_e %g\n", n, max_e, min_e);
+    //printf ("candidate n %d max_e %g min_e %g\n", n, max_e, min_e);
     unsigned int max_jiggle = log2 (n);
     unsigned int s;
     for (s = 0; s <= max_jiggle; s++)
@@ -292,14 +292,13 @@ class BezierArcsApproximatorSpring
 
       calc_arcs (b, t, e, arcs, max_e, min_e);
 
-//      printf ("n %d jiggle %d max_e %g min_e %g\n", n, s, max_e, min_e);
+      //printf ("n %d jiggle %d max_e %g min_e %g\n", n, s, max_e, min_e);
 
       n_jiggle++;
       if (max_e < tolerance || (2 * min_e - max_e > tolerance))
 	break;
     }
-    if (s == max_jiggle)
-      printf ("JIGGLE OVERFLOW n %d s %d\n", n, s);
+    //if (s == max_jiggle) printf ("JIGGLE OVERFLOW n %d s %d\n", n, s);
   }
 
   public:
@@ -334,7 +333,7 @@ class BezierArcsApproximatorSpring
     }
     if (perror)
       *perror = max_e;
-    printf ("n_jiggle %d\n", n_jiggle);
+    //printf ("n_jiggle %d\n", n_jiggle);
     return arcs;
   }
 };
