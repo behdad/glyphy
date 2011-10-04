@@ -94,6 +94,8 @@ demo_curve (cairo_t *cr, const bezier_t &b)
   for (unsigned int i = 0; i < arcs.size (); i++)
     cairo_demo_arc (cr, arcs[i]);
 
+  delete &arcs;
+
   cairo_restore (cr);
 }
 
