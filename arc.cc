@@ -80,27 +80,16 @@ demo_curve (cairo_t *cr, const bezier_t &b)
   cairo_demo_curve (cr, b);
 
   typedef MaxDeviationApproximatorExact MaxDev;
-  //typedef MaxDeviationApproximatorFast MaxDev;
-  //typedef BezierBezierErrorApproximatorSimpleMagnitude<MaxDev> BezierError;
-  //typedef BezierBezierErrorApproximatorSimpleMagnitudeDecomposed<MaxDev> BezierError;
-  //typedef BezierArcErrorApproximatorViaBezier<BezierError> Error;
-  typedef BezierArcErrorApproximatorBehdad<MaxDev> Error;
-
-  typedef BezierArcApproximatorMidpointTwoPart<BezierArcErrorApproximatorSampling> BezierArcApproximatorSampling;
-  typedef BezierArcsApproximatorSpring<BezierArcApproximatorSampling> SpringSampling;
-
-  typedef BezierArcApproximatorMidpointTwoPart<Error> BezierArcApproximatorBehdad;
+  typedef BezierArcErrorApproximatorBehdad<MaxDev> BezierArcError;
+  typedef BezierArcApproximatorMidpointTwoPart<BezierArcError> BezierArcApproximatorBehdad;
   typedef BezierArcsApproximatorSpring<BezierArcApproximatorBehdad> SpringBehdad;
 
   double tolerance = 0.00001;
   double e;
   static std::vector<Arc<Coord, Scalar> > &arcs = SpringBehdad::approximate_bezier_with_arcs (b, tolerance, &e);
 
-  double real_e;
-//  static std::vector<Arc<Coord, Scalar> > &arcs2 = SpringSampling::approximate_bezier_with_arcs (b, tolerance, &real_e);
-
-  printf ("Approximation error %g; Tolerance %g; Percentage %g; %s\n",
-	  e, tolerance, round (100 * e / tolerance), e <= tolerance ? "PASS" : "FAIL");
+  printf ("Num arcs %d; Approximation error %g; Tolerance %g; Percentage %g; %s\n",
+	  (int) arcs.size (), e, tolerance, round (100 * e / tolerance), e <= tolerance ? "PASS" : "FAIL");
 
   cairo_set_source_rgba (cr, 0.0, 1.0, 0.0, 1.0);
   for (unsigned int i = 0; i < arcs.size (); i++)
