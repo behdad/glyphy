@@ -263,6 +263,45 @@ class BezierArcsApproximatorSpring
     }
   }
 
+  static inline void jiggle (const Bezier<Coord> &b,
+			     std::vector<double> &t,
+			     std::vector<double> &e,
+			     std::vector<Arc<Coord, Scalar> > &arcs,
+			     double &max_e, double &min_e,
+			     double tolerance,
+			     unsigned int &n_jiggle)
+  {
+    unsigned int n = t.size () - 1;
+    printf ("candidate n %d max_e %g min_e %g\n", n, max_e, min_e);
+    unsigned int max_jiggle = log2 (n);
+    unsigned int s;
+    for (s = 0; s <= max_jiggle; s++)
+    {
+      double total = 0;
+      for (unsigned int i = 0; i < n; i++) {
+	double l = t[i + 1] - t[i];
+	double k_inv = l * pow (e[i], -.3);
+	total += k_inv;
+	e[i] = k_inv;
+      }
+      for (unsigned int i = 0; i < n; i++) {
+	double k_inv = e[i];
+	double l = k_inv / total;
+	t[i + 1] = t[i] + l;
+      }
+
+      calc_arcs (b, t, e, arcs, max_e, min_e);
+
+//      printf ("n %d jiggle %d max_e %g min_e %g\n", n, s, max_e, min_e);
+
+      n_jiggle++;
+      if (max_e < tolerance || (2 * min_e - max_e > tolerance))
+	break;
+    }
+    if (s == max_jiggle)
+      printf ("JIGGLE OVERFLOW n %d s %d\n", n, s);
+  }
+
   public:
   static std::vector<Arc<Coord, Scalar> > &approximate_bezier_with_arcs (const Bezier<Coord> &b,
 									 double tolerance,
@@ -273,52 +312,22 @@ class BezierArcsApproximatorSpring
     std::vector<double> e;
     std::vector<Arc<Coord, Scalar> > &arcs = * new std::vector<Arc<Coord, Scalar> >;
     double max_e, min_e;
-    int n_jiggle = 0;
+    unsigned int n_jiggle = 0;
 
     /* Technically speaking we can bsearch for n. */
-    for (unsigned int n = 1; n <= max_segments; n++) {
+    for (unsigned int n = 1; n <= max_segments; n++)
+    {
       t.resize (n + 1);
-
       for (unsigned int i = 0; i <= n; i++)
         t[i] = double (i) / n;
 
       calc_arcs (b, t, e, arcs, max_e, min_e);
 
-      bool candidate = false;
       for (unsigned int i = 0; i < n; i++)
-	if (e[i] <= tolerance)
-	  candidate = true;
-
-      if (candidate) {
-	printf ("candidate n %d max_e %g min_e %g\n", n, max_e, min_e);
-	unsigned int max_jiggle = log2 (n);
-	unsigned int s;
-        for (s = 0; s <= max_jiggle; s++)
-	{
-	  double total = 0;
-	  for (unsigned int i = 0; i < n; i++) {
-	    double l = t[i + 1] - t[i];
-	    double k_inv = l * pow (e[i], -.3);
-	    total += k_inv;
-	    e[i] = k_inv;
-	  }
-	  for (unsigned int i = 0; i < n; i++) {
-	    double k_inv = e[i];
-	    double l = k_inv / total;
-	    t[i + 1] = t[i] + l;
-	  }
-
-	  calc_arcs (b, t, e, arcs, max_e, min_e);
-
-//	  printf ("n %d jiggle %d max_e %g min_e %g\n", n, s, max_e, min_e);
-
-	  n_jiggle++;
-	  if (max_e < tolerance || (2 * min_e - max_e > tolerance))
-	    break;
+	if (e[i] <= tolerance) {
+	  jiggle (b, t, e, arcs, max_e, min_e, tolerance, n_jiggle);
+	  break;
 	}
-	if (s == max_jiggle)
-	  printf ("JIGGLE OVERFLOW n %d s %d\n", n, s);
-      }
 
       if (max_e <= tolerance)
         break;
