@@ -122,8 +122,8 @@ int main (int argc, char **argv)
 
 //  demo_curve (cr, sample_curve_skewed ());
 //  demo_curve (cr, sample_curve_riskus_simple ());
-  demo_curve (cr, sample_curve_riskus_complicated ());
-//  demo_curve (cr, sample_curve_riskus_complicated2 ());
+//  demo_curve (cr, sample_curve_riskus_complicated ());
+  demo_curve (cr, sample_curve_s ());
 
   cairo_destroy (cr);
 

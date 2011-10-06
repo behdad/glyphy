@@ -53,7 +53,7 @@ sample_curve_riskus_complicated (void)
 }
 
 static inline const Bezier<Coord>
-sample_curve_riskus_complicated2 (void)
+sample_curve_s (void)
 {
   return B (P (18.4778, 3.8448),
 	    P (17.5415, 0.9003),
