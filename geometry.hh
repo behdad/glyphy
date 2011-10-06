@@ -121,7 +121,7 @@ struct Line {
 
 template <typename Coord, typename Scalar>
 struct Circle {
-  inline Circle (const Point<Coord> &c_, Scalar r_) : c (c_), r (r_) {};
+  inline Circle (const Point<Coord> &c_, const Scalar &r_) : c (c_), r (r_) {};
   inline Circle (const Point<Coord> &p0, const Point<Coord> &p1, const Point<Coord> &p2) :
 		 c ((p0|p1) + (p2|p1)), r ((c - p0).len ()) {}
 
@@ -137,9 +137,10 @@ struct Arc {
   inline Arc (const Point<Coord> &p0_, const Point<Coord> &p1_, const Point<Coord> &pm, bool complement) :
 	      p0 (p0_), p1 (p1_),
 	      d (p0_ == pm || p1_ == pm ? 0 :
-		 tan ((complement ? 0 : M_PI_2) - ((p1_-pm).angle () - (p0_-pm).angle ()) / 2))
-	      {}
-  inline Arc (const Circle<Coord, Scalar> &c, Scalar a0, Scalar a1) :
+		 tan ((complement ? 0 : M_PI_2) - ((p1_-pm).angle () - (p0_-pm).angle ()) / 2)) {}
+  inline Arc (const Point<Coord> &p0_, const Point<Coord> &p1_, const Scalar &d_) :
+	      p0 (p0_), p1 (p1_), d (d_) {}
+  inline Arc (const Circle<Coord, Scalar> &c, const Scalar &a0, const Scalar &a1) :
 	      p0 (c.c + Vector<Coord> (cos(a0),sin(a0)) * c.r),
 	      p1 (c.c + Vector<Coord> (cos(a1),sin(a1)) * c.r),
 	      d (tan ((a1 - a0) / 4)) {}
@@ -183,7 +184,7 @@ struct Bezier {
 
   inline const Pair<Bezier<Coord> > halve (void) const;
 
-  inline const Bezier<Coord> segment (Scalar t1, Scalar t2) const;
+  inline const Bezier<Coord> segment (const Scalar &t0, const Scalar &t1) const;
 
   Point<Coord> p0, p1, p2, p3;
 };
@@ -520,7 +521,7 @@ inline const Pair<Bezier<Coord> > Bezier<Coord>::halve (void) const
 }
 
 template <typename Coord>
-inline const Bezier<Coord> Bezier<Coord>::segment (Scalar t0, Scalar t1) const
+inline const Bezier<Coord> Bezier<Coord>::segment (const Scalar &t0, const Scalar &t1) const
 {
   if (fabs (t0 - t1) < 1e-6) {
     Point<Coord> p = point (t0);
