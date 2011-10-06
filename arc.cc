@@ -125,7 +125,8 @@ int main (int argc, char **argv)
 //  demo_curve (cr, sample_curve_riskus_complicated ());
 //  demo_curve (cr, sample_curve_s ());
 //  demo_curve (cr, sample_curve_serpentine_c_symmetric ());
-  demo_curve (cr, sample_curve_serpentine_s_symmetric ());
+//  demo_curve (cr, sample_curve_serpentine_s_symmetric ());
+  demo_curve (cr, sample_curve_loop_o_symmetric ());
 
   cairo_destroy (cr);
 

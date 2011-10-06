@@ -89,6 +89,33 @@ sample_curve_serpentine_s_symmetric (void)
 	    P (1, 0));
 }
 
+static inline const Bezier<Coord>
+sample_curve_loop_cusp_symmetric (void)
+{
+  return B (P (0, 0),
+	    P (1, 1),
+	    P (0, 1),
+	    P (1, 0));
+}
+
+static inline const Bezier<Coord>
+sample_curve_loop_gamma_symmetric (void)
+{
+  return B (P (0, 0),
+	    P (3, 3),
+	    P (-2, 3),
+	    P (1, 0));
+}
+
+static inline const Bezier<Coord>
+sample_curve_loop_o_symmetric (void)
+{
+  return B (P (0, 0),
+	    P (3, 3),
+	    P (-3, 3),
+	    P (0, 0));
+}
+
 #undef B
 #undef P
 
