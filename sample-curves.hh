@@ -93,8 +93,8 @@ static inline const Bezier<Coord>
 sample_curve_serpentine_quadratic (void)
 {
   return B (P (0, 0),
-	    P (1, 3),
-	    P (5, 3),
+	    P (2, 6),
+	    P (4, 6),
 	    P (6, 0));
 }
 

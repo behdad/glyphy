@@ -126,10 +126,10 @@ int main (int argc, char **argv)
 //  demo_curve (cr, sample_curve_s ());
 //  demo_curve (cr, sample_curve_serpentine_c_symmetric ());
 //  demo_curve (cr, sample_curve_serpentine_s_symmetric ());
-//  demo_curve (cr, sample_curve_serpentine_quadratic ());
+  demo_curve (cr, sample_curve_serpentine_quadratic ());
 //  demo_curve (cr, sample_curve_cusp_symmetric ());
 //  demo_curve (cr, sample_curve_loop_gamma_symmetric ());
-  demo_curve (cr, sample_curve_loop_gamma_small_symmetric ());
+//  demo_curve (cr, sample_curve_loop_gamma_small_symmetric ());
 //  demo_curve (cr, sample_curve_loop_o_symmetric ());
 
   cairo_destroy (cr);
