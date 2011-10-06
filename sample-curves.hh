@@ -117,6 +117,15 @@ sample_curve_loop_gamma_symmetric (void)
 }
 
 static inline const Bezier<Coord>
+sample_curve_loop_gamma_small_symmetric (void)
+{
+  return B (P (0, 0),
+	    P (1.1, 1.1),
+	    P (-.1, 1.1),
+	    P (1, 0));
+}
+
+static inline const Bezier<Coord>
 sample_curve_loop_o_symmetric (void)
 {
   return B (P (0, 0),
