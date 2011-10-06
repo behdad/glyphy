@@ -522,6 +522,10 @@ inline const Pair<Bezier<Coord> > Bezier<Coord>::halve (void) const
 template <typename Coord>
 inline const Bezier<Coord> Bezier<Coord>::segment (Scalar t0, Scalar t1) const
 {
+  if (fabs (t0 - t1) < 1e-6) {
+    Point<Coord> p = point (t0);
+    return Bezier<Coord> (p, p, p, p);
+  }
   return split (t0).second.split ((t1 - t0) / (1 - t0)).first;
 }
 

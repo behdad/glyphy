@@ -70,6 +70,25 @@ sample_curve_skewed (void)
 	     P (330, 10));
 }
 
+
+static inline const Bezier<Coord>
+sample_curve_serpentine_c_symmetric (void)
+{
+  return B (P (0, 0),
+	    P (0, 1),
+	    P (1, 1),
+	    P (1, 0));
+}
+
+static inline const Bezier<Coord>
+sample_curve_serpentine_s_symmetric (void)
+{
+  return B (P (0, 0),
+	    P (0, 1),
+	    P (1, -1),
+	    P (1, 0));
+}
+
 #undef B
 #undef P
 

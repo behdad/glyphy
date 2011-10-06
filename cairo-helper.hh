@@ -94,7 +94,7 @@ void cairo_circle (cairo_t *cr, const Circle<Coord, Scalar> &c)
 template <typename Coord, typename Scalar>
 void cairo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
 {
-  if (!a.d) {
+  if (fabs (a.d) < 1e-6) {
     cairo_line_to (cr, a.p0);
     cairo_line_to (cr, a.p1);
     return;
@@ -171,7 +171,7 @@ void cairo_demo_curve (cairo_t *cr, const Bezier<Coord> &b)
 template <typename Coord>
 void cairo_demo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
 {
-  if (!a.d) {
+  if (fabs (a.d) < 1e-6) {
     cairo_move_to (cr, a.p0);
     cairo_line_to (cr, a.p1);
     cairo_stroke (cr);
