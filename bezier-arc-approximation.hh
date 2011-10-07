@@ -28,6 +28,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <algorithm>
 
 #ifndef BEZIER_ARC_APPROXIMATION_HH
 #define BEZIER_ARC_APPROXIMATION_HH
@@ -35,9 +36,6 @@
 namespace BezierArcApproximation {
 
 using namespace Geometry;
-
-template <typename T> const T min (const T &a, const T &b) { return a <= b ? a : b; }
-template <typename T> const T max (const T &a, const T &b) { return a >= b ? a : b; }
 
 
 
@@ -49,9 +47,9 @@ class MaxDeviationApproximatorFast
   {
     d0 = fabs (d0);
     d1 = fabs (d1);
-    double e0 = 3./4. * max (d0, d1);
+    double e0 = 3./4. * std::max (d0, d1);
     double e1 = 4./9. * (d0 + d1);
-    return min (e0, e1);
+    return std::min (e0, e1);
   }
 };
 
@@ -90,7 +88,7 @@ class MaxDeviationApproximatorExact
       if (t < 0. || t > 1.)
 	continue;
       ee = fabs (3 * t * (1-t) * (d0 * (1 - t) + d1 * t));
-      e = max (e, ee);
+      e = std::max (e, ee);
     }
 
     return e;
@@ -153,7 +151,7 @@ class BezierArcErrorApproximatorSampling
     Circle<Coord, Scalar> c = a.circle ();
     double e = 0;
     for (double t = 0; t <= 1; t += step)
-      e = max (e, fabs ((c.c - b.point (t)).len () - c.r));
+      e = std::max (e, fabs ((c.c - b.point (t)).len () - c.r));
     return e;
   }
 };
@@ -232,7 +230,7 @@ class BezierArcApproximatorMidpointTwoPart
 
     double e0 = BezierArcErrorApproximator::approximate_bezier_arc_error (pair.first, a0);
     double e1 = BezierArcErrorApproximator::approximate_bezier_arc_error (pair.second, a1);
-    *error = max (e0, e1);
+    *error = std::max (e0, e1);
 
     return Arc<Coord, Scalar> (b.p0, b.p3, m, false);
   }
@@ -240,7 +238,7 @@ class BezierArcApproximatorMidpointTwoPart
 
 
 template <class BezierArcApproximator>
-class BezierArcsApproximatorSpring
+class BezierArcsApproximatorSpringSystem
 {
   static inline void calc_arcs (const Bezier<Coord> &b,
 				const std::vector<double> &t,
@@ -258,8 +256,8 @@ class BezierArcsApproximatorSpring
       Bezier<Coord> segment = b.segment (t[i], t[i + 1]);
       arcs.push_back (BezierArcApproximator::approximate_bezier_with_arc (segment, &e[i]));
 
-      max_e = max (max_e, e[i]);
-      min_e = min (min_e, e[i]);
+      max_e = std::max (max_e, e[i]);
+      min_e = std::min (min_e, e[i]);
     }
   }
 
@@ -298,7 +296,7 @@ class BezierArcsApproximatorSpring
       if (max_e < tolerance || (2 * min_e - max_e > tolerance))
 	break;
     }
-    if (s == max_jiggle) fprintf (stderr, "JIGGLE OVERFLOW n %d s %d\n", n, s);
+    //if (s == max_jiggle) fprintf (stderr, "JIGGLE OVERFLOW n %d s %d\n", n, s);
   }
 
   public:
@@ -333,7 +331,7 @@ class BezierArcsApproximatorSpring
     }
     if (perror)
       *perror = max_e;
-    fprintf (stderr, "n_jiggle %d\n", n_jiggle);
+    //fprintf (stderr, "n_jiggle %d\n", n_jiggle);
     return arcs;
   }
 };

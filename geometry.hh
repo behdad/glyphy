@@ -43,6 +43,8 @@ template <typename Coord> struct Bezier;
 
 template <typename Type>
 struct Pair {
+  typedef Type ElementType;
+
   inline Pair (const Type &first_, const Type &second_) : first (first_), second (second_) {}
 
   Type first, second;
@@ -50,6 +52,10 @@ struct Pair {
 
 template <typename Coord>
 struct Vector {
+  typedef Coord CoordType;
+  typedef Scalar ScalarType;
+  typedef Point<Coord> PointType;
+
   inline Vector (Coord dx_, Coord dy_) : dx (dx_), dy (dy_) {};
   inline explicit Vector (Point<Coord> p) : dx (p.x), dy (p.y) {};
 
@@ -86,6 +92,10 @@ struct Vector {
 
 template <typename Coord>
 struct Point {
+  typedef Coord CoordType;
+  typedef Scalar ScalarType;
+  typedef Vector<Coord> VectorType;
+
   inline Point (Coord x_, Coord y_) : x (x_), y (y_) {};
   inline explicit Point (Vector<Coord> v) : x (v.dx), y (v.dy) {};
 
@@ -108,6 +118,10 @@ struct Point {
 
 template <typename Coord>
 struct Line {
+  typedef Coord CoordType;
+  typedef Vector<Coord> VectorType;
+  typedef Point<Coord> PointType;
+
   inline Line (Coord a_, Coord b_, Coord c_) : a (a_), b (b_), c (c_) {};
   inline Line (const Point<Coord> &p0, const Point<Coord> &p1);
 
@@ -121,6 +135,10 @@ struct Line {
 
 template <typename Coord, typename Scalar>
 struct Circle {
+  typedef Coord CoordType;
+  typedef Scalar ScalarType;
+  typedef Point<Coord> PointType;
+
   inline Circle (const Point<Coord> &c_, const Scalar &r_) : c (c_), r (r_) {};
   inline Circle (const Point<Coord> &p0, const Point<Coord> &p1, const Point<Coord> &p2) :
 		 c ((p0|p1) + (p2|p1)), r ((c - p0).len ()) {}
@@ -134,6 +152,13 @@ struct Circle {
 
 template <typename Coord, typename Scalar>
 struct Arc {
+  typedef Coord CoordType;
+  typedef Scalar ScalarType;
+  typedef Vector<Coord> VectorType;
+  typedef Point<Coord> PointType;
+  typedef Circle<Coord, Scalar> CircleType;
+  typedef Bezier<Coord> BezierType;
+
   inline Arc (const Point<Coord> &p0_, const Point<Coord> &p1_, const Point<Coord> &pm, bool complement) :
 	      p0 (p0_), p1 (p1_),
 	      d (p0_ == pm || p1_ == pm ? 0 :
@@ -160,6 +185,12 @@ struct Arc {
 
 template <typename Coord>
 struct Bezier {
+  typedef Coord CoordType;
+  typedef Scalar ScalarType;
+  typedef Vector<Coord> VectorType;
+  typedef Point<Coord> PointType;
+  typedef Circle<Coord, Scalar> CircleType;
+
   inline Bezier (const Point<Coord> &p0_, const Point<Coord> &p1_,
 		 const Point<Coord> &p2_, const Point<Coord> &p3_) :
 		 p0 (p0_), p1 (p1_), p2 (p2_), p3 (p3_) {}

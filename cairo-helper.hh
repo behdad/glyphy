@@ -25,6 +25,7 @@
 #include <cairo.h>
 
 #include <stdio.h>
+#include <algorithm>
 
 #include "geometry.hh"
 
@@ -227,8 +228,6 @@ void cairo_demo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
   cairo_stroke (cr);
 }
 
-#define MY_CAIRO_PATH_ARC_TO (CAIRO_PATH_CLOSE_PATH+1)
-
 /* A fancy cairo_stroke_preserve() that draws points and control
  * points, and connects them together.
  */
@@ -324,7 +323,7 @@ cairo_path_print_stats (const cairo_path_t *path)
 {
   int i;
   cairo_path_data_t *data;
-  int lines = 0, curves = 0, arcs = 0;
+  int lines = 0, curves = 0;
 
   for (i=0; i < path->num_data; i += path->data[i].header.length) {
     data = &path->data[i];
@@ -337,16 +336,31 @@ cairo_path_print_stats (const cairo_path_t *path)
     case CAIRO_PATH_CURVE_TO:
 	curves++;
 	break;
-    case MY_CAIRO_PATH_ARC_TO:
-	arcs++;
-	break;
     case CAIRO_PATH_CLOSE_PATH:
 	break;
     default:
 	break;
     }
   }
-  printf ("%d lines, %d arcs, %d curves\n", lines, arcs, curves);
+  printf ("%d pieces = %d lines and %d curves\n", lines + curves, lines, curves);
+}
+
+static void
+cairo_set_viewport (cairo_t *cr)
+{
+  double cx1, cy1, cx2, cy2;
+  cairo_clip_extents (cr, &cx1, &cy1, &cx2, &cy2);
+
+  double px1, py1, px2, py2;
+  cairo_path_extents (cr, &px1, &py1, &px2, &py2);
+
+  double scale = .8 / std::max ((px2 - px1) / (cx2 - cx1), (py2 - py1) / (cy2 - cy1));
+
+  cairo_translate (cr, (cx1 + cx2) * .5, (cy1 + cy2) * .5);
+  cairo_scale (cr, scale, /*-*/scale);
+  cairo_set_line_width (cr, cairo_get_line_width (cr) / scale);
+
+  cairo_translate (cr, -(px1 + px2) * .5, -(py1 + py2) * .5);
 }
 
 
