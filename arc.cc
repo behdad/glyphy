@@ -146,12 +146,22 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
   cairo_identity_matrix (cr);
   cairo_translate (cr, x, y);
   cairo_scale (cr, FONT_SIZE*dx/(upem*64), -FONT_SIZE*dy/(upem*64));
+
   cairo_set_source_rgba (cr, 0.0, 0.0, 1.0, .5);
-  cairo_set_line_width (cr, 4*64);
-  for (unsigned int i = 0; i < acc.arcs.size (); i++)
+  point_t start (0, 0);
+  for (unsigned int i = 0; i < acc.arcs.size (); i++) {
+    if (!cairo_has_current_point (cr))
+      start = acc.arcs[i].p0;
     cairo_arc (cr, acc.arcs[i]);
+    if (acc.arcs[i].p1 == start) {
+      cairo_close_path (cr);
+      cairo_new_sub_path (cr);
+    }
+  }
   cairo_fill (cr);
+
   cairo_set_source_rgba (cr, 0.0, 1.0, 0.0, .3);
+  cairo_set_line_width (cr, 4*64);
   for (unsigned int i = 0; i < acc.arcs.size (); i++)
     cairo_demo_arc (cr, acc.arcs[i]);
 
