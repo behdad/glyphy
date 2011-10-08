@@ -128,7 +128,8 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
   FT_Face face = cairo_ft_scaled_font_lock_face (cairo_get_scaled_font (cr));
   unsigned int upem = face->units_per_EM;
   FT_Set_Char_Size (face, upem*64, upem*64, 0, 0);
-  double tolerance = upem * 64. / 256;
+//  double tolerance = upem * 64. / 256;
+  double tolerance = 64.;
   if (FT_Load_Glyph (face, FT_Get_Char_Index (face, (FT_ULong) *utf8), FT_LOAD_NO_BITMAP))
     abort ();
   assert (face->glyph->format == FT_GLYPH_FORMAT_OUTLINE);
@@ -147,6 +148,7 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
   cairo_translate (cr, x, y);
   cairo_scale (cr, FONT_SIZE*dx/(upem*64), -FONT_SIZE*dy/(upem*64));
 
+  cairo_new_path (cr);
   cairo_set_source_rgba (cr, 0.0, 0.0, 1.0, .5);
   point_t start (0, 0);
   for (unsigned int i = 0; i < acc.arcs.size (); i++) {
@@ -160,6 +162,7 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
   }
   cairo_fill (cr);
 
+  cairo_new_path (cr);
   cairo_set_source_rgba (cr, 0.0, 1.0, 0.0, .3);
   cairo_set_line_width (cr, 4*64);
   for (unsigned int i = 0; i < acc.arcs.size (); i++)
