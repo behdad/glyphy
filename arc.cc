@@ -132,14 +132,17 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
 
   FT_Face face = cairo_ft_scaled_font_lock_face (cairo_get_scaled_font (cr));
   unsigned int upem = face->units_per_EM;
-  FT_Set_Char_Size (face, upem*64, upem*64, 0, 0);
-//  double tolerance = upem * 64. / 256;
-  double tolerance = 64.;
+  printf ("upem %d\n", upem);
+  double tolerance = upem / 1024.; /* err=1/1024th of glyph size */
+//  double tolerance = 1.; /* err=1 font unit */
   if (FT_Load_Glyph (face,
 		     FT_Get_Char_Index (face, (FT_ULong) *utf8),
 		     FT_LOAD_NO_BITMAP |
 		     FT_LOAD_NO_HINTING |
-		     FT_LOAD_NO_AUTOHINT))
+		     FT_LOAD_NO_AUTOHINT |
+		     FT_LOAD_NO_SCALE |
+		     FT_LOAD_LINEAR_DESIGN |
+		     FT_LOAD_IGNORE_TRANSFORM))
     abort ();
   assert (face->glyph->format == FT_GLYPH_FORMAT_OUTLINE);
 
@@ -161,7 +164,7 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
   cairo_user_to_device_distance (cr, &dx, &dy);
   cairo_identity_matrix (cr);
   cairo_translate (cr, x, y);
-  cairo_scale (cr, FONT_SIZE*dx/(upem*64), -FONT_SIZE*dy/(upem*64));
+  cairo_scale (cr, FONT_SIZE*dx/upem, -FONT_SIZE*dy/upem);
 
   cairo_new_path (cr);
   cairo_set_source_rgba (cr, 0.0, 0.0, 1.0, .5);
@@ -179,7 +182,7 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
 
   cairo_new_path (cr);
   cairo_set_source_rgba (cr, 0.0, 1.0, 0.0, .3);
-  cairo_set_line_width (cr, 4*64);
+  cairo_set_line_width (cr, 4);
   for (unsigned int i = 0; i < acc.arcs.size (); i++)
     cairo_demo_arc (cr, acc.arcs[i]);
 
@@ -219,7 +222,7 @@ int main (int argc, char **argv)
 //  demo_curve (cr, sample_curve_loop_gamma_small_symmetric ());
 //  demo_curve (cr, sample_curve_loop_o_symmetric ());
 
-  demo_text (cr, "Times", "g");
+  demo_text (cr, "Times New Roman", "g");
 
   cairo_destroy (cr);
 
