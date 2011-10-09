@@ -122,7 +122,8 @@ struct Line {
   typedef Vector<Coord> VectorType;
   typedef Point<Coord> PointType;
 
-  inline Line (Coord a_, Coord b_, Coord c_) : a (a_), b (b_), c (c_) {};
+  inline Line (Coord a_, Coord b_, Scalar c_) : n (a_, b_), c (c_) {};
+  inline Line (Vector<Coord> n_, Scalar c_) : n (n_), c (c_) {};
   inline Line (const Point<Coord> &p0, const Point<Coord> &p1);
 
   inline const Point<Coord> operator+ (const Line<Coord> &l) const; /* line intersection! */
@@ -130,7 +131,8 @@ struct Line {
   inline const Line<Coord> normalized (void) const;
   inline const Vector<Coord> normal (void) const;
 
-  Coord a, b, c; /* a*x + b*y = c */
+  Vector<Coord> n; /* line normal */
+  Scalar c; /* n.dx*x + n.dy*y = c */
 };
 
 template <typename Coord, typename Scalar>
@@ -368,7 +370,7 @@ inline const Point<Coord> Point<Coord>::operator+ (const Point<Coord> &p) const 
 }
 template <typename Coord>
 inline const Scalar Point<Coord>::operator- (const Line<Coord> &l) const { /* distance to line! */
-  return (l.a * x + l.b * y - l.c) / hypot (l.a, l.b) /*XXX times? */;
+  return (l.n * Vector<Coord> (*this) - l.c) / l.v.len ();
 }
 template <typename Coord>
 inline const Line<Coord> Point<Coord>::operator| (const Point<Coord> &p) const { /* segment axis line! */
@@ -390,29 +392,27 @@ inline const Point<Coord> Point<Coord>::lerp (const Scalar &a, const Point<Coord
 template <typename Coord>
 Line<Coord>::Line (const Point<Coord> &p0, const Point<Coord> &p1)
 {
-  Vector<Coord> n = (p1 - p0).perpendicular ();
-  a = n.dx;
-  b = n.dy;
-  c = n.dx * p0.x + n.dy * p0.y /* XXX times */;
+  n = (p1 - p0).perpendicular ();
+  c = n * Vector<Coord> (p0);
 }
 
 template <typename Coord>
 inline const Point<Coord> Line<Coord>::operator+ (const Line<Coord> &l) const {
-  Scalar det = a * l.b - b * l.a;
+  Scalar det = n.dx * l.n.dy - n.dy * l.n.dx;
   if (!det)
-    return Point<Coord> (/* XXX */ INFINITY, INFINITY);
-  return Point<Coord> ((c * l.b - b * l.c) / det,
-		       (a * l.c - c * l.a) / det);
+    return Point<Coord> (INFINITY, INFINITY);
+  return Point<Coord> ((c * l.n.dy - n.dy * l.c) / det,
+		       (n.dx * l.c - c * l.n.dx) / det);
 }
 
 template <typename Coord>
 inline const Line<Coord> Line<Coord>::normalized (void) const {
-  Scalar d = normal ().len ();
-  return d ? Line<Coord> (a / d, b / d, c / d) : *this;
+  Scalar d = n.len ();
+  return d ? Line<Coord> (n / d, c / d) : *this;
 }
 template <typename Coord>
 inline const Vector<Coord> Line<Coord>::normal (void) const {
-  return Vector<Coord> (a, b);
+  return n;
 }
 
 

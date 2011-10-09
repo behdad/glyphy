@@ -132,6 +132,16 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
 
   cairo_new_path (cr);
   cairo_append_path (cr, path);
+  {
+    cairo_save (cr);
+    cairo_set_tolerance (cr, tolerance);
+    cairo_path_t *path2 = cairo_copy_path_flat (cr);
+    cairo_path_print_stats (path2);
+    cairo_path_destroy (path2);
+    cairo_restore (cr);
+  }
+  cairo_new_path (cr);
+  cairo_append_path (cr, path);
   cairo_path_destroy (path);
   cairo_set_line_width (cr, 5);
   cairo_set_source_rgb (cr, 1, 0, 0);
