@@ -75,8 +75,7 @@ demo_curve (cairo_t *cr, const bezier_t &b)
 
   cairo_set_source_rgba (cr, 0.0, 1.0, 0.0, 1.0);
   cairo_set_line_width (cr, cairo_get_line_width (cr) / 2);
-  for (unsigned int i = 0; i < arcs.size (); i++)
-    cairo_demo_arc (cr, arcs[i]);
+  cairo_demo_arcs (cr, arcs);
 
   delete &arcs;
 
@@ -136,7 +135,6 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
 
   FT_Face face = cairo_ft_scaled_font_lock_face (cairo_get_scaled_font (cr));
   unsigned int upem = face->units_per_EM;
-  printf ("upem %d\n", upem);
   double tolerance = upem * 1e-3; /* in font design units */
   if (FT_Load_Glyph (face,
 		     FT_Get_Char_Index (face, (FT_ULong) *utf8),
@@ -163,25 +161,13 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
 
   cairo_scale (cr, 1, -1);
 
-  cairo_new_path (cr);
   cairo_set_source_rgba (cr, 0.0, 0.0, 1.0, .5);
-  point_t start (0, 0);
-  for (unsigned int i = 0; i < acc.arcs.size (); i++) {
-    if (!cairo_has_current_point (cr))
-      start = acc.arcs[i].p0;
-    cairo_arc (cr, acc.arcs[i]);
-    if (acc.arcs[i].p1 == start) {
-      cairo_close_path (cr);
-      cairo_new_sub_path (cr);
-    }
-  }
+  cairo_arcs (cr, acc.arcs);
   cairo_fill (cr);
 
-  cairo_new_path (cr);
   cairo_set_source_rgba (cr, 0.0, 1.0, 0.0, .3);
   cairo_set_line_width (cr, 4);
-  for (unsigned int i = 0; i < acc.arcs.size (); i++)
-    cairo_demo_arc (cr, acc.arcs[i]);
+  cairo_demo_arcs (cr, acc.arcs);
 
   cairo_restore (cr);
 }
@@ -200,8 +186,7 @@ int main (int argc, char **argv)
 
   filename = argv[1];
 
-  surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32,
-					1400, 800);
+  surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, 1400, 800);
   cr = cairo_create (surface);
 
   cairo_set_source_rgb (cr, 1.0, 1.0, 1.0);

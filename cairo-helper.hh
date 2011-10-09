@@ -26,6 +26,7 @@
 
 #include <stdio.h>
 #include <algorithm>
+#include <vector>
 
 #include "geometry.hh"
 
@@ -108,6 +109,21 @@ void cairo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
     cairo_arc (cr, c.c.x, c.c.y, c.r, a0, a1);
   else
     cairo_arc_negative (cr, c.c.x, c.c.y, c.r, a0, a1);
+}
+
+template <typename Coord, typename Scalar>
+void cairo_arcs (cairo_t *cr, const std::vector<Arc<Coord, Scalar> > &arcs)
+{
+  Point<Coord> start (0, 0);
+  for (unsigned int i = 0; i < arcs.size (); i++) {
+    if (!cairo_has_current_point (cr))
+      start = arcs[i].p0;
+    cairo_arc (cr, arcs[i]);
+    if (arcs[i].p1 == start) {
+      cairo_close_path (cr);
+      cairo_new_sub_path (cr);
+    }
+  }
 }
 
 template <typename Coord>
@@ -214,6 +230,13 @@ void cairo_demo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
     cairo_arc_negative (cr, c.c.x, c.c.y, c.r, a0, a1);
 
   cairo_stroke (cr);
+}
+
+template <typename Coord>
+void cairo_demo_arcs (cairo_t *cr, const std::vector<Arc<Coord, Scalar> > &arcs)
+{
+  for (unsigned int i = 0; i < arcs.size (); i++)
+    cairo_demo_arc (cr, arcs[i]);
 }
 
 /* A fancy cairo_stroke_preserve() that draws points and control
