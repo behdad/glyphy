@@ -154,20 +154,14 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
 						   tolerance);
   FreeTypeOutlineDecomposer<OutlineArcApproximator>::decompose_outline (&face->glyph->outline,
 									outline_arc_approximator);
+
   cairo_ft_scaled_font_unlock_face (cairo_get_scaled_font (cr));
   e = outline_arc_approximator.error;
-
 
   printf ("Num arcs %d; Approximation error %g; Tolerance %g; Percentage %g; %s\n",
 	  (int) acc.arcs.size (), e, tolerance, round (100 * e / tolerance), e <= tolerance ? "PASS" : "FAIL");
 
-  double x = 0, y = 0;
-  double dx = 1, dy = 1;
-  cairo_user_to_device (cr, &x, &y);
-  cairo_user_to_device_distance (cr, &dx, &dy);
-  cairo_identity_matrix (cr);
-  cairo_translate (cr, x, y);
-  cairo_scale (cr, dx, -dy);
+  cairo_scale (cr, 1, -1);
 
   cairo_new_path (cr);
   cairo_set_source_rgba (cr, 0.0, 0.0, 1.0, .5);
