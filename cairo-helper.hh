@@ -180,31 +180,21 @@ void cairo_demo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
   }
 
   Circle<Coord, Scalar> c  = a.circle ();
+  double a0 = (a.p0 - c.c).angle ();
+  double a1 = (a.p1 - c.c).angle ();
 
-  {
-    double a0 = (a.p0 - c.c).angle ();
-    double a1 = (a.p1 - c.c).angle ();
-    cairo_save (cr);
-    if (a.d < 0) {
-      if (a0 > a1)
-        a1 += 2 * M_PI;
-    } else {
-      if (a0 < a1)
-        a0 += 2 * M_PI;
-    }
-    for (double t = 0; t <= 1; t += .01)
-    {
-      double a= a0 * t + a1 * (1 - t);
-      Point<Coord> p = c.c + c.r * Vector<Coord> (cos (a), sin (a));
-      cairo_move_to (cr, p.x, p.y);
-      cairo_line_to (cr, c.c.x, c.c.y);
-    }
-    a0 = (a.p0 - c.c).angle ();
-    a1 = (a.p1 - c.c).angle ();
-    cairo_set_line_width (cr, cairo_get_line_width (cr) / 30);
-    cairo_stroke (cr);
-    cairo_restore (cr);
-  }
+  cairo_save (cr);
+  cairo_move_to (cr, a.p1);
+  cairo_line_to (cr, c.c);
+  cairo_line_to (cr, a.p0);
+  if (a.d < 0)
+    cairo_arc (cr, c.c.x, c.c.y, c.r, a0, a1);
+  else
+    cairo_arc_negative (cr, c.c.x, c.c.y, c.r, a0, a1);
+  cairo_close_path (cr);
+  cairo_clip (cr);
+  cairo_paint_with_alpha (cr, .2);
+  cairo_restore (cr);
 
   cairo_demo_point (cr, a.p0);
   cairo_demo_point (cr, a.p1);
@@ -218,8 +208,6 @@ void cairo_demo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
   cairo_restore (cr);
 
   cairo_new_sub_path (cr);
-  double a0 = (a.p0 - c.c).angle ();
-  double a1 = (a.p1 - c.c).angle ();
   if (a.d < 0)
     cairo_arc (cr, c.c.x, c.c.y, c.r, a0, a1);
   else
