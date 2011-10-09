@@ -38,21 +38,13 @@ namespace FreeTypeHelper {
 
 using namespace Geometry;
 
-template <typename Arc, class BezierArcsApproximator>
-class OutlineArcApproximationGenerator
+template <typename DecomposeCallback>
+class FreeTypeOutlineDecomposer
 {
   public:
-  typedef Arc ArcType;
-  typedef typename ArcType::VectorType VectorType;
-  typedef typename ArcType::PointType PointType;
-  typedef typename ArcType::BezierType BezierType;
 
-  typedef bool (*Callback) (const Arc &arc, void *closure);
-
-  static bool approximate_glyph (const FT_Outline *outline, Callback callback, void *closure, double tolerance, double *error)
+  static bool decompose_outline (FT_Outline *outline, DecomposeCallback &d)
   {
-    Closure c = {callback, closure, tolerance, error};
-
     static const FT_Outline_Funcs outline_funcs = {
         (FT_Outline_MoveToFunc) move_to,
         (FT_Outline_LineToFunc) line_to,
@@ -62,75 +54,42 @@ class OutlineArcApproximationGenerator
         0, /* delta */
     };
 
-    *error = 0;
-    return !FT_Outline_Decompose (const_cast <FT_Outline *> (outline), &outline_funcs, &c);
+    return !FT_Outline_Decompose (const_cast <FT_Outline *> (outline), &outline_funcs, &d);
   }
 
-  private:
-
-  struct Closure {
-    Callback callback;
-    void *closure;
-    double tolerance;
-    double *error;
-    FT_Vector cp; /* current point */
-  };
-
-  static int
-  move_to (FT_Vector *to, Closure *c)
+  static const Point<Coord> point (FT_Vector *to)
   {
-    c->cp = *to;
-    return FT_Err_Ok;
+    return Point<Coord> (to->x, to->y);
+  }
+
+  static FT_Error err (bool success)
+  {
+    return success ? FT_Err_Ok : FT_Err_Out_Of_Memory;
   }
 
   static int
-  line_to (FT_Vector *to, Closure *c)
+  move_to (FT_Vector *to, DecomposeCallback *d)
   {
-    bool ret = c->callback (Arc (PointType (c->cp.x, c->cp.y), PointType (to->x, to->y), 0), c->closure);
-    c->cp = *to;
-    return ret ? FT_Err_Ok : FT_Err_Out_Of_Memory;
+    return err (d->move_to (point (to)));
   }
 
   static int
-  conic_to (FT_Vector *control, FT_Vector *to, Closure *c)
+  line_to (FT_Vector *to, DecomposeCallback *d)
   {
-    PointType pc (control->x, control->y);
-    PointType p0 (c->cp.x, c->cp.y);
-    PointType p3 (to->x, to->y);
-    PointType p1 = p0 + 2/3. * (pc - p0);
-    PointType p2 = p3 + 2/3. * (pc - p3);
-    BezierType b (p0, p1, p2, p3);
-    c->cp = *to;
-    return bezier (b, c);
+    return err (d->line_to (point (to)));
+  }
+
+  static int
+  conic_to (FT_Vector *control, FT_Vector *to, DecomposeCallback *d)
+  {
+    return err (d->conic_to (point (control), point (to)));
   }
 
   static int
   cubic_to (FT_Vector *control1, FT_Vector *control2,
-	    FT_Vector *to, Closure *c)
+	    FT_Vector *to, DecomposeCallback *d)
   {
-    BezierType b (PointType (c->cp.x, c->cp.y),
-		  PointType (control1->x, control1->y),
-		  PointType (control2->x, control2->y),
-		  PointType (to->x, to->y));
-    c->cp = *to;
-    return bezier (b, c);
-  }
-
-  static int
-  bezier (const BezierType &b, Closure *c)
-  {
-    double e;
-    std::vector<Arc> &arcs = BezierArcsApproximator::approximate_bezier_with_arcs (b, c->tolerance, &e);
-    *c->error = std::max (*c->error, e);
-
-    for (unsigned int i = 0; i < arcs.size (); i++)
-      if (!c->callback (arcs[i], c->closure)) {
-	delete &arcs;
-	return FT_Err_Out_Of_Memory;
-      }
-
-    delete &arcs;
-    return FT_Err_Ok;
+    return err (d->cubic_to (point (control1), point (control2), point (to)));
   }
 };
 

@@ -336,6 +336,76 @@ class BezierArcsApproximatorSpringSystem
   }
 };
 
+template <class BezierArcsApproximator>
+class OutlineArcApproximator
+{
+  public:
+
+  typedef bool (*Callback) (const Arc<Coord, Scalar> &arc, void *closure);
+
+  OutlineArcApproximator (Callback callback_, void *closure_, double tolerance_)
+  : callback (callback_), closure (closure_), tolerance (tolerance_), error (0), p0 (0, 0) {}
+
+  double tolerance;
+  double error;
+  Callback callback;
+  void *closure;
+  Point<Coord> p0; /* current point */
+
+  bool
+  move_to (const Point<Coord> &p)
+  {
+    p0 = p;
+    return true;
+  }
+
+  bool
+  line_to (const Point<Coord> &p1)
+  {
+    bool ret = arc (Arc<Coord, Scalar> (p0, p1, 0));
+    p0 = p1;
+    return ret;
+  }
+
+  bool
+  conic_to (const Point<Coord> &p1, const Point<Coord> &p2)
+  {
+    return cubic_to (p0 + 2/3. * (p1 - p0),
+		     p2 + 2/3. * (p1 - p2),
+		     p2);
+  }
+
+  bool
+  cubic_to (const Point<Coord> &p1, const Point<Coord> &p2, const Point<Coord> &p3)
+  {
+    bool ret = bezier (Bezier<Coord> (p0, p1, p2, p3));
+    p0 = p3;
+    return ret;
+  }
+
+  bool
+  arc (const Arc<Coord, Scalar> &a)
+  {
+    return callback (a, closure);
+  }
+
+  bool
+  bezier (const Bezier<Coord> &b)
+  {
+    double e;
+    std::vector<Arc<Coord, Scalar> > &arcs = BezierArcsApproximator
+      ::approximate_bezier_with_arcs (b, tolerance, &e);
+    error = std::max (error, e);
+
+    bool ret;
+    for (unsigned int i = 0; i < arcs.size (); i++)
+      if (!(ret = arc (arcs[i])))
+        break;
+
+    delete &arcs;
+    return ret;
+  }
+};
 
 } /* namespace BezierArcApproxmation */
 

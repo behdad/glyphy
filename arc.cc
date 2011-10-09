@@ -107,7 +107,7 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
   typedef BezierArcErrorApproximatorBehdad<MaxDev> BezierArcError;
   typedef BezierArcApproximatorMidpointTwoPart<BezierArcError> BezierArcApproximator;
   typedef BezierArcsApproximatorSpringSystem<BezierArcApproximator> SpringSystem;
-  typedef OutlineArcApproximationGenerator<arc_t, SpringSystem> OutlineArcApproximator;
+  typedef OutlineArcApproximator<SpringSystem> OutlineArcApproximator;
 
   double e;
 
@@ -133,8 +133,14 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
   if (FT_Load_Glyph (face, FT_Get_Char_Index (face, (FT_ULong) *utf8), FT_LOAD_NO_BITMAP))
     abort ();
   assert (face->glyph->format == FT_GLYPH_FORMAT_OUTLINE);
-  OutlineArcApproximator::approximate_glyph (&face->glyph->outline, acc.callback, static_cast<void *> (&acc), tolerance, &e);
+
+  OutlineArcApproximator outline_arc_approximator (acc.callback,
+						   static_cast<void *> (&acc),
+						   tolerance);
+  FreeTypeOutlineDecomposer<OutlineArcApproximator>::decompose_outline (&face->glyph->outline,
+									outline_arc_approximator);
   cairo_ft_scaled_font_unlock_face (cairo_get_scaled_font (cr));
+  e = outline_arc_approximator.error;
 
 
   printf ("Num arcs %d; Approximation error %g; Tolerance %g; Percentage %g; %s\n",
