@@ -94,8 +94,12 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
   cairo_set_font_options (cr, font_options);
   cairo_font_options_destroy (font_options);
   cairo_set_line_width (cr, 5);
-#define FONT_SIZE 2048
-  cairo_set_font_size (cr, FONT_SIZE);
+  {
+    FT_Face face = cairo_ft_scaled_font_lock_face (cairo_get_scaled_font (cr));
+    unsigned int upem = face->units_per_EM;
+    cairo_ft_scaled_font_unlock_face (cairo_get_scaled_font (cr));
+    cairo_set_font_size (cr, upem);
+  }
 
   cairo_text_path (cr, utf8);
   cairo_path_t *path = cairo_copy_path (cr);
@@ -133,8 +137,7 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
   FT_Face face = cairo_ft_scaled_font_lock_face (cairo_get_scaled_font (cr));
   unsigned int upem = face->units_per_EM;
   printf ("upem %d\n", upem);
-  double tolerance = upem / 1024.; /* err=1/1024th of glyph size */
-//  double tolerance = 1.; /* err=1 font unit */
+  double tolerance = upem * 1e-3; /* in font design units */
   if (FT_Load_Glyph (face,
 		     FT_Get_Char_Index (face, (FT_ULong) *utf8),
 		     FT_LOAD_NO_BITMAP |
@@ -164,7 +167,7 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
   cairo_user_to_device_distance (cr, &dx, &dy);
   cairo_identity_matrix (cr);
   cairo_translate (cr, x, y);
-  cairo_scale (cr, FONT_SIZE*dx/upem, -FONT_SIZE*dy/upem);
+  cairo_scale (cr, dx, -dy);
 
   cairo_new_path (cr);
   cairo_set_source_rgba (cr, 0.0, 0.0, 1.0, .5);
