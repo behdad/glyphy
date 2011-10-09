@@ -85,37 +85,11 @@ demo_curve (cairo_t *cr, const bezier_t &b)
 static void
 demo_text (cairo_t *cr, const char *family, const char *utf8)
 {
-  cairo_save (cr);
-  cairo_select_font_face (cr, family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-  cairo_font_options_t *font_options = cairo_font_options_create ();
-  cairo_font_options_set_hint_metrics (font_options, CAIRO_HINT_METRICS_OFF);
-  cairo_font_options_set_hint_style (font_options, CAIRO_HINT_STYLE_NONE);
-  cairo_set_font_options (cr, font_options);
-  cairo_font_options_destroy (font_options);
-  cairo_set_line_width (cr, 5);
-  {
-    FT_Face face = cairo_ft_scaled_font_lock_face (cairo_get_scaled_font (cr));
-    unsigned int upem = face->units_per_EM;
-    cairo_ft_scaled_font_unlock_face (cairo_get_scaled_font (cr));
-    cairo_set_font_size (cr, upem);
-  }
-
-  cairo_text_path (cr, utf8);
-  cairo_path_t *path = cairo_copy_path (cr);
-  cairo_path_print_stats (path);
-  cairo_path_destroy (path);
-  cairo_set_viewport (cr);
-
-  cairo_new_path (cr);
-  cairo_set_source_rgb (cr, 1, 0, 0);
-  cairo_text_path (cr, utf8);
-  cairo_fill (cr);
-
   typedef MaxDeviationApproximatorExact MaxDev;
   typedef BezierArcErrorApproximatorBehdad<MaxDev> BezierArcError;
   typedef BezierArcApproximatorMidpointTwoPart<BezierArcError> BezierArcApproximator;
   typedef BezierArcsApproximatorSpringSystem<BezierArcApproximator> SpringSystem;
-  typedef OutlineArcApproximator<SpringSystem> OutlineArcApproximator;
+  typedef ArcApproximatorOutlineSink<SpringSystem> ArcApproximatorOutlineSink;
 
   double e;
 
@@ -133,6 +107,9 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
     std::vector<arc_t> arcs;
   } acc;
 
+  cairo_save (cr);
+  cairo_scale (cr, 1, -1);
+  cairo_select_font_face (cr, family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
   FT_Face face = cairo_ft_scaled_font_lock_face (cairo_get_scaled_font (cr));
   unsigned int upem = face->units_per_EM;
   double tolerance = upem * 1e-3; /* in font design units */
@@ -147,19 +124,29 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
     abort ();
   assert (face->glyph->format == FT_GLYPH_FORMAT_OUTLINE);
 
-  OutlineArcApproximator outline_arc_approximator (acc.callback,
-						   static_cast<void *> (&acc),
-						   tolerance);
-  FreeTypeOutlineDecomposer<OutlineArcApproximator>::decompose_outline (&face->glyph->outline,
+  CairoOutlineSink cairo_sink (cr);
+  FreeTypeOutlineSource<CairoOutlineSink>::decompose_outline (&face->glyph->outline, cairo_sink);
+  cairo_path_t *path = cairo_copy_path (cr);
+  cairo_path_print_stats (path);
+  cairo_set_viewport (cr);
+
+  cairo_new_path (cr);
+  cairo_append_path (cr, path);
+  cairo_path_destroy (path);
+  cairo_set_line_width (cr, 5);
+  cairo_set_source_rgb (cr, 1, 0, 0);
+  cairo_fill (cr);
+
+  ArcApproximatorOutlineSink outline_arc_approximator (acc.callback,
+						       static_cast<void *> (&acc),
+						       tolerance);
+  FreeTypeOutlineSource<ArcApproximatorOutlineSink>::decompose_outline (&face->glyph->outline,
 									outline_arc_approximator);
 
-  cairo_ft_scaled_font_unlock_face (cairo_get_scaled_font (cr));
   e = outline_arc_approximator.error;
 
   printf ("Num arcs %d; Approximation error %g; Tolerance %g; Percentage %g; %s\n",
 	  (int) acc.arcs.size (), e, tolerance, round (100 * e / tolerance), e <= tolerance ? "PASS" : "FAIL");
-
-  cairo_scale (cr, 1, -1);
 
   cairo_set_source_rgba (cr, 0.0, 0.0, 1.0, .5);
   cairo_arcs (cr, acc.arcs);
@@ -169,6 +156,7 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
   cairo_set_line_width (cr, 4);
   cairo_demo_arcs (cr, acc.arcs);
 
+  cairo_ft_scaled_font_unlock_face (cairo_get_scaled_font (cr));
   cairo_restore (cr);
 }
 

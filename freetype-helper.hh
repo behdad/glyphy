@@ -38,12 +38,12 @@ namespace FreeTypeHelper {
 
 using namespace Geometry;
 
-template <typename DecomposeCallback>
-class FreeTypeOutlineDecomposer
+template <typename OutlineSink>
+class FreeTypeOutlineSource
 {
   public:
 
-  static bool decompose_outline (FT_Outline *outline, DecomposeCallback &d)
+  static bool decompose_outline (FT_Outline *outline, OutlineSink &d)
   {
     static const FT_Outline_Funcs outline_funcs = {
         (FT_Outline_MoveToFunc) move_to,
@@ -68,26 +68,26 @@ class FreeTypeOutlineDecomposer
   }
 
   static int
-  move_to (FT_Vector *to, DecomposeCallback *d)
+  move_to (FT_Vector *to, OutlineSink *d)
   {
     return err (d->move_to (point (to)));
   }
 
   static int
-  line_to (FT_Vector *to, DecomposeCallback *d)
+  line_to (FT_Vector *to, OutlineSink *d)
   {
     return err (d->line_to (point (to)));
   }
 
   static int
-  conic_to (FT_Vector *control, FT_Vector *to, DecomposeCallback *d)
+  conic_to (FT_Vector *control, FT_Vector *to, OutlineSink *d)
   {
     return err (d->conic_to (point (control), point (to)));
   }
 
   static int
   cubic_to (FT_Vector *control1, FT_Vector *control2,
-	    FT_Vector *to, DecomposeCallback *d)
+	    FT_Vector *to, OutlineSink *d)
   {
     return err (d->cubic_to (point (control1), point (control2), point (to)));
   }

@@ -337,13 +337,13 @@ class BezierArcsApproximatorSpringSystem
 };
 
 template <class BezierArcsApproximator>
-class OutlineArcApproximator
+class ArcApproximatorOutlineSink
 {
   public:
 
   typedef bool (*Callback) (const Arc<Coord, Scalar> &arc, void *closure);
 
-  OutlineArcApproximator (Callback callback_, void *closure_, double tolerance_)
+  ArcApproximatorOutlineSink (Callback callback_, void *closure_, double tolerance_)
   : callback (callback_), closure (closure_), tolerance (tolerance_), error (0), p0 (0, 0) {}
 
   double tolerance;
