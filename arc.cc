@@ -88,6 +88,11 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
 {
   cairo_save (cr);
   cairo_select_font_face (cr, family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+  cairo_font_options_t *font_options = cairo_font_options_create ();
+  cairo_font_options_set_hint_metrics (font_options, CAIRO_HINT_METRICS_OFF);
+  cairo_font_options_set_hint_style (font_options, CAIRO_HINT_STYLE_NONE);
+  cairo_set_font_options (cr, font_options);
+  cairo_font_options_destroy (font_options);
   cairo_set_line_width (cr, 5);
 #define FONT_SIZE 2048
   cairo_set_font_size (cr, FONT_SIZE);
@@ -130,7 +135,11 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
   FT_Set_Char_Size (face, upem*64, upem*64, 0, 0);
 //  double tolerance = upem * 64. / 256;
   double tolerance = 64.;
-  if (FT_Load_Glyph (face, FT_Get_Char_Index (face, (FT_ULong) *utf8), FT_LOAD_NO_BITMAP))
+  if (FT_Load_Glyph (face,
+		     FT_Get_Char_Index (face, (FT_ULong) *utf8),
+		     FT_LOAD_NO_BITMAP |
+		     FT_LOAD_NO_HINTING |
+		     FT_LOAD_NO_AUTOHINT))
     abort ();
   assert (face->glyph->format == FT_GLYPH_FORMAT_OUTLINE);
 
