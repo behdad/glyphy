@@ -145,6 +145,7 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
   cairo_path_destroy (path);
   cairo_set_line_width (cr, 5);
   cairo_set_source_rgb (cr, 1, 0, 0);
+  cairo_fancy_stroke_preserve (cr);
   cairo_fill (cr);
 
   ArcApproximatorOutlineSink outline_arc_approximator (acc.callback,
@@ -202,7 +203,10 @@ int main (int argc, char **argv)
 //  demo_curve (cr, sample_curve_loop_gamma_small_symmetric ());
 //  demo_curve (cr, sample_curve_loop_o_symmetric ());
 
-  demo_text (cr, "Times New Roman", "g");
+  demo_text (cr, "Times", "g");
+//  demo_text (cr, "Times New Roman", "g");
+//  demo_text (cr, "Times New Roman", "@");
+//  demo_text (cr, "DejaVu Sans", "@");
 
   cairo_destroy (cr);
 
@@ -214,5 +218,11 @@ int main (int argc, char **argv)
     return 1;
   }
 
+  line_t l (0, 1, 8);
+  point_t p (0, 1);
+  SignedVector<Coord> d1 = l - p;
+  SignedVector<Coord> d2 = p - l;
+  printf ("%g %g %d\n", d1.dx, d1.dy, d1.negative);
+  printf ("%g %g %d\n", d2.dx, d2.dy, d2.negative);
   return 0;
 }

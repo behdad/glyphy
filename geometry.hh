@@ -159,6 +159,7 @@ struct Circle {
 
   inline bool operator == (const Circle<Coord, Scalar> &c) const;
   inline bool operator != (const Circle<Coord, Scalar> &c) const;
+  inline const SignedVector<Coord> operator- (const Point<Coord> &p) const; /* shortest vector from point to circle */
 
   Point<Coord> c;
   Scalar r;
@@ -456,10 +457,22 @@ template <typename Coord, typename Scalar>
 inline bool Circle<Coord, Scalar>::operator == (const Circle<Coord, Scalar> &c_) const {
   return c == c_.c && r == c_.r;
 }
-template <typename Coord,  typename Scalar>
+template <typename Coord, typename Scalar>
 inline bool Circle<Coord, Scalar>::operator != (const Circle<Coord, Scalar> &c) const {
   return !(*this == c);
 }
+#if 0
+template <typename Coord, typename Scalar>
+inline const SignedVector<Coord> Circle<Coord, typename Scalar>::operator- (const Point<Coord> &p) const {
+  /* shortest vector from point to circle */
+  Scalar mag = (c - p);
+  return SignedVector<Coord> (n.normalized () * mag, mag < 0);
+}
+template <typename Coord>
+inline const SignedVector<Coord> operator- (const Point<Coord> &p, const Circle<Coord> &l) {
+  return -(l - p);
+}
+#endif
 
 
 /* Arc */
