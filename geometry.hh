@@ -34,6 +34,7 @@ typedef double Scalar;
 
 template <typename Type> struct Pair;
 template <typename Coord> struct Vector;
+template <typename Coord> struct SignedVector;
 template <typename Coord> struct Point;
 template <typename Coord> struct Line;
 template <typename Coord, typename Scalar> struct Circle;
@@ -91,6 +92,17 @@ struct Vector {
 };
 
 template <typename Coord>
+struct SignedVector : Vector<Coord> {
+  inline SignedVector (const Vector<Coord> &v, bool negative_) : Vector<Coord> (v), negative (negative_) {};
+
+  inline bool operator == (const SignedVector<Coord> &v) const;
+  inline bool operator != (const SignedVector<Coord> &v) const;
+  inline const SignedVector<Coord> operator- (void) const;
+
+  bool negative;
+};
+
+template <typename Coord>
 struct Point {
   typedef Coord CoordType;
   typedef Scalar ScalarType;
@@ -107,7 +119,6 @@ struct Point {
   inline const Point<Coord> operator- (const Vector<Coord> &v) const;
   inline const Vector<Coord> operator- (const Point<Coord> &p) const;
   inline const Point<Coord> operator+ (const Point<Coord> &v) const; /* mid-point! */
-  inline const Scalar operator- (const Line<Coord> &l) const; /* distance to line! */
   inline const Line<Coord> operator| (const Point<Coord> &p) const; /* segment axis line! */
 
   inline bool is_finite (void) const;
@@ -127,6 +138,7 @@ struct Line {
   inline Line (const Point<Coord> &p0, const Point<Coord> &p1);
 
   inline const Point<Coord> operator+ (const Line<Coord> &l) const; /* line intersection! */
+  inline const SignedVector<Coord> operator- (const Point<Coord> &p) const; /* shortest vector from point to line */
 
   inline const Line<Coord> normalized (void) const;
   inline const Vector<Coord> normal (void) const;
@@ -329,6 +341,22 @@ inline const Vector<Coord> Vector<Coord>::rebase (const Vector<Coord> &bx) const
 }
 
 
+/* SignedVector */
+
+template <typename Coord>
+inline bool SignedVector<Coord>::operator == (const SignedVector<Coord> &v) const {
+  return Vector<Coord>(*this) == Vector<Coord>(v) && negative == v.negative;
+}
+template <typename Coord>
+inline bool SignedVector<Coord>::operator != (const SignedVector<Coord> &v) const {
+  return !(*this == v);
+}
+template <typename Coord>
+inline const SignedVector<Coord> SignedVector<Coord>::operator- (void) const {
+  return SignedVector<Coord> (-Vector<Coord>(*this), !negative);
+}
+
+
 /* Point */
 
 template <typename Coord>
@@ -369,10 +397,6 @@ inline const Point<Coord> Point<Coord>::operator+ (const Point<Coord> &p) const 
   return *this + (p - *this) / 2;
 }
 template <typename Coord>
-inline const Scalar Point<Coord>::operator- (const Line<Coord> &l) const { /* distance to line! */
-  return (l.n * Vector<Coord> (*this) - l.c) / l.v.len ();
-}
-template <typename Coord>
 inline const Line<Coord> Point<Coord>::operator| (const Point<Coord> &p) const { /* segment axis line! */
   Vector<Coord> d = p - *this;
   return Line<Coord> (d.dx * 2, d.dy * 2, d * Vector<Coord> (p) + d * Vector<Coord> (*this));
@@ -403,6 +427,16 @@ inline const Point<Coord> Line<Coord>::operator+ (const Line<Coord> &l) const {
     return Point<Coord> (INFINITY, INFINITY);
   return Point<Coord> ((c * l.n.dy - n.dy * l.c) / det,
 		       (n.dx * l.c - c * l.n.dx) / det);
+}
+template <typename Coord>
+inline const SignedVector<Coord> Line<Coord>::operator- (const Point<Coord> &p) const {
+  /* shortest vector from point to line */
+  Scalar mag = -(n * Vector<Coord> (p) - c) / n.len ();
+  return SignedVector<Coord> (n.normalized () * mag, mag < 0);
+}
+template <typename Coord>
+inline const SignedVector<Coord> operator- (const Point<Coord> &p, const Line<Coord> &l) {
+  return -(l - p);
 }
 
 template <typename Coord>
