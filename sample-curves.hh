@@ -64,10 +64,10 @@ sample_curve_s (void)
 static inline const Bezier<Coord>
 sample_curve_skewed (void)
 {
-  return  B (P (25, 190),
-	     P (0, -100),
-	     P (250, -50),
-	     P (330, 10));
+  return  B (P (2.5, 19.0),
+	     P (0, -10.0),
+	     P (25.0, -5.0),
+	     P (33.0, 1.0));
 }
 
 
@@ -75,9 +75,9 @@ static inline const Bezier<Coord>
 sample_curve_serpentine_c_symmetric (void)
 {
   return B (P (0, 0),
-	    P (0, 1),
-	    P (1, 1),
-	    P (1, 0));
+	    P (0, 10),
+	    P (10, 10),
+	    P (10, 0));
 }
 
 static inline const Bezier<Coord>
@@ -102,27 +102,27 @@ static inline const Bezier<Coord>
 sample_curve_loop_cusp_symmetric (void)
 {
   return B (P (0, 0),
-	    P (1, 1),
-	    P (0, 1),
-	    P (1, 0));
+	    P (10, 10),
+	    P (0, 10),
+	    P (10, 0));
 }
 
 static inline const Bezier<Coord>
 sample_curve_loop_gamma_symmetric (void)
 {
   return B (P (0, 0),
-	    P (3, 3),
-	    P (-2, 3),
-	    P (1, 0));
+	    P (21, 21),
+	    P (-14, 21),
+	    P (7, 0));
 }
 
 static inline const Bezier<Coord>
 sample_curve_loop_gamma_small_symmetric (void)
 {
   return B (P (0, 0),
-	    P (1.1, 1.1),
-	    P (-.1, 1.1),
-	    P (1, 0));
+	    P (11, 11),
+	    P (-1, 11),
+	    P (10, 0));
 }
 
 static inline const Bezier<Coord>
@@ -133,6 +133,43 @@ sample_curve_loop_o_symmetric (void)
 	    P (-3, 3),
 	    P (0, 0));
 }
+
+static inline const Bezier<Coord>
+sample_curve_semicircle_top (void)
+{
+  return B (P (10, 15),
+	    P (10, 11),
+	    P (16, 11),
+	    P (16, 15));
+}
+
+static inline const Bezier<Coord>
+sample_curve_semicircle_bottom (void)
+{
+  return B (P (10, 10),
+	    P (10, 14),
+	    P (16, 14),
+	    P (16, 10));
+}
+
+static inline const Bezier<Coord>
+sample_curve_semicircle_left (void)
+{
+  return B (P (16, 16),
+	    P (12, 16),
+	    P (12, 10),
+	    P (16, 10));
+}
+
+static inline const Bezier<Coord>
+sample_curve_semicircle_right (void)
+{
+  return B (P (10, 16),
+	    P (14, 16),
+	    P (14, 10),
+	    P (10, 10));
+}
+
 
 #undef B
 #undef P

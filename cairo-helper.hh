@@ -188,12 +188,24 @@ void cairo_demo_curve (cairo_t *cr, const Bezier<Coord> &b)
 template <typename Coord>
 void cairo_demo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
 {
+
+  printf("cairo_demo_arc. p0: (%g, %g). p1: (%g, %g). d: %f.\n", a.p0.x, a.p0.y, a.p1.x, a.p1.y, a.d);
+
   if (fabs (a.d) < 1e-6) {
     cairo_move_to (cr, a.p0);
     cairo_line_to (cr, a.p1);
     cairo_stroke (cr);
     return;
   }
+   
+   //  Draw a distance field around the arc..
+    for (double x = -10; x < 30; x += 0.04) {
+      for (double y = -10; y < 20; y += 0.04) {
+        Point<Coord> p (x, y);
+        cairo_set_source_rgb (cr, a.distance_to_point (p), 1.1 * a.distance_to_point (p), 1.2 * a.distance_to_point (p));
+        cairo_demo_point (cr, p);
+      }
+    } /**/
 
   Circle<Coord, Scalar> c  = a.circle ();
   double a0 = (a.p0 - c.c).angle ();
@@ -228,6 +240,8 @@ void cairo_demo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
     cairo_arc (cr, c.c.x, c.c.y, c.r, a0, a1);
   else
     cairo_arc_negative (cr, c.c.x, c.c.y, c.r, a0, a1);
+
+
 
   cairo_stroke (cr);
 }

@@ -24,6 +24,9 @@
 
 #include <math.h>
 
+/***********************REMOVE************************************************/
+#include <stdio.h>
+
 #ifndef GEOMETRY_HH
 #define GEOMETRY_HH
 
@@ -120,6 +123,7 @@ struct Point {
   inline const Vector<Coord> operator- (const Point<Coord> &p) const;
   inline const Point<Coord> operator+ (const Point<Coord> &v) const; /* mid-point! */
   inline const Line<Coord> operator| (const Point<Coord> &p) const; /* segment axis line! */
+  inline const Scalar distance_to_point (const Point &p) const; /* distance to point! */
 
   inline bool is_finite (void) const;
   inline const Point<Coord> lerp (const Scalar &a, const Point<Coord> &p) const;
@@ -193,6 +197,9 @@ struct Arc {
   inline Circle<Coord, Scalar> circle (void) const;
 
   inline Bezier<Coord> approximate_bezier (Scalar *error) const;
+  
+  inline bool sector_contains_point (Point<Coord> &p) const;
+  inline Scalar distance_to_point (Point<Coord> &p) const;
 
   Point<Coord> p0, p1;
   Scalar d; /* Depth */
@@ -404,6 +411,11 @@ inline const Line<Coord> Point<Coord>::operator| (const Point<Coord> &p) const {
 }
 
 template <typename Coord>
+inline const Scalar Point<Coord>::distance_to_point (const Point<Coord> &p) const { /* distance to point! */
+  return ((*this) - p).len ();
+}
+
+template <typename Coord>
 inline bool Point<Coord>::is_finite (void) const {
   return isfinite (x) && isfinite (y);
 }
@@ -504,6 +516,7 @@ inline Circle<Coord, Scalar> Arc<Coord, Scalar>::circle (void) const
   return Circle<Coord, Scalar> (center (), radius ());
 }
 
+
 template <typename Coord,  typename Scalar>
 inline Bezier<Coord> Arc<Coord, Scalar>::approximate_bezier (Scalar *error) const {
   if (error)
@@ -515,6 +528,53 @@ inline Bezier<Coord> Arc<Coord, Scalar>::approximate_bezier (Scalar *error) cons
   return Bezier<Coord> (p0, p0s, p1s, p1);
 }
 
+
+template <typename Coord, typename Scalar>
+inline bool Arc<Coord, Scalar>::sector_contains_point (Point<Coord> &p) const {
+  if (p0 == p1)
+    return false;
+   
+  Point<Coord> u = (Point<Coord>) (p0 - center ());
+  Point<Coord> v =  (Point<Coord>) (p1 - center ());
+  Point<Coord> q =  (Point<Coord>) (p - center ());
+  
+    
+  double determinant = (u.x * v.y) - (u.y * v.x);
+  
+  
+  /* Determinant should not be 0 (arc should not be degenerate..) */
+  if (determinant == 0) {
+  
+    return ((v.x - u.x)*(q.y - u.y) - (v.y - u.y)*(q.x - u.x)) * d > 0;
+  
+  
+    double temp = v.x;
+    v.x = -1 * d * v.y;
+    v.y = d * temp;
+    
+    return ((v.y * q.x) - (v.x * q.y)) > 0;
+
+    return false;
+  } 
+  
+  /* Sector from p0 to p1 contains p <=> both values are positive 
+     (i.e. p lies in the convex Cone(p0, p1).  */
+  double num1 = ((v.y * q.x) - (v.x * q.y)) * determinant;
+  double num2 = ((u.x * q.y) - (u.y * q.x)) * determinant;
+  if (fabs(d) <= 1)
+    return (num1 >= 0 && num2 >= 0);
+  return !(num1 >= 0 && num2 >= 0);
+}
+
+
+template <typename Coord, typename Scalar>
+inline Scalar Arc<Coord, Scalar>::distance_to_point (Point<Coord> &p) const {
+  if (sector_contains_point (p))
+    return fabs (p.distance_to_point (center ()) - radius ());
+  double d1 = p.distance_to_point (p0);
+  double d2 = p.distance_to_point (p1);
+  return (d1 < d2 ? d1 : d2);
+}
 
 /* Bezier */
 
