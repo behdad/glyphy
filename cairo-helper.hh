@@ -153,6 +153,8 @@ void cairo_demo_point (cairo_t *cr, const Point<Coord> &p)
 template <typename Coord>
 void cairo_demo_curve (cairo_t *cr, const Bezier<Coord> &b)
 {
+
+  /* Draw the sampled lines in the sector of the circle. 
   {
     cairo_save (cr);
     for (double t = 0; t <= 1; t += .01)
@@ -165,13 +167,15 @@ void cairo_demo_curve (cairo_t *cr, const Bezier<Coord> &b)
     cairo_set_line_width (cr, cairo_get_line_width (cr) / 30);
     cairo_stroke (cr);
     cairo_restore (cr);
-  }
+  }*/
 
+  /* Draw the points determining the curve. */
   cairo_demo_point (cr, b.p0);
-  cairo_demo_point (cr, b.p1);
-  cairo_demo_point (cr, b.p2);
-  cairo_demo_point (cr, b.p3);
+ /* cairo_demo_point (cr, b.p1);
+  cairo_demo_point (cr, b.p2);*/
+  cairo_demo_point (cr, b.p3); 
 
+  /* Draw the lines connecting p0/p1, p1/p2.
   cairo_save (cr);
   cairo_move_to (cr, b.p0);
   cairo_line_to (cr, b.p1);
@@ -179,8 +183,9 @@ void cairo_demo_curve (cairo_t *cr, const Bezier<Coord> &b)
   cairo_line_to (cr, b.p3);
   cairo_set_line_width (cr, cairo_get_line_width (cr) / 3);
   cairo_stroke (cr);
-  cairo_restore (cr);
+  cairo_restore (cr); */
 
+  /* Draw the actual curve. */
   cairo_curve (cr, b);
   cairo_stroke (cr);
 }
@@ -197,7 +202,7 @@ void cairo_demo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
     cairo_stroke (cr);
     return;
   }
-   
+ /*  
    //  Draw a distance field around the arc..
    for (double x = -10; x < 30; x += 0.02) {
       for (double y = -10; y < 20; y += 0.02) {
@@ -207,8 +212,11 @@ void cairo_demo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
         cairo_set_source_rgb (cr, y, 1.1 * z, 1.2 * z);
         cairo_demo_point (cr, p);
       }
-    } /* */
+    }  */
 
+
+
+/*
   Circle<Coord, Scalar> c  = a.circle ();
   double a0 = (a.p0 - c.c).angle ();
   double a1 = (a.p1 - c.c).angle ();
@@ -245,7 +253,7 @@ void cairo_demo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
 
 
 
-  cairo_stroke (cr);
+  cairo_stroke (cr); */
 }
 
 template <typename Coord>

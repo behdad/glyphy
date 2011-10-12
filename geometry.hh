@@ -61,7 +61,7 @@ struct Vector {
   typedef Point<Coord> PointType;
 
   inline Vector (Coord dx_, Coord dy_) : dx (dx_), dy (dy_) {};
-  inline explicit Vector (Point<Coord> p) : dx (p.x), dy (p.y) {};
+  inline explicit Vector (const Point<Coord> &p) : dx (p.x), dy (p.y) {};
 
   inline bool operator == (const Vector<Coord> &v) const;
   inline bool operator != (const Vector<Coord> &v) const;
@@ -139,7 +139,8 @@ struct Line {
 
   inline Line (Coord a_, Coord b_, Scalar c_) : n (a_, b_), c (c_) {};
   inline Line (Vector<Coord> n_, Scalar c_) : n (n_), c (c_) {};
-  inline Line (const Point<Coord> &p0, const Point<Coord> &p1);
+  inline Line (const Point<Coord> &p0, const Point<Coord> &p1) :
+               n ((p1 - p0).perpendicular ()), c (n * Vector<Coord> (p0)) {};
 
   inline const Point<Coord> operator+ (const Line<Coord> &l) const; /* line intersection! */
   inline const SignedVector<Coord> operator- (const Point<Coord> &p) const; /* shortest vector from point to line */
@@ -149,6 +150,23 @@ struct Line {
 
   Vector<Coord> n; /* line normal */
   Scalar c; /* n.dx*x + n.dy*y = c */
+};
+
+template <typename Coord>
+struct Segment {
+  typedef Coord CoordType;
+  typedef Vector<Coord> VectorType;
+  typedef Point<Coord> PointType;
+
+  inline Segment (const Point<Coord> &p0_, const Point<Coord> &p1_) :
+               p0 (p0_), p1 (p1_) {};
+
+ 
+ ////////////////// inline const SignedVector<Coord> operator- (const Point<Coord> &p) const; /* shortest vector from point to segment */
+
+
+  Point<Coord> p0; /* endpoint */
+  Point<Coord> p1; /* endpoint */
 };
 
 template <typename Coord, typename Scalar>
@@ -427,12 +445,6 @@ inline const Point<Coord> Point<Coord>::lerp (const Scalar &a, const Point<Coord
 
 
 /* Line */
-template <typename Coord>
-Line<Coord>::Line (const Point<Coord> &p0, const Point<Coord> &p1)
-{
-  n = (p1 - p0).perpendicular ();
-  c = n * Vector<Coord> (p0);
-}
 
 template <typename Coord>
 inline const Point<Coord> Line<Coord>::operator+ (const Line<Coord> &l) const {
@@ -462,6 +474,28 @@ template <typename Coord>
 inline const Vector<Coord> Line<Coord>::normal (void) const {
   return n;
 }
+
+#if 0
+/* Segment */
+template <typename Coord>
+inline const SignedVector<Coord> Segment<Coord>::operator- (const Point<Coord> &p) const {
+  /* shortest vector from point to line */
+  Line<Coord> temp (p0, p1);
+  Scalar mag = -(temp.n * Vector<Coord> (p) - temp.c) / temp.n.len ();
+  SignedVector<Coord> y (temp.n.normalized () * mag, mag < 0);
+  if (((y * (p - p0)) * (y * (p - p1))) < 0)
+    return y;
+  return SignedVector<Coord> ((p.distance_to_point (p0) < p.distance_to_point (p1) ? p0 - p : p1 - p), true); /******************************************************************************************************** NOT TRUE. todo XXX. *********/
+}
+
+
+template <typename Coord>
+inline const SignedVector<Coord> operator- (const Point<Coord> &p, const Segment<Coord> &l) {
+  return -(l - p);
+}
+#endif
+
+
 
 
 /* Circle */
@@ -579,7 +613,11 @@ inline bool Arc<Coord, Scalar>::sector_contains_point (const Point<Coord> &p) co
 
 template <typename Coord, typename Scalar>
 inline Scalar Arc<Coord, Scalar>::distance_to_point (const Point<Coord> &p) const {
-  if (sector_contains_point (p))
+  if (fabs(d) == 0) {
+    Line<Coord> hi (p0, p1);
+    return (p - hi).len ();
+  } 
+  if (sector_contains_point (p) && fabs(d) > 0)
     return fabs (p.distance_to_point (center ()) - radius ());
   double d1 = p.distance_to_point (p0);
   double d2 = p.distance_to_point (p1);
