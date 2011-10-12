@@ -199,13 +199,15 @@ void cairo_demo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
   }
    
    //  Draw a distance field around the arc..
-    for (double x = -10; x < 30; x += 0.04) {
-      for (double y = -10; y < 20; y += 0.04) {
+   for (double x = -10; x < 30; x += 0.02) {
+      for (double y = -10; y < 20; y += 0.02) {
         Point<Coord> p (x, y);
-        cairo_set_source_rgb (cr, a.distance_to_point (p), 1.1 * a.distance_to_point (p), 1.2 * a.distance_to_point (p));
+        double z = (a - p).len ();
+        double y = (a - p).negative ? 0.2 : 1;
+        cairo_set_source_rgb (cr, y, 1.1 * z, 1.2 * z);
         cairo_demo_point (cr, p);
       }
-    } /**/
+    } /* */
 
   Circle<Coord, Scalar> c  = a.circle ();
   double a0 = (a.p0 - c.c).angle ();

@@ -191,6 +191,7 @@ struct Arc {
 
   inline bool operator == (const Arc<Coord, Scalar> &a) const;
   inline bool operator != (const Arc<Coord, Scalar> &a) const;
+  inline const SignedVector<Coord> operator- (const Point<Coord> &p) const; /* shortest vector from point to arc */
 
   inline Scalar radius (void) const;
   inline Point<Coord> center (void) const;
@@ -198,8 +199,8 @@ struct Arc {
 
   inline Bezier<Coord> approximate_bezier (Scalar *error) const;
   
-  inline bool sector_contains_point (Point<Coord> &p) const;
-  inline Scalar distance_to_point (Point<Coord> &p) const;
+  inline bool sector_contains_point (const Point<Coord> &p) const;
+  inline Scalar distance_to_point (const Point<Coord> &p) const;
 
   Point<Coord> p0, p1;
   Scalar d; /* Depth */
@@ -493,10 +494,31 @@ template <typename Coord, typename Scalar>
 inline bool Arc<Coord, Scalar>::operator == (const Arc<Coord, Scalar> &a) const {
   return p0 == a.p0 && p1 == a.p1 && d == a.d;
 }
-template <typename Coord,  typename Scalar>
+template <typename Coord, typename Scalar>
 inline bool Arc<Coord, Scalar>::operator != (const Arc<Coord, Scalar> &a) const {
   return !(*this == a);
 }
+
+
+template <typename Coord, typename Scalar>
+inline const SignedVector<Coord> Arc<Coord, Scalar>::operator- (const Point<Coord> &p) const {
+  if (sector_contains_point (p)){
+    Vector<Coord> difference = (center () - p).normalized () * distance_to_point (p);
+    
+    return SignedVector<Coord>  (difference, (p - center ()).len () > radius ());
+ //   return SignedVector<Coord> ((center () - p).normalized () * distance_to_point (p), (p - center ()).len () > radius);
+  }
+  double d1 = p.distance_to_point (p0);
+  double d2 = p.distance_to_point (p1);
+  return SignedVector<Coord> ((d1 < d2 ? p0 - p : p1 - p), true); /******************************************************************************************************** NOT TRUE. todo XXX. *********/
+}
+
+template <typename Coord>
+inline const SignedVector<Coord> operator- (const Point<Coord> &p, const Arc<Coord, Scalar> &a) {
+  return -(a - p);
+}
+
+
 
 template <typename Coord,  typename Scalar>
 inline Scalar Arc<Coord, Scalar>::radius (void) const
@@ -530,9 +552,7 @@ inline Bezier<Coord> Arc<Coord, Scalar>::approximate_bezier (Scalar *error) cons
 
 
 template <typename Coord, typename Scalar>
-inline bool Arc<Coord, Scalar>::sector_contains_point (Point<Coord> &p) const {
-  if (p0 == p1)
-    return false;
+inline bool Arc<Coord, Scalar>::sector_contains_point (const Point<Coord> &p) const {
    
   Point<Coord> u = (Point<Coord>) (p0 - center ());
   Point<Coord> v =  (Point<Coord>) (p1 - center ());
@@ -544,17 +564,7 @@ inline bool Arc<Coord, Scalar>::sector_contains_point (Point<Coord> &p) const {
   
   /* Determinant should not be 0 (arc should not be degenerate..) */
   if (determinant == 0) {
-  
     return ((v.x - u.x)*(q.y - u.y) - (v.y - u.y)*(q.x - u.x)) * d > 0;
-  
-  
-    double temp = v.x;
-    v.x = -1 * d * v.y;
-    v.y = d * temp;
-    
-    return ((v.y * q.x) - (v.x * q.y)) > 0;
-
-    return false;
   } 
   
   /* Sector from p0 to p1 contains p <=> both values are positive 
@@ -568,7 +578,7 @@ inline bool Arc<Coord, Scalar>::sector_contains_point (Point<Coord> &p) const {
 
 
 template <typename Coord, typename Scalar>
-inline Scalar Arc<Coord, Scalar>::distance_to_point (Point<Coord> &p) const {
+inline Scalar Arc<Coord, Scalar>::distance_to_point (const Point<Coord> &p) const {
   if (sector_contains_point (p))
     return fabs (p.distance_to_point (center ()) - radius ());
   double d1 = p.distance_to_point (p0);

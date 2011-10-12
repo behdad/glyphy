@@ -184,7 +184,7 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
   typedef BezierArcErrorApproximatorBehdad<MaxDev> BezierArcError;
   typedef BezierArcApproximatorMidpointTwoPart<BezierArcError> BezierArcApproximator;
   typedef BezierArcsApproximatorSpringSystem<BezierArcApproximator> SpringSystem;
-  typedef OutlineArcApproximationGenerator<arc_t, SpringSystem> OutlineArcApproximator;
+  typedef ArcApproximatorOutlineSink<SpringSystem> ArcApproximatorOutlineSink;
 
   double e;
 
@@ -209,7 +209,12 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
   if (FT_Load_Glyph (face, FT_Get_Char_Index (face, (FT_ULong) *utf8), FT_LOAD_NO_BITMAP))
     abort ();
   assert (face->glyph->format == FT_GLYPH_FORMAT_OUTLINE);
-  OutlineArcApproximator::approximate_glyph (&face->glyph->outline, acc.callback, static_cast<void *> (&acc), tolerance, &e);
+  //ArcApproximatorOutlineSink::approximate_glyph (&face->glyph->outline, acc.callback, static_cast<void *> (&acc), tolerance, &e);
+  ArcApproximatorOutlineSink outline_arc_approximator (acc.callback,
+						       static_cast<void *> (&acc),
+						       tolerance);
+  FreeTypeOutlineSource<ArcApproximatorOutlineSink>::decompose_outline (&face->glyph->outline,
+									outline_arc_approximator);
   cairo_ft_scaled_font_unlock_face (cairo_get_scaled_font (cr));
 
 
@@ -276,11 +281,11 @@ int main (int argc, char **argv)
   cairo_paint (cr);
 
  // demo_curve (cr, sample_curve_skewed ());
- // demo_curve (cr, sample_curve_riskus_simple ());   
+  demo_curve (cr, sample_curve_riskus_simple ());   
  // demo_curve (cr, sample_curve_riskus_complicated ());
  // demo_curve (cr, sample_curve_s ());
  // demo_curve (cr, sample_curve_serpentine_c_symmetric ());
-  demo_curve (cr, sample_curve_serpentine_s_symmetric ());  //x
+ // demo_curve (cr, sample_curve_serpentine_s_symmetric ());  //x
  // demo_curve (cr, sample_curve_serpentine_quadratic ());
  // demo_curve (cr, sample_curve_loop_cusp_symmetric ());  
  // demo_curve (cr, sample_curve_loop_gamma_symmetric ());

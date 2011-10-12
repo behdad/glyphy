@@ -99,6 +99,7 @@ class MaxDeviationApproximatorExact
 
 
 
+
 template <class MaxDeviationApproximator>
 class BezierBezierErrorApproximatorSimpleMagnitude
 {
