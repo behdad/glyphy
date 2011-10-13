@@ -125,8 +125,8 @@ gridify_and_find_arcs (cairo_t *cr, vector <Arc <Coord, Scalar> > arc_list)
       vector <Arc <Coord, Scalar> > closest_arcs;
       closest_arcs_to_square (Point<Coord> (i, j), 
                               box_width, arc_list, closest_arcs);
-      double gradient = closest_arcs.size () * 1. / arc_list.size ();
-      cairo_set_source_rgb (cr, gradient, gradient, gradient);
+      double gradient = closest_arcs.size () * 5. / arc_list.size ();
+      cairo_set_source_rgb (cr, 0.8 * gradient, 1.7 * gradient, 1.1 * gradient);
       CairoHelper::cairo_demo_point (cr, Point<Coord> (i + box_width * 0.5 , j + box_width * 0.5));
     }
   }
@@ -177,7 +177,7 @@ demo_curve (cairo_t *cr, const bezier_t &b)
   typedef BezierArcApproximatorMidpointTwoPart<BezierArcError> BezierArcApproximator;
   typedef BezierArcsApproximatorSpringSystem<BezierArcApproximator> SpringSystem;
 
-  double tolerance = .001;
+  double tolerance = .00001;
   double e;
   std::vector<Arc<Coord, Scalar> > &arcs = SpringSystem::approximate_bezier_with_arcs (b, tolerance, &e);
 
@@ -188,7 +188,7 @@ demo_curve (cairo_t *cr, const bezier_t &b)
    cairo_set_source_rgb (cr, 0.9, 0.9, 0.9);
   cairo_demo_curve (cr, b);
 
-  cairo_set_source_rgba (cr, 0.0, 1.0, 0.0, 1.0);
+  cairo_set_source_rgba (cr, 1.0, 0.2, 0.2, 1.0);
   cairo_set_line_width (cr, cairo_get_line_width (cr) / 2);
   for (unsigned int i = 0; i < arcs.size (); i++)
     cairo_demo_arc (cr, arcs[i]);

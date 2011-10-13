@@ -216,13 +216,13 @@ void cairo_demo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
 
 
 
-/*
+
   Circle<Coord, Scalar> c  = a.circle ();
   double a0 = (a.p0 - c.c).angle ();
   double a1 = (a.p1 - c.c).angle ();
 
   cairo_save (cr);
-  cairo_move_to (cr, a.p1);
+ /* cairo_move_to (cr, a.p1);
   cairo_line_to (cr, c.c);
   cairo_line_to (cr, a.p0);
   if (a.d < 0)
@@ -245,7 +245,7 @@ void cairo_demo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
   cairo_stroke (cr);
   cairo_restore (cr);
 
-  cairo_new_sub_path (cr);
+  cairo_new_sub_path (cr);*/
   if (a.d < 0)
     cairo_arc (cr, c.c.x, c.c.y, c.r, a0, a1);
   else
@@ -253,7 +253,7 @@ void cairo_demo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
 
 
 
-  cairo_stroke (cr); */
+  cairo_stroke (cr); 
 }
 
 template <typename Coord>
