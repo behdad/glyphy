@@ -44,6 +44,7 @@ using namespace BezierArcApproximation;
 typedef Vector<Coord> vector_t;
 typedef Point<Coord> point_t;
 typedef Line<Coord> line_t;
+typedef Segment<Coord> segment_t;
 typedef Circle<Coord, Scalar> circle_t;
 typedef Arc<Coord, Scalar> arc_t;
 typedef Bezier<Coord> bezier_t;
@@ -77,11 +78,16 @@ distance_to_an_arc (Point<Coord> square_top_left,
                     vector <Arc <Coord, Scalar> > arc_list)
 {
   double min_distance = INFINITY;
+  bool inside = false;
   int k;
-  for (k = 0; k < arc_list.size (); k++)
-    min_distance = std::min (min_distance, arc_list.at(k).distance_to_point (square_top_left));
-    
-  return min_distance;
+  for (k = 0; k < arc_list.size (); k++)  {
+    double current_distance = arc_list.at(k).distance_to_point (square_top_left);
+    if (fabs (current_distance) < min_distance) {
+      min_distance = fabs(current_distance);
+      inside = (current_distance < 0);
+    }
+  }
+  return min_distance; // * (inside ? -1 : 1);
 }
                      
 
@@ -114,18 +120,18 @@ gridify_and_find_arcs (cairo_t *cr, vector <Arc <Coord, Scalar> > arc_list)
   printf("Grid: [%g, %g] x [%g, %g] with box width %g.\n", grid_min_x, grid_max_x, grid_min_y, grid_max_y, box_width); */
  
  
- grid_min_x = 15;
-    grid_max_x = 25;
-    grid_min_y = -3;
-    grid_max_y = 5;
-    box_width = 0.01;
+  grid_min_x = 15; //1000; //15;
+  grid_max_x = 25; //33000; //25;
+  grid_min_y = -3; //-1000; //-3;
+  grid_max_y = 5; //30000; //5;
+  box_width = 0.01; //10; //0.01;
   for (double i = grid_min_x; i < grid_max_x; i+= box_width)
   {
     for (double j = grid_min_y; j < grid_max_y; j+= box_width) {
       vector <Arc <Coord, Scalar> > closest_arcs;
       closest_arcs_to_square (Point<Coord> (i, j), 
                               box_width, arc_list, closest_arcs);
-      double gradient = closest_arcs.size () * 5. / arc_list.size ();
+      double gradient = closest_arcs.size () * 1.2 / arc_list.size ();
       cairo_set_source_rgb (cr, 0.8 * gradient, 1.7 * gradient, 1.1 * gradient);
       CairoHelper::cairo_demo_point (cr, Point<Coord> (i + box_width * 0.5 , j + box_width * 0.5));
     }
@@ -144,16 +150,19 @@ draw_distance_field (cairo_t *cr, vector <Arc <Coord, Scalar> > arc_list)
   double grid_min_y = INFINITY; //-120;
   double grid_max_y = -1 * INFINITY; //210;
   
-   grid_min_x = 1000; //15;
-    grid_max_x = 40000; //25;
-    grid_min_y = -20000; //-3;
-    grid_max_y = 30000; //5;
-    box_width = 100; //0.01;
+   grid_min_x = 000; //15;
+    grid_max_x = 35000; //25;
+    grid_min_y = -18000; //-3;
+    grid_max_y = 32000; //5;
+    box_width = 16; //0.01;
   for (double i = grid_min_x; i < grid_max_x; i+= box_width)
   {
     for (double j = grid_min_y; j < grid_max_y; j+= box_width) {
-      double gradient = distance_to_an_arc (Point<Coord> (i, j), arc_list) / 2000;
-      cairo_set_source_rgb (cr, gradient * 1., gradient * 1.1, gradient * 1.2);
+      double gradient = distance_to_an_arc (Point<Coord> (i, j), arc_list) / 20000;
+  //    if (gradient >= 0)
+        cairo_set_source_rgb (cr, gradient * 1., gradient * 1.1, gradient * 1.2);
+  //    else
+  //      cairo_set_source_rgb (cr, 1, 0, 0);
       CairoHelper::cairo_demo_point (cr, Point<Coord> (i + box_width * 0.5 , j + box_width * 0.5));
     }
   }
@@ -177,7 +186,7 @@ demo_curve (cairo_t *cr, const bezier_t &b)
   typedef BezierArcApproximatorMidpointTwoPart<BezierArcError> BezierArcApproximator;
   typedef BezierArcsApproximatorSpringSystem<BezierArcApproximator> SpringSystem;
 
-  double tolerance = .00001;
+  double tolerance = .01;
   double e;
   std::vector<Arc<Coord, Scalar> > &arcs = SpringSystem::approximate_bezier_with_arcs (b, tolerance, &e);
 
@@ -281,13 +290,15 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
     }
   }
   cairo_fill (cr);
-
+  
+  draw_distance_field (cr, acc.arcs);
+  
   cairo_set_source_rgba (cr, 0.0, 1.0, 0.0, .3);
   cairo_set_line_width (cr, 4*64);
   for (unsigned int i = 0; i < acc.arcs.size (); i++)
     cairo_demo_arc (cr, acc.arcs[i]);
 
-  gridify_and_find_arcs (cr, acc.arcs);
+
   
   cairo_restore (cr);
 }
@@ -322,7 +333,7 @@ int main (int argc, char **argv)
 
  // demo_curve (cr, sample_curve_skewed ());
  // demo_curve (cr, sample_curve_riskus_simple ());   
-  demo_curve (cr, sample_curve_riskus_complicated ());
+ // demo_curve (cr, sample_curve_riskus_complicated ());
  // demo_curve (cr, sample_curve_s ());
  // demo_curve (cr, sample_curve_serpentine_c_symmetric ());
  // demo_curve (cr, sample_curve_serpentine_s_symmetric ());  //x
@@ -336,7 +347,7 @@ int main (int argc, char **argv)
  // demo_curve (cr, sample_curve_semicircle_left ());
  // demo_curve (cr, sample_curve_semicircle_right ());
  
- // demo_text (cr, "Times", "g");
+  demo_text (cr, "Times", "g");
 
   cairo_destroy (cr);
 

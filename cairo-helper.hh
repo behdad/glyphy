@@ -233,10 +233,10 @@ void cairo_demo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
   cairo_clip (cr);
   cairo_paint_with_alpha (cr, .2);
   cairo_restore (cr);
-
+*/
   cairo_demo_point (cr, a.p0);
   cairo_demo_point (cr, a.p1);
-
+/*
   cairo_save (cr);
   cairo_move_to (cr, a.p0);
   cairo_line_to (cr, c.c);

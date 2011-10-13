@@ -40,6 +40,7 @@ template <typename Coord> struct Vector;
 template <typename Coord> struct SignedVector;
 template <typename Coord> struct Point;
 template <typename Coord> struct Line;
+template <typename Coord> struct Segment;
 template <typename Coord, typename Scalar> struct Circle;
 template <typename Coord, typename Scalar> struct Arc;
 template <typename Coord> struct Bezier;
@@ -162,7 +163,7 @@ struct Segment {
                p0 (p0_), p1 (p1_) {};
 
  
- ////////////////// inline const SignedVector<Coord> operator- (const Point<Coord> &p) const; /* shortest vector from point to segment */
+  inline const SignedVector<Coord> operator- (const Point<Coord> &p) const; /* shortest vector from point to segment */
 
 
   Point<Coord> p0; /* endpoint */
@@ -429,6 +430,7 @@ inline const Line<Coord> Point<Coord>::operator| (const Point<Coord> &p) const {
   return Line<Coord> (d.dx * 2, d.dy * 2, d * Vector<Coord> (p) + d * Vector<Coord> (*this));
 }
 
+/* Returns a signed distance. */
 template <typename Coord>
 inline const Scalar Point<Coord>::distance_to_point (const Point<Coord> &p) const { /* distance to point! */
   return ((*this) - p).len ();
@@ -475,17 +477,24 @@ inline const Vector<Coord> Line<Coord>::normal (void) const {
   return n;
 }
 
-#if 0
+
 /* Segment */
 template <typename Coord>
 inline const SignedVector<Coord> Segment<Coord>::operator- (const Point<Coord> &p) const {
   /* shortest vector from point to line */
   Line<Coord> temp (p0, p1);
   Scalar mag = -(temp.n * Vector<Coord> (p) - temp.c) / temp.n.len ();
-  SignedVector<Coord> y (temp.n.normalized () * mag, mag < 0);
-  if (((y * (p - p0)) * (y * (p - p1))) < 0)
-    return y;
-  return SignedVector<Coord> ((p.distance_to_point (p0) < p.distance_to_point (p1) ? p0 - p : p1 - p), true); /******************************************************************************************************** NOT TRUE. todo XXX. *********/
+  Vector<Coord> y (temp.n.normalized () * mag);
+  Point<Coord> z = y + p;
+
+  if ((z - p0).len () <= (p1 - p0).len () && (z - p0).len () + (z - p1).len () == (p1 - p0).len ())
+ 
+ // if (((y * (p - p0)) * (y * (p - p1))) < 0) {
+ //   printf("\n(%g, %g).\n ", p.x, p.y);
+    return SignedVector<Coord> (y, mag < 0);
+ // }
+  //printf("(%g, %g).\t ", p.x, p.y);
+  return SignedVector<Coord> ((p.distance_to_point (p0) < p.distance_to_point (p1) ? p0 - p : p1 - p), mag < 0);
 }
 
 
@@ -493,8 +502,6 @@ template <typename Coord>
 inline const SignedVector<Coord> operator- (const Point<Coord> &p, const Segment<Coord> &l) {
   return -(l - p);
 }
-#endif
-
 
 
 
@@ -539,12 +546,14 @@ inline const SignedVector<Coord> Arc<Coord, Scalar>::operator- (const Point<Coor
   if (sector_contains_point (p)){
     Vector<Coord> difference = (center () - p).normalized () * distance_to_point (p);
     
-    return SignedVector<Coord>  (difference, (p - center ()).len () > radius ());
+    return SignedVector<Coord>  (difference, (p - center ()).len () < radius ()); /********************************************************* sign is NOT TRUE. Should depend on d. **********************/
  //   return SignedVector<Coord> ((center () - p).normalized () * distance_to_point (p), (p - center ()).len () > radius);
   }
   double d1 = p.distance_to_point (p0);
   double d2 = p.distance_to_point (p1);
-  return SignedVector<Coord> ((d1 < d2 ? p0 - p : p1 - p), true); /******************************************************************************************************** NOT TRUE. todo XXX. *********/
+  
+  Arc<Coord, Scalar> other_arc (p0, p1, (1.0 - d) / (1.0 + d));   /******************************************************************************************************** NOT Robust. *****************/
+  return SignedVector<Coord> ((d1 < d2 ? p0 - p : p1 - p), other_arc.sector_contains_point(p)); /************************************************************************** NOT TRUE. todo XXX. *********/
 }
 
 template <typename Coord>
@@ -591,11 +600,7 @@ inline bool Arc<Coord, Scalar>::sector_contains_point (const Point<Coord> &p) co
   Point<Coord> u = (Point<Coord>) (p0 - center ());
   Point<Coord> v =  (Point<Coord>) (p1 - center ());
   Point<Coord> q =  (Point<Coord>) (p - center ());
-  
-    
   double determinant = (u.x * v.y) - (u.y * v.x);
-  
-  
   /* Determinant should not be 0 (arc should not be degenerate..) */
   if (determinant == 0) {
     return ((v.x - u.x)*(q.y - u.y) - (v.y - u.y)*(q.x - u.x)) * d > 0;
@@ -614,8 +619,9 @@ inline bool Arc<Coord, Scalar>::sector_contains_point (const Point<Coord> &p) co
 template <typename Coord, typename Scalar>
 inline Scalar Arc<Coord, Scalar>::distance_to_point (const Point<Coord> &p) const {
   if (fabs(d) == 0) {
-    Line<Coord> hi (p0, p1);
-    return (p - hi).len ();
+    Segment<Coord> arc_segment (p0, p1);
+    SignedVector<Coord> shortest_vector = arc_segment - p;
+    return shortest_vector.len () * (shortest_vector.negative ? -1 : 1);
   } 
   if (sector_contains_point (p) && fabs(d) > 0)
     return fabs (p.distance_to_point (center ()) - radius ());
