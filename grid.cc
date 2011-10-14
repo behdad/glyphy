@@ -120,20 +120,35 @@ gridify_and_find_arcs (cairo_t *cr, vector <Arc <Coord, Scalar> > arc_list)
   printf("Grid: [%g, %g] x [%g, %g] with box width %g.\n", grid_min_x, grid_max_x, grid_min_y, grid_max_y, box_width); */
  
  
-  grid_min_x = 15; //1000; //15;
-  grid_max_x = 25; //33000; //25;
-  grid_min_y = -3; //-1000; //-3;
-  grid_max_y = 5; //30000; //5;
-  box_width = 0.01; //10; //0.01;
+  grid_min_x = 1000; //15;
+  grid_max_x = 33000; //25;
+  grid_min_y = -15000; //-3;
+  grid_max_y = 30000; //5;
+  box_width = 5000; //0.01;
   for (double i = grid_min_x; i < grid_max_x; i+= box_width)
   {
     for (double j = grid_min_y; j < grid_max_y; j+= box_width) {
       vector <Arc <Coord, Scalar> > closest_arcs;
       closest_arcs_to_square (Point<Coord> (i, j), 
                               box_width, arc_list, closest_arcs);
-      double gradient = closest_arcs.size () * 1.2 / arc_list.size ();
-      cairo_set_source_rgb (cr, 0.8 * gradient, 1.7 * gradient, 1.1 * gradient);
-      CairoHelper::cairo_demo_point (cr, Point<Coord> (i + box_width * 0.5 , j + box_width * 0.5));
+      double gradient = closest_arcs.size () * 3.2 / arc_list.size ();
+     cairo_set_source_rgb (cr, 0.8 * gradient, 1.7 * gradient, 1.1 * gradient);
+     //  cairo_set_source_rgb (cr, 0, 0, 0);
+     // cairo_set_line_width (cr, cairo_get_line_width (cr) * 30);
+     // CairoHelper::cairo_demo_point (cr, Point<Coord> (i + box_width * 0.5 , j + box_width * 0.5));
+     // cairo_set_line_width (cr, cairo_get_line_width (cr) / 30);
+     
+cairo_move_to (cr, i, j);
+cairo_rel_line_to (cr, box_width, 0);
+cairo_rel_line_to (cr, 0, box_width);
+cairo_rel_line_to (cr, -1 * box_width, 0);
+cairo_close_path (cr);
+
+cairo_set_line_width (cr, 200.0);
+cairo_fill_preserve (cr);
+cairo_set_source_rgb (cr, 0, 0, 0);
+cairo_stroke (cr);
+     
     }
   }
   
@@ -150,15 +165,15 @@ draw_distance_field (cairo_t *cr, vector <Arc <Coord, Scalar> > arc_list)
   double grid_min_y = INFINITY; //-120;
   double grid_max_y = -1 * INFINITY; //210;
   
-   grid_min_x = 000; //15;
-    grid_max_x = 35000; //25;
-    grid_min_y = -18000; //-3;
-    grid_max_y = 32000; //5;
-    box_width = 16; //0.01;
+   grid_min_x = 15;//000; //15;
+    grid_max_x = 25; //35000; //25;
+    grid_min_y = -3; //-18000; //-3;
+    grid_max_y = 5; //32000; //5;
+    box_width = 0.05; //16; //0.01;
   for (double i = grid_min_x; i < grid_max_x; i+= box_width)
   {
     for (double j = grid_min_y; j < grid_max_y; j+= box_width) {
-      double gradient = distance_to_an_arc (Point<Coord> (i, j), arc_list) / 20000;
+      double gradient = distance_to_an_arc (Point<Coord> (i, j), arc_list);// / 20000;
   //    if (gradient >= 0)
         cairo_set_source_rgb (cr, gradient * 1., gradient * 1.1, gradient * 1.2);
   //    else
@@ -193,8 +208,9 @@ demo_curve (cairo_t *cr, const bezier_t &b)
   printf ("Num arcs %d; Approximation error %g; Tolerance %g; Percentage %g; %s\n",
 	  (int) arcs.size (), e, tolerance, round (100 * e / tolerance), e <= tolerance ? "PASS" : "FAIL");
 
-   gridify_and_find_arcs (cr, arcs);
-   cairo_set_source_rgb (cr, 0.9, 0.9, 0.9);
+  gridify_and_find_arcs (cr, arcs);
+ // draw_distance_field (cr, arcs);
+  cairo_set_source_rgb (cr, 0.9, 0.9, 0.9);
   cairo_demo_curve (cr, b);
 
   cairo_set_source_rgba (cr, 1.0, 0.2, 0.2, 1.0);
@@ -291,14 +307,16 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
   }
   cairo_fill (cr);
   
-  draw_distance_field (cr, acc.arcs);
+ // draw_distance_field (cr, acc.arcs);
+  gridify_and_find_arcs (cr, acc.arcs);
   
-  cairo_set_source_rgba (cr, 0.0, 1.0, 0.0, .3);
+  cairo_set_source_rgba (cr, 0.9, 1.0, 0.9, .3);
   cairo_set_line_width (cr, 4*64);
   for (unsigned int i = 0; i < acc.arcs.size (); i++)
     cairo_demo_arc (cr, acc.arcs[i]);
 
 
+  
   
   cairo_restore (cr);
 }
@@ -347,7 +365,7 @@ int main (int argc, char **argv)
  // demo_curve (cr, sample_curve_semicircle_left ());
  // demo_curve (cr, sample_curve_semicircle_right ());
  
-  demo_text (cr, "Times", "g");
+  demo_text (cr, "times", "g");
 
   cairo_destroy (cr);
 

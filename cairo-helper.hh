@@ -251,9 +251,9 @@ void cairo_demo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
   else
     cairo_arc_negative (cr, c.c.x, c.c.y, c.r, a0, a1);
 
-
-
   cairo_stroke (cr); 
+  
+  
 }
 
 template <typename Coord>

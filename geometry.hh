@@ -41,6 +41,7 @@ template <typename Coord> struct SignedVector;
 template <typename Coord> struct Point;
 template <typename Coord> struct Line;
 template <typename Coord> struct Segment;
+template <typename Coord> struct Quad;
 template <typename Coord, typename Scalar> struct Circle;
 template <typename Coord, typename Scalar> struct Arc;
 template <typename Coord> struct Bezier;
@@ -162,13 +163,41 @@ struct Segment {
   inline Segment (const Point<Coord> &p0_, const Point<Coord> &p1_) :
                p0 (p0_), p1 (p1_) {};
 
- 
+  inline const bool intersects_arc (const Arc<Coord, Scalar> &a) const;
   inline const SignedVector<Coord> operator- (const Point<Coord> &p) const; /* shortest vector from point to segment */
 
 
   Point<Coord> p0; /* endpoint */
   Point<Coord> p1; /* endpoint */
 };
+
+
+template <typename Coord>
+struct Quad {
+  typedef Coord CoordType;
+  typedef Vector<Coord> VectorType;
+  typedef Point<Coord> PointType;
+  typedef Segment<Coord> SegmentType;
+
+  inline Quad (const Point<Coord> &p0_, const Scalar w_, Scalar h_) :
+               p0 (p0_), w (w_), h (h_) {};
+
+ 
+  inline const SignedVector<Coord> operator- (const Point<Coord> &p) const; /* shortest vector from point to quad */
+  inline const SignedVector<Coord> operator- (const Arc<Coord, Scalar> &a) const; /* shortest vector from arc to quad */
+
+  inline const Segment<Coord> top (void) const ;
+  inline const Segment<Coord> left (void) const;
+  inline const Segment<Coord> right (void) const;
+  inline const Segment<Coord> bottom (void) const;
+  
+  inline const bool contains_point (const Point<Coord> &p) const;
+
+  Point<Coord> p0; /* top left corner */
+  Scalar w; /* width  */
+  Scalar h; /* height */ 
+};
+
 
 template <typename Coord, typename Scalar>
 struct Circle {
@@ -430,7 +459,6 @@ inline const Line<Coord> Point<Coord>::operator| (const Point<Coord> &p) const {
   return Line<Coord> (d.dx * 2, d.dy * 2, d * Vector<Coord> (p) + d * Vector<Coord> (*this));
 }
 
-/* Returns a signed distance. */
 template <typename Coord>
 inline const Scalar Point<Coord>::distance_to_point (const Point<Coord> &p) const { /* distance to point! */
   return ((*this) - p).len ();
@@ -502,6 +530,107 @@ template <typename Coord>
 inline const SignedVector<Coord> operator- (const Point<Coord> &p, const Segment<Coord> &l) {
   return -(l - p);
 }
+
+template <typename Coord>
+inline const bool Segment<Coord>::intersects_arc (const Arc<Coord, Scalar> &a) const {
+  Vector<Coord> d, f;
+  Point<Coord> intersection;
+  double varA, varB, varC;
+  Scalar r = a.radius ();
+  d = p1 - p0;
+  f = p0 - a.center ();
+  varA = d * d;
+  varB = 2 * (f * d);
+  varC = (f * f) - (r * r);
+  double disc = varB * varB - 4 * varA * varC;         
+  if (disc < 0)
+    return false;
+  disc = sqrt (disc);
+  Scalar t1 = (-1 * (f * d) - disc) / (d * d);
+  Scalar t2 = (-1 * (f * d) + disc) / (d * d);
+  if ((t1 >= 0) && (t1 <= 1)) {
+    intersection = p0 + (t1 * d);
+    if (a.distance_to_point (intersection) < 1e-6)
+      return true;
+  }
+  if ((t2 >= 0) && (t2 <= 1)) {
+    intersection = p0 + (t2 * d);
+    if (a.distance_to_point (intersection) < 1e-6)
+      return true;
+  }
+
+  if (this - a.center () > a.radius ())
+    return false;
+
+  return false; /****************************************************************************************************************************************************** Maybe. ********************/
+}
+
+
+/* Quad */
+template <typename Coord>
+inline const Segment<Coord> Quad<Coord>::top (void) const {
+  return Segment<Coord> (p0, Point<Coord> (p0.x + w, p0.y));
+}
+
+template <typename Coord>
+inline const Segment<Coord> Quad<Coord>::left (void) const {
+  return Segment<Coord> (p0, Point<Coord> (p0.x, p0.y + h));
+}
+
+template <typename Coord>
+inline const Segment<Coord> Quad<Coord>::right (void) const {
+  return Segment<Coord> (Point<Coord> (p0.x + w, p0.y), Point<Coord> (p0.x + w, p0.y + h));
+}
+
+template <typename Coord>
+inline const Segment<Coord> Quad<Coord>::bottom (void) const {
+  return Segment<Coord> (Point<Coord> (p0.x, p0.y + h), Point<Coord> (p0.x + w, p0.y + h));
+}
+
+template <typename Coord>
+inline const bool Quad<Coord>::contains_point (const Point<Coord> &p) const {
+  return ((p.x >= p0.x) && 
+          (p.x <= p0.x + w) &&
+          (p.y >= p0.y) &&
+          (p.y <= p0.y + h)); 
+ }         
+          
+template <typename Coord>
+inline const SignedVector<Coord> Quad<Coord>::operator- (const Point<Coord> &p) const {
+  /* shortest vector from point to quad. Return 0 if point in quad.. */
+  if (contains_point (p)) 
+    return SignedVector<Coord> (Vector<Coord> (0,0), true);
+    
+  SignedVector<Coord> *current;
+  SignedVector<Coord> *answer;
+    
+  *answer = p - top ();
+  *current = p - left ();
+  if (current.len () < answer.len ()) {
+    *answer = *current;
+  }
+  
+  *current = p - right ();
+  if (current.len () < answer.len ()) {
+    *answer = *current;
+  }
+  
+  current = p - bottom ();
+  if (current.len () < answer.len ()) {
+    *answer = *current;
+  }
+  
+  return *answer; 
+}        
+
+ template <typename Coord>
+inline const SignedVector<Coord> Quad<Coord>::operator- (const Arc<Coord, Scalar> &a) const {
+  /* shortest vector from arc to quad. Return 0 if arc intersects quad.. */
+  
+  
+  /******************************************************************************************************************************************* No. ***********************/
+  return a - a; 
+}        
 
 
 
