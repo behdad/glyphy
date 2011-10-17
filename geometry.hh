@@ -249,6 +249,7 @@ struct Arc {
   
   inline bool sector_contains_point (const Point<Coord> &p) const;
   inline Scalar distance_to_point (const Point<Coord> &p) const;
+  inline Point<Coord> nearest_part_to_point (const Point<Coord> &p) const;
 
   Point<Coord> p0, p1;
   Scalar d; /* Depth */
@@ -757,6 +758,20 @@ inline Scalar Arc<Coord, Scalar>::distance_to_point (const Point<Coord> &p) cons
   double d1 = p.distance_to_point (p0);
   double d2 = p.distance_to_point (p1);
   return (d1 < d2 ? d1 : d2);
+}
+
+template <typename Coord, typename Scalar>
+inline Point<Coord> Arc<Coord, Scalar>::nearest_part_to_point (const Point<Coord> &p) const {
+  if (fabs(d) == 0) {
+    Segment<Coord> arc_segment (p0, p1);
+    Vector<Coord> shortest_vector = arc_segment - p;
+    return p + shortest_vector; /**************************************************************************************************** FIX. ********************/
+  } 
+  if (sector_contains_point (p) && fabs(d) > 0)
+    return p + ( (1 - radius () / (p - center ()).len ()) * (center () - p));
+  double d1 = p.distance_to_point (p0);
+  double d2 = p.distance_to_point (p1);
+  return (d1 < d2 ? p0 : p1);
 }
 
 /* Bezier */

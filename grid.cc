@@ -59,18 +59,35 @@ closest_arcs_to_square (Point<Coord> square_top_left,
   Point<Coord> center (square_top_left.x + side_length / 2., 
                        square_top_left.y + side_length / 2.);
   double min_distance = INFINITY;
-  int k;
-  for (k = 0; k < arc_list.size (); k++) 
-    min_distance = std::min (min_distance, arc_list.at(k).distance_to_point (center));
+  int best_k = 0;
+//  printf("\nCell (%g, %g). ", square_top_left.x, square_top_left.y);
+  Point<Coord> closest (0, 0);
+  for (int k = 0; k < arc_list.size (); k++) 
+    if (fabs(arc_list.at (k).distance_to_point (center)) < min_distance) {
+      min_distance = fabs(arc_list.at (k).distance_to_point (center));
+      closest = arc_list.at (k).nearest_part_to_point (center);
+      best_k = k;
+    }
+
+ //     printf("Closest arc point at (%g, %g), on arc (%g, %g)-(%g, %g) of d = %g. Distance = %g.\n", 
+  //           closest.x, closest.y, arc_list.at (best_k).p0.x, arc_list.at(best_k).p0.y,
+  //           arc_list.at (best_k).p1.x, arc_list.at(best_k).p1.y, arc_list.at(best_k).d, min_distance);
+      
+      
+//    min_distance = std::min (min_distance, arc_list.at(k).distance_to_point (center));
     
   /* If d is the distance from the center of the square to the nearest arc, then
      all nearest arcs to the square must be at most [d + s/sqrt(2)] from the center. */
   Scalar radius = min_distance + (side_length / sqrt (2));
-  for (k = 0; k < arc_list.size (); k++) {
-    if (arc_list.at(k).distance_to_point (center) < radius)
-      closest_arcs.push_back (arc_list.at (k));
+  
+  for (int k = 0; k < arc_list.size (); k++) {
+    if (arc_list.at(k).distance_to_point (center) < radius) {
+      closest_arcs.push_back (arc_list.at (k));      
+    }
+      
   }
 }
+
 
 
 static double
@@ -90,20 +107,108 @@ distance_to_an_arc (Point<Coord> square_top_left,
   return min_distance; // * (inside ? -1 : 1);
 }
                      
+/* Hugely inefficient, unnecessary EXCEPT for visual verification purposes. */
+static void 
+draw_lines_to_closest_arcs (cairo_t *cr, vector <Arc <Coord, Scalar> > arc_list) 
+{
+  double grid_min_x = 1000; //15;
+  double grid_max_x = 33000; //25;
+  double grid_min_y = -15000; //-3;
+  double grid_max_y = 30000; //5;
+  double box_width = 5000; //0.01;  
+  Point<Coord> closest (0, 0);
+  
+ 
+  
+  for (double i = grid_min_x; i < grid_max_x; i+= box_width){
+    for (double j = grid_min_y; j < grid_max_y; j+= box_width) {
+    
+     
+      double min_distance = INFINITY;
+      Point<Coord> center (i + box_width / 2., 
+                       j + box_width / 2.);
+      for (int k = 0; k < arc_list.size (); k++) 
+        if (fabs(arc_list.at (k).distance_to_point (center)) < min_distance) {
+          min_distance = fabs(arc_list.at (k).distance_to_point (center));
+          closest = arc_list.at (k).nearest_part_to_point (center);
+        }
+
+        cairo_set_source_rgb (cr, 1, 0, 0);
+        cairo_move_to (cr, center.x, center.y);
+        cairo_line_to (cr, closest.x, closest.y);
+        cairo_stroke (cr);
+        
+        cairo_set_source_rgb (cr, 0, 0, 1); 
+        cairo_demo_point (cr, closest);
+        cairo_stroke (cr);       
+    }
+  }
+  
+ 
+}
+
+/* Hugely inefficient, unnecessary EXCEPT for visual verification purposes. */
+static void 
+draw_lines_to_all_close_arcs (cairo_t *cr, vector <Arc <Coord, Scalar> > arc_list) 
+{
+  double grid_min_x = 1000; //15;
+  double grid_max_x = 33000; //25;
+  double grid_min_y = -15000; //-3;
+  double grid_max_y = 30000; //5;
+  double box_width = 5000; //0.01;  
+  Point<Coord> closest (0, 0);
+  
+  for (double i = grid_min_x; i < grid_max_x; i+= box_width){
+    for (double j = grid_min_y; j < grid_max_y; j+= box_width) {
+    
+     
+      double min_distance = INFINITY;
+      Point<Coord> center (i + box_width / 2., 
+                       j + box_width / 2.);
+      for (int k = 0; k < arc_list.size (); k++) 
+        if (fabs(arc_list.at (k).distance_to_point (center)) < min_distance) {
+          min_distance = fabs(arc_list.at (k).distance_to_point (center));
+          closest = arc_list.at (k).nearest_part_to_point (center);
+        }
+
+      cairo_set_source_rgb (cr, 1, 0, 0);
+      cairo_move_to (cr, center.x, center.y);
+      cairo_line_to (cr, closest.x, closest.y);
+      cairo_stroke (cr);
+      cairo_set_source_rgb (cr, 0, 0, 1); 
+      cairo_demo_point (cr, closest);
+      cairo_stroke (cr);       
+      Scalar radius = min_distance + (box_width / sqrt (2));
+    
+      cairo_set_line_width (cr, cairo_get_line_width (cr) / 2);
+      cairo_set_source_rgb (cr, 0, 1, 1);
+    
+      for (int k = 0; k < arc_list.size (); k++) {
+        if (arc_list.at(k).distance_to_point (center) < radius) {
+          cairo_move_to (cr, center.x, center.y);
+          cairo_line_to (cr, arc_list.at(k).nearest_part_to_point(center).x, arc_list.at(k).nearest_part_to_point(center).y);
+          cairo_stroke (cr);
+        }
+      } 
+    
+      cairo_set_line_width (cr, cairo_get_line_width (cr) * 2);
+    }
+  }
+}
 
 
 static void 
 gridify_and_find_arcs (cairo_t *cr, vector <Arc <Coord, Scalar> > arc_list)
 {
 
-
+ /*
   double box_width = 5;
   double grid_min_x = INFINITY; //-20;
   double grid_max_x = -1 * INFINITY; //350;
   double grid_min_y = INFINITY; //-120;
   double grid_max_y = -1 * INFINITY; //210;
   
- /* 
+ 
   for (int i = 0; i < arc_list.size (); i++)  {
     grid_min_x = std::min (grid_min_x, arc_list.at(i).center().x - arc_list.at(i).radius());
     grid_max_x = std::max (grid_max_x, arc_list.at(i).center().x + arc_list.at(i).radius());
@@ -120,39 +225,46 @@ gridify_and_find_arcs (cairo_t *cr, vector <Arc <Coord, Scalar> > arc_list)
   printf("Grid: [%g, %g] x [%g, %g] with box width %g.\n", grid_min_x, grid_max_x, grid_min_y, grid_max_y, box_width); */
  
  
-  grid_min_x = 1000; //15;
-  grid_max_x = 33000; //25;
-  grid_min_y = -15000; //-3;
-  grid_max_y = 30000; //5;
-  box_width = 5000; //0.01;
-  for (double i = grid_min_x; i < grid_max_x; i+= box_width)
-  {
+  double grid_min_x = 1000; //15;
+  double grid_max_x = 33000; //25;
+  double grid_min_y = -15000; //-3;
+  double grid_max_y = 30000; //5;
+  double box_width = 5000; //0.01;  
+  for (double i = grid_min_x; i < grid_max_x; i+= box_width){
     for (double j = grid_min_y; j < grid_max_y; j+= box_width) {
+    
       vector <Arc <Coord, Scalar> > closest_arcs;
       closest_arcs_to_square (Point<Coord> (i, j), 
                               box_width, arc_list, closest_arcs);
-      double gradient = closest_arcs.size () * 3.2 / arc_list.size ();
+      double gradient = closest_arcs.size () * 1.2 / arc_list.size ();
      cairo_set_source_rgb (cr, 0.8 * gradient, 1.7 * gradient, 1.1 * gradient);
      //  cairo_set_source_rgb (cr, 0, 0, 0);
      // cairo_set_line_width (cr, cairo_get_line_width (cr) * 30);
      // CairoHelper::cairo_demo_point (cr, Point<Coord> (i + box_width * 0.5 , j + box_width * 0.5));
      // cairo_set_line_width (cr, cairo_get_line_width (cr) / 30);
      
-cairo_move_to (cr, i, j);
-cairo_rel_line_to (cr, box_width, 0);
-cairo_rel_line_to (cr, 0, box_width);
-cairo_rel_line_to (cr, -1 * box_width, 0);
-cairo_close_path (cr);
+     cairo_move_to (cr, i, j);
+     cairo_rel_line_to (cr, box_width, 0);
+     cairo_rel_line_to (cr, 0, box_width);
+     cairo_rel_line_to (cr, -1 * box_width, 0);
+     cairo_close_path (cr);
 
-cairo_set_line_width (cr, 200.0);
-cairo_fill_preserve (cr);
-cairo_set_source_rgb (cr, 0, 0, 0);
-cairo_stroke (cr);
+     cairo_set_line_width (cr, 150.0);
+     cairo_fill_preserve (cr);
+     cairo_set_source_rgb (cr, 0, 0, 0);
+     cairo_stroke (cr);
+
+   //  printf("(%g,%g): %d\t", i, j, (int) (closest_arcs.size ()));
      
     }
+  //  printf("\n");
   }
   
+  
+ // draw_lines_to_closest_arcs (cr, arc_list);
 }
+
+
 
 
 static void
@@ -367,6 +479,11 @@ int main (int argc, char **argv)
  
   demo_text (cr, "times", "g");
 
+  
+/*  cairo_set_source_rgb (cr, 1, 0, 0);
+  cairo_set_line_width (cr, 100);
+  cairo_demo_point (cr, Point<Coord> (15000, 0)); */
+  
   cairo_destroy (cr);
 
   status = cairo_surface_write_to_png (surface, filename);
