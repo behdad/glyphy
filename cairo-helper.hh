@@ -234,8 +234,11 @@ void cairo_demo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
   cairo_paint_with_alpha (cr, .2);
   cairo_restore (cr);
 */
+
+  cairo_set_line_width (cr, cairo_get_line_width (cr) / 2);
   cairo_demo_point (cr, a.p0);
   cairo_demo_point (cr, a.p1);
+  cairo_set_line_width (cr, cairo_get_line_width (cr) * 2);
 /*
   cairo_save (cr);
   cairo_move_to (cr, a.p0);
@@ -253,6 +256,10 @@ void cairo_demo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
 
   cairo_stroke (cr); 
   
+//  cairo_set_source_rgb (0, 0, 0);
+  
+  
+
   
 }
 

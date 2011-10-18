@@ -50,6 +50,7 @@ typedef Arc<Coord, Scalar> arc_t;
 typedef Bezier<Coord> bezier_t;
 
 
+
 static void 
 closest_arcs_to_square (Point<Coord> square_top_left, 
                         Scalar side_length, 
@@ -91,33 +92,41 @@ closest_arcs_to_square (Point<Coord> square_top_left,
 
 
 static double
-distance_to_an_arc (Point<Coord> square_top_left,
+distance_to_an_arc (Point<Coord> p,
                     vector <Arc <Coord, Scalar> > arc_list)
 {
   double min_distance = INFINITY;
-  bool inside = false;
+  int nearest_arc = 0;
   int k;
   for (k = 0; k < arc_list.size (); k++)  {
-    double current_distance = arc_list.at(k).distance_to_point (square_top_left);
-    if (fabs (current_distance) < min_distance) {
-      min_distance = fabs(current_distance);
-      inside = (current_distance < 0);
+    double current_distance = arc_list.at(k).distance_to_point (p);    
+    if (fabs (current_distance) == fabs(min_distance)) { /** Rounding does not seem to be a problem here. **/
+      SignedVector<Coord> to_arc_min = arc_list.at(nearest_arc) - p;
+      SignedVector<Coord> to_arc_current = arc_list.at(k) - p;
+      
+      if (to_arc_min.len () < to_arc_current.len ()) {
+        min_distance = fabs (min_distance) * (to_arc_current.negative ? -1 : 1);
+      }
+    }
+    else if (fabs (current_distance) < fabs(min_distance)) {
+      min_distance = current_distance;
+      nearest_arc = k;
     }
   }
-  return min_distance; // * (inside ? -1 : 1);
+  return min_distance;
 }
                      
 /* Hugely inefficient, unnecessary EXCEPT for visual verification purposes. */
 static void 
 draw_lines_to_closest_arcs (cairo_t *cr, vector <Arc <Coord, Scalar> > arc_list) 
 {
-  double grid_min_x = 1000; //15;
+ 
+  Point<Coord> closest (0, 0);
+    double grid_min_x = 1000; //15;
   double grid_max_x = 33000; //25;
   double grid_min_y = -15000; //-3;
   double grid_max_y = 30000; //5;
   double box_width = 5000; //0.01;  
-  Point<Coord> closest (0, 0);
-  
  
   
   for (double i = grid_min_x; i < grid_max_x; i+= box_width){
@@ -145,55 +154,6 @@ draw_lines_to_closest_arcs (cairo_t *cr, vector <Arc <Coord, Scalar> > arc_list)
   }
   
  
-}
-
-/* Hugely inefficient, unnecessary EXCEPT for visual verification purposes. */
-static void 
-draw_lines_to_all_close_arcs (cairo_t *cr, vector <Arc <Coord, Scalar> > arc_list) 
-{
-  double grid_min_x = 1000; //15;
-  double grid_max_x = 33000; //25;
-  double grid_min_y = -15000; //-3;
-  double grid_max_y = 30000; //5;
-  double box_width = 5000; //0.01;  
-  Point<Coord> closest (0, 0);
-  
-  for (double i = grid_min_x; i < grid_max_x; i+= box_width){
-    for (double j = grid_min_y; j < grid_max_y; j+= box_width) {
-    
-     
-      double min_distance = INFINITY;
-      Point<Coord> center (i + box_width / 2., 
-                       j + box_width / 2.);
-      for (int k = 0; k < arc_list.size (); k++) 
-        if (fabs(arc_list.at (k).distance_to_point (center)) < min_distance) {
-          min_distance = fabs(arc_list.at (k).distance_to_point (center));
-          closest = arc_list.at (k).nearest_part_to_point (center);
-        }
-
-      cairo_set_source_rgb (cr, 1, 0, 0);
-      cairo_move_to (cr, center.x, center.y);
-      cairo_line_to (cr, closest.x, closest.y);
-      cairo_stroke (cr);
-      cairo_set_source_rgb (cr, 0, 0, 1); 
-      cairo_demo_point (cr, closest);
-      cairo_stroke (cr);       
-      Scalar radius = min_distance + (box_width / sqrt (2));
-    
-      cairo_set_line_width (cr, cairo_get_line_width (cr) / 2);
-      cairo_set_source_rgb (cr, 0, 1, 1);
-    
-      for (int k = 0; k < arc_list.size (); k++) {
-        if (arc_list.at(k).distance_to_point (center) < radius) {
-          cairo_move_to (cr, center.x, center.y);
-          cairo_line_to (cr, arc_list.at(k).nearest_part_to_point(center).x, arc_list.at(k).nearest_part_to_point(center).y);
-          cairo_stroke (cr);
-        }
-      } 
-    
-      cairo_set_line_width (cr, cairo_get_line_width (cr) * 2);
-    }
-  }
 }
 
 
@@ -271,28 +231,31 @@ static void
 draw_distance_field (cairo_t *cr, vector <Arc <Coord, Scalar> > arc_list)
 {
 
-  double box_width = 5;
+/*  double box_width = 5;
   double grid_min_x = INFINITY; //-20;
   double grid_max_x = -1 * INFINITY; //350;
   double grid_min_y = INFINITY; //-120;
-  double grid_max_y = -1 * INFINITY; //210;
+  double grid_max_y = -1 * INFINITY; //210;*/
   
-   grid_min_x = 15;//000; //15;
-    grid_max_x = 25; //35000; //25;
-    grid_min_y = -3; //-18000; //-3;
-    grid_max_y = 5; //32000; //5;
-    box_width = 0.05; //16; //0.01;
+  double grid_min_x = 1000; //15;
+  double grid_max_x = 33000; //25;
+  double grid_min_y = -15000; //-3;
+  double grid_max_y = 30000; //5;
+  double box_width = 200; //0.01;   
+  cairo_set_line_width (cr, cairo_get_line_width (cr) * 15);
   for (double i = grid_min_x; i < grid_max_x; i+= box_width)
   {
     for (double j = grid_min_y; j < grid_max_y; j+= box_width) {
-      double gradient = distance_to_an_arc (Point<Coord> (i, j), arc_list);// / 20000;
-  //    if (gradient >= 0)
-        cairo_set_source_rgb (cr, gradient * 1., gradient * 1.1, gradient * 1.2);
-  //    else
-  //      cairo_set_source_rgb (cr, 1, 0, 0);
+      double gradient = distance_to_an_arc (Point<Coord> (i, j), arc_list) / (box_width * 30);
+      if (gradient >= 0)
+        cairo_set_source_rgb (cr, gradient * 0.6, gradient * 1.3, gradient * 1.0);
+      else
+        cairo_set_source_rgb (cr, gradient * (-1.3), gradient * (-0.6), gradient * (-1.0));
       CairoHelper::cairo_demo_point (cr, Point<Coord> (i + box_width * 0.5 , j + box_width * 0.5));
     }
   }
+  
+  cairo_set_line_width (cr, cairo_get_line_width (cr) / 15);
 }
 
 static void
@@ -320,15 +283,19 @@ demo_curve (cairo_t *cr, const bezier_t &b)
   printf ("Num arcs %d; Approximation error %g; Tolerance %g; Percentage %g; %s\n",
 	  (int) arcs.size (), e, tolerance, round (100 * e / tolerance), e <= tolerance ? "PASS" : "FAIL");
 
-  gridify_and_find_arcs (cr, arcs);
- // draw_distance_field (cr, arcs);
+ // gridify_and_find_arcs (cr, arcs);
+  draw_distance_field (cr, arcs);
   cairo_set_source_rgb (cr, 0.9, 0.9, 0.9);
   cairo_demo_curve (cr, b);
 
   cairo_set_source_rgba (cr, 1.0, 0.2, 0.2, 1.0);
   cairo_set_line_width (cr, cairo_get_line_width (cr) / 2);
   for (unsigned int i = 0; i < arcs.size (); i++)
+  {
     cairo_demo_arc (cr, arcs[i]);
+    Arc<Coord, Scalar> other_arc (arcs[i].p0, arcs[i].p1, (1.0 - arcs[i].d) / (1.0 + arcs[i].d)); 
+  //  cairo_demo_arc (cr, other_arc);
+  }
 
  
 
@@ -419,8 +386,8 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
   }
   cairo_fill (cr);
   
- // draw_distance_field (cr, acc.arcs);
-  gridify_and_find_arcs (cr, acc.arcs);
+  draw_distance_field (cr, acc.arcs);
+ // gridify_and_find_arcs (cr, acc.arcs);
   
   cairo_set_source_rgba (cr, 0.9, 1.0, 0.9, .3);
   cairo_set_line_width (cr, 4*64);
@@ -477,12 +444,11 @@ int main (int argc, char **argv)
  // demo_curve (cr, sample_curve_semicircle_left ());
  // demo_curve (cr, sample_curve_semicircle_right ());
  
-  demo_text (cr, "times", "g");
-
+  demo_text (cr, "times", "a");
   
-/*  cairo_set_source_rgb (cr, 1, 0, 0);
+  cairo_set_source_rgb (cr, 1, 0, 0);
   cairo_set_line_width (cr, 100);
-  cairo_demo_point (cr, Point<Coord> (15000, 0)); */
+  cairo_demo_point (cr, Point<Coord> (15000, 0)); 
   
   cairo_destroy (cr);
 
