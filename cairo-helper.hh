@@ -242,10 +242,11 @@ void cairo_demo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
   cairo_restore (cr);
 */
 
-  cairo_set_line_width (cr, cairo_get_line_width (cr) / 2);
+  cairo_set_line_width (cr, cairo_get_line_width (cr) / 1);
   cairo_demo_point (cr, a.p0);
   cairo_demo_point (cr, a.p1);
-  cairo_set_line_width (cr, cairo_get_line_width (cr) * 2);
+  cairo_set_line_width (cr, cairo_get_line_width (cr) * 1);
+  
 /*
   cairo_save (cr);
   cairo_move_to (cr, a.p0);
