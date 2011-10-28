@@ -203,7 +203,7 @@ int main (int argc, char **argv)
 //  demo_curve (cr, sample_curve_loop_gamma_small_symmetric ());
 //  demo_curve (cr, sample_curve_loop_o_symmetric ());
 
-  demo_text (cr, "Times", "g");
+  demo_text (cr, "Times", " ُُ");
 //  demo_text (cr, "Times New Roman", "g");
 //  demo_text (cr, "Times New Roman", "@");
 //  demo_text (cr, "DejaVu Sans", "@");

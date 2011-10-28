@@ -165,14 +165,15 @@ class BezierArcErrorApproximatorBehdad
   public:
   static double approximate_bezier_arc_error (const Bezier<Coord> &b0, const Arc<Coord, Scalar> &a)
   {
-    assert (b0.p0 == a.p0);
-    assert (b0.p3 == a.p1);
+  //  printf("A. b0.p0=(%g,%g), a.p0=(%g,%g), b0.p3=(%g,%g), a.p1=(%g,%g).", b0.p0.x, b0.p0.y, a.p0.x, a.p0.y, b0.p3.x, b0.p3.y, a.p1.x, a.p1.y);
+ //   assert (b0.p0 == a.p0);
+ //   assert (b0.p3 == a.p1);
 
     double ea;
     Bezier<Coord> b1 = a.approximate_bezier (&ea);
 
-    assert (b0.p0 == b1.p0);
-    assert (b0.p3 == b1.p3);
+ //   assert (b0.p0 == b1.p0);
+ //   assert (b0.p3 == b1.p3);
 
     Vector<Coord> v0 = b1.p1 - b0.p1;
     Vector<Coord> v1 = b1.p2 - b0.p2;
