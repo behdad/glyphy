@@ -166,14 +166,14 @@ class BezierArcErrorApproximatorBehdad
   static double approximate_bezier_arc_error (const Bezier<Coord> &b0, const Arc<Coord, Scalar> &a)
   {
   //  printf("A. b0.p0=(%g,%g), a.p0=(%g,%g), b0.p3=(%g,%g), a.p1=(%g,%g).", b0.p0.x, b0.p0.y, a.p0.x, a.p0.y, b0.p3.x, b0.p3.y, a.p1.x, a.p1.y);
- //   assert (b0.p0 == a.p0);
- //   assert (b0.p3 == a.p1);
+    assert (b0.p0 == a.p0);
+    assert (b0.p3 == a.p1);
 
     double ea;
     Bezier<Coord> b1 = a.approximate_bezier (&ea);
 
- //   assert (b0.p0 == b1.p0);
- //   assert (b0.p3 == b1.p3);
+    assert (b0.p0 == b1.p0);
+    assert (b0.p3 == b1.p3);
 
     Vector<Coord> v0 = b1.p1 - b0.p1;
     Vector<Coord> v1 = b1.p2 - b0.p2;
@@ -185,8 +185,19 @@ class BezierArcErrorApproximatorBehdad
     Vector<Coord> v (MaxDeviationApproximator::approximate_deviation (v0.dx, v1.dx),
 		     MaxDeviationApproximator::approximate_deviation (v0.dy, v1.dy));
 
-    double tan_half_alpha = 2 * fabs (a.d) / (1 - a.d*a.d);
-    double tan_v = v.dx / v.dy;
+    // Edge cases: d is too close to being 0 or +/- 1. Default to a weak bound.
+    if (fabs(a.d * a.d - 1) < 1e-6 || fabs(a.d) < 1e-6)
+      return ea + v.len ();
+      
+      
+    double tan_half_alpha = 2 * fabs (a.d) / (1 - a.d*a.d); /*********************************************** We made sure that a.d != 1  ***********************/
+    double tan_v;
+    
+    if (fabs(v.dy) < 1e-7) { /**************************************************** If v.dy == 0, perturb just a bit. ******************************************************/
+      printf("v.dy = %g.\n", v.dy);
+       v.dy = 1e-7; 
+    }
+    tan_v = v.dx / v.dy;  
     double eb;
     if (fabs (a.d) < 1e-6 || tan_half_alpha < 0 ||
 	(-tan_half_alpha <= tan_v && tan_v <= tan_half_alpha)) {
@@ -194,7 +205,10 @@ class BezierArcErrorApproximatorBehdad
     } else {
       Scalar c2 = (b1.p3 - b1.p0).len () / 2;
       double r = c2 * (a.d * a.d + 1) / (2 * fabs (a.d));
-      eb = Vector<Coord> (c2/tan_half_alpha + v.dy, c2 + v.dx).len () - r;
+      
+      if (tan_half_alpha == 0)
+        printf("tan_half_alpha = %g.\n", tan_half_alpha);
+      eb = Vector<Coord> (c2/tan_half_alpha + v.dy, c2 + v.dx).len () - r; /********************************** By checking a.d, we should have tan_half_alpha != 0 . ***********************/
     }
 
     return ea + eb;

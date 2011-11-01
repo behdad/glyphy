@@ -507,6 +507,9 @@ inline const Point<Coord> Line<Coord>::operator+ (const Line<Coord> &l) const {
 template <typename Coord>
 inline const SignedVector<Coord> Line<Coord>::operator- (const Point<Coord> &p) const {
   /* shortest vector from point to line */
+  if (n.len() < 1e-3)
+    printf("n is %g.\n", n.len());
+    
   Scalar mag = -(n * Vector<Coord> (p) - c) / n.len ();
   return SignedVector<Coord> (n.normalized () * mag, mag < 0);
 }
@@ -700,15 +703,12 @@ inline const bool Quad<Coord>::contains_point (const Point<Coord> &p) const {
           
 template <typename Coord>
 inline const SignedVector<Coord> Quad<Coord>::operator- (const Point<Coord> &p) const {
-  /* shortest vector from point to quad. Return 0 if point in quad.. */
-//  if (contains_point (p)) 
-//    return SignedVector<Coord> (Vector<Coord> (0,2000), true);
+  /* shortest vector from point to quad. Return negative iff point within quad.? */
     
   Vector<Coord> current (0, 0);
   Vector<Coord> answer = top ().nearest_part_to_point (p) - p;
   
-  
- // return SignedVector<Coord> (Vector<Coord> (2000,000), true);
+
   current = left ().nearest_part_to_point (p) - p;
   if (current.len () < answer.len ()) {
     answer = current;
@@ -724,7 +724,7 @@ inline const SignedVector<Coord> Quad<Coord>::operator- (const Point<Coord> &p) 
     answer = current;
   } 
   
-  return SignedVector<Coord> (answer, contains_point (p) ); //false);
+  return SignedVector<Coord> (answer, contains_point (p) );
 }        
 
 /**** Was originally SignedDistance, operator-. ***********/
@@ -800,7 +800,7 @@ inline const SignedVector<Coord> Arc<Coord, Scalar>::operator- (const Point<Coor
   if (sector_contains_point (p)){
     Vector<Coord> difference = (center () - p).normalized () * fabs (p.distance_to_point (center ()) - radius ());
     
-    return SignedVector<Coord>  (difference, (p - center ()).len () < radius () ? d < 0 : d > 0); /********************************************************* This looks correct. **********************/
+    return SignedVector<Coord>  (difference, (p - center ()).len () < radius () ? d < 0 : d > 0); 
   }
   double d0 = p.distance_to_point (p0);
   double d1 = p.distance_to_point (p1);
