@@ -630,10 +630,16 @@ int main (int argc, char **argv)
   char *filename;
   cairo_status_t status;
   cairo_surface_t *surface;
+  char *font_path;
 
-  if (argc != 2) {
+  if (argc < 2) {
     fprintf (stderr, "Usage: arc OUTPUT_FILENAME\n");
     return 1;
+  }
+  
+  if (argc >= 3) {
+     font_path = argv[2];
+ //   return 1;
   }
 
   filename = argv[1];
@@ -666,9 +672,10 @@ int main (int argc, char **argv)
  
  // demo_text (cr, "Arial", "c");
 
-  string font_path = "./googlefontdirectory/tangerine/Tangerine_Regular.ttf";
+ // font_path = "./googlefontdirectory/tangerine/Tangerine_Regular.ttf";
 //  font_path += ".otf";
-  demo_text_2 (font_path.c_str());
+  demo_text_2 (font_path);
+  printf("Done.\n");
   
   
  /* cairo_set_source_rgb (cr, 1, 0, 0);
