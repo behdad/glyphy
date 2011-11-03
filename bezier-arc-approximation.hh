@@ -165,7 +165,7 @@ class BezierArcErrorApproximatorBehdad
   public:
   static double approximate_bezier_arc_error (const Bezier<Coord> &b0, const Arc<Coord, Scalar> &a)
   {
-  //  printf("A. b0.p0=(%g,%g), a.p0=(%g,%g), b0.p3=(%g,%g), a.p1=(%g,%g).", b0.p0.x, b0.p0.y, a.p0.x, a.p0.y, b0.p3.x, b0.p3.y, a.p1.x, a.p1.y);
+ //   printf("A. b0.p0=(%g,%g), a.p0=(%g,%g), b0.p3=(%g,%g), a.p1=(%g,%g).\n", b0.p0.x, b0.p0.y, a.p0.x, a.p0.y, b0.p3.x, b0.p3.y, a.p1.x, a.p1.y);
     assert (b0.p0 == a.p0);
     assert (b0.p3 == a.p1);
 
@@ -186,16 +186,18 @@ class BezierArcErrorApproximatorBehdad
 		     MaxDeviationApproximator::approximate_deviation (v0.dy, v1.dy));
 
     // Edge cases: d is too close to being 0 or +/- 1. Default to a weak bound.
-    if (fabs(a.d * a.d - 1) < 1e-6 || fabs(a.d) < 1e-6)
+    if (fabs(a.d * a.d - 1) < 1e-6) {
+      printf("Special case. a.d = %g.\n", a.d);
       return ea + v.len ();
+    }
       
       
     double tan_half_alpha = 2 * fabs (a.d) / (1 - a.d*a.d); /*********************************************** We made sure that a.d != 1  ***********************/
     double tan_v;
     
-    if (fabs(v.dy) < 1e-7) { /**************************************************** If v.dy == 0, perturb just a bit. ******************************************************/
-      printf("v.dy = %g.\n", v.dy);
-       v.dy = 1e-7; 
+    if (fabs(v.dy) < 1e-6) { /**************************************************** If v.dy == 0, perturb just a bit. ******************************************************/
+ //     printf("v.dy = %g.\n", v.dy);
+       v.dy = 1e-6; 
     }
     tan_v = v.dx / v.dy;  
     double eb;
@@ -247,8 +249,11 @@ class BezierArcApproximatorMidpointTwoPart
     Arc<Coord, Scalar> a1 (m, b.p3, b.p0, true);
 
     double e0 = BezierArcErrorApproximator::approximate_bezier_arc_error (pair.first, a0);
+ //   printf("First worked fine. ");
     double e1 = BezierArcErrorApproximator::approximate_bezier_arc_error (pair.second, a1);
     *error = std::max (e0, e1);
+//    printf("Second worked fine. ");
+//    printf("\n");
 
     return Arc<Coord, Scalar> (b.p0, b.p3, m, false);
   }

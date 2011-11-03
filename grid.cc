@@ -26,6 +26,8 @@
 #include <stdio.h>
 #include <assert.h>
 #include <cairo-ft.h>
+#include <string>
+#include <list>
 
 #include "geometry.hh"
 #include "cairo-helper.hh"
@@ -52,7 +54,7 @@ typedef Bezier<Coord> bezier_t;
 /* These control the dimensions of the grid overlaying the gylph. */
 static int grid_span_x = 8;
 static int grid_span_y = 8;
-static double min_font_size = 10.0;
+static double min_font_size = 10;
 
 
 /** Given a cell, fills the vector closest_arcs with arcs that may be closest to some point in the cell.
@@ -72,90 +74,33 @@ closest_arcs_to_cell (Point<Coord> square_top_left,
   Point<Coord> center (square_top_left.x + cell_width / 2., 
                        square_top_left.y + cell_height / 2.);
   double min_distance = INFINITY;
-  Point<Coord> closest (0, 0);
-  for (int k = 0; k < arc_list.size (); k++) 
-    if (fabs(arc_list.at (k).distance_to_point (center)) < min_distance) {
-      min_distance = fabs(arc_list.at (k).distance_to_point (center));
-      closest = arc_list.at (k).nearest_part_to_point (center);
-    }
+  double distance = min_distance;
+
+  for (int k = 0; k < arc_list.size (); k++) {
+    distance = fabs(arc_list.at (k).squared_distance_to_point (center));
+    if (distance < min_distance) 
+      min_distance = distance;
+  }
     
   /* If d is the distance from the center of the square to the nearest arc, then
      all nearest arcs to the square must be at most [d + s/sqrt(2)] from the center. */
-  Scalar radius = min_distance + sqrt (cell_height * cell_height + cell_width * cell_width) / 2 ;
+
+  min_distance = sqrt (min_distance);
+  double half_diagonal = sqrt(cell_height * cell_height + cell_width * cell_width) / 2;
+  Scalar radius = min_distance + half_diagonal;
   Quad<Coord> cell (square_top_left, cell_width, cell_height);
   double tolerance = grid_size / min_font_size;
   
+  if (min_distance - half_diagonal <= tolerance)
+    for (int k = 0; k < arc_list.size (); k++) {
+      if ( fabs(arc_list.at(k).distance_to_point (center)) < radius) {
+        closest_arcs.push_back (arc_list.at (k));      
+      }      
+    }
   
-  for (int k = 0; k < arc_list.size (); k++) {
-    if (fabs(arc_list.at(k).distance_to_point (center)) < radius && cell.distance_to_arc (arc_list.at (k)) <= tolerance) {
-      closest_arcs.push_back (arc_list.at (k));      
-    }      
-  }
-}
-
-/** Given a cell, fills the vector closest_arcs with arcs that may be closest to some point in the cell.
-  * Uses idea that all close arcs to cell must have at most min_max_min distance to cell. 
-  */
-static void 
-closest_arcs_to_cell_v2 (Point<Coord> square_top_left, 
-                          Scalar cell_width, 
-                          Scalar cell_height,
-                          vector <Arc <Coord, Scalar> > arc_list,
-                          vector <Arc <Coord, Scalar> > &closest_arcs)
-{
-  closest_arcs.clear ();
-
-  Quad<Coord> cell (square_top_left, cell_width, cell_height);
-  double min_distance = INFINITY;
-
-  Point<Coord> closest (0, 0);
-  for (int k = 0; k < arc_list.size (); k++) 
-    if (cell.max_distance_to_arc(arc_list.at (k)) < min_distance) {  /********************************************* If there is a problem in this function, it might be because max_distance_to needs fixing. ******/
-      min_distance = cell.max_distance_to_arc(arc_list.at (k));
-    }
-    
-  for (int k = 0; k < arc_list.size (); k++) 
-    if (cell.distance_to_arc(arc_list.at (k)) <= min_distance) {
-      closest_arcs.push_back (arc_list.at (k));  
-    }
 }
 
 
-/** Given a grid, finds the number of arcs close to every cell in the grid.
-  * Returns max_e and min_e with the highest and lowest number of arcs, respectively.
-  */
-static double
-calc_closest_arcs (const std::vector<double> &grid_x_posns,
-                   const std::vector<double> &grid_y_posns,
-                   const double grid_size,
-		   std::vector<int> &e,  std::vector<int> &e_y,
-		   std::vector<Arc<Coord, Scalar> > &arc_list,
-		   int &max_e, int &min_e)
-{
-
-  unsigned int n = grid_x_posns.size () - 1;
-  unsigned int m = grid_y_posns.size () - 1;
-  e.resize (n);
-  e.resize (m);
-  max_e = 0;
-  min_e = (int) arc_list.size ();
-  
-  vector <Arc <Coord, Scalar> > closest_arcs;
-  for (unsigned int i = 0; i < n; i++)  {
-    e.at(i) = 0;
-    for (int j = 0; j < m; j++) {
-      closest_arcs_to_cell (Point<Coord> (grid_x_posns.at (i), grid_y_posns.at (j)), 
-                         grid_x_posns.at (i + 1) - grid_x_posns.at (i),
-                         grid_y_posns.at (j + 1) - grid_y_posns.at (j),                     
-                         grid_size, arc_list, closest_arcs);                 
-      e.at(i) = std::max ( e.at(i), (int) closest_arcs.size ());
-      e_y.at(j) = std::max ( e_y.at(j), (int) closest_arcs.size ());
-    }
-    max_e = std::max (max_e, e.at(i));
-    min_e = std::min (min_e, e.at(i));
-  }
-
-}
 
 /** Given a point, finds the shortest distance to the arc that is closest to that point. 
   * Sign of the distance depends on whether point is "inside" or "outside" the glyph.
@@ -214,8 +159,6 @@ draw_lines_to_closest_arcs (cairo_t *cr, vector <Arc <Coord, Scalar> > arc_list)
 {
  
   Point<Coord> closest (0, 0);
-
-  
  
   double box_width = 5;
   double box_height = 5;
@@ -290,22 +233,26 @@ gridify_and_find_arcs (cairo_t *cr, vector <Arc <Coord, Scalar> > arc_list, bool
  
   box_width = (grid_max_x - grid_min_x) / grid_span_x;
   box_height = (grid_max_y - grid_min_y) / grid_span_y;
-  grid_min_y -= 1 * box_height;
   
   /* Uncomment these to make the grid fit more loosely around the glyph. */
 //  grid_min_x -= 1 * box_width; 
 //  grid_max_x += 1 * box_width;
   grid_max_y -= 1 * box_height;    
-//  grid_min_y -= 1 * box_height;
+  grid_min_y -= 1 * box_height;
   
 //  printf("Grid: [%g, %g] x [%g, %g] with box width %g.\n", grid_min_x, grid_max_x, grid_min_y, grid_max_y, box_width); 
- 
  
   
   int min_arcs = arc_list.size();
   int max_arcs = 0;
+  
+  double lower_main = min_arcs;
+  double upper_main = max_arcs;
+  
   int sum_arcs = 0;
-  int num_arcs = 0;
+  int num_cells = 0;
+  
+  list<int> arcs_in_cells;
   
   printf("Arcs per cell: ");
   
@@ -333,7 +280,7 @@ gridify_and_find_arcs (cairo_t *cr, vector <Arc <Coord, Scalar> > arc_list, bool
      cairo_set_line_width (cr, 150);
      cairo_fill_preserve (cr);
      /* Easiest way to remove grid outlines is to comment this one liner out. */
-    // cairo_set_source_rgb (cr, 0, 0, 0);
+   //  cairo_set_source_rgb (cr, 0, 0, 0);
      
 //     cairo_demo_point (cr, Point<Coord>(curr_x, curr_y));
      cairo_stroke (cr);
@@ -342,316 +289,46 @@ gridify_and_find_arcs (cairo_t *cr, vector <Arc <Coord, Scalar> > arc_list, bool
       
      
      
-     min_arcs = std::min (min_arcs, (int) closest_arcs.size ());
-     max_arcs = std::max (max_arcs, (int) closest_arcs.size ());
+  //   min_arcs = std::min (min_arcs, (int) closest_arcs.size ());
+  //   max_arcs = std::max (max_arcs, (int) closest_arcs.size ());
      sum_arcs += closest_arcs.size ();
-     num_arcs++;
+     num_cells++;
+     arcs_in_cells.push_back(closest_arcs.size());
 
-//     printf("%d ", (int) (closest_arcs.size ()));
+  /* Print out the grid elements. */
+     printf("%d ", (int) (closest_arcs.size ()));
     }
 //    printf("\n");
   }
   
-  printf ("; Min arcs per cell: %d; Max arcs per cell: %d; Mean arcs per cell: %g;.\n", 
-         min_arcs, max_arcs, sum_arcs * 1.0 / num_arcs);
+  
+  if (arcs_in_cells.size() > 0) {
+    arcs_in_cells.sort();
+    min_arcs = arcs_in_cells.front ();
+    max_arcs = arcs_in_cells.back ();
+  
+    list<int>::iterator iter;
+    iter = arcs_in_cells.begin ();
+    double cutoff = 0.05 * num_cells;
+    for (int i = 1; i < cutoff; i++) 
+      iter++;
+    lower_main = *iter;
+    
+    iter = arcs_in_cells.end ();
+    for (int i = 1; i < cutoff; i++) 
+      iter--;
+    upper_main = *iter;
+  }
+  
+  printf ("; Min arcs per cell: %d; Max arcs per cell: %d; Mean arcs per cell: %g; Most are above: %g; Most are below: %g;.\n", 
+         min_arcs, max_arcs, (sum_arcs == 0? 0 : sum_arcs * 1.0 / num_cells),
+         lower_main, upper_main);
 //  draw_lines_to_closest_arcs (cr, arc_list);
 }
 
 
 
-/** Given a grid, tolerance, and error values, jiggles the horizontal and vertical 
-  * grid spacings to try and reduce the maximum number of arcs in any cell. 
-  */
-static inline void jiggle (  std::vector<double> &grid_posns_x,
-			     std::vector<double> &grid_posns_y,
-			     double grid_size, 
-			     std::vector<int> &e,
-			     std::vector<int> &e_y,
-			     std::vector<Arc<Coord, Scalar> > &arc_list,
-			     int &max_e, int &min_e,
-			     double tolerance,
-			     unsigned int &n_jiggle)
-  {
-    unsigned int n = grid_posns_x.size () - 1;
-    unsigned int m = grid_posns_y.size () - 1;
-    //fprintf (stderr, "candidate n %d max_e %g min_e %g\n", n, max_e, min_e);
-    unsigned int max_jiggle = log2 (std::max(m,n));
-    unsigned int s;
-    
-    double total_width = grid_posns_x.at(n) - grid_posns_x.at(0);
-    double total_height = grid_posns_y.at(n) - grid_posns_y.at(0);
-    
-    for (s = 0; s <= max_jiggle; s++)
-    {
-      // Jiggle x direction.
-      double total = 0;
-      for (unsigned int i = 0; i < n; i++) {
-	double l = grid_posns_x[i + 1] - grid_posns_x[i];
-	double k_inv = l * pow (e[i], -1);
-	total += k_inv;
-	e[i] = k_inv;
-      }
-      for (unsigned int i = 0; i < n; i++) {
-	double k_inv = e[i];
-	double l = total_width * k_inv / total;
-	grid_posns_x[i + 1] = grid_posns_x[i] + l;
-      }
-      
-      // Jiggle y direction.
-      total = 0;
-      for (unsigned int i = 0; i < m; i++) {
-	double l = grid_posns_y[i + 1] - grid_posns_y[i];
-	double k_inv = l * pow (e_y[i], -1);
-	total += k_inv;
-	e_y[i] = k_inv;
-      }
-      for (unsigned int i = 0; i < m; i++) {
-	double k_inv = e[i];
-	double l = total_height * k_inv / total;
-	grid_posns_y[i + 1] = grid_posns_y[i] + l;
-      }
-      
-      
 
-      for (unsigned int i = 0; i < n; i++)
-        calc_closest_arcs (grid_posns_x, grid_posns_y, grid_size, e, e_y, arc_list, max_e, min_e);
-
-      //fprintf (stderr, "n %d jiggle %d max_e %g min_e %g\n", n, s, max_e, min_e);
-
-      n_jiggle++;
-      if (max_e < tolerance || (2 * min_e - max_e > tolerance))
-	break;
-    }
-    //if (s == max_jiggle) fprintf (stderr, "JIGGLE OVERFLOW n %d s %d\n", n, s);
-  }
-
-
-
-
-
-
-
-/** Sets up a nonuniform grid by starting with uniform spacing and then jiggling in 
-  * an attempt to optimize. Then, compare every arc with every cell.
-  * Uses function closest_arcs_to_cell (v1): square root + distance_to_center. 
-  **** Turns out this isn't so useful. Avoid in general. ***
-  */
-static void 
-gridify_and_find_arcs_v2 (cairo_t *cr, vector <Arc <Coord, Scalar> > arc_list)
-{
- 
-  double grid_min_x, grid_max_x, grid_min_y, grid_max_y;  
-  find_grid_boundaries (grid_min_x, grid_max_x, grid_min_y, grid_max_y, arc_list);
-  
-  
-  double box_width = (grid_max_x - grid_min_x) / grid_span_x;
-  double box_height = (grid_max_y - grid_min_y) / grid_span_y;
-  grid_min_y -= 2 * box_height;
-  grid_max_y += 2 * box_height;
-  grid_min_x -= 2 * box_width;
-  grid_max_x += 2 * box_width;
-
-  
-  int min_arcs = arc_list.size();
-  int max_arcs = 0;
-  int sum_arcs = 0;
-  int num_arcs = 0;
-  
-    
-  printf("Grid: [%g, %g] x [%g, %g] with box width %g and box height %g.\n", grid_min_x, grid_max_x, grid_min_y, grid_max_y, box_width, box_height); 
- 
-    std::vector<double> grid_posns_x;
-    std::vector<double> grid_posns_y;
-    std::vector<int> e, e_y;
-    
-
-    int max_e, min_e;
-    unsigned int n_jiggle = 0;
-    double tolerance = std::max(5.00, 0.05 * arc_list.size ()); /********************************************************************************* CHANGE. ******************************************/
-
-
-    
-    /* Technically speaking we can bsearch for n. */
-    for (unsigned int n = 1; n <= grid_span_x; n++)
-    {
-      grid_posns_y.clear();
-      grid_posns_x.clear();
-      
-      double cell_width = (grid_max_x - grid_min_x) / n;
-      double cell_height = cell_width;
-      
-      grid_posns_y.push_back(grid_min_y);    
-      for (unsigned int i = 1; grid_posns_y.at (i - 1) <= grid_max_y; i++) {
-        grid_posns_y.push_back(grid_posns_y.at (i - 1) + cell_height);      
-      }
-      grid_posns_x.resize (n + 1);
-      
-      
-      grid_posns_x[0] = grid_min_x;
-      for (unsigned int i = 1; i <= n; i++)
-        grid_posns_x[i] = grid_posns_x[i - 1] + cell_width;
-
-      calc_closest_arcs (grid_posns_x, grid_posns_y, 
-                         std::min(grid_max_x - grid_min_x, grid_max_y - grid_min_y), e, e_y, arc_list, max_e, min_e);
-
-      printf("n = %d. Min error is %d and max error is %d.\n", n, min_e, max_e);
-
-      for (unsigned int i = 0; i < n; i++) {
-        printf("e[%d] = %d.\t", i, e[i]);
-	if (e[i] <= tolerance) {
-	  jiggle (grid_posns_x, grid_posns_y, std::min(grid_max_x - grid_min_x, grid_max_y - grid_min_y), e, e_y, arc_list, max_e, min_e, tolerance, n_jiggle);
-	  printf("~~~~~~~~~~~~~~~~~~~~~~~~~~ Jiggled!");
-	  break;
-	}
-      }
-      
-      printf("\nn = %d. NOW, min error is %d and max error is %d.\n\n", n, min_e, max_e);
-
-      if (max_e <= tolerance)
-        break;
-    }
-//    if (perror)
-//      *perror = max_e;
-    //fprintf (stderr, "n_jiggle %d\n", n_jiggle);
-//    return arcs;
- 
- 
- /*************************************************************************/ 
-  
-  for (int i = 0; i < grid_posns_x.size() - 1; i++)
-    printf("%g - (%g) - ", grid_posns_x.at(i), grid_posns_x.at(i+1) - grid_posns_x.at(i));
-  printf("%g\n\n\n", grid_posns_x.at(grid_posns_x.size() -1 ));
-  
-  for (int i = 0; i < grid_posns_y.size() - 1; i++)
-    printf("%g - (%g) - ", grid_posns_y.at(i), grid_posns_y.at(i+1) - grid_posns_y.at(i));
-  printf("%g\n", grid_posns_y.at(grid_posns_y.size() -1 ));
-  
-  
-  for (int j = 0; j < grid_posns_y.size() - 1; j++) {//j > 0; j--) {
-   for (int i = 0; i < grid_posns_x.size () - 1; i++) {
-    
-      double curr_x = grid_posns_x.at (i);
-      double curr_y = grid_posns_y.at (j);
-      box_width = grid_posns_x.at (i + 1) - curr_x;
-      box_height = grid_posns_y.at (j + 1) - curr_y;
-      
-      vector <Arc <Coord, Scalar> > closest_arcs;
-      closest_arcs_to_cell (Point<Coord> (curr_x, curr_y), 
-                              box_width, box_height, 
-                              std::min(grid_max_x - grid_min_x, grid_max_y - grid_min_y), 
-                              arc_list, closest_arcs);
-      double gradient = closest_arcs.size () * 1.2 / arc_list.size ();
-      cairo_set_source_rgb (cr, 0.8 * gradient, 1.7 * gradient, 1.1 * gradient);
-     //  cairo_set_source_rgb (cr, 0, 0, 0);
-     // cairo_set_line_width (cr, cairo_get_line_width (cr) * 30);
-     // CairoHelper::cairo_demo_point (cr, Point<Coord> (i + box_width * 0.5 , j + box_width * 0.5));
-     // cairo_set_line_width (cr, cairo_get_line_width (cr) / 30);
-     
-     cairo_move_to (cr, curr_x, curr_y);
-     cairo_rel_line_to (cr, box_width, 0);
-     cairo_rel_line_to (cr, 0, box_height);
-     cairo_rel_line_to (cr, -1 * box_width, 0);
-     cairo_close_path (cr);
-
-     cairo_set_line_width (cr, std::max(box_width, box_height));
-     cairo_fill_preserve (cr);
-     cairo_set_source_rgb (cr, 0, 0, 0);
-     cairo_stroke (cr);
-     
-     min_arcs = std::min (min_arcs, (int) closest_arcs.size ());
-     max_arcs = std::max (max_arcs, (int) closest_arcs.size ());
-     sum_arcs += closest_arcs.size ();
-
-//     printf("(%g,%g): %d\t", i, j, (int) (closest_arcs.size ()));
-    }
-//    printf("\n");
-  }
-  
-  printf ("Number of close arcs range from %d to %d, with average of %g.\n", 
-         min_arcs, max_arcs, sum_arcs * 1.0 / (grid_posns_x.size() * grid_posns_y.size() ));
-       
-}
-
-
-
-
-
-
-/** Uniform grid. Do not compare every arc with every cell using center of cell. 
-  * Instead, use min_max_min distance approach. 
-  * This actually is not too great. 
-  */
-static void 
-gridify_and_find_arcs_v3 (cairo_t *cr, vector <Arc <Coord, Scalar> > arc_list)
-{
-
-  cairo_set_source_rgb (cr, 0, 0, 0);
-  cairo_set_line_width (cr, cairo_get_line_width (cr) * 32);
-  double box_width = 5;
-  double box_height = 5;
-  
-  double grid_min_x, grid_max_x, grid_min_y, grid_max_y;  
-  find_grid_boundaries (grid_min_x, grid_max_x, grid_min_y, grid_max_y, arc_list);
-  
- 
-  box_width = (grid_max_x - grid_min_x) / grid_span_x;
-  box_height = (grid_max_y - grid_min_y) / grid_span_y;
-  grid_min_x -= 1 * box_width;
-  grid_min_y -= 2 * box_height;
-  grid_max_x += 1 * box_width;
-  grid_max_y += 1 * box_height;  
-
-
-  
-  printf("Grid: [%g, %g] x [%g, %g] with box width %g.\n", grid_min_x, grid_max_x, grid_min_y, grid_max_y, box_width); 
- 
-  
-  int min_arcs = arc_list.size();
-  int max_arcs = 0;
-  int sum_arcs = 0;
-  int num_arcs = 0;
-
- 
-  for (double curr_y = grid_max_y; curr_y > grid_min_y; curr_y-= box_height) {
-    for (double curr_x = grid_min_x; curr_x < grid_max_x; curr_x+= box_width) {
-
-     
-      vector <Arc <Coord, Scalar> > closest_arcs;
-      closest_arcs_to_cell_v2 (Point<Coord> (curr_x, curr_y), 
-                              box_width, box_height, arc_list, closest_arcs);  /********************************************* If there is a problem, it's probably in closest_arcs_to_cell_v2. ***************/
-      double gradient = closest_arcs.size () * 3.6 / arc_list.size ();
-      cairo_set_source_rgb (cr, 0.8 * gradient, 1.7 * gradient, 1.1 * gradient);
-     //  cairo_set_source_rgb (cr, 0, 0, 0);
-     // cairo_set_line_width (cr, cairo_get_line_width (cr) * 30);
-     // CairoHelper::cairo_demo_point (cr, Point<Coord> (i + box_width * 0.5 , j + box_width * 0.5));
-     // cairo_set_line_width (cr, cairo_get_line_width (cr) / 30);
-     
-     cairo_move_to (cr, curr_x, curr_y);
-     cairo_rel_line_to (cr, box_width, 0);
-     cairo_rel_line_to (cr, 0, box_height);
-     cairo_rel_line_to (cr, -1 * box_width, 0);
-     cairo_close_path (cr);
-
-     cairo_set_line_width (cr, 150.0);
-     cairo_fill_preserve (cr);
-//     cairo_set_source_rgb (cr, 0, 0, 0);
-     cairo_stroke (cr);
-     
-     min_arcs = std::min (min_arcs, (int) closest_arcs.size ());
-     max_arcs = std::max (max_arcs, (int) closest_arcs.size ());
-     sum_arcs += closest_arcs.size ();
-     num_arcs++;
-
-//     printf("(%g,%g): %d\t", curr_x, curr_y, (int) (closest_arcs.size ())); 
-     
-    }
-//    printf("\n");
-  }
-  
-  printf ("Number of close arcs range from %d to %d, with average of %g.\n", 
-         min_arcs, max_arcs, sum_arcs * 1.0 / num_arcs);
-//  draw_lines_to_closest_arcs (cr, arc_list);
-}
 
 
 
@@ -747,7 +424,7 @@ demo_curve (cairo_t *cr, const bezier_t &b)
 
 
 static void
-demo_text_2 (cairo_t *cr, const char *family, const char *utf8)
+demo_text_2 (const char *font_path)
 {
   typedef MaxDeviationApproximatorExact MaxDev;
   typedef BezierArcErrorApproximatorBehdad<MaxDev> BezierArcError;
@@ -771,34 +448,35 @@ demo_text_2 (cairo_t *cr, const char *family, const char *utf8)
     std::vector<arc_t> arcs;
   } acc;
   
-  cairo_save (cr);
-  cairo_scale (cr, 1, -1);
-  cairo_select_font_face (cr, family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+  FT_Face face;
+  FT_Library library;
+  FT_Init_FreeType (&library);
+   
+  FT_New_Face ( library, font_path, 0, &face ); 
   
-  FT_Face face = cairo_ft_scaled_font_lock_face (cairo_get_scaled_font (cr));
-  //FT_New_Face ( FT_New_Library() , family, NULL, &face ); //cairo_ft_scaled_font_lock_face (cairo_get_scaled_font (cr));
+  cairo_t *cr;
+  cairo_status_t status;
+  cairo_surface_t *surface;
+  surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32,
+					1400, 800);
+  cr = cairo_create (surface);
+  //cairo_select_font_face (cr, "Times New Roman", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+  //face = cairo_ft_scaled_font_lock_face (cairo_get_scaled_font (cr));
+  
   unsigned int upem = face->units_per_EM;
   FT_Set_Char_Size (face, upem*64, upem*64, 0, 0);
-  //double tolerance = upem * 64. / 256; //upem * 64. / 256;
+
   double tolerance = upem * 1e-2; //1e-3; /* in font design units */
-  
-  
- /*  double x = 0, y = 0;
-  double dx = 1, dy = 1;
-  cairo_user_to_device (cr, &x, &y);
-  cairo_user_to_device_distance (cr, &dx, &dy);
-  cairo_identity_matrix (cr);
-  cairo_translate (cr, x, y);
-  cairo_scale (cr, FONT_SIZE*dx/(upem*64), -FONT_SIZE*dy/(upem*64)); */
   
   
   /*********************************************************************************************************************************************************/
   
   printf("Font: %s, %s, %s.\n", FT_Get_Postscript_Name (face), face->family_name, face->style_name);
   
-  
   for  (int i = 0; i < face->num_glyphs - 1; i++) {
+  
   acc.arcs.clear ();
+  
   
   if (FT_Load_Glyph (face,
 		     i,
@@ -809,32 +487,35 @@ demo_text_2 (cairo_t *cr, const char *family, const char *utf8)
 		     FT_LOAD_LINEAR_DESIGN |
 		     FT_LOAD_IGNORE_TRANSFORM))
     abort ();
+    
+  
   assert (face->glyph->format == FT_GLYPH_FORMAT_OUTLINE);
+  
+  
   //ArcApproximatorOutlineSink::approximate_glyph (&face->glyph->outline, acc.callback, static_cast<void *> (&acc), tolerance, &e);
   ArcApproximatorOutlineSink outline_arc_approximator (acc.callback,
 						       static_cast<void *> (&acc),
 						       tolerance);
+						       
+				       
   FreeTypeOutlineSource<ArcApproximatorOutlineSink>::decompose_outline (&face->glyph->outline,
 									outline_arc_approximator);
-  //cairo_ft_scaled_font_unlock_face (cairo_get_scaled_font (cr));
+
 
   char* glyph_name;
-  FT_Get_Glyph_Name(face, i, glyph_name, 128);
-  
-  printf ("Glyph #%d: %s; Grid: %d by %d; Tolerance: %g; Num_arcs: %d; ", 
-         i, glyph_name, grid_span_x, grid_span_y, tolerance, (int) acc.arcs.size ());
-  gridify_and_find_arcs (cr, acc.arcs, false);
+  if (FT_HAS_GLYPH_NAMES (face)) {    
+  //  FT_Error e = 
+  //  FT_Get_Glyph_Name(face, i, glyph_name, 128);
+  }
+
+
+  printf ("Glyph #%d; Grid: %d by %d; Tolerance: %g; Num_arcs: %d; ", 
+         i, /*glyph_name,*/ grid_span_x, grid_span_y, tolerance, (int) acc.arcs.size ());
+  gridify_and_find_arcs (NULL, acc.arcs, false);
 
   }
   /*********************************************************************************************************************************************************/
 
-  cairo_set_source_rgba (cr, 0.5, 0.9, 0.8, 1);// 0.9, 1.0, 0.9, .3);
-  cairo_set_line_width (cr, 4*64);
-  for (unsigned int i = 0; i < acc.arcs.size (); i++)
-    cairo_demo_arc (cr, acc.arcs[i]);
-
-
-  cairo_restore (cr);
 }
 
 
@@ -928,8 +609,8 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
   }
 //  cairo_fill (cr);
   
-  draw_distance_field (cr, acc.arcs);
-//  gridify_and_find_arcs (cr, acc.arcs, true);
+//  draw_distance_field (cr, acc.arcs);
+  gridify_and_find_arcs (cr, acc.arcs, true);
   
   cairo_set_source_rgba (cr, 0.5, 0.9, 0.8, 1);// 0.9, 1.0, 0.9, .3);
   cairo_set_line_width (cr, 4*64); //4 * 
@@ -983,7 +664,12 @@ int main (int argc, char **argv)
  
 
  
-  demo_text_2 (cr, "Calibri", "z");
+ // demo_text (cr, "Arial", "c");
+
+  string font_path = "./googlefontdirectory/tangerine/Tangerine_Regular.ttf";
+//  font_path += ".otf";
+  demo_text_2 (font_path.c_str());
+  
   
  /* cairo_set_source_rgb (cr, 1, 0, 0);
   cairo_set_line_width (cr, 100);

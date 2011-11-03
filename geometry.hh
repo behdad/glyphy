@@ -136,6 +136,7 @@ struct Point {
   inline const Point<Coord> operator+ (const Point<Coord> &v) const; /* mid-point! */
   inline const Line<Coord> operator| (const Point<Coord> &p) const; /* segment axis line! */
   inline const Scalar distance_to_point (const Point &p) const; /* distance to point! */
+  inline const Scalar squared_distance_to_point (const Point &p) const; /* square of distance to point! */
 
   inline bool is_finite (void) const;
   inline const Point<Coord> lerp (const Scalar &a, const Point<Coord> &p) const;
@@ -178,6 +179,7 @@ struct Segment {
   inline const bool intersects_arc (const Arc<Coord, Scalar> &a) const;
   inline const SignedVector<Coord> operator- (const Point<Coord> &p) const; /* shortest vector from point to ***line*** */
   inline const Scalar distance_to_point (const Point<Coord> &p) const; /* shortest distance from point to segment */
+  inline const Scalar squared_distance_to_point (const Point<Coord> &p) const; /* shortest distance squared from point to segment */
   inline const bool contains_in_span (const Point<Coord> &p) const; /* is p in the stripe formed by sliding this segment? */
   inline Point<Coord> nearest_part_to_point (const Point<Coord> &p) const;
   inline const Scalar distance_to_arc (const Arc<Coord, Scalar> &a) const;
@@ -267,6 +269,7 @@ struct Arc {
   
   inline bool sector_contains_point (const Point<Coord> &p) const;
   inline Scalar distance_to_point (const Point<Coord> &p) const;
+  inline Scalar squared_distance_to_point (const Point<Coord> &p) const;
   inline Scalar max_distance_to_point (const Point<Coord> &p) const;
   inline Point<Coord> nearest_part_to_point (const Point<Coord> &p) const;
 
@@ -485,6 +488,12 @@ inline const Scalar Point<Coord>::distance_to_point (const Point<Coord> &p) cons
 }
 
 template <typename Coord>
+inline const Scalar Point<Coord>::squared_distance_to_point (const Point<Coord> &p) const { /* square of distance to point! */
+  Vector<Coord> difference = (*this) - p;
+  return difference * difference;
+}
+
+template <typename Coord>
 inline bool Point<Coord>::is_finite (void) const {
   return isfinite (x) && isfinite (y);
 }
@@ -511,7 +520,7 @@ inline const SignedVector<Coord> Line<Coord>::operator- (const Point<Coord> &p) 
     printf("n is %g.\n", n.len());
     
   Scalar mag = -(n * Vector<Coord> (p) - c) / n.len ();
-  return SignedVector<Coord> (n.normalized () * mag, mag < 0);
+  return SignedVector<Coord> (n.normalized () * mag, mag < 0); /******************************************************************************************* FIX. *************************************/
 }
 
 template <typename Coord>
@@ -581,7 +590,26 @@ inline const Scalar Segment<Coord>::distance_to_point (const Point<Coord> &p) co
 }
 
 template <typename Coord>
+inline const Scalar Segment<Coord>::squared_distance_to_point (const Point<Coord> &p) const {
+  if (p0 == p1)
+    return 0;
+    
+  // Check if z is between p0 and p1.
+  Line<Coord> temp (p0, p1);
+  if (contains_in_span (p))
+    return (temp.n * Vector<Coord> (p) - temp.c) * (temp.n * Vector<Coord> (p) - temp.c) / (temp.n * temp.n);
+  
+  double dist_p_p0 = p.squared_distance_to_point (p0);
+  double dist_p_p1 = p.squared_distance_to_point (p1);
+  return (dist_p_p0 < dist_p_p1 ? dist_p_p0 : dist_p_p1); 
+}
+
+
+template <typename Coord>
 inline const Scalar Segment<Coord>::distance_to_arc (const Arc<Coord, Scalar> &a) const {
+  
+  if (intersects_arc (a))
+    return 0;
   
   double min_distance = fabs(a.distance_to_point(p0)) ;
   min_distance = min_distance <  fabs(a.distance_to_point(p1)) ? min_distance : fabs(a.distance_to_point(p1)) ;
@@ -655,8 +683,8 @@ inline const bool Segment<Coord>::intersects_arc (const Arc<Coord, Scalar> &a) c
       return true;
   }
 
-  if ((*this - a.center ()).len () > a.radius ()) 
-    return false;
+//  if ((*this - a.center ()).len () > a.radius ()) 
+//    return false;
 
   return false; /****************************************************************************************************************************************************** Maybe. ********************/
 }
@@ -666,8 +694,8 @@ inline Point<Coord> Segment<Coord>::nearest_part_to_point (const Point<Coord> &p
   if (contains_in_span (p))
     return p - (*this - p);
   
-  double d1 = p.distance_to_point (p0);
-  double d2 = p.distance_to_point (p1);
+  double d1 = p.squared_distance_to_point (p0);
+  double d2 = p.squared_distance_to_point (p1);
   return (d1 < d2 ? p0 : p1);
 }
 
@@ -731,13 +759,18 @@ inline const SignedVector<Coord> Quad<Coord>::operator- (const Point<Coord> &p) 
  template <typename Coord>
 inline const Scalar Quad<Coord>::distance_to_arc (const Arc<Coord, Scalar> &a) const {
   /* shortest distance from arc to quad. Return 0 if arc intersects quad.. */
-  if (top ().intersects_arc (a) || bottom().intersects_arc(a) || left().intersects_arc(a) || right().intersects_arc(a) || contains_point(a.p0) )
+  if (//top ().intersects_arc (a) || bottom().intersects_arc(a) || left().intersects_arc(a) || right().intersects_arc(a) || 
+      contains_point(a.p0) )
     return 0;
   
   double min_distance = left().distance_to_arc (a);
-  min_distance = min_distance < right().distance_to_arc (a) ? min_distance : right().distance_to_arc (a);
-  min_distance = min_distance < top().distance_to_arc (a) ? min_distance : top().distance_to_arc (a);
-  min_distance = min_distance < bottom().distance_to_arc (a) ? min_distance : bottom().distance_to_arc (a);
+  double right_distance = right().distance_to_arc (a);
+  double top_distance = top().distance_to_arc (a);
+  double bottom_distance = bottom().distance_to_arc (a);
+  
+  min_distance = min_distance < right_distance ? min_distance : right_distance;
+  min_distance = min_distance < top_distance ? min_distance : top_distance;
+  min_distance = min_distance < bottom_distance ? min_distance : bottom_distance;
   
   return min_distance;
 
@@ -802,8 +835,8 @@ inline const SignedVector<Coord> Arc<Coord, Scalar>::operator- (const Point<Coor
     
     return SignedVector<Coord>  (difference, (p - center ()).len () < radius () ? d < 0 : d > 0); 
   }
-  double d0 = p.distance_to_point (p0);
-  double d1 = p.distance_to_point (p1);
+  double d0 = p.squared_distance_to_point (p0);
+  double d1 = p.squared_distance_to_point (p1);
   
   if (fabs(d + 1) == 0)
     printf("d=-1!\t");
@@ -885,9 +918,28 @@ inline Scalar Arc<Coord, Scalar>::distance_to_point (const Point<Coord> &p) cons
   
   if (sector_contains_point (p) && fabs(d) > 0)
     return fabs (p.distance_to_point (center ()) - radius ()) * (difference.negative ? -1 : 1);
-  double d1 = p.distance_to_point (p0);
-  double d2 = p.distance_to_point (p1);
-  return (d1 < d2 ? d1 : d2) * (difference.negative ? -1 : 1);
+  double d1 = p.squared_distance_to_point (p0);
+  double d2 = p.squared_distance_to_point (p1);
+  return (d1 < d2 ? sqrt(d1) : sqrt(d2)) * (difference.negative ? -1 : 1);
+}
+
+/* Distance will be to an endpoint whenever necessary. */
+template <typename Coord, typename Scalar>
+inline Scalar Arc<Coord, Scalar>::squared_distance_to_point (const Point<Coord> &p) const {
+  if (fabs(d) == 0) {
+    Segment<Coord> arc_segment (p0, p1);
+    return arc_segment.squared_distance_to_point (p);
+  } 
+  
+  SignedVector<Coord> difference = *this - p;
+  
+  if (sector_contains_point (p) && fabs(d) > 0) {
+    double answer = p.distance_to_point (center ()) - radius ();
+    return answer * answer; 
+  }
+  double d1 = p.squared_distance_to_point (p0);
+  double d2 = p.squared_distance_to_point (p1);
+  return (d1 < d2 ? d1 : d2);
 }
 
 /* Distance may not always be positive, but will be to an endpoint whenever necessary. */
@@ -912,14 +964,14 @@ template <typename Coord, typename Scalar>
 inline Point<Coord> Arc<Coord, Scalar>::nearest_part_to_point (const Point<Coord> &p) const {
   if (fabs(d) == 0) {
     Segment<Coord> arc_segment (p0, p1);
-//    if (arc_segment.contains_in_span (p))
-//      return p - (arc_segment - p);
     return arc_segment.nearest_part_to_point (p);
   } 
-  else if (sector_contains_point (p) && fabs(d) > 0)
+
+  if (sector_contains_point (p) && fabs(d) > 0)
     return p + ( (1 - radius () / (p - center ()).len ()) * (center () - p));
-  double d1 = p.distance_to_point (p0);
-  double d2 = p.distance_to_point (p1);
+    
+  double d1 = p.squared_distance_to_point (p0);
+  double d2 = p.squared_distance_to_point (p1);
   return (d1 < d2 ? p0 : p1);
 }
 
