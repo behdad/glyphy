@@ -52,8 +52,8 @@ typedef Arc<Coord, Scalar> arc_t;
 typedef Bezier<Coord> bezier_t;
 
 /* These control the dimensions of the grid overlaying the gylph. */
-static int grid_span_x = 32;
-static int grid_span_y = 32;
+static int grid_span_x = 8;
+static int grid_span_y = 8;
 static double min_font_size = 10;
 
 
@@ -615,6 +615,7 @@ int main (int argc, char **argv)
   if (argc >= 3) {
      font_path = argv[2];
      given_font = true;
+     printf("Uhh\n");
   }
 
   filename = argv[1];
@@ -645,7 +646,7 @@ int main (int argc, char **argv)
  
 
  
-  demo_text (cr, "Times New Roman", "c");
+ // demo_text (cr, "Times New Roman", "c");
 
  // font_path = "./googlefontdirectory/tangerine/Tangerine_Regular.ttf";
 //  font_path += ".otf";
