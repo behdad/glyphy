@@ -52,8 +52,8 @@ typedef Arc<Coord, Scalar> arc_t;
 typedef Bezier<Coord> bezier_t;
 
 /* These control the dimensions of the grid overlaying the gylph. */
-static int grid_span_x = 8;
-static int grid_span_y = 8;
+static int grid_span_x = 32;
+static int grid_span_y = 32;
 static double min_font_size = 10;
 
 
@@ -84,7 +84,6 @@ closest_arcs_to_cell (Point<Coord> square_top_left,
     
   /* If d is the distance from the center of the square to the nearest arc, then
      all nearest arcs to the square must be at most [d + s/sqrt(2)] from the center. */
-
   min_distance = sqrt (min_distance);
   double half_diagonal = sqrt(cell_height * cell_height + cell_width * cell_width) / 2;
   Scalar radius = min_distance + half_diagonal;
@@ -97,13 +96,13 @@ closest_arcs_to_cell (Point<Coord> square_top_left,
         closest_arcs.push_back (arc_list.at (k));      
       }      
     }
-  
 }
 
 
 
 /** Given a point, finds the shortest distance to the arc that is closest to that point. 
   * Sign of the distance depends on whether point is "inside" or "outside" the glyph.
+  * (Negative distance corresponds to being inside the glyph.)
   */
 static double
 distance_to_an_arc (Point<Coord> p,
@@ -111,10 +110,14 @@ distance_to_an_arc (Point<Coord> p,
 {
   double min_distance = INFINITY;
   int nearest_arc = 0;
-  int k;
-  for (k = 0; k < arc_list.size (); k++)  {
+
+  for (int k = 0; k < arc_list.size (); k++)  {
     double current_distance = arc_list.at(k).distance_to_point (p);    
-    if (fabs (fabs (current_distance) - fabs(min_distance)) < 1e-6) { /** Rounding turned out to be a problem here after all... **/
+
+    /* If two arcs are equally close to this point, take the sign from the one
+       whose extension is farther away. (Extend arcs using tangent lines from endpoints;
+       this is done using the SignedVector operation "-".) */
+    if (fabs (fabs (current_distance) - fabs(min_distance)) < 1e-6) { 
       SignedVector<Coord> to_arc_min = arc_list.at(nearest_arc) - p;
       SignedVector<Coord> to_arc_current = arc_list.at(k) - p;
       
@@ -131,9 +134,13 @@ distance_to_an_arc (Point<Coord> p,
 }
 
 
-
+/* Given a list of arcs, finds a reasonable set of boundaries for a grid that covers all of them. */
 static void
-find_grid_boundaries (double &grid_min_x, double &grid_max_x, double &grid_min_y, double &grid_max_y, vector <Arc <Coord, Scalar> > arc_list)
+find_grid_boundaries (double &grid_min_x, 
+                      double &grid_max_x,
+                      double &grid_min_y, 
+                      double &grid_max_y, 
+                      vector <Arc <Coord, Scalar> > arc_list)
 {
   grid_min_x = INFINITY; //-20;
   grid_max_x = -1 * INFINITY; //350;
@@ -171,12 +178,7 @@ draw_lines_to_closest_arcs (cairo_t *cr, vector <Arc <Coord, Scalar> > arc_list)
   box_width = (grid_max_x - grid_min_x) / grid_span_x;
   box_height = (grid_max_y - grid_min_y) / grid_span_y;
   grid_min_y -= 1 * box_height;
-  
-  /* Uncomment these to make the grid fit more loosely around the glyph. */
-//  grid_min_x -= 1 * box_width; 
-//  grid_max_x += 1 * box_width;
   grid_max_y -= 1 * box_height;    
-//  grid_min_y -= 1 * box_height;
  
   int counter = 0;
   for (double j = grid_max_y; j > grid_min_y; j-= box_height) {
@@ -222,36 +224,27 @@ draw_lines_to_closest_arcs (cairo_t *cr, vector <Arc <Coord, Scalar> > arc_list)
 static void 
 gridify_and_find_arcs (cairo_t *cr, vector <Arc <Coord, Scalar> > arc_list, bool paint)
 {
-
- 
-  double box_width = 5;
-  double box_height = 5;
-  
   double grid_min_x, grid_max_x, grid_min_y, grid_max_y;  
   find_grid_boundaries (grid_min_x, grid_max_x, grid_min_y, grid_max_y, arc_list);
   
- 
-  box_width = (grid_max_x - grid_min_x) / grid_span_x;
-  box_height = (grid_max_y - grid_min_y) / grid_span_y;
-  
-  /* Uncomment these to make the grid fit more loosely around the glyph. */
-//  grid_min_x -= 1 * box_width; 
-//  grid_max_x += 1 * box_width;
+  double box_width = (grid_max_x - grid_min_x) / grid_span_x;
+  double box_height = (grid_max_y - grid_min_y) / grid_span_y;
   grid_max_y -= 1 * box_height;    
   grid_min_y -= 1 * box_height;
+
   
-//  printf("Grid: [%g, %g] x [%g, %g] with box width %g.\n", grid_min_x, grid_max_x, grid_min_y, grid_max_y, box_width); 
+//  grid_max_x += 50 * box_height;    
+//  grid_min_x -= 50 * box_height;
  
-  
   int min_arcs = arc_list.size();
   int max_arcs = 0;
   
+  /* These are used to find the range of values for the number of arcs within cells. 
+     Handy for statistics, but useless for the actual algorithm. */
   double lower_main = min_arcs;
-  double upper_main = max_arcs;
-  
+  double upper_main = max_arcs;  
   int sum_arcs = 0;
-  int num_cells = 0;
-  
+  int num_cells = 0;  
   list<int> arcs_in_cells;
   
   printf("Arcs per cell: ");
@@ -266,39 +259,37 @@ gridify_and_find_arcs (cairo_t *cr, vector <Arc <Coord, Scalar> > arc_list, bool
                               arc_list, closest_arcs);
 
 
-/* This handles the drawing of the grid. */
-  if (paint) {
-      double gradient = closest_arcs.size () * /*1.2*/ 3.6 / arc_list.size ();
-      cairo_set_source_rgb (cr, 0.8 * gradient, 1.7 * gradient, 1.1 * gradient);
+      /* This handles the drawing of the grid. */
+      if (paint) {
+        double gradient = closest_arcs.size () * 3.6 / arc_list.size ();
+//        cairo_set_source_rgb (cr, 0.8 * gradient, 1.7 * gradient, 1.1 * gradient);   /* Green */
+        cairo_set_source_rgb (cr, 7 * gradient, 4.5 * gradient, 0.2 * gradient);
      
-     cairo_move_to (cr, curr_x, curr_y);
-     cairo_rel_line_to (cr, box_width, 0);
-     cairo_rel_line_to (cr, 0, box_height);
-     cairo_rel_line_to (cr, -1 * box_width, 0);
-     cairo_close_path (cr);
+        cairo_move_to (cr, curr_x, curr_y);
+        cairo_rel_line_to (cr, box_width, 0);
+        cairo_rel_line_to (cr, 0, box_height);
+        cairo_rel_line_to (cr, -1 * box_width, 0);
+        cairo_close_path (cr);
 
-     cairo_set_line_width (cr, 150);
-     cairo_fill_preserve (cr);
-     /* Easiest way to remove grid outlines is to comment this one liner out. */
-   //  cairo_set_source_rgb (cr, 0, 0, 0);
+        cairo_set_line_width (cr, 150);
+        cairo_fill_preserve (cr);
+        /* Easiest way to remove grid outlines is to comment this one line out. */
+        //  cairo_set_source_rgb (cr, 0, 0, 0);
      
-//     cairo_demo_point (cr, Point<Coord>(curr_x, curr_y));
-     cairo_stroke (cr);
-     
-  }
+        cairo_stroke (cr);
+      }
       
      
-     
+      /* Uncomment these if we do not need to know about the lower,upper_main boundaries. */
   //   min_arcs = std::min (min_arcs, (int) closest_arcs.size ());
   //   max_arcs = std::max (max_arcs, (int) closest_arcs.size ());
-     sum_arcs += closest_arcs.size ();
-     num_cells++;
-     arcs_in_cells.push_back(closest_arcs.size());
+      sum_arcs += closest_arcs.size ();
+      num_cells++;
+      arcs_in_cells.push_back(closest_arcs.size());
 
-  /* Print out the grid elements. */
-     printf("%d ", (int) (closest_arcs.size ()));
+      /* Print out the grid elements. */
+      printf("%d ", (int) (closest_arcs.size ()));
     }
-//    printf("\n");
   }
   
   
@@ -357,7 +348,7 @@ draw_distance_field (cairo_t *cr, vector <Arc <Coord, Scalar> > arc_list)
         cairo_set_source_rgb (cr, gradient * 0.6, gradient * 1.3, gradient * 1.0);
       else
          cairo_set_source_rgb (cr, gradient * (-1.3), gradient * (-0.6), gradient * (-1.0));  /********** Magenta **********/
-  //      cairo_set_source_rgb (cr, gradient * (-1.7), gradient * (-1.7), gradient * (-0.5));    /********** Yellow **********/
+  //     cairo_set_source_rgb (cr, gradient * (-1.7), gradient * (-1.7), gradient * (-0.5));    /********** Yellow **********/
       cairo_move_to (cr, curr_x, curr_y);
       cairo_rel_line_to (cr, box_width, 0);
       cairo_rel_line_to (cr, 0, box_height);
@@ -365,15 +356,12 @@ draw_distance_field (cairo_t *cr, vector <Arc <Coord, Scalar> > arc_list)
       cairo_close_path (cr);
       cairo_fill_preserve (cr);
       cairo_stroke (cr);  
- //     CairoHelper::cairo_demo_point (cr, Point<Coord> (i + box_width * 0.5 , j + box_width * 0.5));
     }
   }
-  
-  
-     
-  
+
   cairo_set_line_width (cr, cairo_get_line_width (cr) / 15);
 }
+
 
 static void
 demo_curve (cairo_t *cr, const bezier_t &b)
@@ -473,12 +461,9 @@ demo_text_2 (const char *font_path)
   
   printf("Font: %s, %s, %s.\n", FT_Get_Postscript_Name (face), face->family_name, face->style_name);
   
-  for  (int i = 0; i < face->num_glyphs - 1; i++) {
-  
-  acc.arcs.clear ();
-  
-  
-  if (FT_Load_Glyph (face,
+  for  (int i = 0; i < face->num_glyphs - 1; i++) {  
+    acc.arcs.clear ();
+    if (FT_Load_Glyph (face,
 		     i,
 		     FT_LOAD_NO_BITMAP |
 		     FT_LOAD_NO_HINTING |
@@ -486,32 +471,23 @@ demo_text_2 (const char *font_path)
 		     FT_LOAD_NO_SCALE |
 		     FT_LOAD_LINEAR_DESIGN |
 		     FT_LOAD_IGNORE_TRANSFORM))
-    abort ();
-    
+      abort ();
   
-  assert (face->glyph->format == FT_GLYPH_FORMAT_OUTLINE);
-  
-  
-  //ArcApproximatorOutlineSink::approximate_glyph (&face->glyph->outline, acc.callback, static_cast<void *> (&acc), tolerance, &e);
-  ArcApproximatorOutlineSink outline_arc_approximator (acc.callback,
-						       static_cast<void *> (&acc),
-						       tolerance);
-						       
-				       
-  FreeTypeOutlineSource<ArcApproximatorOutlineSink>::decompose_outline (&face->glyph->outline,
-									outline_arc_approximator);
-
-
-  char* glyph_name;
-  if (FT_HAS_GLYPH_NAMES (face)) {    
+    assert (face->glyph->format == FT_GLYPH_FORMAT_OUTLINE);
+    ArcApproximatorOutlineSink outline_arc_approximator (acc.callback,
+	  					         static_cast<void *> (&acc),
+						         tolerance);     
+    FreeTypeOutlineSource<ArcApproximatorOutlineSink>::decompose_outline (&face->glyph->outline,
+  									  outline_arc_approximator);
+    char* glyph_name;
+    if (FT_HAS_GLYPH_NAMES (face)) {    
   //  FT_Error e = 
   //  FT_Get_Glyph_Name(face, i, glyph_name, 128);
-  }
+    }
 
-
-  printf ("Glyph #%d; Grid: %d by %d; Tolerance: %g; Num_arcs: %d; ", 
-         i, /*glyph_name,*/ grid_span_x, grid_span_y, tolerance, (int) acc.arcs.size ());
-  gridify_and_find_arcs (NULL, acc.arcs, false);
+    printf ("Glyph #%d; Grid: %d by %d; Tolerance: %g; Num_arcs: %d; ", 
+           i, /*glyph_name,*/ grid_span_x, grid_span_y, tolerance, (int) acc.arcs.size ());
+    gridify_and_find_arcs (NULL, acc.arcs, false);
 
   }
   /*********************************************************************************************************************************************************/
@@ -569,14 +545,12 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
   FT_Face face = cairo_ft_scaled_font_lock_face (cairo_get_scaled_font (cr));
   unsigned int upem = face->units_per_EM;
   FT_Set_Char_Size (face, upem*64, upem*64, 0, 0);
-  //double tolerance = upem * 64. / 256; //upem * 64. / 256;
   double tolerance = upem * 1e-2; //1e-3; /* in font design units */
   
   
   if (FT_Load_Glyph (face, FT_Get_Char_Index (face, (FT_ULong) *utf8), FT_LOAD_NO_BITMAP))
     abort ();
   assert (face->glyph->format == FT_GLYPH_FORMAT_OUTLINE);
-  //ArcApproximatorOutlineSink::approximate_glyph (&face->glyph->outline, acc.callback, static_cast<void *> (&acc), tolerance, &e);
   ArcApproximatorOutlineSink outline_arc_approximator (acc.callback,
 						       static_cast<void *> (&acc),
 						       tolerance);
@@ -596,7 +570,7 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
   cairo_translate (cr, x, y);
   cairo_scale (cr, FONT_SIZE*dx/(upem*64), -FONT_SIZE*dy/(upem*64));
 
-  cairo_set_source_rgba (cr, 0.0, 0.0, 1.0, .5);
+  cairo_set_source_rgba (cr, 1.0, 0.0, 0.0, .5);
   point_t start (0, 0);
   for (unsigned int i = 0; i < acc.arcs.size (); i++) {
     if (!cairo_has_current_point (cr))
@@ -607,12 +581,12 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
       cairo_new_sub_path (cr);
     }
   }
-//  cairo_fill (cr);
   
 //  draw_distance_field (cr, acc.arcs);
   gridify_and_find_arcs (cr, acc.arcs, true);
   
   cairo_set_source_rgba (cr, 0.5, 0.9, 0.8, 1);// 0.9, 1.0, 0.9, .3);
+  cairo_set_source_rgba (cr, 1, 0.3, 0., 0.5);
   cairo_set_line_width (cr, 4*64); //4 * 
   for (unsigned int i = 0; i < acc.arcs.size (); i++)
    cairo_demo_arc (cr, acc.arcs[i]);
@@ -631,6 +605,7 @@ int main (int argc, char **argv)
   cairo_status_t status;
   cairo_surface_t *surface;
   char *font_path;
+  bool given_font = false;
 
   if (argc < 2) {
     fprintf (stderr, "Usage: arc OUTPUT_FILENAME\n");
@@ -639,7 +614,7 @@ int main (int argc, char **argv)
   
   if (argc >= 3) {
      font_path = argv[2];
- //   return 1;
+     given_font = true;
   }
 
   filename = argv[1];
@@ -656,7 +631,7 @@ int main (int argc, char **argv)
  // demo_curve (cr, sample_curve_riskus_complicated ());
  // demo_curve (cr, sample_curve_s ());
  // demo_curve (cr, sample_curve_serpentine_c_symmetric ());
- // demo_curve (cr, sample_curve_serpentine_s_symmetric ());  //x
+ // demo_curve (cr, sample_curve_serpentine_s_symmetric ());  //x 
  // demo_curve (cr, sample_curve_serpentine_quadratic ());
  // demo_curve (cr, sample_curve_loop_cusp_symmetric ());  
  // demo_curve (cr, sample_curve_loop_gamma_symmetric ());
@@ -670,15 +645,18 @@ int main (int argc, char **argv)
  
 
  
- // demo_text (cr, "Arial", "c");
+  demo_text (cr, "Times New Roman", "c");
 
  // font_path = "./googlefontdirectory/tangerine/Tangerine_Regular.ttf";
 //  font_path += ".otf";
-  demo_text_2 (font_path);
+
+  if (given_font)
+    demo_text_2 (font_path);
   printf("Done.\n");
   
   
- /* cairo_set_source_rgb (cr, 1, 0, 0);
+ /* // Just for getting some coordinates on the image....
+  cairo_set_source_rgb (cr, 1, 0, 0);
   cairo_set_line_width (cr, 100);
   cairo_demo_point (cr, Point<Coord> (15000, 0)); 
   */
