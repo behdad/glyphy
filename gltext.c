@@ -173,7 +173,7 @@ setup_texture (void)
 #define SAMPLING 8
 #define FONTSIZE (TEXSIZE * SAMPLING)
 #define FONTFAMILY "serif"
-#define TEXT "abc"
+#define TEXT "g"
 #define FILTERWIDTH 8
   int width = 0, height = 0, swidth, sheight;
   cairo_surface_t *image = NULL, *dest;
@@ -286,7 +286,7 @@ gboolean expose_cb (GtkWidget *widget,
 
   drawable_swap_buffers (widget->window);
 
-  //i++;
+  i++;
 
   return TRUE;
 }
@@ -303,7 +303,7 @@ main (int argc, char** argv)
 {
   GtkWidget *window;
   GLuint vshader, fshader, program, texture, a_pos_loc, a_tex_loc;
-#define ZOOM 1
+#define ZOOM 2
   const GLfloat w_vertices[] = { -1.00, -1.00, +0.00,
 				 +0.00, ZOOM,
 				 +1.00, -1.00, +0.00,
@@ -350,8 +350,16 @@ main (int argc, char** argv)
 	float m = max (ddx, ddy); /* isotropic antialiasing */
 	float mm = m * 128. / (FILTERWIDTH*SAMPLING);
 
-	gl_FragColor = smoothstep (-mm, mm, texture2D(tex, v_texCoord) - .5);
-	//gl_FragColor = texture2D(tex, v_texCoord);
+	float alpha = smoothstep (-mm, mm, texture2D(tex, v_texCoord).r - .5);
+	vec4 c;
+
+	//alpha = texture2D(tex, v_texCoord);
+	if (v_texCoord.s < 5)
+	  c = mix (vec4(0,0,0,1), vec4(1,1,1,1), alpha);
+	else
+	  c = mix (vec4(1,1,1,1), vec4(0,0,0,1), alpha);
+	//c = sqrt (c);
+	gl_FragColor = c;
       }
   );
   program = create_program (vshader, fshader);
