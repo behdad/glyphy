@@ -608,7 +608,7 @@ int main (int argc, char **argv)
   bool given_font = false;
 
   if (argc < 2) {
-    fprintf (stderr, "Usage: arc OUTPUT_FILENAME\n");
+    fprintf (stderr, "Usage: grid OUTPUT_FILENAME\n");
     return 1;
   }
   
