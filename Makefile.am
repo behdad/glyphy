@@ -52,4 +52,37 @@ grid_SOURCES = \
 
 endif
 
+if HAVE_CAIRO_FT
+if HAVE_GTK_2_0
+if HAVE_GDK_X11_2_0
+if HAVE_EGL
+if HAVE_GLESV2
+
+bin_PROGRAMS += glyphy
+
+glyphy_CPPFLAGS = \
+		$(CAIRO_FT_CFLAGS) \
+		$(GTK_2_0_CFLAGS) \
+		$(GDK_X11_2_0_CFLAGS) \
+		$(EGL_CFLAGS) \
+		$(GLESV2_CFLAGS) \
+		$(NULL)
+glyphy_LDADD = \
+		$(CAIRO_FT_LIBS) \
+		$(GTK_2_0_LIBS) \
+		$(GDK_X11_2_0_LIBS) \
+		$(EGL_LIBS) \
+		$(GLESV2_LIBS) \
+		-lm \
+		$(NULL)
+glyphy_SOURCES = \
+		glyphy.cc \
+		$(NULL)
+
+endif
+endif
+endif
+endif
+endif
+
 -include $(top_srcdir)/git.mk
