@@ -187,7 +187,7 @@ class BezierArcErrorApproximatorBehdad
 
     // Edge cases: d is too close to being 0 or +/- 1. Default to a weak bound.
     if (fabs(a.d * a.d - 1) < 1e-6) {
-      printf("Special case. a.d = %g.\n", a.d);
+//      printf("Special case. a.d = %g.\n", a.d);
       return ea + v.len ();
     }
       
@@ -209,7 +209,7 @@ class BezierArcErrorApproximatorBehdad
       double r = c2 * (a.d * a.d + 1) / (2 * fabs (a.d));
       
       if (tan_half_alpha == 0)
-        printf("tan_half_alpha = %g.\n", tan_half_alpha);
+//        printf("tan_half_alpha = %g.\n", tan_half_alpha);
       eb = Vector<Coord> (c2/tan_half_alpha + v.dy, c2 + v.dx).len () - r; /********************************** By checking a.d, we should have tan_half_alpha != 0 . ***********************/
     }
 
