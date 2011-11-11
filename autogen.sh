@@ -19,6 +19,8 @@ which autoreconf || {
 	exit 1
 }
 
+touch ChangeLog
+
 echo "running autoreconf --force --install --verbose"
 autoreconf --force --install --verbose || exit $?
 
