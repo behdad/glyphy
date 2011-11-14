@@ -646,7 +646,7 @@ int main (int argc, char **argv)
  
 
  
-  demo_text (cr, "Arial", "*");
+  demo_text (cr, "Times New Roman", "*");
 
  // font_path = "./googlefontdirectory/tangerine/Tangerine_Regular.ttf";
 //  font_path += ".otf";
