@@ -195,7 +195,7 @@ template <typename Coord>
 void cairo_demo_arc (cairo_t *cr, const Arc<Coord, Scalar> &a)
 {
 
-//  printf("cairo_demo_arc. p0: (%g, %g). p1: (%g, %g). d: %f.\n", a.p0.x, a.p0.y, a.p1.x, a.p1.y, a.d);
+ // printf("cairo_demo_arc. p0: (%g, %g). p1: (%g, %g). d: %f.\n", a.p0.x, a.p0.y, a.p1.x, a.p1.y, a.d);
 
   if (fabs (a.d) < 1e-6) {
     cairo_move_to (cr, a.p0);

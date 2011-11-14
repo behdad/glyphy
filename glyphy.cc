@@ -16,6 +16,35 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include <assert.h>
+#include <cairo-ft.h>
+#include <string>
+#include <list>
+
+#include "geometry.hh"
+#include "cairo-helper.hh"
+#include "freetype-helper.hh"
+#include "sample-curves.hh"
+#include "bezier-arc-approximation.hh"
+
+using namespace std;
+using namespace Geometry;
+using namespace CairoHelper;
+using namespace FreeTypeHelper;
+using namespace SampleCurves;
+using namespace BezierArcApproximation;
+
+
+typedef Vector<Coord> vector_t;
+typedef Point<Coord> point_t;
+typedef Line<Coord> line_t;
+typedef Segment<Coord> segment_t;
+typedef Circle<Coord, Scalar> circle_t;
+typedef Arc<Coord, Scalar> arc_t;
+typedef Bezier<Coord> bezier_t;
+
+
+
 static void
 die (const char *msg)
 {
@@ -166,14 +195,18 @@ drawable_swap_buffers (GdkDrawable *drawable)
   eglSwapBuffers (e->display, e->surface);
 }
 
+/***************************************************************************************************************************/
+/*** This is the OLD way of doing it. Artifacts on edges, rounded corners. *************************************************/
+/**************************************************************************************************************************
 static void
-setup_texture (void)
+setup_texture_old_sampling (void)
 {
 #define TEXSIZE 64
 #define SAMPLING 8
+  //unsigned char data[height][width][4];
 #define FONTSIZE (TEXSIZE * SAMPLING)
 #define FONTFAMILY "serif"
-#define TEXT "g"
+#define TEXT "a"
 #define FILTERWIDTH 8
   int width = 0, height = 0, swidth, sheight;
   cairo_surface_t *image = NULL, *dest;
@@ -226,14 +259,14 @@ setup_texture (void)
 #define S(x,y) ((x)<0||(y)<0||(x)>=swidth||(y)>=sheight ? 0 : data[(y)*swidth+(x)])
 #define D(x,y) (dd[(y)*width+(x)])
 	if (S(sx,sy) >= 128) {
-	  /* in */
+	  // in //
 	  for (i = -FILTERWIDTH*SAMPLING; i <= FILTERWIDTH*SAMPLING; i++)
 	    for (j = -FILTERWIDTH*SAMPLING; j <= FILTERWIDTH*SAMPLING; j++)
 	      if (S(sx+i,sy+j) < 128)
 		c = MIN (c, sqrt (i*i + j*j));
 	  D(x,y) = 128 - MIN (c, FILTERWIDTH*SAMPLING) * 128. / (FILTERWIDTH*SAMPLING);
 	} else {
-	  /* out */
+	  // out //
 	  for (i = -FILTERWIDTH*SAMPLING; i <= FILTERWIDTH*SAMPLING; i++)
 	    for (j = -FILTERWIDTH*SAMPLING; j <= FILTERWIDTH*SAMPLING; j++)
 	      if (S(sx+i,sy+j) >= 128)
@@ -249,6 +282,231 @@ setup_texture (void)
 
   cairo_surface_destroy (image);
 }
+/***************************************************************************************************************************/
+
+
+
+
+/** Given a point, finds the shortest distance to the arc that is closest to that point. 
+  * Sign of the distance depends on whether point is "inside" or "outside" the glyph.
+  * (Negative distance corresponds to being inside the glyph.)
+  */
+static double
+distance_to_an_arc (Point<Coord> p,
+                    vector <Arc <Coord, Scalar> > arc_list)
+{
+  double min_distance = INFINITY;
+  int nearest_arc = 0;
+
+  for (int k = 0; k < arc_list.size (); k++)  {
+    double current_distance = arc_list.at(k).distance_to_point (p);    
+
+    /* If two arcs are equally close to this point, take the sign from the one
+       whose extension is farther away. (Extend arcs using tangent lines from endpoints;
+       this is done using the SignedVector operation "-".) */
+    if (fabs (fabs (current_distance) - fabs(min_distance)) < 1e-6) { 
+      SignedVector<Coord> to_arc_min = arc_list.at(nearest_arc) - p;
+      SignedVector<Coord> to_arc_current = arc_list.at(k) - p;
+      
+      if (to_arc_min.len () < to_arc_current.len ()) {
+        min_distance = fabs (min_distance) * (to_arc_current.negative ? -1 : 1);
+      }
+    }
+    else if (fabs (current_distance) < fabs(min_distance)) {
+      min_distance = current_distance;
+      nearest_arc = k;
+    }
+  }
+  return min_distance;
+}
+
+
+/***************************************************************************************************************************/
+/*** This uses the new SDF approach. ***************************************************************************************/
+/***************************************************************************************************************************/
+static void
+setup_texture (void)
+{
+#define TEXSIZE 64
+#define SAMPLING 4
+  //unsigned char data[height][width][4];
+#define FONTSIZE (TEXSIZE * SAMPLING)
+#define FONTFAMILY "serif"
+#define TEXT "a"
+#define UTF8 'a'
+#define FILTERWIDTH 8
+  int width = 0, height = 0, swidth, sheight;
+  cairo_surface_t *image = NULL, *dest;
+  cairo_t *cr;
+  unsigned char *data;
+  int i;
+
+  // Cairo stuff. Should be changed to use FT_Font stuff.
+  for (i = 0; i < 2; i++) {
+    cairo_text_extents_t extents;
+
+    if (image)
+      cairo_surface_destroy (image);
+
+    image = cairo_image_surface_create (CAIRO_FORMAT_A8, width, height);
+    cr = cairo_create (image);
+    cairo_set_source_rgb (cr, 0., 0., 0.);
+
+    cairo_select_font_face (cr, FONTFAMILY, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_set_font_size (cr, FONTSIZE);
+    cairo_text_extents (cr, TEXT, &extents);
+    width = ceil (extents.x_bearing + extents.width) - floor (extents.x_bearing);
+    height = ceil (extents.y_bearing + extents.height) - floor (extents.y_bearing);
+    width = (width+3)&~3;;
+    cairo_move_to (cr, -floor (extents.x_bearing), -floor (extents.y_bearing));
+    cairo_show_text (cr, TEXT);
+ //   cairo_destroy (cr);
+  }
+
+  swidth = width;
+  sheight = height;
+
+  width = (width + SAMPLING-1) / SAMPLING + 2 * FILTERWIDTH;
+  height = (height + SAMPLING-1) / SAMPLING + 2 * FILTERWIDTH;
+  width = (width+3)&~3;;
+
+
+  /************************************************** NEW CODE STARTS HERE. ****************************************************/
+
+  printf("Width: %d. Height: %d. SWidth: %d. SHeight: %d.\n", width, height, swidth, sheight);
+
+
+  typedef MaxDeviationApproximatorExact MaxDev;
+  typedef BezierArcErrorApproximatorBehdad<MaxDev> BezierArcError;
+  typedef BezierArcApproximatorMidpointTwoPart<BezierArcError> BezierArcApproximator;
+  typedef BezierArcsApproximatorSpringSystem<BezierArcApproximator> SpringSystem;
+  typedef ArcApproximatorOutlineSink<SpringSystem> ArcApproximatorOutlineSink;
+  double e;
+  class ArcAccumulator
+  {
+    public:
+    static bool callback (const arc_t &arc, void *closure)
+    {
+       ArcAccumulator *acc = static_cast<ArcAccumulator *> (closure);
+       acc->arcs.push_back (arc);
+       return true;
+    }
+    std::vector<arc_t> arcs;
+  } acc;
+
+  FT_Face face = cairo_ft_scaled_font_lock_face (cairo_get_scaled_font (cr));
+  unsigned int upem = face->units_per_EM;
+//  FT_Set_Char_Size (face, upem*64, upem*64, 0, 0);
+  FT_Set_Char_Size (face, 50000, 50000, 0, 0);
+  double tolerance = upem * 1e-3; //1e-3; /* in font design units */
+
+  if (FT_Load_Glyph (face, FT_Get_Char_Index (face, (FT_ULong) UTF8), FT_LOAD_NO_BITMAP))
+    abort ();
+  assert (face->glyph->format == FT_GLYPH_FORMAT_OUTLINE);
+
+  ArcApproximatorOutlineSink outline_arc_approximator (acc.callback,
+						       static_cast<void *> (&acc),
+						       tolerance);
+  FreeTypeOutlineSource<ArcApproximatorOutlineSink>::decompose_outline (&face->glyph->outline,
+									outline_arc_approximator);
+  cairo_ft_scaled_font_unlock_face (cairo_get_scaled_font (cr));
+  printf ("Num arcs %d; Approximation error %g; Tolerance %g; Percentage %g; %s\n",
+	  (int) acc.arcs.size (), e, tolerance, round (100 * e / tolerance), e <= tolerance ? "PASS" : "FAIL");
+
+  for (unsigned int i = 0; i < acc.arcs.size (); i++) {
+    arc_t a = acc.arcs.at(i);
+    printf("Arc. p0: (%g, %g). p1: (%g, %g). d: %f.\n", a.p0.x, a.p0.y, a.p1.x, a.p1.y, a.d);
+  }
+
+
+/************************************************************************************************************************8888888*****************/
+
+
+  // SDF stuff to change.
+  {
+    unsigned char *dd;
+    int x, y;
+    data = cairo_image_surface_get_data (image);
+    dest = cairo_image_surface_create (CAIRO_FORMAT_A8, width, height);
+    dd = cairo_image_surface_get_data (dest);
+
+
+    for (y = 0; y < height; y++)
+      for (x = 0; x < width; x++) {
+        int sx, sy, i, j;
+        double c;
+
+
+
+  /************************************************** NEW CODE STARTS HERE. ****************************************************/
+
+  // Main goal: Set D(x,y) = { 0   if inside, distance >= FW * SMP
+  //                           127 if inside, distance == 0
+  //                           255 if outside, distance >= FW * SMP
+
+#define S(x,y) ((x)<0||(y)<0||(x)>=swidth||(y)>=sheight ? 0 : data[(y)*swidth+(x)])
+#define D(x,y) (dd[(y)*width+(x)])
+
+  sx = (x - FILTERWIDTH) * SAMPLING;
+  sy = (y - FILTERWIDTH) * SAMPLING;
+  double d = distance_to_an_arc (Point<Coord> (sx*1000, sy*1000), acc.arcs) / 1000.;
+  
+  D(x,y) = MAX (d * 127.0 / (FILTERWIDTH * SAMPLING) + 127, 0);
+  D(x,y) = MIN (d * 127.0 / (FILTERWIDTH * SAMPLING) + 127, 255);
+  printf ("(%d, %d). Our d = %g. Our D = %d.   ", sx, sy, d, D(x,y));
+
+
+
+
+
+
+  
+
+  /************************************************************************************************************************8888888*****************/
+
+
+
+
+
+
+
+	sx = (x - FILTERWIDTH) * SAMPLING;
+	sy = (y - FILTERWIDTH) * SAMPLING;
+
+        c =  1e10;
+	if (S(sx,sy) >= 128) {
+	  /* in */
+	  for (i = -FILTERWIDTH*SAMPLING; i <= FILTERWIDTH*SAMPLING; i++)
+	    for (j = -FILTERWIDTH*SAMPLING; j <= FILTERWIDTH*SAMPLING; j++)
+	      if (S(sx+i,sy+j) < 128)
+		c = MIN (c, sqrt (i*i + j*j));
+//	  D(x,y) = 128 - MIN (c, FILTERWIDTH*SAMPLING) * 128. / (FILTERWIDTH*SAMPLING);
+          printf("Their c = %g. Their D = %g.\n", c, 128 - MIN (c, FILTERWIDTH*SAMPLING) * 128. / (FILTERWIDTH*SAMPLING));
+	} else {
+	  /* out */
+	  for (i = -FILTERWIDTH*SAMPLING; i <= FILTERWIDTH*SAMPLING; i++)
+	    for (j = -FILTERWIDTH*SAMPLING; j <= FILTERWIDTH*SAMPLING; j++)
+	      if (S(sx+i,sy+j) >= 128)
+		c = MIN (c, sqrt (i*i + j*j));
+//	  D(x,y) = 127 + MIN (c, FILTERWIDTH*SAMPLING) * 128. / (FILTERWIDTH*SAMPLING);
+          printf("Their c = %g. Their D = %g.\n", c, 127 + MIN (c, FILTERWIDTH*SAMPLING) * 128. / (FILTERWIDTH*SAMPLING));
+	}
+      }
+    data = cairo_image_surface_get_data (dest);
+  }
+
+  glTexImage2D (GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, data);
+  cairo_surface_write_to_png (image, "glyph.png");
+
+  cairo_surface_destroy (image);
+}
+
+
+
+
+
+
+
 
 
 static
@@ -286,7 +544,7 @@ gboolean expose_cb (GtkWidget *widget,
 
   drawable_swap_buffers (widget->window);
 
-  i++;
+//  i++;
 
   return TRUE;
 }
@@ -342,7 +600,6 @@ main (int argc, char** argv)
   fshader = COMPILE_SHADER (GL_FRAGMENT_SHADER,
       uniform sampler2D tex;
       varying vec2 v_texCoord;
-      varying float x;
       void main()
       {
 	float ddx = length (dFdx (v_texCoord));

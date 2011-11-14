@@ -840,8 +840,13 @@ inline const SignedVector<Coord> Arc<Coord, Scalar>::operator- (const Point<Coor
   
   if (fabs(d + 1) == 0)
     printf("d=-1!\t");
-  Arc<Coord, Scalar> other_arc (p0, p1, (d - 1.0) / (1.0 + d));   /******************************************************************************************************** NOT Robust. But works? *****************/
+  Arc<Coord, Scalar> other_arc (p0, p1, (d - 1.0) / (1.0 + d));  /********************************* NOT Robust. But works? *****************/
   Vector<Coord> normal = center () - (d0 < d1 ? p0 : p1) ;
+
+  if (normal.len() == 0)
+    return SignedVector<Coord> (Vector<Coord> (0, 0), false);    /************************************ Check sign of this S.D. *************/
+
+
   return SignedVector<Coord> ((d0 < d1 ? Line<Coord> (normal.dx, normal.dy, normal * Vector<Coord> (p0)) - p : 
                                          Line<Coord> (normal.dx, normal.dy, normal * Vector<Coord> (p1)) - p ), !other_arc.sector_contains_point(p)); /******************************* Looks correct. *********/
 }

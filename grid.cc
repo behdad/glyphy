@@ -52,8 +52,8 @@ typedef Arc<Coord, Scalar> arc_t;
 typedef Bezier<Coord> bezier_t;
 
 /* These control the dimensions of the grid overlaying the gylph. */
-static int grid_span_x = 8;
-static int grid_span_y = 8;
+static int grid_span_x = 228;
+static int grid_span_y = 228;
 static double min_font_size = 10;
 
 
@@ -288,7 +288,7 @@ gridify_and_find_arcs (cairo_t *cr, vector <Arc <Coord, Scalar> > arc_list, bool
       arcs_in_cells.push_back(closest_arcs.size());
 
       /* Print out the grid elements. */
-      printf("%d ", (int) (closest_arcs.size ()));
+ //     printf("%d ", (int) (closest_arcs.size ()));
     }
   }
   
@@ -545,7 +545,7 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
   FT_Face face = cairo_ft_scaled_font_lock_face (cairo_get_scaled_font (cr));
   unsigned int upem = face->units_per_EM;
   FT_Set_Char_Size (face, upem*64, upem*64, 0, 0);
-  double tolerance = upem * 1e-2; //1e-3; /* in font design units */
+  double tolerance = upem * 1e-3; //1e-3; /* in font design units */
   
   
   if (FT_Load_Glyph (face, FT_Get_Char_Index (face, (FT_ULong) *utf8), FT_LOAD_NO_BITMAP))
@@ -589,7 +589,7 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
   cairo_set_source_rgba (cr, 1, 0.3, 0., 0.5);
   cairo_set_line_width (cr, 4*64); //4 * 
   for (unsigned int i = 0; i < acc.arcs.size (); i++)
-   cairo_demo_arc (cr, acc.arcs[i]);
+    cairo_demo_arc (cr, acc.arcs[i]);
 
 
   cairo_restore (cr);
@@ -646,7 +646,7 @@ int main (int argc, char **argv)
  
 
  
- // demo_text (cr, "Times New Roman", "c");
+  demo_text (cr, "Arial", "*");
 
  // font_path = "./googlefontdirectory/tangerine/Tangerine_Regular.ttf";
 //  font_path += ".otf";
