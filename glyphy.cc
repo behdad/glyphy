@@ -199,7 +199,7 @@ drawable_swap_buffers (GdkDrawable *drawable)
 /*** This is the OLD way of doing it. Artifacts on edges, rounded corners. *************************************************/
 /**************************************************************************************************************************
 static void
-setup_texture_old_sampling (void)
+setup_texture (void)
 {
 #define TEXSIZE 64
 #define SAMPLING 8
@@ -329,27 +329,21 @@ setup_texture (void)
 {
 #define TEXSIZE 64
 #define SAMPLING 4
-  //unsigned char data[height][width][4];
-#define FONTSIZE (TEXSIZE * SAMPLING)
-#define FONTFAMILY "serif"
-#define TEXT "a"
 #define UTF8 'G'
 #define FILTERWIDTH 8
   int width = 0, height = 0, swidth, sheight;
   cairo_surface_t *image = NULL, *dest;
-//  cairo_t *cr;
+
   unsigned char *data;
 
 
-
-  
-//  FT_Face face = cairo_ft_scaled_font_lock_face (cairo_get_scaled_font (cr));
 
   FT_Face face;
   FT_Library library;
   FT_Init_FreeType (&library);
    
-  FT_New_Face ( library, "./googlefontdirectory/eatercaps/EaterCaps-Regular.ttf", 0, &face ); 
+//  FT_New_Face ( library, "./googlefontdirectory/eatercaps/EaterCaps-Regular.ttf", 0, &face ); 
+  FT_New_Face ( library, "./googlefontdirectory/ultra/Ultra.ttf", 0, &face ); 
 
   unsigned int upem = face->units_per_EM ;
   FT_Set_Char_Size (face, upem*64, upem*64, 0, 0);
@@ -359,8 +353,8 @@ setup_texture (void)
 
 
 
-  width = (*face).max_advance_width ;
-  height = (*face).height ;
+  width = (*face).max_advance_width / 1.5;
+  height = (*face).height / 1.5;
 
   swidth = width;
   sheight = height;
@@ -413,14 +407,11 @@ setup_texture (void)
   FreeTypeOutlineSource<ArcApproximatorOutlineSink>::decompose_outline (&face->glyph->outline,
   									outline_arc_approximator);
  
- // cairo_ft_scaled_font_unlock_face (cairo_get_scaled_font (cr));
+
   printf ("Num arcs %d; Approximation error %g; Tolerance %g; Percentage %g. %s\n",
 	  (int) acc.arcs.size (), e, tolerance, round (100 * e / tolerance), e <= tolerance ? "PASS" : "FAIL");
 
- // for (unsigned int i = 0; i < acc.arcs.size (); i++) {
- //   arc_t a = acc.arcs.at(i);
-   // printf("Arc. p0: (%g, %g). p1: (%g, %g). d: %f.\n", a.p0.x, a.p0.y, a.p1.x, a.p1.y, a.d);
- // }
+
 
 
 
@@ -464,7 +455,7 @@ setup_texture (void)
   else if (d >= FILTERWIDTH * SAMPLING)
     D(x,y) = 0;
   else
-    D(x,y) = d * -127.0 / (FILTERWIDTH * SAMPLING) - 127;
+    D(x,y) = d * (-127.5) / (FILTERWIDTH * SAMPLING) + 127.5;
 
 
 
