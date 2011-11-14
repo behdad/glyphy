@@ -333,35 +333,34 @@ setup_texture (void)
 #define FONTSIZE (TEXSIZE * SAMPLING)
 #define FONTFAMILY "serif"
 #define TEXT "a"
-#define UTF8 'a'
+#define UTF8 'G'
 #define FILTERWIDTH 8
   int width = 0, height = 0, swidth, sheight;
   cairo_surface_t *image = NULL, *dest;
-  cairo_t *cr;
+//  cairo_t *cr;
   unsigned char *data;
-  int i;
 
-  // Cairo stuff. Should be changed to use FT_Font stuff.
-  for (i = 0; i < 2; i++) {
-    cairo_text_extents_t extents;
 
-    if (image)
-      cairo_surface_destroy (image);
 
-    image = cairo_image_surface_create (CAIRO_FORMAT_A8, width, height);
-    cr = cairo_create (image);
-    cairo_set_source_rgb (cr, 0., 0., 0.);
+  
+//  FT_Face face = cairo_ft_scaled_font_lock_face (cairo_get_scaled_font (cr));
 
-    cairo_select_font_face (cr, FONTFAMILY, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-    cairo_set_font_size (cr, FONTSIZE);
-    cairo_text_extents (cr, TEXT, &extents);
-    width = ceil (extents.x_bearing + extents.width) - floor (extents.x_bearing);
-    height = ceil (extents.y_bearing + extents.height) - floor (extents.y_bearing);
-    width = (width+3)&~3;;
-    cairo_move_to (cr, -floor (extents.x_bearing), -floor (extents.y_bearing));
-    cairo_show_text (cr, TEXT);
- //   cairo_destroy (cr);
-  }
+  FT_Face face;
+  FT_Library library;
+  FT_Init_FreeType (&library);
+   
+  FT_New_Face ( library, "./googlefontdirectory/eatercaps/EaterCaps-Regular.ttf", 0, &face ); 
+
+  unsigned int upem = face->units_per_EM ;
+  FT_Set_Char_Size (face, upem*64, upem*64, 0, 0);
+
+
+  double tolerance = upem * 1e-5; //1e-3; /* in font design units */
+
+
+
+  width = (*face).max_advance_width ;
+  height = (*face).height ;
 
   swidth = width;
   sheight = height;
@@ -374,6 +373,7 @@ setup_texture (void)
   /************************************************** NEW CODE STARTS HERE. ****************************************************/
 
   printf("Width: %d. Height: %d. SWidth: %d. SHeight: %d.\n", width, height, swidth, sheight);
+
 
 
   typedef MaxDeviationApproximatorExact MaxDev;
@@ -394,45 +394,53 @@ setup_texture (void)
     std::vector<arc_t> arcs;
   } acc;
 
-  FT_Face face = cairo_ft_scaled_font_lock_face (cairo_get_scaled_font (cr));
-  unsigned int upem = face->units_per_EM;
-//  FT_Set_Char_Size (face, upem*64, upem*64, 0, 0);
-  FT_Set_Char_Size (face, 50000, 50000, 0, 0);
-  double tolerance = upem * 1e-3; //1e-3; /* in font design units */
 
-  if (FT_Load_Glyph (face, FT_Get_Char_Index (face, (FT_ULong) UTF8), FT_LOAD_NO_BITMAP))
+  acc.arcs.clear ();
+  if (FT_Load_Glyph (face,
+		     FT_Get_Char_Index (face, (FT_ULong) UTF8),
+		     FT_LOAD_NO_BITMAP |
+		     FT_LOAD_NO_HINTING |
+		     FT_LOAD_NO_AUTOHINT |
+		     FT_LOAD_NO_SCALE |
+		     FT_LOAD_LINEAR_DESIGN |
+		     FT_LOAD_IGNORE_TRANSFORM))
     abort ();
+  
   assert (face->glyph->format == FT_GLYPH_FORMAT_OUTLINE);
-
   ArcApproximatorOutlineSink outline_arc_approximator (acc.callback,
-						       static_cast<void *> (&acc),
-						       tolerance);
+  					         static_cast<void *> (&acc),
+					         tolerance);     
   FreeTypeOutlineSource<ArcApproximatorOutlineSink>::decompose_outline (&face->glyph->outline,
-									outline_arc_approximator);
-  cairo_ft_scaled_font_unlock_face (cairo_get_scaled_font (cr));
-  printf ("Num arcs %d; Approximation error %g; Tolerance %g; Percentage %g; %s\n",
+  									outline_arc_approximator);
+ 
+ // cairo_ft_scaled_font_unlock_face (cairo_get_scaled_font (cr));
+  printf ("Num arcs %d; Approximation error %g; Tolerance %g; Percentage %g. %s\n",
 	  (int) acc.arcs.size (), e, tolerance, round (100 * e / tolerance), e <= tolerance ? "PASS" : "FAIL");
 
-  for (unsigned int i = 0; i < acc.arcs.size (); i++) {
-    arc_t a = acc.arcs.at(i);
-    printf("Arc. p0: (%g, %g). p1: (%g, %g). d: %f.\n", a.p0.x, a.p0.y, a.p1.x, a.p1.y, a.d);
-  }
+ // for (unsigned int i = 0; i < acc.arcs.size (); i++) {
+ //   arc_t a = acc.arcs.at(i);
+   // printf("Arc. p0: (%g, %g). p1: (%g, %g). d: %f.\n", a.p0.x, a.p0.y, a.p1.x, a.p1.y, a.d);
+ // }
+
 
 
 /************************************************************************************************************************8888888*****************/
 
-
+  
   // SDF stuff to change.
   {
     unsigned char *dd;
     int x, y;
-    data = cairo_image_surface_get_data (image);
+  //  data = cairo_image_surface_get_data (image);
+
+
     dest = cairo_image_surface_create (CAIRO_FORMAT_A8, width, height);
     dd = cairo_image_surface_get_data (dest);
 
-
+  
     for (y = 0; y < height; y++)
       for (x = 0; x < width; x++) {
+   //     printf("Started! (x, y) = (%d, %d).\n", x, y);
         int sx, sy, i, j;
         double c;
 
@@ -447,58 +455,36 @@ setup_texture (void)
 #define S(x,y) ((x)<0||(y)<0||(x)>=swidth||(y)>=sheight ? 0 : data[(y)*swidth+(x)])
 #define D(x,y) (dd[(y)*width+(x)])
 
-  sx = (x - FILTERWIDTH) * SAMPLING;
+  sx = (width - FILTERWIDTH - (x - FILTERWIDTH)) * SAMPLING;	// For some reason, horizontally flipped by default. Quick fix.
   sy = (y - FILTERWIDTH) * SAMPLING;
-  double d = distance_to_an_arc (Point<Coord> (sx*1000, sy*1000), acc.arcs) / 1000.;
-  
-  D(x,y) = MAX (d * 127.0 / (FILTERWIDTH * SAMPLING) + 127, 0);
-  D(x,y) = MIN (d * 127.0 / (FILTERWIDTH * SAMPLING) + 127, 255);
-  printf ("(%d, %d). Our d = %g. Our D = %d.   ", sx, sy, d, D(x,y));
+  double d = distance_to_an_arc (Point<Coord> (sx, sy), acc.arcs) ;
+
+  if (d <= -1 * FILTERWIDTH * SAMPLING)
+    D(x,y) = 255;
+  else if (d >= FILTERWIDTH * SAMPLING)
+    D(x,y) = 0;
+  else
+    D(x,y) = d * -127.0 / (FILTERWIDTH * SAMPLING) - 127;
 
 
 
 
+//  printf ("(%d, %d). Our d = %g. Our D = %d.   ", sx, sy, d, D(x,y));
+   } 
 
 
-  
-
-  /************************************************************************************************************************8888888*****************/
-
-
-
-
-
-
-
-	sx = (x - FILTERWIDTH) * SAMPLING;
-	sy = (y - FILTERWIDTH) * SAMPLING;
-
-        c =  1e10;
-	if (S(sx,sy) >= 128) {
-	  /* in */
-	  for (i = -FILTERWIDTH*SAMPLING; i <= FILTERWIDTH*SAMPLING; i++)
-	    for (j = -FILTERWIDTH*SAMPLING; j <= FILTERWIDTH*SAMPLING; j++)
-	      if (S(sx+i,sy+j) < 128)
-		c = MIN (c, sqrt (i*i + j*j));
-//	  D(x,y) = 128 - MIN (c, FILTERWIDTH*SAMPLING) * 128. / (FILTERWIDTH*SAMPLING);
-          printf("Their c = %g. Their D = %g.\n", c, 128 - MIN (c, FILTERWIDTH*SAMPLING) * 128. / (FILTERWIDTH*SAMPLING));
-	} else {
-	  /* out */
-	  for (i = -FILTERWIDTH*SAMPLING; i <= FILTERWIDTH*SAMPLING; i++)
-	    for (j = -FILTERWIDTH*SAMPLING; j <= FILTERWIDTH*SAMPLING; j++)
-	      if (S(sx+i,sy+j) >= 128)
-		c = MIN (c, sqrt (i*i + j*j));
-//	  D(x,y) = 127 + MIN (c, FILTERWIDTH*SAMPLING) * 128. / (FILTERWIDTH*SAMPLING);
-          printf("Their c = %g. Their D = %g.\n", c, 127 + MIN (c, FILTERWIDTH*SAMPLING) * 128. / (FILTERWIDTH*SAMPLING));
-	}
-      }
     data = cairo_image_surface_get_data (dest);
   }
 
-  glTexImage2D (GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, data);
-  cairo_surface_write_to_png (image, "glyph.png");
 
-  cairo_surface_destroy (image);
+ // return;
+
+  glTexImage2D (GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, data);
+//  cairo_surface_write_to_png (image, "glyph.png");
+
+
+
+ // cairo_surface_destroy (image); 
 }
 
 
@@ -544,7 +530,7 @@ gboolean expose_cb (GtkWidget *widget,
 
   drawable_swap_buffers (widget->window);
 
-//  i++;
+  i++;
 
   return TRUE;
 }
