@@ -328,48 +328,34 @@ static void
 setup_texture (void)
 {
 #define TEXSIZE 64
-#define SAMPLING 4
 #define UTF8 'G'
-#define FILTERWIDTH 8
-  int width = 0, height = 0, swidth, sheight;
+
+  int width = 0, height = 0;
   cairo_surface_t *image = NULL, *dest;
 
   unsigned char *data;
-
-
-
+  
   FT_Face face;
   FT_Library library;
   FT_Init_FreeType (&library);
    
-//  FT_New_Face ( library, "./googlefontdirectory/eatercaps/EaterCaps-Regular.ttf", 0, &face ); 
-  FT_New_Face ( library, "./googlefontdirectory/ultra/Ultra.ttf", 0, &face ); 
+//  FT_New_Face ( library, "./googlefontdirectory/gentiumbookbasic/GenBkBasB.ttf", 0, &face );  
+  FT_New_Face ( library, "./googlefontdirectory/eatercaps/EaterCaps-Regular.ttf", 0, &face ); 
+//  FT_New_Face ( library, "./googlefontdirectory/ultra/Ultra.ttf", 0, &face ); 
 
-  unsigned int upem = face->units_per_EM ;
-  FT_Set_Char_Size (face, upem*64, upem*64, 0, 0);
+  unsigned int upem = face->units_per_EM;
+  printf("upem = %d\n", upem);
+  FT_Set_Char_Size (face, upem * 64, upem * 64, 0, 0);
+  double tolerance = upem * 1e-3; /* in font design units */
 
-
-  double tolerance = upem * 1e-5; //1e-3; /* in font design units */
-
-
-
-  width = (*face).max_advance_width / 1.5;
-  height = (*face).height / 1.5;
-
-  swidth = width;
-  sheight = height;
-
-  width = (width + SAMPLING-1) / SAMPLING + 2 * FILTERWIDTH;
-  height = (height + SAMPLING-1) / SAMPLING + 2 * FILTERWIDTH;
+  width = TEXSIZE; //(*face).max_advance_width / 1.5;
+  height = TEXSIZE; //(*face).height / 1.5;
   width = (width+3)&~3;;
+  FT_Set_Char_Size (face, TEXSIZE, TEXSIZE, 0, 0);
+  printf("Width: %d. Height: %d.\n", width, height);
 
 
-  /************************************************** NEW CODE STARTS HERE. ****************************************************/
-
-  printf("Width: %d. Height: %d. SWidth: %d. SHeight: %d.\n", width, height, swidth, sheight);
-
-
-
+  // Arc approximation code.
   typedef MaxDeviationApproximatorExact MaxDev;
   typedef BezierArcErrorApproximatorBehdad<MaxDev> BezierArcError;
   typedef BezierArcApproximatorMidpointTwoPart<BezierArcError> BezierArcApproximator;
@@ -387,7 +373,6 @@ setup_texture (void)
     }
     std::vector<arc_t> arcs;
   } acc;
-
 
   acc.arcs.clear ();
   if (FT_Load_Glyph (face,
@@ -411,71 +396,42 @@ setup_texture (void)
   printf ("Num arcs %d; Approximation error %g; Tolerance %g; Percentage %g. %s\n",
 	  (int) acc.arcs.size (), e, tolerance, round (100 * e / tolerance), e <= tolerance ? "PASS" : "FAIL");
 
-
-
-
-
-/************************************************************************************************************************8888888*****************/
-
-  
   // SDF stuff to change.
   {
     unsigned char *dd;
     int x, y;
-  //  data = cairo_image_surface_get_data (image);
-
 
     dest = cairo_image_surface_create (CAIRO_FORMAT_A8, width, height);
     dd = cairo_image_surface_get_data (dest);
+    
+#define D(x,y) (dd[(y)*width+(x)])  
+// Main goal: Set D(x,y) = { 0   if inside, distance >= TEXSIZE
+//                           127 if inside, distance == 0
+//                           255 if outside, distance <= -TEXSIZE
 
-  
+printf("Starting loop.... ");
+
     for (y = 0; y < height; y++)
       for (x = 0; x < width; x++) {
-   //     printf("Started! (x, y) = (%d, %d).\n", x, y);
-        int sx, sy, i, j;
-        double c;
+        double d = distance_to_an_arc (Point<Coord> ((width - x) * (*face).max_advance_width / (1.5 * TEXSIZE),
+        					      y* (*face).height/(1.5 * TEXSIZE)), acc.arcs); // For some reason, horizontally flipped by default. Quick fix.
 
-
-
-  /************************************************** NEW CODE STARTS HERE. ****************************************************/
-
-  // Main goal: Set D(x,y) = { 0   if inside, distance >= FW * SMP
-  //                           127 if inside, distance == 0
-  //                           255 if outside, distance >= FW * SMP
-
-#define S(x,y) ((x)<0||(y)<0||(x)>=swidth||(y)>=sheight ? 0 : data[(y)*swidth+(x)])
-#define D(x,y) (dd[(y)*width+(x)])
-
-  sx = (width - FILTERWIDTH - (x - FILTERWIDTH)) * SAMPLING;	// For some reason, horizontally flipped by default. Quick fix.
-  sy = (y - FILTERWIDTH) * SAMPLING;
-  double d = distance_to_an_arc (Point<Coord> (sx, sy), acc.arcs) ;
-
-  if (d <= -1 * FILTERWIDTH * SAMPLING)
-    D(x,y) = 255;
-  else if (d >= FILTERWIDTH * SAMPLING)
-    D(x,y) = 0;
-  else
-    D(x,y) = d * (-127.5) / (FILTERWIDTH * SAMPLING) + 127.5;
-
-
-
-
-//  printf ("(%d, %d). Our d = %g. Our D = %d.   ", sx, sy, d, D(x,y));
-   } 
-
+        // Antialiasing happens here. 
+        if (d <= -1 * TEXSIZE) 
+          D(x,y) = 255;
+        else if (d >= TEXSIZE) 
+          D(x,y) = 0;
+        else
+          D(x,y) = d * (-127.5) / TEXSIZE + 127.5; 
+      } 
 
     data = cairo_image_surface_get_data (dest);
   }
 
-
- // return;
-
+  printf("Nearly done.... ");
   glTexImage2D (GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, data);
-//  cairo_surface_write_to_png (image, "glyph.png");
-
-
-
- // cairo_surface_destroy (image); 
+  printf("Done setup.\n");
+  return;
 }
 
 
@@ -552,7 +508,7 @@ main (int argc, char** argv)
   gtk_init (&argc, &argv);
 
   window = GTK_WIDGET (gtk_window_new (GTK_WINDOW_TOPLEVEL));
-  gtk_window_set_default_size (GTK_WINDOW (window), 300, 300);
+  gtk_window_set_default_size (GTK_WINDOW (window), 500, 500);
   g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (gtk_main_quit), NULL);
 
   eglInitialize (eglGetDisplay (gdk_x11_display_get_xdisplay (gtk_widget_get_display (window))), NULL, NULL);
@@ -582,7 +538,7 @@ main (int argc, char** argv)
 	float ddx = length (dFdx (v_texCoord));
 	float ddy = length (dFdy (v_texCoord));
 	float m = max (ddx, ddy); /* isotropic antialiasing */
-	float mm = m * 128. / (FILTERWIDTH*SAMPLING);
+	float mm = m * 128. / 32 ;/// (TEXSIZE); //FILTERWIDTH*SAMPLING);
 
 	float alpha = smoothstep (-mm, mm, texture2D(tex, v_texCoord).r - .5);
 	vec4 c;
