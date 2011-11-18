@@ -292,8 +292,7 @@ setup_texture (void)
   * (Negative distance corresponds to being inside the glyph.)
   */
 static double
-distance_to_an_arc (Point<Coord> p,
-                    vector <Arc <Coord, Scalar> > arc_list)
+distance_to_an_arc (point_t p, vector <arc_t > arc_list)
 {
   double min_distance = INFINITY;
   int nearest_arc = 0;
@@ -321,11 +320,19 @@ distance_to_an_arc (Point<Coord> p,
 }
 
 
+/**************************** This is an object in the list of arc "d" values, which also points to the endpoint of the arc. *******/
+struct arc_id_t {
+  double d;
+  int p0_index;
+  bool closes_loop;
+};
+
+
 /***************************************************************************************************************************/
 /*** This uses the new SDF approach. ***************************************************************************************/
 /***************************************************************************************************************************/
 static void
-setup_texture (void)
+setup_texture (const char *font_path)
 {
 #define TEXSIZE 64
 #define UTF8 'G'
@@ -340,12 +347,16 @@ setup_texture (void)
   FT_Init_FreeType (&library);
    
 //  FT_New_Face ( library, "./googlefontdirectory/gentiumbookbasic/GenBkBasB.ttf", 0, &face );  
-  FT_New_Face ( library, "./googlefontdirectory/eatercaps/EaterCaps-Regular.ttf", 0, &face ); 
-//  FT_New_Face ( library, "./googlefontdirectory/ultra/Ultra.ttf", 0, &face ); 
+//  FT_New_Face ( library, "./googlefontdirectory/eatercaps/EaterCaps-Regular.ttf", 0, &face ); 
+//  FT_New_Face ( library, "./googlefontdirectory/tuffy/Tuffy-Regular.ttf", 0, &face ); 
+ // FT_New_Face ( library, "./googlefontdirectory/homemadeapple/HomemadeApple.ttf", 0, &face ); 
+ 
+  FT_New_Face ( library, font_path, 0, &face );
+ 
 
   unsigned int upem = face->units_per_EM;
-  printf("upem = %d\n", upem);
-  FT_Set_Char_Size (face, upem * 64, upem * 64, 0, 0);
+//  printf("upem = %d\n", upem);
+//  FT_Set_Char_Size (face, upem * 64, upem * 64, 0, 0);
   double tolerance = upem * 1e-3; /* in font design units */
 
   width = TEXSIZE; //(*face).max_advance_width / 1.5;
@@ -373,8 +384,28 @@ setup_texture (void)
     }
     std::vector<arc_t> arcs;
   } acc;
+  
+
+  
+  class ArcsTexture
+  {  
+    public: 
+    // How needed is this?
+/*  static bool callback (const arc_t &arc, void *closure)
+    {
+       ArcAccumulator *acc = static_cast<ArcAccumulator *> (closure);
+       acc->arcs.push_back (arc);
+       return true;
+    } */
+    std::vector<point_t> arc_endpoints;
+    std::vector<arc_id_t> arc_ids;
+    
+  } tex;
 
   acc.arcs.clear ();
+  tex.arc_endpoints.clear ();
+  tex.arc_ids.clear ();
+  
   if (FT_Load_Glyph (face,
 		     FT_Get_Char_Index (face, (FT_ULong) UTF8),
 		     FT_LOAD_NO_BITMAP |
@@ -396,6 +427,74 @@ setup_texture (void)
   printf ("Num arcs %d; Approximation error %g; Tolerance %g; Percentage %g. %s\n",
 	  (int) acc.arcs.size (), e, tolerance, round (100 * e / tolerance), e <= tolerance ? "PASS" : "FAIL");
 
+  int start_loop_index = 0;
+  int last_point_index = 0;  // Is this needed?
+  
+  // Set up first arc
+  if (acc.arcs.size () > 0) {
+    tex.arc_endpoints.push_back (acc.arcs.at (0).p0);
+    
+    arc_id_t first_arc;
+    first_arc.d = acc.arcs.at (0).d;
+    first_arc.p0_index = 0;
+    if (acc.arcs.at (0).p1 == tex.arc_endpoints.at (start_loop_index)) {
+      start_loop_index = 1;
+      first_arc.closes_loop = true;
+    } 
+    else {
+      first_arc.closes_loop = false;      
+      tex.arc_endpoints.push_back (acc.arcs.at (0).p1);
+    }
+    tex.arc_ids.push_back (first_arc); 
+    last_point_index++;
+  }
+  
+  
+  // Set up remaining arcs.
+  for (int i = 1; i < acc.arcs.size (); i++) {
+  
+    // Put the arc into the arc list.
+    arc_id_t current_arc;
+    current_arc.d = acc.arcs.at (i).d;
+    
+    // Is the arc connected to the previous arc?
+    if (acc.arcs.at (i).p0 != tex.arc_endpoints.at (last_point_index)) {
+      tex.arc_endpoints.push_back (acc.arcs.at (0).p0);
+      last_point_index++;
+      
+    //  assert (start_loop_index == last_point_index);   /***************************************** Look into this. *****************************/
+    }
+    current_arc.p0_index = last_point_index;
+    
+    if (acc.arcs.at (i).p1 == tex.arc_endpoints.at (start_loop_index)) {
+      start_loop_index = last_point_index + 1;
+      printf("Start loop index is %d!\n", start_loop_index);
+      current_arc.closes_loop = true;
+    } 
+    else {
+      current_arc.closes_loop = false;
+      tex.arc_endpoints.push_back (acc.arcs.at (i).p1);
+      last_point_index++;
+    }
+    tex.arc_ids.push_back (current_arc); 
+  }
+  
+  #if 0
+  printf ("Point List:\n");
+  for (int i = 0; i < tex.arc_endpoints.size(); i++)
+    printf ("  %d.\t(%g, %g)\n", i, tex.arc_endpoints.at (i).x, tex.arc_endpoints.at (i).y);
+    
+  printf ("Arc List:\n");
+  for (int i = 0; i < tex.arc_ids.size (); i++)	
+    printf("  %d.\td = %g, p0 at %d. Have (%g,%g) to (%g,%g), %s.\n", i, tex.arc_ids.at (i).d, tex.arc_ids.at (i).p0_index,
+    				 acc.arcs.at (i).p0.x,
+    				 acc.arcs.at (i).p0.y,
+    				 acc.arcs.at (i).p1.x,
+    				 acc.arcs.at (i).p1.y,
+    				 tex.arc_ids.at (i).closes_loop ? "closes the loop )))))))))))." : "continues the loop((((((((((.");
+
+  #endif
+
   // SDF stuff to change.
   {
     unsigned char *dd;
@@ -413,8 +512,8 @@ printf("Starting loop.... ");
 
     for (y = 0; y < height; y++)
       for (x = 0; x < width; x++) {
-        double d = distance_to_an_arc (Point<Coord> ((width - x) * (*face).max_advance_width / (1.5 * TEXSIZE),
-        					      y* (*face).height/(1.5 * TEXSIZE)), acc.arcs); // For some reason, horizontally flipped by default. Quick fix.
+        double d = distance_to_an_arc (Point<Coord> (x * (*face).max_advance_width / (1.5 * TEXSIZE),
+        					     (height - y)* (*face).height/(1.5 * TEXSIZE)), acc.arcs); // For some reason, flipped by default. Quick fix.
 
         // Antialiasing happens here. 
         if (d <= -1 * TEXSIZE) 
@@ -477,6 +576,7 @@ gboolean expose_cb (GtkWidget *widget,
 
   drawable_swap_buffers (widget->window);
 
+  // Comment out to disable rotation.
   i++;
 
   return TRUE;
@@ -493,8 +593,18 @@ int
 main (int argc, char** argv)
 {
   GtkWidget *window;
+  char *font_path;
+  if (argc >= 1) {
+     font_path = argv[1];
+     printf("Font path: %s", font_path);
+  }
+  
+  
   GLuint vshader, fshader, program, texture, a_pos_loc, a_tex_loc;
-#define ZOOM 2
+  
+  // Draw a grid of (ZOOM x ZOOM) glyphs.
+  // TODO: Figure out what this list means, and how!!!!!!!!!!!!!!!!!!!!!!
+#define ZOOM 1
   const GLfloat w_vertices[] = { -1.00, -1.00, +0.00,
 				 +0.00, ZOOM,
 				 +1.00, -1.00, +0.00,
@@ -541,15 +651,14 @@ main (int argc, char** argv)
 	float mm = m * 128. / 32 ;/// (TEXSIZE); //FILTERWIDTH*SAMPLING);
 
 	float alpha = smoothstep (-mm, mm, texture2D(tex, v_texCoord).r - .5);
-	vec4 c;
+	float alpha2 = texture2D(tex, v_texCoord).r;
 
 	//alpha = texture2D(tex, v_texCoord);
-	if (v_texCoord.s < 5)
-	  c = mix (vec4(0,0,0,1), vec4(1,1,1,1), alpha);
-	else
-	  c = mix (vec4(1,1,1,1), vec4(0,0,0,1), alpha);
+	//vec4 c = mix (vec4(0,0,0,1), vec4(1,1,1,1), alpha2);
+	vec4 c2 = mix (vec4(1,0,0,1), vec4(0,0,1,1), alpha);
+	vec4 c_real = mix (vec4(0,0,0,1), vec4(1,1,1,1), alpha);
 	//c = sqrt (c);
-	gl_FragColor = c;
+	gl_FragColor = c_real; //mix(c, c2, .5);
       }
   );
   program = create_program (vshader, fshader);
@@ -565,7 +674,7 @@ main (int argc, char** argv)
   //glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   //glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-  setup_texture ();
+  setup_texture (font_path);
 
   a_pos_loc = glGetAttribLocation(program, "a_position");
   a_tex_loc = glGetAttribLocation(program, "a_texCoord");
