@@ -320,13 +320,6 @@ distance_to_an_arc (point_t p, vector <arc_t > arc_list)
 }
 
 
-/**************************** This is an object in the list of arc "d" values, which also points to the endpoint of the arc. *******/
-struct arc_id_t {
-  double d;
-  int p0_index;
-  bool closes_loop;
-};
-
 
 /***************************************************************************************************************************/
 /*** This uses the new SDF approach. ***************************************************************************************/
@@ -335,7 +328,7 @@ static void
 setup_texture (const char *font_path)
 {
 #define TEXSIZE 64
-#define UTF8 'G'
+#define UTF8 'o'
 
   int width = 0, height = 0;
   cairo_surface_t *image = NULL, *dest;
@@ -346,19 +339,13 @@ setup_texture (const char *font_path)
   FT_Library library;
   FT_Init_FreeType (&library);
    
-//  FT_New_Face ( library, "./googlefontdirectory/gentiumbookbasic/GenBkBasB.ttf", 0, &face );  
-//  FT_New_Face ( library, "./googlefontdirectory/eatercaps/EaterCaps-Regular.ttf", 0, &face ); 
-//  FT_New_Face ( library, "./googlefontdirectory/tuffy/Tuffy-Regular.ttf", 0, &face ); 
- // FT_New_Face ( library, "./googlefontdirectory/homemadeapple/HomemadeApple.ttf", 0, &face ); 
- 
   FT_New_Face ( library, font_path, 0, &face );
  
 
   unsigned int upem = face->units_per_EM;
-//  printf("upem = %d\n", upem);
-//  FT_Set_Char_Size (face, upem * 64, upem * 64, 0, 0);
   double tolerance = upem * 1e-3; /* in font design units */
 
+  /************************************************************************************** These dimensions are not /quite/ perfect... *********************/
   width = TEXSIZE; //(*face).max_advance_width / 1.5;
   height = TEXSIZE; //(*face).height / 1.5;
   width = (width+3)&~3;;
@@ -390,22 +377,15 @@ setup_texture (const char *font_path)
   class ArcsTexture
   {  
     public: 
-    // How needed is this?
-/*  static bool callback (const arc_t &arc, void *closure)
-    {
-       ArcAccumulator *acc = static_cast<ArcAccumulator *> (closure);
-       acc->arcs.push_back (arc);
-       return true;
-    } */
     std::vector<point_t> arc_endpoints;
-    std::vector<arc_id_t> arc_ids;
-    
+    std::vector<double>  d_values;    
   } tex;
 
   acc.arcs.clear ();
   tex.arc_endpoints.clear ();
-  tex.arc_ids.clear ();
+  tex.d_values.clear ();
   
+  // The actual arc decomposition is done here.
   if (FT_Load_Glyph (face,
 		     FT_Get_Char_Index (face, (FT_ULong) UTF8),
 		     FT_LOAD_NO_BITMAP |
@@ -422,76 +402,41 @@ setup_texture (const char *font_path)
 					         tolerance);     
   FreeTypeOutlineSource<ArcApproximatorOutlineSink>::decompose_outline (&face->glyph->outline,
   									outline_arc_approximator);
- 
-
   printf ("Num arcs %d; Approximation error %g; Tolerance %g; Percentage %g. %s\n",
 	  (int) acc.arcs.size (), e, tolerance, round (100 * e / tolerance), e <= tolerance ? "PASS" : "FAIL");
 
-  int start_loop_index = 0;
-  int last_point_index = 0;  // Is this needed?
-  
-  // Set up first arc
-  if (acc.arcs.size () > 0) {
-    tex.arc_endpoints.push_back (acc.arcs.at (0).p0);
-    
-    arc_id_t first_arc;
-    first_arc.d = acc.arcs.at (0).d;
-    first_arc.p0_index = 0;
-    if (acc.arcs.at (0).p1 == tex.arc_endpoints.at (start_loop_index)) {
-      start_loop_index = 1;
-      first_arc.closes_loop = true;
-    } 
-    else {
-      first_arc.closes_loop = false;      
-      tex.arc_endpoints.push_back (acc.arcs.at (0).p1);
+
+  // Populate lists for storing arc data.
+  int arc_count;
+  for (arc_count = 0; arc_count < acc.arcs.size () - 1; arc_count++) {
+    arc_t current_arc = acc.arcs.at (arc_count);
+    tex.arc_endpoints.push_back (current_arc.p0);
+    tex.d_values.push_back (current_arc.d);
+    if (current_arc.p1 != acc.arcs.at (arc_count+1).p0) {                         // Close the current loop in the outline.
+      tex.arc_endpoints.push_back (current_arc.p1);
+      tex.d_values.push_back (INFINITY);
     }
-    tex.arc_ids.push_back (first_arc); 
-    last_point_index++;
   }
+  // The last arc needs to be done specially.
+  tex.arc_endpoints.push_back (acc.arcs.at (arc_count).p0);
+  tex.arc_endpoints.push_back (acc.arcs.at (arc_count).p1);
+  tex.d_values.push_back (acc.arcs.at (arc_count).d);
+  tex.d_values.push_back (INFINITY);
   
   
-  // Set up remaining arcs.
-  for (int i = 1; i < acc.arcs.size (); i++) {
-  
-    // Put the arc into the arc list.
-    arc_id_t current_arc;
-    current_arc.d = acc.arcs.at (i).d;
-    
-    // Is the arc connected to the previous arc?
-    if (acc.arcs.at (i).p0 != tex.arc_endpoints.at (last_point_index)) {
-      tex.arc_endpoints.push_back (acc.arcs.at (0).p0);
-      last_point_index++;
-      
-    //  assert (start_loop_index == last_point_index);   /***************************************** Look into this. *****************************/
-    }
-    current_arc.p0_index = last_point_index;
-    
-    if (acc.arcs.at (i).p1 == tex.arc_endpoints.at (start_loop_index)) {
-      start_loop_index = last_point_index + 1;
-      printf("Start loop index is %d!\n", start_loop_index);
-      current_arc.closes_loop = true;
-    } 
-    else {
-      current_arc.closes_loop = false;
-      tex.arc_endpoints.push_back (acc.arcs.at (i).p1);
-      last_point_index++;
-    }
-    tex.arc_ids.push_back (current_arc); 
-  }
-  
-  #if 0
-  printf ("Point List:\n");
+  // Display the arc data.
+  #if 0  
+  printf ("Our List:\n");
   for (int i = 0; i < tex.arc_endpoints.size(); i++)
-    printf ("  %d.\t(%g, %g)\n", i, tex.arc_endpoints.at (i).x, tex.arc_endpoints.at (i).y);
+    printf ("  %d.\t(%g, %g), d = %g.\n", i, tex.arc_endpoints.at (i).x, tex.arc_endpoints.at (i).y, tex.d_values.at(i));
     
-  printf ("Arc List:\n");
-  for (int i = 0; i < tex.arc_ids.size (); i++)	
-    printf("  %d.\td = %g, p0 at %d. Have (%g,%g) to (%g,%g), %s.\n", i, tex.arc_ids.at (i).d, tex.arc_ids.at (i).p0_index,
+  printf ("Correct List:\n");
+  for (int i = 0; i < acc.arcs.size (); i++)	
+    printf("  %d.\td = %g. Have (%g,%g) to (%g,%g).\n", i, acc.arcs.at (i).d,
     				 acc.arcs.at (i).p0.x,
     				 acc.arcs.at (i).p0.y,
     				 acc.arcs.at (i).p1.x,
-    				 acc.arcs.at (i).p1.y,
-    				 tex.arc_ids.at (i).closes_loop ? "closes the loop )))))))))))." : "continues the loop((((((((((.");
+    				 acc.arcs.at (i).p1.y);
 
   #endif
 
@@ -515,7 +460,7 @@ printf("Starting loop.... ");
         double d = distance_to_an_arc (Point<Coord> (x * (*face).max_advance_width / (1.5 * TEXSIZE),
         					     (height - y)* (*face).height/(1.5 * TEXSIZE)), acc.arcs); // For some reason, flipped by default. Quick fix.
 
-        // Antialiasing happens here. 
+        // Antialiasing (?) happens here (?). 
         if (d <= -1 * TEXSIZE) 
           D(x,y) = 255;
         else if (d >= TEXSIZE) 
@@ -577,7 +522,7 @@ gboolean expose_cb (GtkWidget *widget,
   drawable_swap_buffers (widget->window);
 
   // Comment out to disable rotation.
-  i++;
+  //i++;
 
   return TRUE;
 }
@@ -604,7 +549,7 @@ main (int argc, char** argv)
   
   // Draw a grid of (ZOOM x ZOOM) glyphs.
   // TODO: Figure out what this list means, and how!!!!!!!!!!!!!!!!!!!!!!
-#define ZOOM 1
+#define ZOOM 10
   const GLfloat w_vertices[] = { -1.00, -1.00, +0.00,
 				 +0.00, ZOOM,
 				 +1.00, -1.00, +0.00,
@@ -618,7 +563,7 @@ main (int argc, char** argv)
   gtk_init (&argc, &argv);
 
   window = GTK_WIDGET (gtk_window_new (GTK_WINDOW_TOPLEVEL));
-  gtk_window_set_default_size (GTK_WINDOW (window), 500, 500);
+  gtk_window_set_default_size (GTK_WINDOW (window), 900, 900);
   g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (gtk_main_quit), NULL);
 
   eglInitialize (eglGetDisplay (gdk_x11_display_get_xdisplay (gtk_widget_get_display (window))), NULL, NULL);
