@@ -482,7 +482,7 @@ demo_text_2 (const char *font_path)
     char* glyph_name;
     if (FT_HAS_GLYPH_NAMES (face)) {    
   //  FT_Error e = 
-  //  FT_Get_Glyph_Name(face, i, glyph_name, 128);
+    //  FT_Get_Glyph_Name(face, i, glyph_name, 128);
     }
 
     printf ("Glyph #%d; Grid: %d by %d; Tolerance: %g; Num_arcs: %d; ", 

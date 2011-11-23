@@ -44,6 +44,22 @@ typedef Arc<Coord, Scalar> arc_t;
 typedef Bezier<Coord> bezier_t;
 
 
+static double min_font_size = 10; /************************************************************************ ARBITRARY *********************************/
+static const int NUM_SAVED_ARCS = 50;
+
+struct grid_cell {
+  char arcs [NUM_SAVED_ARCS]; 
+  char more_arcs_pointer;
+};
+
+#define TEXSIZE 64
+struct arcs_texture  /********************************************************************************* Struct or Class? **************************/
+{  
+    std::vector<point_t> arc_endpoints;
+    std::vector<double>  d_values;    
+    grid_cell grid [TEXSIZE][TEXSIZE];  /********************************************************* 32 by 32? 64 by 64? ***************************/
+};
+
 
 static void
 die (const char *msg)
@@ -199,7 +215,7 @@ drawable_swap_buffers (GdkDrawable *drawable)
 /*** This is the OLD way of doing it. Artifacts on edges, rounded corners. *************************************************/
 /**************************************************************************************************************************
 static void
-setup_texture (void)
+setup_texture (char* hi)
 {
 #define TEXSIZE 64
 #define SAMPLING 8
@@ -286,38 +302,142 @@ setup_texture (void)
 
 
 
+/* Given a list of arcs, finds a reasonable set of boundaries for a grid that covers all of them. */
+static void
+find_grid_boundaries (double &grid_min_x, 
+                      double &grid_max_x,
+                      double &grid_min_y, 
+                      double &grid_max_y, 
+                      vector <Arc <Coord, Scalar> > arc_list)
+{
+  grid_min_x = INFINITY; //-20;
+  grid_max_x = -1 * INFINITY; //350;
+  grid_min_y = INFINITY; //-120;
+  grid_max_y = -1 * INFINITY; //210;
+
+  for (int i = 0; i < arc_list.size (); i++)  {
+    Arc<Coord, Scalar> arc = arc_list.at(i);
+    grid_min_x = std::min (grid_min_x, (fabs(arc.d) < 0.3 ? std::min (arc.p0.x, arc.p1.x) : arc.center().x - arc.radius()));
+    grid_max_x = std::max (grid_max_x, (fabs(arc.d) < 0.3 ? std::max (arc.p0.x, arc.p1.x) : arc.center().x + arc.radius()));
+    grid_min_y = std::min (grid_min_y, (fabs(arc.d) < 0.3 ? std::min (arc.p0.y, arc.p1.y) : arc.center().y - arc.radius()));
+    grid_max_y = std::max (grid_max_y, (fabs(arc.d) < 0.3 ? std::max (arc.p0.y, arc.p1.y) : arc.center().y + arc.radius()));
+  }
+  grid_min_x *= 0.98;
+  grid_min_y *= 0.98;
+  grid_max_y *= 1.02;
+  grid_max_x *= 1.02;
+}
 
 /** Given a point, finds the shortest distance to the arc that is closest to that point. 
   * Sign of the distance depends on whether point is "inside" or "outside" the glyph.
   * (Negative distance corresponds to being inside the glyph.)
   */
 static double
-distance_to_an_arc (point_t p, vector <arc_t > arc_list)
+distance_to_an_arc (point_t p, arcs_texture tex, int x, int y)
 {
-  double min_distance = INFINITY;
-  int nearest_arc = 0;
+  arc_t nearest_arc (tex.arc_endpoints.at (0),
+                         tex.arc_endpoints.at (1),
+                         tex.d_values.at (0));
+  double min_distance = nearest_arc.distance_to_point (p);
+  int arc_index = tex.grid[x][y].arcs[0];
 
-  for (int k = 0; k < arc_list.size (); k++)  {
-    double current_distance = arc_list.at(k).distance_to_point (p);    
+  for (int k = 0; k < NUM_SAVED_ARCS && arc_index >= 0; k++)  { 
+    if (tex.d_values.at (arc_index) < INFINITY) {         
+      arc_t current_arc (tex.arc_endpoints.at (arc_index),
+                         tex.arc_endpoints.at (arc_index + 1),
+                         tex.d_values.at (arc_index));
+                         
+      double current_distance = current_arc.distance_to_point (p);    
 
     /* If two arcs are equally close to this point, take the sign from the one
        whose extension is farther away. (Extend arcs using tangent lines from endpoints;
        this is done using the SignedVector operation "-".) */
-    if (fabs (fabs (current_distance) - fabs(min_distance)) < 1e-6) { 
-      SignedVector<Coord> to_arc_min = arc_list.at(nearest_arc) - p;
-      SignedVector<Coord> to_arc_current = arc_list.at(k) - p;
+      if (fabs (fabs (current_distance) - fabs(min_distance)) < 1e-6) { 
+        SignedVector<Coord> to_arc_min = nearest_arc - p;
+        SignedVector<Coord> to_arc_current = current_arc - p;
       
-      if (to_arc_min.len () < to_arc_current.len ()) {
-        min_distance = fabs (min_distance) * (to_arc_current.negative ? -1 : 1);
+        if (to_arc_min.len () < to_arc_current.len ()) {
+          min_distance = fabs (min_distance) * (to_arc_current.negative ? -1 : 1);
+        }
+      }
+      else if (fabs (current_distance) < fabs(min_distance)) {
+        min_distance = current_distance;
+        nearest_arc = current_arc;
       }
     }
-    else if (fabs (current_distance) < fabs(min_distance)) {
-      min_distance = current_distance;
-      nearest_arc = k;
-    }
+      
+    arc_index = tex.grid[x][y].arcs[k + 1];
   }
   return min_distance;
 }
+
+/** Given a cell, fills the vector closest_arcs with arcs that may be closest to some point in the cell.
+  * Uses idea that all close arcs to cell must be ~close to center of cell. 
+  */
+static void 
+closest_arcs_to_cell (Point<Coord> square_top_left, 
+                        Scalar cell_width, 
+                        Scalar cell_height,
+                        Scalar grid_size,
+                        arcs_texture tex,
+                        grid_cell &cell)
+{
+  // Initialize array of arcs with non-arcs.
+  for (int i = 0; i < NUM_SAVED_ARCS; i++)
+    cell.arcs[i] = -1;
+    
+
+  /* Find distance between cell center and cell's closest arc. */
+  point_t center (square_top_left.x + cell_width / 2., 
+                       square_top_left.y + cell_height / 2.);
+  double min_distance = INFINITY;
+  double distance = min_distance;
+
+  for (int k = 0; k < tex.arc_endpoints.size (); k++) {
+    if (tex.d_values.at (k) != INFINITY) {
+      arc_t current_arc (tex.arc_endpoints.at (k),
+                           tex.arc_endpoints.at (k+1),
+                           tex.d_values.at (k));
+      distance = fabs (current_arc.squared_distance_to_point (center));
+      if (distance < min_distance) 
+        min_distance = distance;
+    }
+  }
+  
+    
+  /* If d is the distance from the center of the square to the nearest arc, then
+     all nearest arcs to the square must be at most [d + s/sqrt(2)] from the center. */
+  min_distance = sqrt (min_distance);
+  double half_diagonal = sqrt(cell_height * cell_height + cell_width * cell_width) / 2;
+  Scalar radius = min_distance + half_diagonal;
+//  printf("Minimum distance is %g. Half diagonal is %g. Radius is %g.\n  Winning Distances:", min_distance, half_diagonal, radius);
+
+  double tolerance = grid_size / min_font_size; 
+ 
+  int array_index = 0;
+//  if (min_distance - half_diagonal <= tolerance) /*********************************************** I want this to work!!!!!!!! **************************/   
+    for (int k = 0; k < tex.arc_endpoints.size (); k++) {
+      if (tex.d_values.at (k) != INFINITY) {
+        arc_t current_arc (tex.arc_endpoints.at (k),
+                           tex.arc_endpoints.at (k+1),
+                           tex.d_values.at (k));
+        if (fabs(current_arc.distance_to_point (center)) < radius) {
+ //         printf("%g (%d), ", current_arc.distance_to_point (center), k);
+          cell.arcs[array_index] = k;      
+          array_index++;
+        }      
+      }
+    }
+    
+//    printf("\n  Array of indices:");
+    
+    
+//  for (int k = 0; k < NUM_SAVED_ARCS; k++)
+//    printf("%d ", cell.arcs[k]);
+    
+//  printf("\n");
+}
+
 
 
 
@@ -327,23 +447,17 @@ distance_to_an_arc (point_t p, vector <arc_t > arc_list)
 static void
 setup_texture (const char *font_path)
 {
-#define TEXSIZE 64
 #define UTF8 'o'
 
   int width = 0, height = 0;
   cairo_surface_t *image = NULL, *dest;
-
-  unsigned char *data;
-  
+  unsigned char *data;  
   FT_Face face;
   FT_Library library;
-  FT_Init_FreeType (&library);
-   
+  FT_Init_FreeType (&library);   
   FT_New_Face ( library, font_path, 0, &face );
- 
-
   unsigned int upem = face->units_per_EM;
-  double tolerance = upem * 1e-3; /* in font design units */
+  double tolerance = upem * 1e-3; // in font design units 
 
   /************************************************************************************** These dimensions are not /quite/ perfect... *********************/
   width = TEXSIZE; //(*face).max_advance_width / 1.5;
@@ -364,7 +478,7 @@ setup_texture (const char *font_path)
   {
     public:
     static bool callback (const arc_t &arc, void *closure)
-    {
+    { 
        ArcAccumulator *acc = static_cast<ArcAccumulator *> (closure);
        acc->arcs.push_back (arc);
        return true;
@@ -373,13 +487,7 @@ setup_texture (const char *font_path)
   } acc;
   
 
-  
-  class ArcsTexture
-  {  
-    public: 
-    std::vector<point_t> arc_endpoints;
-    std::vector<double>  d_values;    
-  } tex;
+  arcs_texture tex;
 
   acc.arcs.clear ();
   tex.arc_endpoints.clear ();
@@ -401,18 +509,26 @@ setup_texture (const char *font_path)
   					         static_cast<void *> (&acc),
 					         tolerance);     
   FreeTypeOutlineSource<ArcApproximatorOutlineSink>::decompose_outline (&face->glyph->outline,
-  									outline_arc_approximator);
+  									outline_arc_approximator);  									
   printf ("Num arcs %d; Approximation error %g; Tolerance %g; Percentage %g. %s\n",
 	  (int) acc.arcs.size (), e, tolerance, round (100 * e / tolerance), e <= tolerance ? "PASS" : "FAIL");
-
+	  
+  double grid_min_x, grid_max_x, grid_min_y, grid_max_y, glyph_width, glyph_height;
+  find_grid_boundaries (grid_min_x, grid_max_x, grid_min_y, grid_max_y, acc.arcs);
+  
+  glyph_width = grid_max_x - grid_min_x;
+  glyph_height = grid_max_y - grid_min_y;
+  printf ("Glyph dimensions: width = %g, height = %g.\n", glyph_width, glyph_height);
 
   // Populate lists for storing arc data.
+    /**************************************************************************************************************************************************/
   int arc_count;
   for (arc_count = 0; arc_count < acc.arcs.size () - 1; arc_count++) {
     arc_t current_arc = acc.arcs.at (arc_count);
     tex.arc_endpoints.push_back (current_arc.p0);
     tex.d_values.push_back (current_arc.d);
-    if (current_arc.p1 != acc.arcs.at (arc_count+1).p0) {                         // Close the current loop in the outline.
+    // Close the current loop in the outline.
+    if (current_arc.p1 != acc.arcs.at (arc_count+1).p0) {
       tex.arc_endpoints.push_back (current_arc.p1);
       tex.d_values.push_back (INFINITY);
     }
@@ -425,11 +541,13 @@ setup_texture (const char *font_path)
   
   
   // Display the arc data.
-  #if 0  
+  #if 0 
+  // Print out the lists we will use, namely point and d-value data.
   printf ("Our List:\n");
   for (int i = 0; i < tex.arc_endpoints.size(); i++)
     printf ("  %d.\t(%g, %g), d = %g.\n", i, tex.arc_endpoints.at (i).x, tex.arc_endpoints.at (i).y, tex.d_values.at(i));
     
+  // Print out the original list for comparison, sorted by arc rather than point.
   printf ("Correct List:\n");
   for (int i = 0; i < acc.arcs.size (); i++)	
     printf("  %d.\td = %g. Have (%g,%g) to (%g,%g).\n", i, acc.arcs.at (i).d,
@@ -440,7 +558,28 @@ setup_texture (const char *font_path)
 
   #endif
 
+
+  // Make a 2d grid for arc/cell information.
+  /**************************************************************************************************************************************************/
+  
+  double box_width = glyph_width / TEXSIZE;
+  double box_height = glyph_height / TEXSIZE;
+//  grid_max_y += 1 * box_height;    
+//  grid_min_y += 1 * box_height;
+
+  
+  double min_dimension = std::min(glyph_width, glyph_height);
+  for (int row = 0; row < TEXSIZE; row++) 
+    for (int col = 0; col < TEXSIZE; col++) 
+      closest_arcs_to_cell (Point<Coord> (grid_min_x + (col * box_width), grid_min_y + (row * box_height)), 
+                              box_width, box_height, min_dimension, 
+                              tex, tex.grid[col][row]);        
+
+
+
   // SDF stuff to change.
+  /**************************************************************************************************************************************************/
+  
   {
     unsigned char *dd;
     int x, y;
@@ -455,10 +594,18 @@ setup_texture (const char *font_path)
 
 printf("Starting loop.... ");
 
-    for (y = 0; y < height; y++)
+    printf("We scale x by %g and y by %g ...", glyph_width / (TEXSIZE), glyph_height /(TEXSIZE));
+
+    for (y = height - 1; y >= 0; y--)
       for (x = 0; x < width; x++) {
-        double d = distance_to_an_arc (Point<Coord> (x * (*face).max_advance_width / (1.5 * TEXSIZE),
-        					     (height - y)* (*face).height/(1.5 * TEXSIZE)), acc.arcs); // For some reason, flipped by default. Quick fix.
+        double d = distance_to_an_arc (Point<Coord> (grid_min_x + (x * box_width),
+        					     grid_min_y + (y * box_height)),
+        					     tex, x, y) / 1; /***************************** Increasing denominator decreases contrast. *********/
+           					     
+        closest_arcs_to_cell (Point<Coord> (grid_min_x + (x * box_width), grid_min_y + (y * box_height)), 
+                              box_width, box_height, min_dimension, 
+                              tex, tex.grid[x][y]);
+ //       printf("%g\n ", d);				     
 
         // Antialiasing (?) happens here (?). 
         if (d <= -1 * TEXSIZE) 
@@ -522,7 +669,7 @@ gboolean expose_cb (GtkWidget *widget,
   drawable_swap_buffers (widget->window);
 
   // Comment out to disable rotation.
-  //i++;
+  // i++;
 
   return TRUE;
 }
@@ -541,7 +688,6 @@ main (int argc, char** argv)
   char *font_path;
   if (argc >= 1) {
      font_path = argv[1];
-     printf("Font path: %s", font_path);
   }
   
   
@@ -549,7 +695,7 @@ main (int argc, char** argv)
   
   // Draw a grid of (ZOOM x ZOOM) glyphs.
   // TODO: Figure out what this list means, and how!!!!!!!!!!!!!!!!!!!!!!
-#define ZOOM 10
+#define ZOOM 2
   const GLfloat w_vertices[] = { -1.00, -1.00, +0.00,
 				 +0.00, ZOOM,
 				 +1.00, -1.00, +0.00,
@@ -563,7 +709,7 @@ main (int argc, char** argv)
   gtk_init (&argc, &argv);
 
   window = GTK_WIDGET (gtk_window_new (GTK_WINDOW_TOPLEVEL));
-  gtk_window_set_default_size (GTK_WINDOW (window), 900, 900);
+  gtk_window_set_default_size (GTK_WINDOW (window), 600, 600);
   g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (gtk_main_quit), NULL);
 
   eglInitialize (eglGetDisplay (gdk_x11_display_get_xdisplay (gtk_widget_get_display (window))), NULL, NULL);
