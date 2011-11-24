@@ -45,14 +45,15 @@ typedef Bezier<Coord> bezier_t;
 
 
 static double min_font_size = 10; /************************************************************************ ARBITRARY *********************************/
-static const int NUM_SAVED_ARCS = 50;
+static const int NUM_SAVED_ARCS = 20;
 
 struct grid_cell {
   char arcs [NUM_SAVED_ARCS]; 
   char more_arcs_pointer;
+  bool inside_glyph;
 };
 
-#define TEXSIZE 64
+#define TEXSIZE 132
 struct arcs_texture  /********************************************************************************* Struct or Class? **************************/
 {  
     std::vector<point_t> arc_endpoints;
@@ -338,7 +339,7 @@ distance_to_an_arc (point_t p, arcs_texture tex, int x, int y)
   arc_t nearest_arc (tex.arc_endpoints.at (0),
                          tex.arc_endpoints.at (1),
                          tex.d_values.at (0));
-  double min_distance = nearest_arc.distance_to_point (p);
+  double min_distance = (tex.grid[x][y].inside_glyph ? -1 : 1) * INFINITY; //nearest_arc.distance_to_point (p);
   int arc_index = tex.grid[x][y].arcs[0];
 
   for (int k = 0; k < NUM_SAVED_ARCS && arc_index >= 0; k++)  { 
@@ -382,6 +383,7 @@ closest_arcs_to_cell (Point<Coord> square_top_left,
                         arcs_texture tex,
                         grid_cell &cell)
 {
+  cell.inside_glyph = false;
   // Initialize array of arcs with non-arcs.
   for (int i = 0; i < NUM_SAVED_ARCS; i++)
     cell.arcs[i] = -1;
@@ -399,8 +401,10 @@ closest_arcs_to_cell (Point<Coord> square_top_left,
                            tex.arc_endpoints.at (k+1),
                            tex.d_values.at (k));
       distance = fabs (current_arc.squared_distance_to_point (center));
-      if (distance < min_distance) 
+      if (distance < min_distance) {
         min_distance = distance;
+        cell.inside_glyph = (current_arc - center).negative ? true : false; 
+      }
     }
   }
   
@@ -410,32 +414,31 @@ closest_arcs_to_cell (Point<Coord> square_top_left,
   min_distance = sqrt (min_distance);
   double half_diagonal = sqrt(cell_height * cell_height + cell_width * cell_width) / 2;
   Scalar radius = min_distance + half_diagonal;
-//  printf("Minimum distance is %g. Half diagonal is %g. Radius is %g.\n  Winning Distances:", min_distance, half_diagonal, radius);
+  printf("Minimum distance is %g. Winning Distances: ", min_distance);
 
   double tolerance = grid_size / min_font_size; 
  
   int array_index = 0;
-//  if (min_distance - half_diagonal <= tolerance) /*********************************************** I want this to work!!!!!!!! **************************/   
+ // if (min_distance - half_diagonal <= tolerance) 
     for (int k = 0; k < tex.arc_endpoints.size (); k++) {
       if (tex.d_values.at (k) != INFINITY) {
         arc_t current_arc (tex.arc_endpoints.at (k),
                            tex.arc_endpoints.at (k+1),
                            tex.d_values.at (k));
         if (fabs(current_arc.distance_to_point (center)) < radius) {
- //         printf("%g (%d), ", current_arc.distance_to_point (center), k);
+          printf("%g (%d), ", current_arc.distance_to_point (center), k);
           cell.arcs[array_index] = k;      
           array_index++;
         }      
       }
     }
     
-//    printf("\n  Array of indices:");
+    printf("\n  Array of indices:");
     
     
-//  for (int k = 0; k < NUM_SAVED_ARCS; k++)
-//    printf("%d ", cell.arcs[k]);
-    
-//  printf("\n");
+  for (int k = 0; k < NUM_SAVED_ARCS; k++)
+    printf("%d ", cell.arcs[k]);
+  printf("\n");
 }
 
 
@@ -447,7 +450,7 @@ closest_arcs_to_cell (Point<Coord> square_top_left,
 static void
 setup_texture (const char *font_path)
 {
-#define UTF8 'o'
+#define UTF8 's'
 
   int width = 0, height = 0;
   cairo_surface_t *image = NULL, *dest;
@@ -541,7 +544,7 @@ setup_texture (const char *font_path)
   
   
   // Display the arc data.
-  #if 0 
+  #if 1 
   // Print out the lists we will use, namely point and d-value data.
   printf ("Our List:\n");
   for (int i = 0; i < tex.arc_endpoints.size(); i++)
@@ -596,24 +599,22 @@ printf("Starting loop.... ");
 
     printf("We scale x by %g and y by %g ...", glyph_width / (TEXSIZE), glyph_height /(TEXSIZE));
 
-    for (y = height - 1; y >= 0; y--)
+    for (y = 0; y < height; y++)
       for (x = 0; x < width; x++) {
         double d = distance_to_an_arc (Point<Coord> (grid_min_x + (x * box_width),
         					     grid_min_y + (y * box_height)),
-        					     tex, x, y) / 1; /***************************** Increasing denominator decreases contrast. *********/
-           					     
-        closest_arcs_to_cell (Point<Coord> (grid_min_x + (x * box_width), grid_min_y + (y * box_height)), 
-                              box_width, box_height, min_dimension, 
-                              tex, tex.grid[x][y]);
- //       printf("%g\n ", d);				     
-
+        					     tex, x, y) / 1; /***************************** Increasing denominator decreases contrast. *********/     
+	y = height - y - 1;
+	
         // Antialiasing (?) happens here (?). 
         if (d <= -1 * TEXSIZE) 
-          D(x,y) = 255;
+          D(x, y) = 255;
         else if (d >= TEXSIZE) 
-          D(x,y) = 0;
+          D(x, y) = 0;
         else
-          D(x,y) = d * (-127.5) / TEXSIZE + 127.5; 
+          D(x, y) = d * (-127.5) / TEXSIZE + 127.5; 
+          
+        y = height - y - 1;
       } 
 
     data = cairo_image_surface_get_data (dest);
@@ -659,7 +660,7 @@ gboolean expose_cb (GtkWidget *widget,
 
   gtk_widget_get_allocation (widget, &allocation);
   glViewport(0, 0, allocation.width, allocation.height);
-  glClearColor(0., 1., 0., 0.);
+  glClearColor(1., 1., 0., 0.);
   glClear(GL_COLOR_BUFFER_BIT);
 
   glUniformMatrix4fv (GPOINTER_TO_INT (user_data), 1, GL_FALSE, mat);
@@ -695,7 +696,7 @@ main (int argc, char** argv)
   
   // Draw a grid of (ZOOM x ZOOM) glyphs.
   // TODO: Figure out what this list means, and how!!!!!!!!!!!!!!!!!!!!!!
-#define ZOOM 2
+#define ZOOM 1
   const GLfloat w_vertices[] = { -1.00, -1.00, +0.00,
 				 +0.00, ZOOM,
 				 +1.00, -1.00, +0.00,
@@ -746,10 +747,10 @@ main (int argc, char** argv)
 
 	//alpha = texture2D(tex, v_texCoord);
 	//vec4 c = mix (vec4(0,0,0,1), vec4(1,1,1,1), alpha2);
-	vec4 c2 = mix (vec4(1,0,0,1), vec4(0,0,1,1), alpha);
+	vec4 c2 = mix (vec4(0,0,1,1), vec4(0,1,0,1), alpha2);
 	vec4 c_real = mix (vec4(0,0,0,1), vec4(1,1,1,1), alpha);
 	//c = sqrt (c);
-	gl_FragColor = c_real; //mix(c, c2, .5);
+	gl_FragColor = mix(c_real, c2, .7); //c_real;
       }
   );
   program = create_program (vshader, fshader);
