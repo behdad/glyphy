@@ -844,7 +844,7 @@ inline const SignedVector<Coord> Arc<Coord, Scalar>::operator- (const Point<Coor
   Vector<Coord> normal = center () - (d0 < d1 ? p0 : p1) ;
 
   if (normal.len() == 0)
-    return SignedVector<Coord> (Vector<Coord> (0, 0), false);    /************************************ Check sign of this S.D. *************/
+    return SignedVector<Coord> (Vector<Coord> (0, 0), true);    /************************************ Check sign of this S.D. *************/
 
 
   return SignedVector<Coord> ((d0 < d1 ? Line<Coord> (normal.dx, normal.dy, normal * Vector<Coord> (p0)) - p : 

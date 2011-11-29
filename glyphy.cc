@@ -45,15 +45,15 @@ typedef Bezier<Coord> bezier_t;
 
 
 static double min_font_size = 10; /************************************************************************ ARBITRARY *********************************/
-static const int NUM_SAVED_ARCS = 10;  /********************************************************************Too high **********************************/
+static const int NUM_SAVED_ARCS = 20;  /********************************************************************Too high **********************************/
 
 struct grid_cell {
-  unsigned char arcs [NUM_SAVED_ARCS]; /******************************************************* char? unsigned char? *******************************/
+  unsigned short arcs [NUM_SAVED_ARCS]; /******************************************************* char? unsigned char? *******************************/
   char more_arcs_pointer;
   bool inside_glyph;
 };
 
-#define TEXSIZE 64  /*************************************************************************** 32? 64? Higher? Lower? Non-constant? **************/
+#define TEXSIZE 32  /*************************************************************************** 32? 64? Higher? Lower? Non-constant? **************/
 struct arcs_texture  /********************************************************************************* Struct or Class? **************************/
 {  
     std::vector<point_t> arc_endpoints;
@@ -325,8 +325,8 @@ find_grid_boundaries (double &grid_min_x,
   }
   grid_min_x *= 0.98;
   grid_min_y *= 0.98;
-  grid_max_y *= 1.02;
-  grid_max_x *= 1.02;
+  grid_max_y *= 1.02;//02;
+  grid_max_x *= 1.02;//02;
 }
 
 
@@ -340,21 +340,21 @@ find_grid_boundaries (double &grid_min_x,
 static double
 distance_to_an_arc (point_t p, arcs_texture tex, int x, int y)
 {
-//  printf(      "(%d, %d).\tArc List: [", x, y);
-//  for (int i = 0; i < NUM_SAVED_ARCS; i++)
-//    printf("%d, ", tex.grid[x][y].arcs[i]);
-//  printf(        "]. \n\t\t  We saw: [");
+ // printf(      "(%d, %d). Grid says %s glyph.\tArc List: [", x, y, tex.grid[x][y].inside_glyph ? "inside" : "outside");
+ // for (int i = 0; i < NUM_SAVED_ARCS; i++)
+ //   printf("%d, ", tex.grid[x][y].arcs[i]);
+ // printf(        "]. \n\t\t  We saw: [");
 
   arc_t nearest_arc (tex.arc_endpoints.at (0),
                          tex.arc_endpoints.at (1),
                          tex.d_values.at (0));
                          
   // By default, the min distance is infinite. Sign depends on direction of closest arc.                       
-  double min_distance = (tex.grid[x][y].inside_glyph ? -1 : 1) * INFINITY; 
+  double min_distance = (tex.grid[x][y].inside_glyph ? 1 : -1) * INFINITY; 
   int arc_index = tex.grid[x][y].arcs[0];
-//  printf("%d, ", arc_index);
+ // printf("%d, ", arc_index);
 
-  for (int k = 1; k < NUM_SAVED_ARCS && arc_index < 255; k++)  {  /******************************* WANT: arc_index != -1. For unsigned char, this works. *****/
+  for (int k = 1; k < NUM_SAVED_ARCS && arc_index < 65535; k++)  {  /******************************* WANT: arc_index != -1. For unsigned char, this works. *****/
     if (tex.d_values.at (arc_index) < INFINITY) {         
       arc_t current_arc (tex.arc_endpoints.at (arc_index),
                          tex.arc_endpoints.at (arc_index + 1),
@@ -377,11 +377,11 @@ distance_to_an_arc (point_t p, arcs_texture tex, int x, int y)
       }
     }
     arc_index = tex.grid[x][y].arcs[k];
-//    printf("%d, ", arc_index);
+ //   printf("%d, ", arc_index);
   }
-//    printf("].\n");
-//  if (arc_index < 0)
-//    printf("arc_index is %d < 0... At cell (%d, %d).\n", arc_index, x, y);
+ //   printf("].\n");
+ // if (arc_index >= 65535)
+ //   printf("arc_index is %d < 0... At this cell we are %s.\n\n", arc_index,  min_distance < 0 ? "outside" : "inside");
   return min_distance;
 }
 
@@ -397,7 +397,7 @@ closest_arcs_to_cell (Point<Coord> square_top_left,
                         arcs_texture tex,
                         grid_cell &cell)
 {
-  cell.inside_glyph = false;
+  cell.inside_glyph = true;
   // Initialize array of arcs with non-arcs.
   for (int i = 0; i < NUM_SAVED_ARCS; i++)
     cell.arcs[i] = -1;
@@ -406,6 +406,9 @@ closest_arcs_to_cell (Point<Coord> square_top_left,
   point_t center (square_top_left.x + cell_width / 2., 
                        square_top_left.y + cell_height / 2.);
   double min_distance = INFINITY;
+  arc_t nearest_arc (tex.arc_endpoints.at (0),
+                         tex.arc_endpoints.at (1),
+                         tex.d_values.at (0));
   double distance = min_distance;
 
   for (int k = 0; k < tex.arc_endpoints.size (); k++) {
@@ -413,18 +416,36 @@ closest_arcs_to_cell (Point<Coord> square_top_left,
       arc_t current_arc (tex.arc_endpoints.at (k),
                            tex.arc_endpoints.at (k+1),
                            tex.d_values.at (k));
-      distance = fabs (current_arc.squared_distance_to_point (center));
-      if (distance < min_distance) {
-        min_distance = distance;
-        cell.inside_glyph = (current_arc - center).negative ? true : false; 
+ //     distance = fabs (current_arc.squared_distance_to_point (center));
+ //     if (distance < min_distance) {
+ //       min_distance = distance;
+ //       cell.inside_glyph = (current_arc - center).negative ? false : true; 
+ //     }
+      
+      double current_distance = current_arc.distance_to_point (center);    
+
+    // If two arcs are equally close to this point, take the sign from the one whose extension is farther away. 
+    // (Extend arcs using tangent lines from endpoints; this is done using the SignedVector operation "-".) 
+      if (fabs (fabs (current_distance) - fabs(min_distance)) < 1e-6) { 
+        SignedVector<Coord> to_arc_min = nearest_arc - center;
+        SignedVector<Coord> to_arc_current = current_arc - center;      
+        if (to_arc_min.len () < to_arc_current.len ()) {
+          min_distance = fabs (min_distance) * (to_arc_current.negative ? -1 : 1);
+        }
+      }
+      else if (fabs (current_distance) < fabs(min_distance)) {
+        min_distance = current_distance;
+        nearest_arc = current_arc;
       }
     }
   }
   
+  cell.inside_glyph = (min_distance > 0);
+  
     
   // If d is the distance from the center of the square to the nearest arc, then
   // all nearest arcs to the square must be at most [d + s/sqrt(2)] from the center. 
-  min_distance = sqrt (min_distance);
+  min_distance = /*sqrt*/ fabs (min_distance);
   double half_diagonal = sqrt(cell_height * cell_height + cell_width * cell_width) / 2;
   Scalar radius = min_distance + half_diagonal;
  // printf("Minimum distance is %g. ", min_distance);
@@ -445,11 +466,11 @@ closest_arcs_to_cell (Point<Coord> square_top_left,
         }      
       }
     }    
-//   printf("\n  Array of indices made:");
+ //  printf("\n  Array of indices made:");
     
-//  for (int k = 0; k < NUM_SAVED_ARCS; k++)
-//    printf("%d ", cell.arcs[k]);
-//  printf("\n");
+ // for (int k = 0; k < NUM_SAVED_ARCS; k++)
+ //   printf("%d ", cell.arcs[k]);
+ // printf("\n");
 }
 
 
@@ -550,7 +571,7 @@ setup_texture (const char *font_path, const char UTF8)
   tex.d_values.push_back (acc.arcs.at (arc_count).d);
   tex.d_values.push_back (INFINITY);
   
-  printf("Finished loading arcs..\n");
+  //printf("Finished loading arcs..\n");
   
   // Display the arc data.
   #if 0
@@ -607,9 +628,9 @@ printf("Starting loop.... ");
 
     for (y = 0; y < height; y++)
       for (x = 0; x < width; x++) {
-        closest_arcs_to_cell (Point<Coord> (grid_min_x + (x * box_width), grid_min_y + (y * box_height)), 
-                              box_width, box_height, min_dimension, 
-                              tex, tex.grid[x][y]); 
+       // closest_arcs_to_cell (Point<Coord> (grid_min_x + (x * box_width), grid_min_y + (y * box_height)), 
+         //                     box_width, box_height, min_dimension, 
+           //                   tex, tex.grid[x][y]); 
       
         double d = distance_to_an_arc (Point<Coord> (grid_min_x + (x * box_width),
         					     grid_min_y + (y * box_height)),
@@ -767,7 +788,7 @@ main (int argc, char** argv)
 	vec4 c2 = mix (vec4(0,0,1,1), vec4(1,1,0,1), alpha2);
 	vec4 c_real = mix (vec4(0,0,0,1), vec4(1,1,1,1), alpha);
 	//c = sqrt (c);
-	//gl_FragColor = mix(c_real, c2, .75); //c_real;
+	//gl_FragColor = mix(c_real, c2, .8); //c_real;
 	gl_FragColor = c_real;
       }
   );
