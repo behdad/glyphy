@@ -100,6 +100,13 @@ compile_shader (GLenum type, const GLchar* source)
 }
 #define COMPILE_SHADER1(Type,Src) compile_shader (Type, "#version 130\n" #Src)
 #define COMPILE_SHADER(Type,Src) COMPILE_SHADER1(Type,Src)
+#define gl(name) \
+	for (GLint __ee, __ii = 0; \
+	     __ii < 1; \
+	     (__ii++, \
+	      (__ee = glGetError()) && \
+	      (g_log (G_LOG_DOMAIN, G_LOG_LEVEL_ERROR, "gl" G_STRINGIFY (name) " failed with error %04X on line %d", __ee, __LINE__), 0))) \
+	  gl##name
 
 static GLuint
 create_program (GLuint vshader, GLuint fshader)
@@ -480,7 +487,7 @@ closest_arcs_to_cell (Point<Coord> square_top_left,
 /*** This uses the new SDF approach. ***************************************************************************************/
 /***************************************************************************************************************************/
 static void
-setup_texture (const char *font_path, const char UTF8)
+setup_texture (const char *font_path, const char UTF8, GLint program)
 {
 
   int width = 0, height = 0;
@@ -570,55 +577,25 @@ setup_texture (const char *font_path, const char UTF8)
   tex.arc_endpoints.push_back (acc.arcs.at (arc_count).p1);
   tex.d_values.push_back (acc.arcs.at (arc_count).d);
   tex.d_values.push_back (INFINITY);
-  
-  GLuint vshader, fshader, program, arc_texture;
-  glGenTextures (1, &arc_texture);
-  glBindTexture (GL_TEXTURE_2D, arc_texture);
-  glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  
-  float arc_data [4 * tex.arc_endpoints.size ()];
-  
+
+  struct rgba_t {
+    unsigned char r;
+    unsigned char g;
+    unsigned char b;
+    unsigned char a;
+  } *arc_data = (rgba_t *) malloc (tex.arc_endpoints.size () * 4);
   for (int i = 0; i < tex.arc_endpoints.size (); i++)
   {
-    arc_data [4 * i + 0] = tex.arc_endpoints.at (i).x;
-    arc_data [4 * i + 1] = tex.arc_endpoints.at (i).y;
-    arc_data [4 * i + 2] = tex.d_values.at (i);
+    arc_data [i].r = tex.arc_endpoints.at (i).x * 255 / upem;
+    arc_data [i].g = tex.arc_endpoints.at (i).y * 255 / upem;
+    arc_data [i].b = tex.d_values.at (i) * 127 + 128;
+    arc_data [i].a = 1.0;
   }
-  
-  glTexImage2D (GL_TEXTURE_2D, 0, GL_RGB, 1, tex.arc_endpoints.size(), 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, arc_data);
-  
-  
-  
-  
-  vshader = COMPILE_SHADER (GL_VERTEX_SHADER,
-      attribute vec4 a_position;
-      attribute vec2 a_texCoord;
-      uniform mat4 u_matViewProjection;
-      varying vec2 v_texCoord;
-      void main()
-      {
-	//printf("VS WORKS.\n");
-      }
-  );
-  fshader = COMPILE_SHADER (GL_FRAGMENT_SHADER,
-      uniform sampler2D tex;
-      out float answer;
-      void main()
-      {
-        vec2 coord = vec2(10.0, 10.0);
-        answer = texture2D(tex, coord).r;
+  gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, 1, tex.arc_endpoints.size(), 0, GL_RGBA, GL_UNSIGNED_BYTE, arc_data);
+  free (arc_data);
 
-      }
-  );
-  
-  printf("%g", answer);
-  
-  
-  
-  
-  
-  
+  glUniform1i (glGetUniformLocation(program, "upem"), upem);
+  glUniform1i (glGetUniformLocation(program, "num_points"), tex.arc_endpoints.size ());
   
   
   
@@ -705,7 +682,7 @@ printf("Starting loop.... ");
 
   printf("Nearly done.... ");
 
-  glTexImage2D (GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, data);
+  //glTexImage2D (GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, data);
   printf("Done setup.\n");
   return;
 }
@@ -824,6 +801,8 @@ main (int argc, char** argv)
   );
   fshader = COMPILE_SHADER (GL_FRAGMENT_SHADER,
       uniform sampler2D tex;
+      uniform int upem;
+      uniform int num_points;
       varying vec2 v_texCoord;
       void main()
       {
@@ -832,16 +811,15 @@ main (int argc, char** argv)
 	float m = max (ddx, ddy); /* isotropic antialiasing */
 	float mm = m * 128. / 32 ;/// (TEXSIZE); //FILTERWIDTH*SAMPLING);
 
-	float alpha = smoothstep (-mm, mm, texture2D(tex, v_texCoord).r - .5);
-	float alpha2 = texture2D(tex, v_texCoord).r * 1.2;
+	//float alpha = smoothstep (-mm, mm, texture2D(tex, v_texCoord).r - .5);
+	int i;
+//	for (i = 0; i < 1; i++) {
+//	  vec4 arc = texture2D (tex, vec2(.5, .5 + float(i)));
+//	}
+	vec4 arc = texture2D (tex, v_texCoord);
 
-	//alpha = texture2D(tex, v_texCoord);
-	//vec4 c = mix (vec4(0,0,0,1), vec4(1,1,1,1), alpha2);
-	vec4 c2 = mix (vec4(0,0,1,1), vec4(1,1,0,1), alpha2);
-	vec4 c_real = mix (vec4(0,0,0,1), vec4(1,1,1,1), alpha);
-	//c = sqrt (c);
-//	gl_FragColor = mix(c_real, c2, .8); //c_real;
-	//gl_FragColor = c_real;
+	gl_FragColor = arc;
+	//gl_FragColor = vec4(arc.r / float (upem), 0., 0., 1.);
       }
   );
   program = create_program (vshader, fshader);
@@ -852,17 +830,10 @@ main (int argc, char** argv)
 
   glGenTextures (1, &texture);
   glBindTexture (GL_TEXTURE_2D, texture);
-  glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  //glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  //glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  
-//  glGenTextures (1, &arc_texture);	/******************** Is it a smart idea to call glGenTextures twice? Should we just make n=2? ***********************/
-//  glBindTexture (GL_TEXTURE_1D, arc_texture);
 
-  setup_texture (font_path, utf8);
-  glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  setup_texture (font_path, utf8, program);
+  glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
   a_pos_loc = glGetAttribLocation(program, "a_position");
   a_tex_loc = glGetAttribLocation(program, "a_texCoord");
