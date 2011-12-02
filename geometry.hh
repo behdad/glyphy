@@ -759,8 +759,7 @@ inline const SignedVector<Coord> Quad<Coord>::operator- (const Point<Coord> &p) 
  template <typename Coord>
 inline const Scalar Quad<Coord>::distance_to_arc (const Arc<Coord, Scalar> &a) const {
   /* shortest distance from arc to quad. Return 0 if arc intersects quad.. */
-  if (//top ().intersects_arc (a) || bottom().intersects_arc(a) || left().intersects_arc(a) || right().intersects_arc(a) || 
-      contains_point(a.p0) )
+  if (contains_point(a.p0))
     return 0;
   
   double min_distance = left().distance_to_arc (a);
@@ -826,7 +825,7 @@ inline bool Arc<Coord, Scalar>::operator != (const Arc<Coord, Scalar> &a) const 
 template <typename Coord, typename Scalar>
 inline const SignedVector<Coord> Arc<Coord, Scalar>::operator- (const Point<Coord> &p) const {
 
-  if (fabs(d) == 0) {
+  if (fabs(d) < 1e-5) {
     Segment<Coord> arc_segment (p0, p1);    
     return arc_segment - p;
   }  
@@ -846,9 +845,12 @@ inline const SignedVector<Coord> Arc<Coord, Scalar>::operator- (const Point<Coor
   if (normal.len() == 0)
     return SignedVector<Coord> (Vector<Coord> (0, 0), true);    /************************************ Check sign of this S.D. *************/
 
+  return SignedVector<Coord> ( Line<Coord> (normal.dx, normal.dy, normal * Vector<Coord> ((d0 < d1 ? p0 : p1))) - p, !other_arc.sector_contains_point(p)); 
+
 
   return SignedVector<Coord> ((d0 < d1 ? Line<Coord> (normal.dx, normal.dy, normal * Vector<Coord> (p0)) - p : 
-                                         Line<Coord> (normal.dx, normal.dy, normal * Vector<Coord> (p1)) - p ), !other_arc.sector_contains_point(p)); /******************************* Looks correct. *********/
+                                         Line<Coord> (normal.dx, normal.dy, normal * Vector<Coord> (p1)) - p ), !other_arc.sector_contains_point(p)); 
+                                         /******************************* Looks correct. *********/
 }
 
 template <typename Coord>

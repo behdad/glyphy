@@ -325,8 +325,8 @@ find_grid_boundaries (double &grid_min_x,
   }
   grid_min_x *= 0.98;
   grid_min_y *= 0.98;
-  grid_max_y *= 1.02;//02;
-  grid_max_x *= 1.02;//02;
+  grid_max_y *= 1.02;
+  grid_max_x *= 1.02;
 }
 
 
@@ -340,10 +340,10 @@ find_grid_boundaries (double &grid_min_x,
 static double
 distance_to_an_arc (point_t p, arcs_texture tex, int x, int y)
 {
- // printf(      "(%d, %d). Grid says %s glyph.\tArc List: [", x, y, tex.grid[x][y].inside_glyph ? "inside" : "outside");
- // for (int i = 0; i < NUM_SAVED_ARCS; i++)
- //   printf("%d, ", tex.grid[x][y].arcs[i]);
- // printf(        "]. \n\t\t  We saw: [");
+  printf(      "(%d, %d). Grid says %s glyph.\tArc List: [", x, y, tex.grid[x][y].inside_glyph ? "inside" : "outside");
+  for (int i = 0; i < NUM_SAVED_ARCS; i++)
+    printf("%d, ", tex.grid[x][y].arcs[i]);
+  printf(        "]. \n\t\t  We saw: [");
 
   arc_t nearest_arc (tex.arc_endpoints.at (0),
                          tex.arc_endpoints.at (1),
@@ -352,7 +352,7 @@ distance_to_an_arc (point_t p, arcs_texture tex, int x, int y)
   // By default, the min distance is infinite. Sign depends on direction of closest arc.                       
   double min_distance = (tex.grid[x][y].inside_glyph ? 1 : -1) * INFINITY; 
   int arc_index = tex.grid[x][y].arcs[0];
- // printf("%d, ", arc_index);
+  printf("%d, ", arc_index);
 
   for (int k = 1; k < NUM_SAVED_ARCS && arc_index < 65535; k++)  {  /******************************* WANT: arc_index != -1. For unsigned char, this works. *****/
     if (tex.d_values.at (arc_index) < INFINITY) {         
@@ -364,7 +364,7 @@ distance_to_an_arc (point_t p, arcs_texture tex, int x, int y)
 
     // If two arcs are equally close to this point, take the sign from the one whose extension is farther away. 
     // (Extend arcs using tangent lines from endpoints; this is done using the SignedVector operation "-".) 
-      if (fabs (fabs (current_distance) - fabs(min_distance)) < 1e-6) { 
+     if (fabs (fabs (current_distance) - fabs(min_distance)) < 1e-6) { 
         SignedVector<Coord> to_arc_min = nearest_arc - p;
         SignedVector<Coord> to_arc_current = current_arc - p;      
         if (to_arc_min.len () < to_arc_current.len ()) {
@@ -377,11 +377,11 @@ distance_to_an_arc (point_t p, arcs_texture tex, int x, int y)
       }
     }
     arc_index = tex.grid[x][y].arcs[k];
- //   printf("%d, ", arc_index);
+    printf("%d, ", arc_index);
   }
- //   printf("].\n");
- // if (arc_index >= 65535)
- //   printf("arc_index is %d < 0... At this cell we are %s.\n\n", arc_index,  min_distance < 0 ? "outside" : "inside");
+    printf("].\n");
+  if (arc_index >= 65535)
+    printf("arc_index is %d < 0... At this cell we are %s.\n\n", arc_index,  min_distance < 0 ? "outside" : "inside");
   return min_distance;
 }
 
@@ -397,14 +397,14 @@ closest_arcs_to_cell (Point<Coord> square_top_left,
                         arcs_texture tex,
                         grid_cell &cell)
 {
-  cell.inside_glyph = true;
+  cell.inside_glyph = false;
   // Initialize array of arcs with non-arcs.
   for (int i = 0; i < NUM_SAVED_ARCS; i++)
     cell.arcs[i] = -1;
 
   // Find distance between cell center and cell's closest arc. 
   point_t center (square_top_left.x + cell_width / 2., 
-                       square_top_left.y + cell_height / 2.);
+                  square_top_left.y + cell_height / 2.);
   double min_distance = INFINITY;
   arc_t nearest_arc (tex.arc_endpoints.at (0),
                          tex.arc_endpoints.at (1),
@@ -454,7 +454,7 @@ closest_arcs_to_cell (Point<Coord> square_top_left,
  
   int array_index = 0;
   if (min_distance - half_diagonal <= tolerance) 
-    for (int k = 0; k < tex.arc_endpoints.size (); k++) {
+    for (int k = 0; k < tex.arc_endpoints.size () && array_index < NUM_SAVED_ARCS; k++) {
       if (tex.d_values.at (k) != INFINITY) {
         arc_t current_arc (tex.arc_endpoints.at (k),
                            tex.arc_endpoints.at (k+1),
@@ -571,10 +571,62 @@ setup_texture (const char *font_path, const char UTF8)
   tex.d_values.push_back (acc.arcs.at (arc_count).d);
   tex.d_values.push_back (INFINITY);
   
+  GLuint vshader, fshader, program, arc_texture;
+  glGenTextures (1, &arc_texture);
+  glBindTexture (GL_TEXTURE_2D, arc_texture);
+  glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  
+  float arc_data [4 * tex.arc_endpoints.size ()];
+  
+  for (int i = 0; i < tex.arc_endpoints.size (); i++)
+  {
+    arc_data [4 * i + 0] = tex.arc_endpoints.at (i).x;
+    arc_data [4 * i + 1] = tex.arc_endpoints.at (i).y;
+    arc_data [4 * i + 2] = tex.d_values.at (i);
+  }
+  
+  glTexImage2D (GL_TEXTURE_2D, 0, GL_RGB, 1, tex.arc_endpoints.size(), 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, arc_data);
+  
+  
+  
+  
+  vshader = COMPILE_SHADER (GL_VERTEX_SHADER,
+      attribute vec4 a_position;
+      attribute vec2 a_texCoord;
+      uniform mat4 u_matViewProjection;
+      varying vec2 v_texCoord;
+      void main()
+      {
+	//printf("VS WORKS.\n");
+      }
+  );
+  fshader = COMPILE_SHADER (GL_FRAGMENT_SHADER,
+      uniform sampler2D tex;
+      out float answer;
+      void main()
+      {
+        vec2 coord = vec2(10.0, 10.0);
+        answer = texture2D(tex, coord).r;
+
+      }
+  );
+  
+  printf("%g", answer);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   //printf("Finished loading arcs..\n");
   
   // Display the arc data.
-  #if 0
+  #if 1
   // Print out the lists we will use, namely point and d-value data.
   printf ("Our List:\n");
   for (int i = 0; i < tex.arc_endpoints.size(); i++)
@@ -788,8 +840,8 @@ main (int argc, char** argv)
 	vec4 c2 = mix (vec4(0,0,1,1), vec4(1,1,0,1), alpha2);
 	vec4 c_real = mix (vec4(0,0,0,1), vec4(1,1,1,1), alpha);
 	//c = sqrt (c);
-	//gl_FragColor = mix(c_real, c2, .8); //c_real;
-	gl_FragColor = c_real;
+//	gl_FragColor = mix(c_real, c2, .8); //c_real;
+	//gl_FragColor = c_real;
       }
   );
   program = create_program (vshader, fshader);
@@ -804,8 +856,13 @@ main (int argc, char** argv)
   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   //glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   //glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  
+//  glGenTextures (1, &arc_texture);	/******************** Is it a smart idea to call glGenTextures twice? Should we just make n=2? ***********************/
+//  glBindTexture (GL_TEXTURE_1D, arc_texture);
 
   setup_texture (font_path, utf8);
+  glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
   a_pos_loc = glGetAttribLocation(program, "a_position");
   a_tex_loc = glGetAttribLocation(program, "a_texCoord");
