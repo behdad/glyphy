@@ -347,10 +347,12 @@ find_grid_boundaries (double &grid_min_x,
 static double
 distance_to_an_arc (point_t p, arcs_texture tex, int x, int y)
 {
+#if 0
   printf(      "(%d, %d). Grid says %s glyph.\tArc List: [", x, y, tex.grid[x][y].inside_glyph ? "inside" : "outside");
   for (int i = 0; i < NUM_SAVED_ARCS; i++)
     printf("%d, ", tex.grid[x][y].arcs[i]);
   printf(        "]. \n\t\t  We saw: [");
+#endif
 
   arc_t nearest_arc (tex.arc_endpoints.at (0),
                          tex.arc_endpoints.at (1),
@@ -387,8 +389,10 @@ distance_to_an_arc (point_t p, arcs_texture tex, int x, int y)
     printf("%d, ", arc_index);
   }
     printf("].\n");
+#if 0
   if (arc_index >= 65535)
     printf("arc_index is %d < 0... At this cell we are %s.\n\n", arc_index,  min_distance < 0 ? "outside" : "inside");
+#endif
   return min_distance;
 }
 
@@ -498,7 +502,7 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   FT_Init_FreeType (&library);   
   FT_New_Face ( library, font_path, 0, &face );
   unsigned int upem = face->units_per_EM;
-  double tolerance = upem * 1e-3; // in font design units 
+  double tolerance = upem * 1e-3; // in font design units
 
   width = TEXSIZE;
   height = TEXSIZE; 
@@ -586,10 +590,10 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   } *arc_data = (rgba_t *) malloc (tex.arc_endpoints.size () * 4);
   for (int i = 0; i < tex.arc_endpoints.size (); i++)
   {
-    arc_data [i].r = tex.arc_endpoints.at (i).x * 255 / upem;
-    arc_data [i].g = tex.arc_endpoints.at (i).y * 255 / upem;
+    arc_data [i].r = (tex.arc_endpoints.at (i).x - grid_min_x) * 255 / glyph_width;
+    arc_data [i].g = (tex.arc_endpoints.at (i).y - grid_min_y) * 255 / glyph_height;
     arc_data [i].b = tex.d_values.at (i) * 127 + 128;
-    arc_data [i].a = 1.0;
+    arc_data [i].a = 255;
   }
   gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, 1, tex.arc_endpoints.size(), 0, GL_RGBA, GL_UNSIGNED_BYTE, arc_data);
   free (arc_data);
@@ -748,7 +752,7 @@ main (int argc, char** argv)
   GtkWidget *window;
   char *font_path;
   char utf8;
-  if (argc > 2) {
+  if (argc == 3) {
      font_path = argv[1];
      utf8 = argv[2][0];
   }
@@ -813,13 +817,15 @@ main (int argc, char** argv)
 
 	//float alpha = smoothstep (-mm, mm, texture2D(tex, v_texCoord).r - .5);
 	int i;
-//	for (i = 0; i < 1; i++) {
-//	  vec4 arc = texture2D (tex, vec2(.5, .5 + float(i)));
-//	}
-	vec4 arc = texture2D (tex, v_texCoord);
+	float min_dist = 1000;
+	for (i = 0; i < num_points; i++) {
+	  vec4 arc = texture2D (tex, vec2(.5,(.5+float(i))/float(num_points)));
+	  vec2 point = arc.rg;
+	  float d = arc.b;
+	  min_dist = min (min_dist, length (v_texCoord - point));
+	}
 
-	gl_FragColor = arc;
-	//gl_FragColor = vec4(arc.r / float (upem), 0., 0., 1.);
+	gl_FragColor = vec4(1.,1.,1.,1.) * min_dist * 3;
       }
   );
   program = create_program (vshader, fshader);
