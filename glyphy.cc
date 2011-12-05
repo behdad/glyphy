@@ -310,36 +310,6 @@ setup_texture (char* hi)
 
 
 
-/* Given a list of arcs, finds a reasonable set of boundaries for a grid that covers all of them. */
-static void
-find_grid_boundaries (double &grid_min_x, 
-                      double &grid_max_x,
-                      double &grid_min_y, 
-                      double &grid_max_y, 
-                      vector <Arc <Coord, Scalar> > arc_list)
-{
-  grid_min_x = INFINITY; 
-  grid_max_x = -1 * INFINITY; 
-  grid_min_y = INFINITY; 
-  grid_max_y = -1 * INFINITY; 
-
-  for (int i = 0; i < arc_list.size (); i++)  {
-    Arc<Coord, Scalar> arc = arc_list.at(i);
-    grid_min_x = std::min (grid_min_x, (fabs(arc.d) < 0.3 ? std::min (arc.p0.x, arc.p1.x) : arc.center().x - arc.radius()));
-    grid_max_x = std::max (grid_max_x, (fabs(arc.d) < 0.3 ? std::max (arc.p0.x, arc.p1.x) : arc.center().x + arc.radius()));
-    grid_min_y = std::min (grid_min_y, (fabs(arc.d) < 0.3 ? std::min (arc.p0.y, arc.p1.y) : arc.center().y - arc.radius()));
-    grid_max_y = std::max (grid_max_y, (fabs(arc.d) < 0.3 ? std::max (arc.p0.y, arc.p1.y) : arc.center().y + arc.radius()));
-  }
-  grid_min_x *= 0.98;
-  grid_min_y *= 0.98;
-  grid_max_y *= 1.02;
-  grid_max_x *= 1.02;
-}
-
-
-
-
-
 /** Given a point, finds the shortest distance to the arc that is closest to that point. 
   * Sign of the distance depends on whether point is "inside" or "outside" the glyph.
   * (Negative distance corresponds to being inside the glyph.)
@@ -552,13 +522,16 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   					         static_cast<void *> (&acc),
 					         tolerance);     
   FreeTypeOutlineSource<ArcApproximatorOutlineSink>::decompose_outline (&face->glyph->outline,
-  									outline_arc_approximator);  									
+  									outline_arc_approximator);
   printf ("Num arcs %d; Approximation error %g; Tolerance %g; Percentage %g. %s\n",
 	  (int) acc.arcs.size (), e, tolerance, round (100 * e / tolerance), e <= tolerance ? "PASS" : "FAIL");
-	  
-  double grid_min_x, grid_max_x, grid_min_y, grid_max_y, glyph_width, glyph_height;
-  find_grid_boundaries (grid_min_x, grid_max_x, grid_min_y, grid_max_y, acc.arcs);
-  
+
+  int grid_min_x, grid_max_x, grid_min_y, grid_max_y, glyph_width, glyph_height;
+  grid_min_x = face->glyph->metrics.horiBearingX;
+  grid_min_y = face->glyph->metrics.horiBearingY - face->glyph->metrics.height;
+  grid_max_x = face->glyph->metrics.horiBearingX + face->glyph->metrics.width;
+  grid_max_y = face->glyph->metrics.horiBearingY;
+
   glyph_width = grid_max_x - grid_min_x;
   glyph_height = grid_max_y - grid_min_y;
   printf ("Glyph dimensions: width = %g, height = %g.\n", glyph_width, glyph_height);
@@ -590,8 +563,8 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   } *arc_data = (rgba_t *) malloc (tex.arc_endpoints.size () * 4);
   for (int i = 0; i < tex.arc_endpoints.size (); i++)
   {
-    arc_data [i].r = (tex.arc_endpoints.at (i).x - grid_min_x) * 255 / glyph_width;
-    arc_data [i].g = (tex.arc_endpoints.at (i).y - grid_min_y) * 255 / glyph_height;
+    arc_data [i].r = (tex.arc_endpoints.at (i).x - grid_min_x) * 255. / glyph_width;
+    arc_data [i].g = (tex.arc_endpoints.at (i).y - grid_min_y) * 255. / glyph_height;
     if (isinf (tex.d_values.at (i)))
       arc_data [i].b = 255;
     else
