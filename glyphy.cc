@@ -787,9 +787,7 @@ main (int argc, char** argv)
 	float ddx = length (dFdx (p));
 	float ddy = length (dFdy (p));
 	float m = max (ddx, ddy); /* isotropic antialiasing */
-	float mm = m * 128. / 32 ;/// (TEXSIZE); //FILTERWIDTH*SAMPLING);
 
-	//float alpha = smoothstep (-mm, mm, texture2D(tex, p).r - .5);
 	int i;
 	float min_dist = 1000;
 	for (i = 0; i < num_points - 1; i++) {
@@ -809,8 +807,8 @@ main (int argc, char** argv)
 	}
 
 	gl_FragColor = mix(vec4(1.,0.,0.,1.),
-			   vec4(1.,1.,1.,1.) * (1 + sin (min_dist * 1000)) / 2.,
-			   smoothstep (0., 2*m, min_dist));
+			   vec4(1.,1.,1.,1.) * (1 + sin (min_dist / m)) / 2.,
+			   smoothstep (0., 2 * m, min_dist));
       }
   );
   program = create_program (vshader, fshader);
