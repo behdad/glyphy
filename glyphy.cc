@@ -217,6 +217,7 @@ drawable_swap_buffers (GdkDrawable *drawable)
 {
   drawable_egl_t *e = drawable_get_egl (drawable);
   eglSwapBuffers (e->display, e->surface);
+  glFinish ();
 }
 
 /***************************************************************************************************************************/
@@ -677,7 +678,8 @@ gboolean configure_cb (GtkWidget *widget,
   return FALSE;
 }
 
-static int step_timer = 0;
+static int step_timer;
+static int num_frames;
 
 static
 gboolean expose_cb (GtkWidget *widget,
@@ -711,8 +713,17 @@ gboolean expose_cb (GtkWidget *widget,
 static gboolean
 step (gpointer data)
 {
+  num_frames++;
   step_timer++;
   gdk_window_invalidate_rect (GDK_WINDOW (data), NULL, TRUE);
+  return TRUE;
+}
+
+static gboolean
+print_fps (gpointer data)
+{
+  printf ("%d frames per second\n", (num_frames + 2) / 5);
+  num_frames = 0;
   return TRUE;
 }
 
@@ -828,8 +839,10 @@ main (int argc, char** argv)
   g_signal_connect (G_OBJECT (window), "expose-event", G_CALLBACK (expose_cb), GINT_TO_POINTER (glGetUniformLocation (program, "u_matViewProjection")));
   g_signal_connect (G_OBJECT (window), "configure-event", G_CALLBACK (configure_cb), NULL);
 
-  if (animate)
-    g_timeout_add (1000 / 60, step, window->window);
+  if (animate) {
+    g_idle_add (step, window->window);
+    g_timeout_add (5000, print_fps, NULL);
+  }
 
   gtk_main ();
 
