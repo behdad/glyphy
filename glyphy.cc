@@ -821,7 +821,7 @@ main (int argc, char** argv)
 	}
 
 	gl_FragColor = mix(vec4(1.,0.,0.,1.),
-			   vec4(1.,1.,1.,1.) * ((1 + sin (min_dist / m)) / 2.) * sin (min_dist / m / 100),
+			   vec4(1.,1.,1.,1.) * ((1 + sin (min_dist / m)) / 2.) * sin (min_dist * 3.14),
 			   smoothstep (0., 2 * m, min_dist));
       }
   );
