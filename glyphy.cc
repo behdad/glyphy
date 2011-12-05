@@ -730,7 +730,7 @@ gboolean expose_cb (GtkWidget *widget,
   drawable_swap_buffers (widget->window);
 
   // Comment out to disable rotation.
-  // i++;
+  i++;
 
   return TRUE;
 }
@@ -761,18 +761,10 @@ main (int argc, char** argv)
   
   GLuint vshader, fshader, program, texture, a_pos_loc, a_tex_loc;
   
-  // Draw a grid of (ZOOM x ZOOM) glyphs.
-  // TODO: Figure out what this list means, and how!!!!!!!!!!!!!!!!!!!!!!
-#define ZOOM 1
-  const GLfloat w_vertices[] = { -1.00, -1.00, +0.00,
-				 +0.00, ZOOM,
-				 +1.00, -1.00, +0.00,
-				 ZOOM, ZOOM,
-				 +1.00, +1.00, +0.00,
-				 ZOOM, +0.00,
-				 -1.00, +1.00, +0.00,
-				 +0.00, +0.00 };
-
+  const GLfloat w_vertices[] = { -1, -1, 0,  0, 0,
+				 +1, -1, 0,  1, 0,
+				 +1, +1, 0,  1, 1,
+				 -1, +1, 0,  0, 1 };
 
   gtk_init (&argc, &argv);
 
