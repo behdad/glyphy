@@ -789,36 +789,39 @@ main (int argc, char** argv)
       attribute vec4 a_position;
       attribute vec2 a_texCoord;
       uniform mat4 u_matViewProjection;
-      varying vec2 v_texCoord;
+      varying vec2 p;
       void main()
       {
 	gl_Position = u_matViewProjection * a_position;
-	v_texCoord = a_texCoord;
+	p = a_texCoord;
       }
   );
   fshader = COMPILE_SHADER (GL_FRAGMENT_SHADER,
       uniform sampler2D tex;
       uniform int upem;
       uniform int num_points;
-      varying vec2 v_texCoord;
+      varying vec2 p;
       void main()
       {
-	float ddx = length (dFdx (v_texCoord));
-	float ddy = length (dFdy (v_texCoord));
+	float ddx = length (dFdx (p));
+	float ddy = length (dFdy (p));
 	float m = max (ddx, ddy); /* isotropic antialiasing */
 	float mm = m * 128. / 32 ;/// (TEXSIZE); //FILTERWIDTH*SAMPLING);
 
-	//float alpha = smoothstep (-mm, mm, texture2D(tex, v_texCoord).r - .5);
+	//float alpha = smoothstep (-mm, mm, texture2D(tex, p).r - .5);
 	int i;
 	float min_dist = 1000;
-	for (i = 0; i < num_points; i++) {
-	  vec4 arc = texture2D (tex, vec2(.5,(.5+float(i))/float(num_points)));
-	  vec2 point = arc.rg;
-	  float d = arc.b;
-	  min_dist = min (min_dist, length (v_texCoord - point));
+	for (i = 0; i < num_points - 1; i++) {
+	  vec4 p0 = texture2D (tex, vec2(.5,(.5+float(i))/float(num_points)));
+	  if (abs(p0.b) > 1e5) continue;
+	  vec4 p1 = texture2D (tex, vec2(.5,(.5+float(i+1))/float(num_points)));
+	  vec2 l = normalize (p1.rg - p0.rg);
+	  vec2 n = vec2(-l.g, l.r);
+	  float dist = abs (dot (n, p - p0.rg));
+	  min_dist = min (min_dist, dist);
 	}
 
-	gl_FragColor = vec4(1.,1.,1.,1.) * min_dist * 3;
+	gl_FragColor = vec4(1.,1.,1.,1.) * min_dist * 5;
       }
   );
   program = create_program (vshader, fshader);
