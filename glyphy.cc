@@ -566,11 +566,14 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   {
     arc_data [i].r = (tex.arc_endpoints.at (i).x - grid_min_x) * 255. / glyph_width;
     arc_data [i].g = (tex.arc_endpoints.at (i).y - grid_min_y) * 255. / glyph_height;
-    if (isinf (tex.d_values.at (i)))
+    if (isinf (tex.d_values.at (i))) {
       arc_data [i].b = 255;
-    else
-      arc_data [i].b = tex.d_values.at (i) * 127 + 128;
-    arc_data [i].a = 255;
+      arc_data [i].a = 0;
+    } else {
+      int dd = lround ((tex.d_values.at (i) / 10.) * 65536) + 32768;
+      arc_data [i].b = dd >> 8;
+      arc_data [i].a = dd & 0xFF;
+    }
   }
   gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, 1, tex.arc_endpoints.size(), 0, GL_RGBA, GL_UNSIGNED_BYTE, arc_data);
   free (arc_data);
@@ -794,8 +797,8 @@ main (int argc, char** argv)
 	for (i = 0; i < num_points - 1; i++) {
 	  vec4 arc = arc_next;
 	  arc_next = texture2D (tex, vec2(.5,(.5+float(i + 1))/float(num_points)));
-	  float d = arc.b * 2. - 1.;
-	  if (d == 1.) continue;
+	  float d = 10. * (arc.b + arc.a / 256.) - 5.;
+	  if (d == 5.) continue;
 	  vec2 p0 = arc.rg;
 	  vec2 p1 = arc_next.rg;
 	  vec2 line = p1 - p0;
