@@ -795,7 +795,8 @@ main (int argc, char** argv)
 	float m = max (ddx, ddy); /* isotropic antialiasing */
 
 	int i;
-	float min_dist = 1000;
+	float min_dist = 1;
+	float min_point_dist = 1;
 	vec4 arc_next = texture2D (tex, vec2(.5,.5/float(num_points)));
 	for (i = 0; i < num_points - 1; i++) {
 	  vec4 arc = arc_next;
@@ -818,11 +819,15 @@ main (int argc, char** argv)
 	    float dist = min (distance (p, p0), distance (p, p1));
 	    min_dist = min (min_dist, dist);
 	  }
+
+	  float point_dist = min (distance (p, p0), distance (p, p1));
+	  min_point_dist = min (min_point_dist, point_dist);
 	}
 
 	gl_FragColor = mix(vec4(1.,0.,0.,1.),
 			   vec4(1.,1.,1.,1.) * ((1 + sin (min_dist / m)) / 2.) * sin (min_dist * 3.14),
 			   smoothstep (0., 2 * m, min_dist));
+	gl_FragColor = mix(vec4(0.,1.,0.,1.), gl_FragColor, smoothstep (2. * m, 5. * m, min_point_dist));
       }
   );
   program = create_program (vshader, fshader);
