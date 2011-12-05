@@ -794,14 +794,18 @@ main (int argc, char** argv)
 	for (i = 0; i < num_points - 1; i++) {
 	  vec4 arc = arc_next;
 	  arc_next = texture2D (tex, vec2(.5,(.5+float(i + 1))/float(num_points)));
-	  float d = arc.b;
+	  float d = arc.b * 2. - 1.;
 	  if (d == 1.) continue;
 	  vec2 p0 = arc.rg;
 	  vec2 p1 = arc_next.rg;
-	  vec2 l = normalize (p1 - p0);
-	  vec2 n = vec2(-l.g, l.r);
-	  if (sign (dot (p - p0, l)) * sign (dot (p - p1, l)) < 0) {
-	    float dist = abs (dot (n, p - p0));
+	  vec2 line = p1 - p0;
+	  vec2 perp = vec2 (-line.g, line.r);
+	  vec2 norm = normalize (perp);
+	  vec2 c = mix (p0, p1, .5) - perp * ((1. - d*d) / (4. * d));
+	  if (sign (dot (p - p0, line)) * sign (dot (p - p1, line)) < 0) {
+	    float r = distance (p0, c);
+	    //float dist = abs (dot (norm, p - p0)); // line
+	    float dist = abs (distance (p, c) - r); // arc
 	    min_dist = min (min_dist, dist);
 	  } else {
 	    float dist = min (distance (p, p0), distance (p, p1));
