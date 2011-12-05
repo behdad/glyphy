@@ -592,7 +592,10 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   {
     arc_data [i].r = (tex.arc_endpoints.at (i).x - grid_min_x) * 255 / glyph_width;
     arc_data [i].g = (tex.arc_endpoints.at (i).y - grid_min_y) * 255 / glyph_height;
-    arc_data [i].b = tex.d_values.at (i) * 127 + 128;
+    if (isinf (tex.d_values.at (i)))
+      arc_data [i].b = 255;
+    else
+      arc_data [i].b = tex.d_values.at (i) * 127 + 128;
     arc_data [i].a = 255;
   }
   gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, 1, tex.arc_endpoints.size(), 0, GL_RGBA, GL_UNSIGNED_BYTE, arc_data);
@@ -812,16 +815,22 @@ main (int argc, char** argv)
 	int i;
 	float min_dist = 1000;
 	for (i = 0; i < num_points - 1; i++) {
-	  vec4 p0 = texture2D (tex, vec2(.5,(.5+float(i))/float(num_points)));
-	  if (abs(p0.b) > 1e5) continue;
-	  vec4 p1 = texture2D (tex, vec2(.5,(.5+float(i+1))/float(num_points)));
-	  vec2 l = normalize (p1.rg - p0.rg);
+	  vec4 arc = texture2D (tex, vec2(.5,(.5+float(i))/float(num_points)));
+	  if (arc.b == 1.) continue;
+	  vec2 p0 = arc.rg;
+	  vec2 p1 = texture2D (tex, vec2(.5,(.5+float(i+1))/float(num_points))).rg;
+	  vec2 l = normalize (p1 - p0);
 	  vec2 n = vec2(-l.g, l.r);
-	  float dist = abs (dot (n, p - p0.rg));
-	  min_dist = min (min_dist, dist);
+	  if (sign (dot (p - p0, l)) * sign (dot (p - p1, l)) < 0) {
+	    float dist = abs (dot (n, p - p0));
+	    min_dist = min (min_dist, dist);
+	  } else {
+	    float dist = min (distance (p, p0), distance (p, p1));
+	    min_dist = min (min_dist, dist);
+	  }
 	}
 
-	gl_FragColor = vec4(1.,1.,1.,1.) * min_dist * 5;
+	gl_FragColor = vec4(1.,1.,1.,1.) * smoothstep (0., 2*m, min_dist);
       }
   );
   program = create_program (vshader, fshader);
