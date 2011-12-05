@@ -570,7 +570,7 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
       arc_data [i].b = 255;
       arc_data [i].a = 0;
     } else {
-      int dd = lround ((tex.d_values.at (i) / 10.) * 65536) + 32768;
+      unsigned int dd = lround ((tex.d_values.at (i) / 10.) * 65536) + 32768;
       arc_data [i].b = dd >> 8;
       arc_data [i].a = dd & 0xFF;
     }
@@ -785,6 +785,9 @@ main (int argc, char** argv)
       uniform int upem;
       uniform int num_points;
       varying vec2 p;
+
+      vec2 perpendicular (vec2 v) { return vec2 (-v.g, v.r); }
+
       void main()
       {
 	float ddx = length (dFdx (p));
@@ -802,12 +805,13 @@ main (int argc, char** argv)
 	  vec2 p0 = arc.rg;
 	  vec2 p1 = arc_next.rg;
 	  vec2 line = p1 - p0;
-	  vec2 perp = vec2 (-line.g, line.r);
+	  vec2 perp = perpendicular (line);
 	  vec2 norm = normalize (perp);
 	  vec2 c = mix (p0, p1, .5) - perp * ((1. - d*d) / (4. * d));
-	  if (sign (dot (p - p0, line)) * sign (dot (p - p1, line)) < 0) {
+
+	  if (sign (d) * dot (p - c, perpendicular (p0 - c)) <= 0 &&
+	      sign (d) * dot (p - c, perpendicular (p1 - c)) >= 0) {
 	    float r = distance (p0, c);
-	    //float dist = abs (dot (norm, p - p0)); // line
 	    float dist = abs (distance (p, c) - r); // arc
 	    min_dist = min (min_dist, dist);
 	  } else {
