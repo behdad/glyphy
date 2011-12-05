@@ -677,14 +677,15 @@ gboolean configure_cb (GtkWidget *widget,
   return FALSE;
 }
 
+static int step_timer = 0;
+
 static
 gboolean expose_cb (GtkWidget *widget,
 		    GdkEventExpose *event,
 		    gpointer user_data)
 {
   GtkAllocation allocation;
-  static int i = 0;
-  double theta = M_PI / 360.0 * i / 3.;
+  double theta = M_PI / 360.0 * step_timer / 3.;
   GLfloat mat[] = { +cos(theta), +sin(theta), 0., 0.,
 		    -sin(theta), +cos(theta), 0., 0.,
 			     0.,          0., 1., 0.,
@@ -703,7 +704,6 @@ gboolean expose_cb (GtkWidget *widget,
   drawable_swap_buffers (widget->window);
 
   // Comment out to disable rotation.
-  i++;
 
   return TRUE;
 }
@@ -711,6 +711,7 @@ gboolean expose_cb (GtkWidget *widget,
 static gboolean
 step (gpointer data)
 {
+  step_timer++;
   gdk_window_invalidate_rect (GDK_WINDOW (data), NULL, TRUE);
   return TRUE;
 }
@@ -721,19 +722,20 @@ main (int argc, char** argv)
   GtkWidget *window;
   char *font_path;
   char utf8;
-  if (argc == 3) {
+  gboolean animate = FALSE;
+  if (argc >= 3) {
      font_path = argv[1];
      utf8 = argv[2][0];
+     if (argc >= 4)
+       animate = atoi (argv[3]);
   }
   else {
-    fprintf (stderr, "Usage: grid PATH_TO_FONT_FILE CHARACTER_TO_DRAW\n");
+    fprintf (stderr, "Usage: grid PATH_TO_FONT_FILE CHARACTER_TO_DRAW ANIMATE?\n");
     return 1;
   }
 
-  
-  
   GLuint vshader, fshader, program, texture, a_pos_loc, a_tex_loc;
-  
+
   const GLfloat w_vertices[] = { -1, -1, 0,  0, 0,
 				 +1, -1, 0,  1, 0,
 				 +1, +1, 0,  1, 1,
@@ -796,6 +798,7 @@ main (int argc, char** argv)
 	}
 
 	gl_FragColor = vec4(1.,1.,1.,1.) * smoothstep (0., 2*m, min_dist);
+	gl_FragColor = vec4(1.,1.,1.,1.) * (1 + sin (min_dist * 1000)) / 2.;
       }
   );
   program = create_program (vshader, fshader);
@@ -825,7 +828,8 @@ main (int argc, char** argv)
   g_signal_connect (G_OBJECT (window), "expose-event", G_CALLBACK (expose_cb), GINT_TO_POINTER (glGetUniformLocation (program, "u_matViewProjection")));
   g_signal_connect (G_OBJECT (window), "configure-event", G_CALLBACK (configure_cb), NULL);
 
-  g_timeout_add (1000 / 60, step, window->window);
+  if (animate)
+    g_timeout_add (1000 / 60, step, window->window);
 
   gtk_main ();
 
