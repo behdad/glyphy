@@ -361,7 +361,7 @@ distance_to_an_arc (point_t p, arcs_texture tex, int x, int y)
   // By default, the min distance is infinite. Sign depends on direction of closest arc.                       
   double min_distance = (tex.grid[x][y].inside_glyph ? 1 : -1) * INFINITY; 
   int arc_index = tex.grid[x][y].arcs[0];
-  printf("%d, ", arc_index);
+//  printf("%d, ", arc_index);
 
   for (int k = 1; k < NUM_SAVED_ARCS && arc_index < 65535; k++)  {  /******************************* WANT: arc_index != -1. For unsigned char, this works. *****/
     if (tex.d_values.at (arc_index) < INFINITY) {         
@@ -386,9 +386,9 @@ distance_to_an_arc (point_t p, arcs_texture tex, int x, int y)
       }
     }
     arc_index = tex.grid[x][y].arcs[k];
-    printf("%d, ", arc_index);
+//    printf("%d, ", arc_index);
   }
-    printf("].\n");
+//    printf("].\n");
 #if 0
   if (arc_index >= 65535)
     printf("arc_index is %d < 0... At this cell we are %s.\n\n", arc_index,  min_distance < 0 ? "outside" : "inside");
@@ -631,8 +631,6 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   double box_width = glyph_width / TEXSIZE;
   double box_height = glyph_height / TEXSIZE;
 
-  printf("We are now finding the arcs in the grid. Exciting!\n");
-  
   double min_dimension = std::min(glyph_width, glyph_height);
   for (int row = 0; row < TEXSIZE; row++) 
     for (int col = 0; col < TEXSIZE; col++) 
@@ -656,8 +654,6 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
 // Main goal: Set D(x,y) = { 0   if inside, distance >= TEXSIZE
 //                           127 if inside, distance == 0
 //                           255 if outside, distance <= -TEXSIZE
-
-printf("Starting loop.... ");
 
     for (y = 0; y < height; y++)
       for (x = 0; x < width; x++) {
@@ -684,10 +680,7 @@ printf("Starting loop.... ");
     data = cairo_image_surface_get_data (dest);
   }
 
-  printf("Nearly done.... ");
-
   //glTexImage2D (GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, data);
-  printf("Done setup.\n");
   return;
 }
 
