@@ -808,8 +808,9 @@ main (int argc, char** argv)
 	  }
 	}
 
-	gl_FragColor = vec4(1.,1.,1.,1.) * smoothstep (0., 2*m, min_dist);
-	gl_FragColor = vec4(1.,1.,1.,1.) * (1 + sin (min_dist * 1000)) / 2.;
+	gl_FragColor = mix(vec4(1.,0.,0.,1.),
+			   vec4(1.,1.,1.,1.) * (1 + sin (min_dist * 1000)) / 2.,
+			   smoothstep (0., 2*m, min_dist));
       }
   );
   program = create_program (vshader, fshader);
