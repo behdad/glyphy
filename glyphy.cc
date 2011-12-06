@@ -570,7 +570,10 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
       arc_data [i].b = 255;
       arc_data [i].a = 0;
     } else {
-      unsigned int dd = lround ((tex.d_values.at (i) / 10.) * 65536) + 32768;
+#define MAX_D .5
+      unsigned int dd = (tex.d_values.at (i) * 32768. / MAX_D) + 32768.5;
+      if (labs ((int) dd - 32768) > 32767)
+        g_error ("XXXX %d %g\n", i, tex.d_values.at (i));
       arc_data [i].b = dd >> 8;
       arc_data [i].a = dd & 0xFF;
     }
@@ -797,12 +800,12 @@ main (int argc, char** argv)
 	int i;
 	float min_dist = 1;
 	float min_point_dist = 1;
-	vec4 arc_next = texture2D (tex, vec2(.5,.5/float(num_points)));
+	vec4 arc_next = texture2D (tex, vec2(.5,.5 / float(num_points)));
 	for (i = 0; i < num_points - 1; i++) {
 	  vec4 arc = arc_next;
-	  arc_next = texture2D (tex, vec2(.5,(.5+float(i + 1))/float(num_points)));
-	  float d = 10. * (arc.b + arc.a / 256.) - 5.;
-	  if (d == 5.) continue;
+	  arc_next = texture2D (tex, vec2(.5,(1.5 + float(i)) / float(num_points)));
+	  float d = 2. * MAX_D * (arc.b + arc.a / 256.) - (MAX_D);
+	  if (d == MAX_D) continue;
 	  vec2 p0 = arc.rg;
 	  vec2 p1 = arc_next.rg;
 	  vec2 line = p1 - p0;
@@ -810,15 +813,15 @@ main (int argc, char** argv)
 	  vec2 norm = normalize (perp);
 	  vec2 c = mix (p0, p1, .5) - perp * ((1. - d*d) / (4. * d));
 
+	  float dist;
 	  if (sign (d) * dot (p - c, perpendicular (p0 - c)) <= 0 &&
-	      sign (d) * dot (p - c, perpendicular (p1 - c)) >= 0) {
-	    float r = distance (p0, c);
-	    float dist = abs (distance (p, c) - r); // arc
-	    min_dist = min (min_dist, dist);
+	      sign (d) * dot (p - c, perpendicular (p1 - c)) >= 0)
+	  {
+	    dist = abs (distance (p, c) - distance (p0, c));
 	  } else {
-	    float dist = min (distance (p, p0), distance (p, p1));
-	    min_dist = min (min_dist, dist);
+	    dist = min (distance (p, p0), distance (p, p1));
 	  }
+	  min_dist = min (min_dist, dist);
 
 	  float point_dist = min (distance (p, p0), distance (p, p1));
 	  min_point_dist = min (min_point_dist, point_dist);
