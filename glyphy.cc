@@ -455,6 +455,36 @@ closest_arcs_to_cell (Point<Coord> square_top_left,
  // printf("\n");
 }
 
+struct rgba_t {
+  unsigned char r;
+  unsigned char g;
+  unsigned char b;
+  unsigned char a;
+};
+
+static const rgba_t
+arc_encode (double x, double y, double d)
+{
+  rgba_t v;
+
+  /* lets do 10 bits for d, and 11 for x and y each */
+  unsigned int ix, iy, id;
+  ix = lround (x * 2047.);
+  iy = lround (y * 2047.);
+#define MAX_D .54
+  if (isinf (d))
+    id = 0;
+  else {
+    if (fabs (d > MAX_D))
+      g_error ("XXXX d value greater than MAX_D: %g\n", d);
+    id = lround (d * 511. / MAX_D + 512);
+  }
+  v.r = ix & 0xff;
+  v.g = iy & 0xff;
+  v.b = id >> 2;
+  v.a = ((ix >> 8) << 5) + ((iy >> 8) << 2) + (id & 0x03);
+  return v;
+}
 
 
 
@@ -556,30 +586,12 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   tex.d_values.push_back (acc.arcs.at (arc_count).d);
   tex.d_values.push_back (INFINITY);
 
-  struct rgba_t {
-    unsigned char r;
-    unsigned char g;
-    unsigned char b;
-    unsigned char a;
-  } *arc_data = (rgba_t *) malloc (tex.arc_endpoints.size () * 4);
+  rgba_t arc_data[tex.arc_endpoints.size ()];
   for (int i = 0; i < tex.arc_endpoints.size (); i++)
-  {
-    arc_data [i].r = (tex.arc_endpoints.at (i).x - grid_min_x) * 255. / glyph_width;
-    arc_data [i].g = (tex.arc_endpoints.at (i).y - grid_min_y) * 255. / glyph_height;
-    if (isinf (tex.d_values.at (i))) {
-      arc_data [i].b = 255;
-      arc_data [i].a = 0;
-    } else {
-#define MAX_D .54
-      unsigned int dd = (tex.d_values.at (i) * 32768. / MAX_D) + 32768.5;
-      if (labs ((int) dd - 32768) > 32767)
-        g_error ("XXXX %d %g\n", i, tex.d_values.at (i));
-      arc_data [i].b = dd >> 8;
-      arc_data [i].a = dd & 0xFF;
-    }
-  }
+    arc_data[i] = arc_encode ((tex.arc_endpoints[i].x - grid_min_x) / glyph_width,
+			      (tex.arc_endpoints[i].y - grid_min_y) / glyph_height,
+			      tex.d_values[i]);
   gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, 1, tex.arc_endpoints.size(), 0, GL_RGBA, GL_UNSIGNED_BYTE, arc_data);
-  free (arc_data);
 
   glUniform1i (glGetUniformLocation(program, "upem"), upem);
   glUniform1i (glGetUniformLocation(program, "num_points"), tex.arc_endpoints.size ());
@@ -776,7 +788,7 @@ main (int argc, char** argv)
       attribute vec4 a_position;
       attribute vec2 a_texCoord;
       uniform mat4 u_matViewProjection;
-      varying vec2 p;
+      invariant varying vec2 p;
       void main()
       {
 	gl_Position = u_matViewProjection * a_position;
@@ -784,12 +796,21 @@ main (int argc, char** argv)
       }
   );
   fshader = COMPILE_SHADER (GL_FRAGMENT_SHADER,
-      uniform sampler2D tex;
+      uniform highp sampler2D tex;
       uniform int upem;
       uniform int num_points;
-      varying vec2 p;
+      invariant varying highp vec2 p;
 
       vec2 perpendicular (const vec2 v) { return vec2 (-v.g, v.r); }
+      int mod (const int a, const int b) { return a - (a / b) * b; }
+
+      vec3 arc_decode (const vec4 v)
+      {
+        float x = (float (int (v.a * 255.) / 32) + v.r) / 8.;
+        float y = (float (mod (int (v.a * 255) / 4, 8)) + v.g) / 8.;
+        float d = MAX_D * (2. * (v.b + float (mod (int (v.a * 255), 4)) / 256.) - 1);
+	return vec3 (x, y, d);
+      }
 
       void main()
       {
@@ -800,12 +821,12 @@ main (int argc, char** argv)
 	int i;
 	float min_dist = 1;
 	float min_point_dist = 1;
-	vec4 arc_next = texture2D (tex, vec2(.5,.5 / float(num_points)));
+	vec3 arc_next = arc_decode (texture2D (tex, vec2(.5,.5 / float(num_points))));
 	for (i = 0; i < num_points - 1; i++) {
-	  vec4 arc = arc_next;
-	  arc_next = texture2D (tex, vec2(.5,(1.5 + float(i)) / float(num_points)));
-	  float d = 2. * MAX_D * (arc.b + arc.a / 256.) - (MAX_D);
-	  if (d == MAX_D) continue;
+	  vec3 arc = arc_next;
+	  arc_next = arc_decode (texture2D (tex, vec2(.5,(1.5 + float(i)) / float(num_points))));
+	  float d = arc.b;
+	  if (d == -MAX_D) continue;
 	  vec2 p0 = arc.rg;
 	  vec2 p1 = arc_next.rg;
 	  vec2 line = p1 - p0;
