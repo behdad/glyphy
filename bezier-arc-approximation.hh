@@ -185,33 +185,27 @@ class BezierArcErrorApproximatorBehdad
     Vector<Coord> v (MaxDeviationApproximator::approximate_deviation (v0.dx, v1.dx),
 		     MaxDeviationApproximator::approximate_deviation (v0.dy, v1.dy));
 
-    // Edge cases: d is too close to being 0 or +/- 1. Default to a weak bound.
-    if (fabs(a.d * a.d - 1) < 1e-6) {
-//      printf("Special case. a.d = %g.\n", a.d);
+    // Edge cases: If d is too close to being 1 default to a weak bound.
+    if (fabs(a.d * a.d - 1) < 1e-4)
       return ea + v.len ();
-    }
-      
-      
-    double tan_half_alpha = 2 * fabs (a.d) / (1 - a.d*a.d); /*********************************************** We made sure that a.d != 1  ***********************/
+
+    double tan_half_alpha = 2 * fabs (a.d) / (1 - a.d*a.d); /********** We made sure that a.d != 1  *************/
     double tan_v;
-    
-    if (fabs(v.dy) < 1e-6) { /**************************************************** If v.dy == 0, perturb just a bit. ******************************************************/
- //     printf("v.dy = %g.\n", v.dy);
-       v.dy = 1e-6; 
+
+    if (fabs(v.dy) < 1e-6) { /************* If v.dy == 0, perturb just a bit. *********/
+       /* TODO figure this one out. */
+       v.dy = 1e-6;
     }
-    tan_v = v.dx / v.dy;  
+    tan_v = v.dx / v.dy;
     double eb;
     if (fabs (a.d) < 1e-6 || tan_half_alpha < 0 ||
-	(-tan_half_alpha <= tan_v && tan_v <= tan_half_alpha)) {
-      eb = v.len ();
-    } else {
-      Scalar c2 = (b1.p3 - b1.p0).len () / 2;
-      double r = c2 * (a.d * a.d + 1) / (2 * fabs (a.d));
-      
-      if (tan_half_alpha == 0)
-//        printf("tan_half_alpha = %g.\n", tan_half_alpha);
-      eb = Vector<Coord> (c2/tan_half_alpha + v.dy, c2 + v.dx).len () - r; /********************************** By checking a.d, we should have tan_half_alpha != 0 . ***********************/
-    }
+	(-tan_half_alpha <= tan_v && tan_v <= tan_half_alpha))
+      return ea + v.len ();
+
+    Scalar c2 = (b1.p3 - b1.p0).len () / 2;
+    double r = c2 * (a.d * a.d + 1) / (2 * fabs (a.d));
+
+    eb = Vector<Coord> (c2/tan_half_alpha + v.dy, c2 + v.dx).len () - r;
 
     return ea + eb;
   }

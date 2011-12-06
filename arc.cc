@@ -86,6 +86,7 @@ static void
 demo_text (cairo_t *cr, const char *family, const char *utf8)
 {
   typedef MaxDeviationApproximatorExact MaxDev;
+//  typedef BezierArcErrorApproximatorViaBezier<BezierBezierErrorApproximatorSimpleMagnitudeDecomposed<MaxDev> > BezierArcError;
   typedef BezierArcErrorApproximatorBehdad<MaxDev> BezierArcError;
   typedef BezierArcApproximatorMidpointTwoPart<BezierArcError> BezierArcApproximator;
   typedef BezierArcsApproximatorSpringSystem<BezierArcApproximator> SpringSystem;
@@ -112,7 +113,7 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
   cairo_select_font_face (cr, family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
   FT_Face face = cairo_ft_scaled_font_lock_face (cairo_get_scaled_font (cr));
   unsigned int upem = face->units_per_EM;
-  double tolerance = upem * 1e-4; /* in font design units */
+  double tolerance = upem * 1e-3; /* in font design units */
   if (FT_Load_Glyph (face,
 		     FT_Get_Char_Index (face, (FT_ULong) *utf8),
 		     FT_LOAD_NO_BITMAP |
@@ -145,7 +146,7 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
   cairo_path_destroy (path);
   cairo_set_line_width (cr, 5);
   cairo_set_source_rgb (cr, 1, 0, 0);
-//  cairo_fancy_stroke_preserve (cr);
+  cairo_fancy_stroke_preserve (cr);
   cairo_fill (cr);
 
   ArcApproximatorOutlineSink outline_arc_approximator (acc.callback,
