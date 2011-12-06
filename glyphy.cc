@@ -827,6 +827,7 @@ main (int argc, char** argv)
 	  arc_next = arc_decode (texture2D (tex, vec2(.5,(1.5 + float(i)) / float(num_points))));
 	  float d = arc.b;
 	  if (d == -MAX_D) continue;
+	  if (abs (d) < 1e-5) d = 1e-5; /* cheat */
 	  vec2 p0 = arc.rg;
 	  vec2 p1 = arc_next.rg;
 	  vec2 line = p1 - p0;
