@@ -570,7 +570,7 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
       arc_data [i].b = 255;
       arc_data [i].a = 0;
     } else {
-#define MAX_D .5
+#define MAX_D .54
       unsigned int dd = (tex.d_values.at (i) * 32768. / MAX_D) + 32768.5;
       if (labs ((int) dd - 32768) > 32767)
         g_error ("XXXX %d %g\n", i, tex.d_values.at (i));
@@ -789,7 +789,7 @@ main (int argc, char** argv)
       uniform int num_points;
       varying vec2 p;
 
-      vec2 perpendicular (vec2 v) { return vec2 (-v.g, v.r); }
+      vec2 perpendicular (const vec2 v) { return vec2 (-v.g, v.r); }
 
       void main()
       {
