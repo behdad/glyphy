@@ -808,7 +808,8 @@ main (int argc, char** argv)
       {
         float x = (float (int (v.a * 255.) / 32) + v.r) / 8.;
         float y = (float (mod (int (v.a * 255) / 4, 8)) + v.g) / 8.;
-        float d = MAX_D * (2. * (v.b + float (mod (int (v.a * 255), 4)) / 256.) - 1);
+        float d = v.b + float (mod (int (v.a * 255), 4)) / 256.;
+        d = MAX_D * (2. * d - 1.);
 	return vec3 (x, y, d);
       }
 
