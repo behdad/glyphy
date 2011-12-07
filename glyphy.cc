@@ -279,7 +279,7 @@ distance_to_an_arc (point_t p, arcs_texture tex, int x, int y)
 
 /** Given a cell, fills the vector closest_arcs with arcs that may be closest to some point in the cell.
   * Uses idea that all close arcs to cell must be ~close to center of cell. 
-  */
+  *
 static void 
 closest_arcs_to_cell (Point<Coord> square_top_left, 
                         Scalar cell_width, 
@@ -336,7 +336,7 @@ closest_arcs_to_cell (Point<Coord> square_top_left,
     
   // If d is the distance from the center of the square to the nearest arc, then
   // all nearest arcs to the square must be at most [d + s/sqrt(2)] from the center. 
-  min_distance = /*sqrt*/ fabs (min_distance);
+  min_distance =  fabs (min_distance);
   double half_diagonal = sqrt(cell_height * cell_height + cell_width * cell_width) / 2;
   Scalar radius = min_distance + half_diagonal;
  // printf("Minimum distance is %g. ", min_distance);
@@ -362,7 +362,77 @@ closest_arcs_to_cell (Point<Coord> square_top_left,
  // for (int k = 0; k < NUM_SAVED_ARCS; k++)
  //   printf("%d ", cell.arcs[k]);
  // printf("\n");
+} */
+
+
+
+
+
+
+/** Given a cell, fills the vector closest_arcs with arcs that may be closest to some point in the cell.
+  * Uses idea that all close arcs to cell must be ~close to center of cell. 
+  */
+static int 
+closest_arcs_to_cell (Point<Coord> square_top_left, 
+                        Scalar cell_width, 
+                        Scalar cell_height,
+                        Scalar grid_size,
+                        vector<arc_t> arc_list,
+                        vector<arc_t> &near_arcs)
+{
+  // Find distance between cell center and cell's closest arc. 
+  point_t center (square_top_left.x + cell_width / 2., 
+                  square_top_left.y + cell_height / 2.);
+  double min_distance = INFINITY;
+  arc_t nearest_arc = arc_list [0];
+  double distance = min_distance;
+
+  for (int k = 0; k < arc_list.size (); k++) {
+    arc_t current_arc = arc_list [k];
+    double current_distance = current_arc.distance_to_point (center);    
+
+    // If two arcs are equally close to this point, take the sign from the one whose extension is farther away. 
+    // (Extend arcs using tangent lines from endpoints; this is done using the SignedVector operation "-".) 
+    if (fabs (fabs (current_distance) - fabs(min_distance)) < 1e-6) { 
+      SignedVector<Coord> to_arc_min = nearest_arc - center;
+      SignedVector<Coord> to_arc_current = current_arc - center;      
+      if (to_arc_min.len () < to_arc_current.len ()) {
+        min_distance = fabs (min_distance) * (to_arc_current.negative ? -1 : 1);
+      }
+    }
+    else if (fabs (current_distance) < fabs(min_distance)) {
+      min_distance = current_distance;
+      nearest_arc = current_arc;
+    }
+  }
+  
+    
+  // If d is the distance from the center of the square to the nearest arc, then
+  // all nearest arcs to the square must be at most [d + s/sqrt(2)] from the center. 
+  min_distance = fabs (min_distance);
+  double half_diagonal = sqrt(cell_height * cell_height + cell_width * cell_width) / 2;
+  Scalar radius = min_distance + half_diagonal;
+ // printf("Minimum distance is %g. ", min_distance);
+
+  double tolerance = grid_size / min_font_size; 
+ 
+  if (min_distance - half_diagonal <= tolerance) 
+    for (int k = 0; k < arc_list.size (); k++) {
+      arc_t current_arc = arc_list [k];
+      if (fabs(current_arc.distance_to_point (center)) < radius) {
+ //         printf("%g (%d), ", current_arc.distance_to_point (center), k);
+        near_arcs.push_back (current_arc);     
+      }      
+    }    
+   printf("\n  Array of indices made:");
+    
+  for (int k = 0; k < near_arcs.size(); k++)
+    printf("%g ", near_arcs[k].d);
+  printf("\n");
 }
+
+
+
 
 struct rgba_t {
   unsigned char r;
@@ -424,7 +494,7 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   FT_Init_FreeType (&library);   
   FT_New_Face ( library, font_path, 0, &face );
   unsigned int upem = face->units_per_EM;
-  double tolerance = upem * 1e-3; // in font design units
+  double tolerance = upem * 1e-4; // in font design units
 
   width = TEXSIZE;
   height = TEXSIZE; 
@@ -486,7 +556,70 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
 
   glyph_width = grid_max_x - grid_min_x;
   glyph_height = grid_max_y - grid_min_y;
-  printf ("Glyph dimensions: width = %g, height = %g.\n", glyph_width, glyph_height);
+  printf ("Glyph dimensions: width = %d, height = %d.\n", glyph_width, glyph_height);
+  
+  
+  
+  
+#define GRIDSIZE 32  
+  double box_width = glyph_width / GRIDSIZE;
+  double box_height = glyph_height / GRIDSIZE;
+
+
+    // Make a 2d grid for arc/cell information.
+  /**************************************************************************************************************************************************/
+
+  vector<rgba_t> arc_data_vector;
+  vector<int> num_endpoints;
+  
+  arc_data_vector.clear ();
+
+  double min_dimension = std::min(glyph_width, glyph_height); 
+  for (int row = 0; row < GRIDSIZE; row++) 
+    for (int col = 0; col < GRIDSIZE; col++) {
+      vector<arc_t> near_arcs;
+      vector<point_t> endpoints;
+      vector<double> d_values;
+      near_arcs.clear ();
+      endpoints.clear ();
+      d_values.clear ();
+      
+      closest_arcs_to_cell (Point<Coord> (grid_min_x + (col * box_width), grid_min_y + (row * box_height)), 
+                              box_width, box_height, min_dimension, acc.arcs, near_arcs);   
+                             
+      int arc_counter;
+      for (arc_counter = 0; arc_counter + 1 < near_arcs.size () ; arc_counter++) {
+        printf("Arc counter: %d. Near arcs size: %d\n", arc_counter, (int) near_arcs.size());
+        arc_t current_arc = near_arcs [arc_counter];
+        endpoints.push_back (current_arc.p0);
+        d_values.push_back (current_arc.d);
+        // Start a new loop in the outline.
+        if (current_arc.p1 != near_arcs [arc_counter+1].p0) {
+          endpoints.push_back (current_arc.p1);
+          d_values.push_back (INFINITY);
+        } 
+      } 
+      
+       // The last arc needs to be done specially.
+      if (near_arcs.size () > 0) {
+        endpoints.push_back (near_arcs [arc_counter].p0);
+        endpoints.push_back (near_arcs [arc_counter].p1);
+        d_values.push_back (near_arcs [arc_counter].d);
+        d_values.push_back (INFINITY);                   
+      }
+      
+      // Get arc endpoint data into an rgba_t vector.
+      for (int i = 0; i < endpoints.size (); i++)
+        arc_data_vector.push_back (arc_encode ((endpoints[i].x - grid_min_x) / glyph_width,
+	  	 	                       (endpoints[i].y - grid_min_y) / glyph_height,
+			                       d_values[i]));
+      num_endpoints.push_back (endpoints.size ());
+    }   
+  
+  
+  
+  
+
 
   // Populate lists for storing arc data.
   /**************************************************************************************************************************************************/
@@ -518,7 +651,7 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   glUniform1i (glGetUniformLocation(program, "num_points"), tex.arc_endpoints.size ());
   
   
-  
+  return;
   
   //printf("Finished loading arcs..\n");
   
@@ -541,22 +674,13 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   #endif
 
 
-  // Make a 2d grid for arc/cell information.
-  /**************************************************************************************************************************************************/
   
-  double box_width = glyph_width / TEXSIZE;
-  double box_height = glyph_height / TEXSIZE;
-
-  double min_dimension = std::min(glyph_width, glyph_height);
-  for (int row = 0; row < TEXSIZE; row++) 
-    for (int col = 0; col < TEXSIZE; col++) 
-      closest_arcs_to_cell (Point<Coord> (grid_min_x + (col * box_width), grid_min_y + (row * box_height)), 
-                              box_width, box_height, min_dimension, 
-                              tex, tex.grid[col][row]);        
 
 
+return;
 
-  // SDF stuff.
+
+  // SDF stuff. NONE OF THIS IS USED.....
   /**************************************************************************************************************************************************/
   
   {
@@ -573,9 +697,6 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
 
     for (y = 0; y < height; y++)
       for (x = 0; x < width; x++) {
-       // closest_arcs_to_cell (Point<Coord> (grid_min_x + (x * box_width), grid_min_y + (y * box_height)), 
-         //                     box_width, box_height, min_dimension, 
-           //                   tex, tex.grid[x][y]); 
       
         double d = distance_to_an_arc (Point<Coord> (grid_min_x + (x * box_width),
         					     grid_min_y + (y * box_height)),
