@@ -479,10 +479,10 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
 	  (int) acc.arcs.size (), e, tolerance, round (100 * e / tolerance), e <= tolerance ? "PASS" : "FAIL");
 
   int grid_min_x, grid_max_x, grid_min_y, grid_max_y, glyph_width, glyph_height;
-  grid_min_x = face->glyph->metrics.horiBearingX - 1;
-  grid_min_y = face->glyph->metrics.horiBearingY - face->glyph->metrics.height - 1;
-  grid_max_x = face->glyph->metrics.horiBearingX + face->glyph->metrics.width + 1;
-  grid_max_y = face->glyph->metrics.horiBearingY + 1;
+  grid_min_x = face->glyph->metrics.horiBearingX;
+  grid_min_y = face->glyph->metrics.horiBearingY - face->glyph->metrics.height;
+  grid_max_x = face->glyph->metrics.horiBearingX + face->glyph->metrics.width;
+  grid_max_y = face->glyph->metrics.horiBearingY;
 
   glyph_width = grid_max_x - grid_min_x;
   glyph_height = grid_max_y - grid_min_y;
