@@ -415,7 +415,7 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   FT_Init_FreeType (&library);   
   FT_New_Face ( library, font_path, 0, &face );
   unsigned int upem = face->units_per_EM;
-  double tolerance = upem * 1e-4; // in font design units
+  double tolerance = upem * 3e-4; // in font design units
 
   width = TEXSIZE;
   height = TEXSIZE; 
