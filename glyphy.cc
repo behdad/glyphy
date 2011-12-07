@@ -371,6 +371,14 @@ struct rgba_t {
   unsigned char a;
 };
 
+#define ARC_ENCODE_X_BITS 11
+#define ARC_ENCODE_Y_BITS 11
+#define ARC_ENCODE_D_BITS (32 - ARC_ENCODE_X_BITS - ARC_ENCODE_Y_BITS)
+
+G_STATIC_ASSERT (8 <= ARC_ENCODE_X_BITS && ARC_ENCODE_X_BITS < 16);
+G_STATIC_ASSERT (8 <= ARC_ENCODE_Y_BITS && ARC_ENCODE_Y_BITS < 16);
+G_STATIC_ASSERT (8 <= ARC_ENCODE_D_BITS && ARC_ENCODE_D_BITS <= 16);
+G_STATIC_ASSERT (ARC_ENCODE_X_BITS + ARC_ENCODE_Y_BITS + ARC_ENCODE_D_BITS <= 32);
 static const rgba_t
 arc_encode (double x, double y, double d)
 {
@@ -378,20 +386,24 @@ arc_encode (double x, double y, double d)
 
   /* lets do 10 bits for d, and 11 for x and y each */
   unsigned int ix, iy, id;
-  ix = lround (x * 2047.);
-  iy = lround (y * 2047.);
-#define MAX_D .54
+  ix = lround (x * ((1 << ARC_ENCODE_X_BITS) - 1));
+  g_assert (ix < (1 << ARC_ENCODE_X_BITS));
+  iy = lround (y * ((1 << ARC_ENCODE_Y_BITS) - 1));
+  g_assert (iy < (1 << ARC_ENCODE_Y_BITS));
+#define MAX_D .54 /* TODO */
   if (isinf (d))
     id = 0;
   else {
-    if (fabs (d > MAX_D))
-      g_error ("XXXX d value greater than MAX_D: %g\n", d);
-    id = lround (d * 511. / MAX_D + 512);
+    g_assert (fabs (d) < MAX_D);
+    id = lround (d * ((1 << (ARC_ENCODE_D_BITS - 1)) - 1) / MAX_D + (1 << (ARC_ENCODE_D_BITS - 1)));
   }
+  g_assert (id < (1 << ARC_ENCODE_D_BITS));
   v.r = ix & 0xff;
   v.g = iy & 0xff;
-  v.b = id >> 2;
-  v.a = ((ix >> 8) << 5) + ((iy >> 8) << 2) + (id & 0x03);
+  v.b = id >> (ARC_ENCODE_D_BITS - 8);
+  v.a = ((ix >> 8) << (ARC_ENCODE_Y_BITS - 8 + ARC_ENCODE_D_BITS - 8))
+      | ((iy >> 8) << (ARC_ENCODE_D_BITS - 8))
+      | (id & ((1 << (ARC_ENCODE_D_BITS - 8)) - 1));
   return v;
 }
 
@@ -467,10 +479,10 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
 	  (int) acc.arcs.size (), e, tolerance, round (100 * e / tolerance), e <= tolerance ? "PASS" : "FAIL");
 
   int grid_min_x, grid_max_x, grid_min_y, grid_max_y, glyph_width, glyph_height;
-  grid_min_x = face->glyph->metrics.horiBearingX;
-  grid_min_y = face->glyph->metrics.horiBearingY - face->glyph->metrics.height;
-  grid_max_x = face->glyph->metrics.horiBearingX + face->glyph->metrics.width;
-  grid_max_y = face->glyph->metrics.horiBearingY;
+  grid_min_x = face->glyph->metrics.horiBearingX - 1;
+  grid_min_y = face->glyph->metrics.horiBearingY - face->glyph->metrics.height - 1;
+  grid_max_x = face->glyph->metrics.horiBearingX + face->glyph->metrics.width + 1;
+  grid_max_y = face->glyph->metrics.horiBearingY + 1;
 
   glyph_width = grid_max_x - grid_min_x;
   glyph_height = grid_max_y - grid_min_y;
@@ -715,18 +727,16 @@ main (int argc, char** argv)
 
       vec3 arc_decode (const vec4 v)
       {
-        float x = (float (int (v.a * 255.) / 32) + v.r) / 8.;
-        float y = (float (mod (int (v.a * 255) / 4, 8)) + v.g) / 8.;
-        float d = v.b + float (mod (int (v.a * 255), 4)) / 256.;
-        d = MAX_D * (2. * d - 1.);
+	float x = (float (mod (int (v.a * 255) / (1 << (ARC_ENCODE_Y_BITS - 8 + ARC_ENCODE_D_BITS - 8)), (1 << (ARC_ENCODE_X_BITS - 8)))) + v.r) / (1 << (ARC_ENCODE_X_BITS - 8));
+	float y = (float (mod (int (v.a * 255) / (1 << (ARC_ENCODE_D_BITS - 8)), (1 << (ARC_ENCODE_Y_BITS - 8)))) + v.g) / (1 << (ARC_ENCODE_Y_BITS - 8));
+	float d = v.b + float (mod (int (v.a * 255), (1 << (ARC_ENCODE_D_BITS - 8)))) / (1 << 8);
+	d = MAX_D * (2 * d - 1);
 	return vec3 (x, y, d);
       }
 
       void main()
       {
-	float ddx = length (dFdx (p));
-	float ddy = length (dFdy (p));
-	float m = max (ddx, ddy); /* isotropic antialiasing */
+	float m = float (fwidth (p)); /* isotropic antialiasing */
 
 	int i;
 	float min_dist = 1;
@@ -734,7 +744,7 @@ main (int argc, char** argv)
 	vec3 arc_next = arc_decode (texture2D (tex, vec2(.5,.5 / float(num_points))));
 	for (i = 0; i < num_points - 1; i++) {
 	  vec3 arc = arc_next;
-	  arc_next = arc_decode (texture2D (tex, vec2(.5,(1.5 + float(i)) / float(num_points))));
+	  arc_next = arc_decode (texture2D (tex, vec2(.5, (1.5 + float(i)) / float(num_points))));
 	  float d = arc.b;
 	  if (d == -MAX_D) continue;
 	  if (abs (d) < 1e-5) d = 1e-5; /* cheat */
@@ -743,7 +753,7 @@ main (int argc, char** argv)
 	  vec2 line = p1 - p0;
 	  vec2 perp = perpendicular (line);
 	  vec2 norm = normalize (perp);
-	  vec2 c = mix (p0, p1, .5) - perp * ((1. - d*d) / (4. * d));
+	  vec2 c = mix (p0, p1, .5) - perp * ((1 - d*d) / (4 * d));
 
 	  float dist;
 	  if (sign (d) * dot (p - c, perpendicular (p0 - c)) <= 0 &&
@@ -759,10 +769,12 @@ main (int argc, char** argv)
 	  min_point_dist = min (min_point_dist, point_dist);
 	}
 
-	gl_FragColor = mix(vec4(1.,0.,0.,1.),
-			   vec4(1.,1.,1.,1.) * ((1 + sin (min_dist / m)) / 2.) * sin (pow (min_dist, .8) * 3.14),
-			   smoothstep (0., 2 * m, min_dist));
-	gl_FragColor = mix(vec4(0.,1.,0.,1.), gl_FragColor, smoothstep (.002, .005, min_point_dist));
+	gl_FragColor = mix(vec4(1,0,0,1),
+			   vec4(1,1,1,1) * ((1 + sin (min_dist / m)) / 2) * sin (pow (min_dist, .8) * 3.14159265358979),
+			   smoothstep (0, 2 * m, min_dist));
+	gl_FragColor = mix(vec4(0,1,0,1),
+			   gl_FragColor,
+			   smoothstep (.002, .005, min_point_dist));
       }
   );
   program = create_program (vshader, fshader);
