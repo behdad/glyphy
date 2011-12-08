@@ -478,6 +478,18 @@ arc_encode (double x, double y, double d)
 }
 
 
+static rgba_t 
+pair_to_rgba_t (int num1, int num2)
+{
+  rgba_t v;
+  v.r = (num1 & 0xff00) << 8;
+  v.g = num1 & 0x00ff;
+  v.b = (num2 & 0xff00) << 8;
+  v.a = num2 & 0x00ff;
+  return v;
+}
+
+
 
 /***************************************************************************************************************************/
 /*** This uses the new SDF approach. ***************************************************************************************/
@@ -616,6 +628,20 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
       num_endpoints.push_back (endpoints.size ());
     }   
   
+  int header_length = num_endpoints.size ();
+  int offset = header_length;
+  rgba_t tex_array [header_length + arc_data_vector.size () ];
+  for (int i = 0; i < header_length; i++) {
+    tex_array [i] = pair_to_rgba_t (offset, num_endpoints [i]); 
+    offset += num_endpoints [i];
+  }
+  for (int i = 0; i < arc_data_vector.size (); i++)
+    tex_array [i + header_length] = arc_data_vector [i];
+    
+    
+    
+  // glTexImage2D ...
+ 
   
   
   
