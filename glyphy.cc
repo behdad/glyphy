@@ -350,13 +350,15 @@ struct rgba_t {
   unsigned char a;
 };
 
-#define ARC_ENCODE_X_BITS 11
-#define ARC_ENCODE_Y_BITS 11
+#define ARC_ENCODE_X_BITS 12
+#define ARC_ENCODE_Y_BITS 12
 #define ARC_ENCODE_D_BITS (32 - ARC_ENCODE_X_BITS - ARC_ENCODE_Y_BITS)
 #define ARC_ENCODE_X_CHANNEL r
 #define ARC_ENCODE_Y_CHANNEL g
 #define ARC_ENCODE_D_CHANNEL b
 #define ARC_ENCODE_OTHER_CHANNEL a
+#define UPPER_BITS(v,bits,total_bits) ((v) >> ((total_bits) - (bits)))
+#define LOWER_BITS(v,bits,total_bits) ((v) & ((1 << (bits)) - 1))
 
 G_STATIC_ASSERT (8 <= ARC_ENCODE_X_BITS && ARC_ENCODE_X_BITS < 16);
 G_STATIC_ASSERT (8 <= ARC_ENCODE_Y_BITS && ARC_ENCODE_Y_BITS < 16);
@@ -367,13 +369,12 @@ arc_encode (double x, double y, double d)
 {
   rgba_t v;
 
-  /* lets do 10 bits for d, and 11 for x and y each */
   unsigned int ix, iy, id;
   ix = lround (x * ((1 << ARC_ENCODE_X_BITS) - 1));
   g_assert (ix < (1 << ARC_ENCODE_X_BITS));
   iy = lround (y * ((1 << ARC_ENCODE_Y_BITS) - 1));
   g_assert (iy < (1 << ARC_ENCODE_Y_BITS));
-#define MAX_D .54 /* TODO */
+#define MAX_D .25 /* TODO */
   if (isinf (d))
     id = 0;
   else {
@@ -381,9 +382,9 @@ arc_encode (double x, double y, double d)
     id = lround (d * ((1 << (ARC_ENCODE_D_BITS - 1)) - 1) / MAX_D + (1 << (ARC_ENCODE_D_BITS - 1)));
   }
   g_assert (id < (1 << ARC_ENCODE_D_BITS));
-  v.ARC_ENCODE_X_CHANNEL = ix & 0xff;
-  v.ARC_ENCODE_Y_CHANNEL = iy & 0xff;
-  v.ARC_ENCODE_D_CHANNEL = id >> (ARC_ENCODE_D_BITS - 8);
+  v.ARC_ENCODE_X_CHANNEL = LOWER_BITS (ix, 8, ARC_ENCODE_X_BITS);
+  v.ARC_ENCODE_Y_CHANNEL = LOWER_BITS (iy, 8, ARC_ENCODE_Y_BITS);
+  v.ARC_ENCODE_D_CHANNEL = UPPER_BITS (id, 8, ARC_ENCODE_D_BITS);
   v.ARC_ENCODE_OTHER_CHANNEL = ((ix >> 8) << (ARC_ENCODE_Y_BITS - 8 + ARC_ENCODE_D_BITS - 8))
 			     | ((iy >> 8) << (ARC_ENCODE_D_BITS - 8))
 			     | (id & ((1 << (ARC_ENCODE_D_BITS - 8)) - 1));
@@ -419,7 +420,7 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   FT_Init_FreeType (&library);   
   FT_New_Face ( library, font_path, 0, &face );
   unsigned int upem = face->units_per_EM;
-  double tolerance = upem * 3e-4; // in font design units
+  double tolerance = upem * 2e-4; // in font design units
 
   width = TEXSIZE;
   height = TEXSIZE; 
@@ -731,11 +732,14 @@ main (int argc, char** argv)
 
       vec3 arc_decode (const vec4 v)
       {
-	float x = (float (mod (int (v.ARC_ENCODE_OTHER_CHANNEL * 255) / (1 << (ARC_ENCODE_Y_BITS - 8 + ARC_ENCODE_D_BITS - 8)), (1 << (ARC_ENCODE_X_BITS - 8)))) +
+	//float x = v.ARC_ENCODE_X_CHANNEL;
+	//float y = v.ARC_ENCODE_Y_CHANNEL;
+	//float d = v.ARC_ENCODE_D_CHANNEL;
+	float x = (float (mod (int (v.ARC_ENCODE_OTHER_CHANNEL * (256-1e-5)) / (1 << (ARC_ENCODE_Y_BITS - 8 + ARC_ENCODE_D_BITS - 8)), (1 << (ARC_ENCODE_X_BITS - 8)))) +
 		   v.ARC_ENCODE_X_CHANNEL) / (1 << (ARC_ENCODE_X_BITS - 8));
-	float y = (float (mod (int (v.ARC_ENCODE_OTHER_CHANNEL * 255) / (1 << (ARC_ENCODE_D_BITS - 8)), (1 << (ARC_ENCODE_Y_BITS - 8)))) +
+	float y = (float (mod (int (v.ARC_ENCODE_OTHER_CHANNEL * (256-1e-5)) / (1 << (ARC_ENCODE_D_BITS - 8)), (1 << (ARC_ENCODE_Y_BITS - 8)))) +
 		   v.ARC_ENCODE_Y_CHANNEL) / (1 << (ARC_ENCODE_Y_BITS - 8));
-	float d = v.ARC_ENCODE_D_CHANNEL + float (mod (int (v.ARC_ENCODE_OTHER_CHANNEL * 255), (1 << (ARC_ENCODE_D_BITS - 8)))) / (1 << 8);
+	float d = v.ARC_ENCODE_D_CHANNEL + float (mod (int (v.ARC_ENCODE_OTHER_CHANNEL * (256-1e-5)), (1 << (ARC_ENCODE_D_BITS - 8)))) / (1 << 8);
 	d = MAX_D * (2 * d - 1);
 	return vec3 (x, y, d);
       }
