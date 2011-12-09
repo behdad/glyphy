@@ -353,6 +353,10 @@ struct rgba_t {
 #define ARC_ENCODE_X_BITS 11
 #define ARC_ENCODE_Y_BITS 11
 #define ARC_ENCODE_D_BITS (32 - ARC_ENCODE_X_BITS - ARC_ENCODE_Y_BITS)
+#define ARC_ENCODE_X_CHANNEL r
+#define ARC_ENCODE_Y_CHANNEL g
+#define ARC_ENCODE_D_CHANNEL b
+#define ARC_ENCODE_OTHER_CHANNEL a
 
 G_STATIC_ASSERT (8 <= ARC_ENCODE_X_BITS && ARC_ENCODE_X_BITS < 16);
 G_STATIC_ASSERT (8 <= ARC_ENCODE_Y_BITS && ARC_ENCODE_Y_BITS < 16);
@@ -377,12 +381,12 @@ arc_encode (double x, double y, double d)
     id = lround (d * ((1 << (ARC_ENCODE_D_BITS - 1)) - 1) / MAX_D + (1 << (ARC_ENCODE_D_BITS - 1)));
   }
   g_assert (id < (1 << ARC_ENCODE_D_BITS));
-  v.r = ix & 0xff;
-  v.g = iy & 0xff;
-  v.b = id >> (ARC_ENCODE_D_BITS - 8);
-  v.a = ((ix >> 8) << (ARC_ENCODE_Y_BITS - 8 + ARC_ENCODE_D_BITS - 8))
-      | ((iy >> 8) << (ARC_ENCODE_D_BITS - 8))
-      | (id & ((1 << (ARC_ENCODE_D_BITS - 8)) - 1));
+  v.ARC_ENCODE_X_CHANNEL = ix & 0xff;
+  v.ARC_ENCODE_Y_CHANNEL = iy & 0xff;
+  v.ARC_ENCODE_D_CHANNEL = id >> (ARC_ENCODE_D_BITS - 8);
+  v.ARC_ENCODE_OTHER_CHANNEL = ((ix >> 8) << (ARC_ENCODE_Y_BITS - 8 + ARC_ENCODE_D_BITS - 8))
+			     | ((iy >> 8) << (ARC_ENCODE_D_BITS - 8))
+			     | (id & ((1 << (ARC_ENCODE_D_BITS - 8)) - 1));
   return v;
 }
 
@@ -727,9 +731,11 @@ main (int argc, char** argv)
 
       vec3 arc_decode (const vec4 v)
       {
-	float x = (float (mod (int (v.a * 255) / (1 << (ARC_ENCODE_Y_BITS - 8 + ARC_ENCODE_D_BITS - 8)), (1 << (ARC_ENCODE_X_BITS - 8)))) + v.r) / (1 << (ARC_ENCODE_X_BITS - 8));
-	float y = (float (mod (int (v.a * 255) / (1 << (ARC_ENCODE_D_BITS - 8)), (1 << (ARC_ENCODE_Y_BITS - 8)))) + v.g) / (1 << (ARC_ENCODE_Y_BITS - 8));
-	float d = v.b + float (mod (int (v.a * 255), (1 << (ARC_ENCODE_D_BITS - 8)))) / (1 << 8);
+	float x = (float (mod (int (v.ARC_ENCODE_OTHER_CHANNEL * 255) / (1 << (ARC_ENCODE_Y_BITS - 8 + ARC_ENCODE_D_BITS - 8)), (1 << (ARC_ENCODE_X_BITS - 8)))) +
+		   v.ARC_ENCODE_X_CHANNEL) / (1 << (ARC_ENCODE_X_BITS - 8));
+	float y = (float (mod (int (v.ARC_ENCODE_OTHER_CHANNEL * 255) / (1 << (ARC_ENCODE_D_BITS - 8)), (1 << (ARC_ENCODE_Y_BITS - 8)))) +
+		   v.ARC_ENCODE_Y_CHANNEL) / (1 << (ARC_ENCODE_Y_BITS - 8));
+	float d = v.ARC_ENCODE_D_CHANNEL + float (mod (int (v.ARC_ENCODE_OTHER_CHANNEL * 255), (1 << (ARC_ENCODE_D_BITS - 8)))) / (1 << 8);
 	d = MAX_D * (2 * d - 1);
 	return vec3 (x, y, d);
       }
