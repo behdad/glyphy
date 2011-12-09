@@ -499,29 +499,29 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   //                  Contains duplicate entries. Used to translate to texture.
   vector<rgba_t> arc_data_vector;
   arc_data_vector.clear ();
-  
+
   // num_endpoints: The (i*GRIDSIZE + j)th entry corresponds to the number of arcs near the (i, j)th cell in the grid.
   vector<int> num_endpoints;
 
-  double min_dimension = std::min(glyph_width, glyph_height); 
-  for (int row = 0; row < GRIDSIZE; row++) 
+  double min_dimension = std::min(glyph_width, glyph_height);
+  for (int row = 0; row < GRIDSIZE; row++)
     for (int col = 0; col < GRIDSIZE; col++) {
-    
+
       // near_arcs: Vector of arcs near points in this single grid cell
       vector<arc_t> near_arcs;
       near_arcs.clear ();
-      
+
       // endpoints: Vector of endpoints of arcs in the vector near_arcs
       vector<point_t> endpoints;
       endpoints.clear ();
-      
+
       // d_values: Vector of d values for arcs in the vector near_arcs
       vector<double> d_values;
       d_values.clear ();
-      
-      closest_arcs_to_cell (Point<Coord> (grid_min_x + (col * box_width), grid_min_y + (row * box_height)), 
-                              box_width, box_height, min_dimension, acc.arcs, near_arcs);   
-                             
+
+      closest_arcs_to_cell (Point<Coord> (grid_min_x + (col * box_width), grid_min_y + (row * box_height)),
+                              box_width, box_height, min_dimension, acc.arcs, near_arcs);
+
       int arc_counter;
       for (arc_counter = 0; arc_counter + 1 < near_arcs.size () ; arc_counter++) {
         arc_t current_arc = near_arcs [arc_counter];
@@ -531,49 +531,41 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
         if (current_arc.p1 != near_arcs [arc_counter+1].p0) {
           endpoints.push_back (current_arc.p1);
           d_values.push_back (INFINITY);
-        } 
-      } 
-      
+        }
+      }
+
       // The last arc needs to be done specially.
       if (near_arcs.size () > 0) {
         endpoints.push_back (near_arcs [arc_counter].p0);
         endpoints.push_back (near_arcs [arc_counter].p1);
         d_values.push_back (near_arcs [arc_counter].d);
-        d_values.push_back (INFINITY);                   
+        d_values.push_back (INFINITY);
       }
-      
+
       // Get arc endpoint data into an rgba_t vector.
       for (int i = 0; i < endpoints.size (); i++)
         arc_data_vector.push_back (arc_encode ((endpoints[i].x - grid_min_x) / glyph_width,
 	  	 	                       (endpoints[i].y - grid_min_y) / glyph_height,
 			                       d_values[i]));
       num_endpoints.push_back (endpoints.size ());
-    }   
-  
+    }
+
   int header_length = num_endpoints.size ();
   int offset = header_length;
   rgba_t tex_array [header_length + arc_data_vector.size () ];
-  
+
   for (int i = 0; i < header_length; i++) {
-    tex_array [i] = pair_to_rgba_t (offset, num_endpoints [i]); 
+    tex_array [i] = pair_to_rgba_t (offset, num_endpoints [i]);
 //    printf("(%d, %d) => (%d, %d, %d, %d) = (%d, %d).\n", offset, num_endpoints[i], tex_array[i].r, tex_array[i].g, tex_array[i].b, tex_array[i].a,
 //     tex_array[i].r * 256 + tex_array[i].g, tex_array[i].b * 256 + tex_array[i].a);
     offset += num_endpoints [i];
   }
   for (int i = 0; i < arc_data_vector.size (); i++)
     tex_array [i + header_length] = arc_data_vector [i];
-    
-    
-    
+
   gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, 1, header_length + arc_data_vector.size (), 0, GL_RGBA, GL_UNSIGNED_BYTE, tex_array);
   glUniform1i (glGetUniformLocation(program, "upem"), upem);
-  
   glUniform1i (glGetUniformLocation(program, "texture_size"), header_length + arc_data_vector.size ());
-  
-  
-  
-  
-  
 
 
   // Populate lists for storing arc data.
@@ -604,8 +596,8 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
 
   glUniform1i (glGetUniformLocation(program, "upem"), upem);
   glUniform1i (glGetUniformLocation(program, "num_points"), tex.arc_endpoints.size ());
-  
-  
+
+
   return;
 
 }
