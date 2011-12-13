@@ -302,7 +302,7 @@ G_STATIC_ASSERT (8 <= ARC_ENCODE_X_BITS && ARC_ENCODE_X_BITS < 16);
 G_STATIC_ASSERT (8 <= ARC_ENCODE_Y_BITS && ARC_ENCODE_Y_BITS < 16);
 G_STATIC_ASSERT (8 <= ARC_ENCODE_D_BITS && ARC_ENCODE_D_BITS <= 16);
 G_STATIC_ASSERT (ARC_ENCODE_X_BITS + ARC_ENCODE_Y_BITS + ARC_ENCODE_D_BITS <= 32);
-/*
+
 static const rgba_t
 arc_encode (double x, double y, double d)
 {
@@ -330,12 +330,12 @@ arc_encode (double x, double y, double d)
       | (id & ((1 << (ARC_ENCODE_D_BITS - 8)) - 1)); 
   return v;
 }
-*/
+
 
 
 
 static const rgba_t
-arc_encode (double x, double y, double d)
+arc_encodej (double x, double y, double d)
 {
   rgba_t v;
 
@@ -350,15 +350,17 @@ arc_encode (double x, double y, double d)
     id = 0;
   else {
     g_assert (fabs (d) < MAX_D);
-    id = lround (d * ((1 << (ARC_ENCODE_D_BITS - 1)) - 1) / MAX_D + (1 << (ARC_ENCODE_D_BITS - 1)));
+    d = (d / (2 * MAX_D)) + 0.5; // in [0, 1]
+    g_assert (0 <= d && d <= 1);
+    id = lround (d * (1 << (ARC_ENCODE_D_BITS - 1)));
   }
   g_assert (id < (1 << ARC_ENCODE_D_BITS));
   v.r = ix & 0xff;
   v.g = iy & 0xff;
-  v.b = id >> (ARC_ENCODE_D_BITS - 8);
+  v.b = id & 0xff;
   v.a = ((ix >> 8) << (ARC_ENCODE_Y_BITS - 8 + ARC_ENCODE_D_BITS - 8))
       | ((iy >> 8) << (ARC_ENCODE_D_BITS - 8))
-      | (id & ((1 << (ARC_ENCODE_D_BITS - 8)) - 1)); 
+      | (id >> 8);
   return v;
 }
 
@@ -439,12 +441,18 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
 
   glyph_width = grid_max_x - grid_min_x;
   glyph_height = grid_max_y - grid_min_y;
-  printf ("Glyph dimensions: width = %d, height = %d.\n", glyph_width, glyph_height);
+  printf ("Glyph dimensions: [%d, %d] x [%d, %d]. Width = %d, height = %d.\n",
+          grid_min_x, grid_max_x, grid_min_y, grid_max_y, glyph_width, glyph_height);
   
     
-#define GRIDSIZE 32
+#define GRIDSIZE 2
   double box_width = glyph_width / GRIDSIZE;
   double box_height = glyph_height / GRIDSIZE;
+
+
+
+  for (int i = 0; i < acc.arcs.size(); i++)
+    printf("Arc: (%g, %g) to (%g, %g), d = %g.\n", acc.arcs[i].p0.x, acc.arcs[i].p0.y,  acc.arcs[i].p1.x, acc.arcs[i].p1.y, acc.arcs[i].d);
 
 
     // Make a 2d grid for arc/cell information.
@@ -513,6 +521,7 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
     tex_array [i] = pair_to_rgba_t (offset, num_endpoints [i]); 
 //    printf("(%d, %d) => (%d, %d, %d, %d) = (%d, %d).\n", offset, num_endpoints[i], tex_array[i].r, tex_array[i].g, tex_array[i].b, tex_array[i].a,
 //     tex_array[i].r * 256 + tex_array[i].g, tex_array[i].b * 256 + tex_array[i].a);
+
     offset += num_endpoints [i];
   }
   for (int i = 0; i < arc_data_vector.size (); i++)
@@ -526,6 +535,7 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   glUniform1i (glGetUniformLocation(program, "texture_size"), header_length + arc_data_vector.size ());
   
   rgba_t input (arc_encode(0.7, 0.2, 0.4));
+  printf("Got %g, %g, %g as %d, %d, %d, %d.\n", 0.7, 0.2, 0.4, input.r, input.g, input.b, input.a);
   glUniform1i (glGetUniformLocation(program, "inputr"), input.r);
   glUniform1i (glGetUniformLocation(program, "inputg"), input.g);
   glUniform1i (glGetUniformLocation(program, "inputb"), input.b);
@@ -666,20 +676,20 @@ main (int argc, char** argv)
       vec2 perpendicular (const vec2 v) { return vec2 (-v.g, v.r); }
       int mod (const int a, const int b) { return a - (a / b) * b; }
 
-    /*  vec3 arc_decode (const vec4 v)
+      vec3 arc_decode (const vec4 v)
       {
 	float x = (float (mod (int (v.a * 255) / (1 << (ARC_ENCODE_Y_BITS - 8 + ARC_ENCODE_D_BITS - 8)), (1 << (ARC_ENCODE_X_BITS - 8)))) + v.r) / (1 << (ARC_ENCODE_X_BITS - 8));
 	float y = (float (mod (int (v.a * 255) / (1 << (ARC_ENCODE_D_BITS - 8)), (1 << (ARC_ENCODE_Y_BITS - 8)))) + v.g) / (1 << (ARC_ENCODE_Y_BITS - 8));
 	float d = v.b + float (mod (int (v.a * 255), (1 << (ARC_ENCODE_D_BITS - 8)))) / (1 << 8);
 	d = MAX_D * (2 * d - 1);
 	return vec3 (x, y, d);
-      }*/
+      }
       
-      vec3 arc_decode (const vec4 v)
+      vec3 arc_decodek (const vec4 v)
       {
 	float x = (float ((mod (int (v.a * 256) / (1 << (ARC_ENCODE_D_BITS - 8 + ARC_ENCODE_Y_BITS - 8)), (1 << (ARC_ENCODE_X_BITS - 8)))) * (1<< 8)) + v.r) / (1 << (ARC_ENCODE_X_BITS - 1));
 	float y = (float ((mod (int (v.a * 256) / (1 << (ARC_ENCODE_D_BITS - 8)), (1 << (ARC_ENCODE_Y_BITS - 8)))) * (1<< 8)) + v.g) / (1 << (ARC_ENCODE_Y_BITS - 1));
-	float d = v.b + float (mod (int (v.a * 255), (1 << (ARC_ENCODE_D_BITS - 8)))) / (1 << 8);
+	float d = (float ((mod (int (v.a * 256), (1 << (ARC_ENCODE_D_BITS - 8)))) * (1<< 8)) + v.b) / (1 << (ARC_ENCODE_D_BITS - 1));
 	d = MAX_D * (2 * d - 1);
 	return vec3 (x, y, d);
       }
@@ -744,13 +754,13 @@ main (int argc, char** argv)
 	
 	vec3 hi = arc_decode(vec4(inputr, inputg, inputb, inputa));
 	{
-	  gl_FragColor = hi.b > 2.8 ? vec4 (1, hi.r,0,1) : vec4 (0,0,0,0);
+	  gl_FragColor = hi.b > -0.5 ? vec4 (1, hi.b,0,1) : vec4 (0,0,0,0);
 	//  return;
 	  }
 	
 	vec2 arc_position_data = rgba_t_to_pair(texture2D (tex, vec2(0.5, float(.5 + (p_cell_y * GRIDSIZE + p_cell_x)) / float(texture_size))));
-	int offset = /*int (256 * */ int(arc_position_data.x);
-	int num_endpoints = /*int (256 * */ int(arc_position_data.y);
+	int offset = int(arc_position_data.x);
+	int num_endpoints =  int(arc_position_data.y);
 	
 	//gl_FragColor = (num_endpoints >= 13 ? vec4 (1,0,1,1) : vec4(0,0,0,0));
 	//return;
