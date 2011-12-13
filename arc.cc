@@ -113,7 +113,7 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
   cairo_select_font_face (cr, family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
   FT_Face face = cairo_ft_scaled_font_lock_face (cairo_get_scaled_font (cr));
   unsigned int upem = face->units_per_EM;
-  double tolerance = upem * 1e-3; /* in font design units */
+  double tolerance = upem * 3e-4; /* in font design units */
   if (FT_Load_Glyph (face,
 		     FT_Get_Char_Index (face, (FT_ULong) *utf8),
 		     FT_LOAD_NO_BITMAP |

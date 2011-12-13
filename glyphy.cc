@@ -294,9 +294,15 @@ struct rgba_t {
   unsigned char a;
 };
 
-#define ARC_ENCODE_X_BITS 11
-#define ARC_ENCODE_Y_BITS 11
+#define ARC_ENCODE_X_BITS 12
+#define ARC_ENCODE_Y_BITS 12
 #define ARC_ENCODE_D_BITS (32 - ARC_ENCODE_X_BITS - ARC_ENCODE_Y_BITS)
+#define ARC_ENCODE_X_CHANNEL r
+#define ARC_ENCODE_Y_CHANNEL g
+#define ARC_ENCODE_D_CHANNEL b
+#define ARC_ENCODE_OTHER_CHANNEL a
+#define UPPER_BITS(v,bits,total_bits) ((v) >> ((total_bits) - (bits)))
+#define LOWER_BITS(v,bits,total_bits) ((v) & ((1 << (bits)) - 1))
 
 G_STATIC_ASSERT (8 <= ARC_ENCODE_X_BITS && ARC_ENCODE_X_BITS < 16);
 G_STATIC_ASSERT (8 <= ARC_ENCODE_Y_BITS && ARC_ENCODE_Y_BITS < 16);
@@ -314,7 +320,7 @@ arc_encode (double x, double y, double d)
   g_assert (ix < (1 << ARC_ENCODE_X_BITS));
   iy = lround (y * ((1 << ARC_ENCODE_Y_BITS) - 1));
   g_assert (iy < (1 << ARC_ENCODE_Y_BITS));
-#define MAX_D .54 // TODO 
+#define MAX_D .54 // TODO (0.25?)
   if (isinf (d))
     id = 0;
   else {
@@ -322,17 +328,24 @@ arc_encode (double x, double y, double d)
     id = lround (d * ((1 << (ARC_ENCODE_D_BITS - 1)) - 1) / MAX_D + (1 << (ARC_ENCODE_D_BITS - 1)));
   }
   g_assert (id < (1 << ARC_ENCODE_D_BITS));
+/*
   v.r = ix & 0xff;
   v.g = iy & 0xff;
   v.b = id >> (ARC_ENCODE_D_BITS - 8);
   v.a = ((ix >> 8) << (ARC_ENCODE_Y_BITS - 8 + ARC_ENCODE_D_BITS - 8))
       | ((iy >> 8) << (ARC_ENCODE_D_BITS - 8))
-      | (id & ((1 << (ARC_ENCODE_D_BITS - 8)) - 1)); 
+      | (id & ((1 << (ARC_ENCODE_D_BITS - 8)) - 1)); */
+  v.ARC_ENCODE_X_CHANNEL = LOWER_BITS (ix, 8, ARC_ENCODE_X_BITS);
+  v.ARC_ENCODE_Y_CHANNEL = LOWER_BITS (iy, 8, ARC_ENCODE_Y_BITS);
+  v.ARC_ENCODE_D_CHANNEL = UPPER_BITS (id, 8, ARC_ENCODE_D_BITS);
+  v.ARC_ENCODE_OTHER_CHANNEL = ((ix >> 8) << (ARC_ENCODE_Y_BITS - 8 + ARC_ENCODE_D_BITS - 8))
+			     | ((iy >> 8) << (ARC_ENCODE_D_BITS - 8))
+			     | (id & ((1 << (ARC_ENCODE_D_BITS - 8)) - 1));
   return v;
 }
 
 
-
+/*
 
 static const rgba_t
 arc_encodej (double x, double y, double d)
@@ -345,7 +358,7 @@ arc_encodej (double x, double y, double d)
   g_assert (ix < (1 << ARC_ENCODE_X_BITS));
   iy = lround (y * (1 << (ARC_ENCODE_Y_BITS - 1)));
   g_assert (iy < (1 << ARC_ENCODE_Y_BITS));
-#define MAX_D .54 /* TODO */
+#define MAX_D .54 // TODO
   if (isinf (d))
     id = 0;
   else {
@@ -361,8 +374,16 @@ arc_encodej (double x, double y, double d)
   v.a = ((ix >> 8) << (ARC_ENCODE_Y_BITS - 8 + ARC_ENCODE_D_BITS - 8))
       | ((iy >> 8) << (ARC_ENCODE_D_BITS - 8))
       | (id >> 8);
+=======
+  v.ARC_ENCODE_X_CHANNEL = LOWER_BITS (ix, 8, ARC_ENCODE_X_BITS);
+  v.ARC_ENCODE_Y_CHANNEL = LOWER_BITS (iy, 8, ARC_ENCODE_Y_BITS);
+  v.ARC_ENCODE_D_CHANNEL = UPPER_BITS (id, 8, ARC_ENCODE_D_BITS);
+  v.ARC_ENCODE_OTHER_CHANNEL = ((ix >> 8) << (ARC_ENCODE_Y_BITS - 8 + ARC_ENCODE_D_BITS - 8))
+			     | ((iy >> 8) << (ARC_ENCODE_D_BITS - 8))
+			     | (id & ((1 << (ARC_ENCODE_D_BITS - 8)) - 1));
+>>>>>>> d060cdad84179ca87ac3570c9c6d5c0f48c6fd5e
   return v;
-}
+}*/
 
 
 
@@ -390,7 +411,7 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   FT_Init_FreeType (&library);   
   FT_New_Face ( library, font_path, 0, &face );
   unsigned int upem = face->units_per_EM;
-  double tolerance = upem * 1e-4; // in font design units
+  double tolerance = upem * 1e-5; // in font design units
 
 
   // Arc approximation code.
@@ -445,7 +466,7 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
           grid_min_x, grid_max_x, grid_min_y, grid_max_y, glyph_width, glyph_height);
   
     
-#define GRIDSIZE 2
+#define GRIDSIZE 32
   double box_width = glyph_width / GRIDSIZE;
   double box_height = glyph_height / GRIDSIZE;
 
@@ -534,8 +555,9 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   
   glUniform1i (glGetUniformLocation(program, "texture_size"), header_length + arc_data_vector.size ());
   
-  rgba_t input (arc_encode(0.7, 0.2, 0.4));
-  printf("Got %g, %g, %g as %d, %d, %d, %d.\n", 0.7, 0.2, 0.4, input.r, input.g, input.b, input.a);
+  rgba_t input (pair_to_rgba_t(7728, 12));
+  
+  printf("Got %d, %d as %d, %d, %d, %d.\n", 7728, 12, input.r, input.g, input.b, input.a);
   glUniform1i (glGetUniformLocation(program, "inputr"), input.r);
   glUniform1i (glGetUniformLocation(program, "inputg"), input.g);
   glUniform1i (glGetUniformLocation(program, "inputb"), input.b);
@@ -678,9 +700,14 @@ main (int argc, char** argv)
 
       vec3 arc_decode (const vec4 v)
       {
-	float x = (float (mod (int (v.a * 255) / (1 << (ARC_ENCODE_Y_BITS - 8 + ARC_ENCODE_D_BITS - 8)), (1 << (ARC_ENCODE_X_BITS - 8)))) + v.r) / (1 << (ARC_ENCODE_X_BITS - 8));
-	float y = (float (mod (int (v.a * 255) / (1 << (ARC_ENCODE_D_BITS - 8)), (1 << (ARC_ENCODE_Y_BITS - 8)))) + v.g) / (1 << (ARC_ENCODE_Y_BITS - 8));
-	float d = v.b + float (mod (int (v.a * 255), (1 << (ARC_ENCODE_D_BITS - 8)))) / (1 << 8);
+	//float x = v.ARC_ENCODE_X_CHANNEL;
+	//float y = v.ARC_ENCODE_Y_CHANNEL;
+	//float d = v.ARC_ENCODE_D_CHANNEL;
+	float x = (float (mod (int (v.ARC_ENCODE_OTHER_CHANNEL * (256-1e-5)) / (1 << (ARC_ENCODE_Y_BITS - 8 + ARC_ENCODE_D_BITS - 8)), (1 << (ARC_ENCODE_X_BITS - 8)))) +
+		   v.ARC_ENCODE_X_CHANNEL) / (1 << (ARC_ENCODE_X_BITS - 8));
+	float y = (float (mod (int (v.ARC_ENCODE_OTHER_CHANNEL * (256-1e-5)) / (1 << (ARC_ENCODE_D_BITS - 8)), (1 << (ARC_ENCODE_Y_BITS - 8)))) +
+		   v.ARC_ENCODE_Y_CHANNEL) / (1 << (ARC_ENCODE_Y_BITS - 8));
+	float d = v.ARC_ENCODE_D_CHANNEL + float (mod (int (v.ARC_ENCODE_OTHER_CHANNEL * (256-1e-5)), (1 << (ARC_ENCODE_D_BITS - 8)))) / (1 << 8);
 	d = MAX_D * (2 * d - 1);
 	return vec3 (x, y, d);
       }
@@ -751,19 +778,13 @@ main (int argc, char** argv)
 		
 	int p_cell_x = int (p.x * GRIDSIZE);
 	int p_cell_y = int (p.y * GRIDSIZE);
-	
-	vec3 hi = arc_decode(vec4(inputr, inputg, inputb, inputa));
-	{
-	  gl_FragColor = hi.b > -0.5 ? vec4 (1, hi.b,0,1) : vec4 (0,0,0,0);
-	//  return;
-	  }
+
 	
 	vec2 arc_position_data = rgba_t_to_pair(texture2D (tex, vec2(0.5, float(.5 + (p_cell_y * GRIDSIZE + p_cell_x)) / float(texture_size))));
 	int offset = int(arc_position_data.x);
 	int num_endpoints =  int(arc_position_data.y);
 	
-	//gl_FragColor = (num_endpoints >= 13 ? vec4 (1,0,1,1) : vec4(0,0,0,0));
-	//return;
+	
 	
 	int i;
 	float min_dist = 1.;
@@ -771,7 +792,11 @@ main (int argc, char** argv)
 	vec3 arc_next = arc_decode (texture2D (tex, vec2(.5, (.5 + float(offset)) / float(texture_size))));
 	
 	
-	for (i = 0; i < num_endpoints - 1; i++) {
+	for (i = 0; i < min(num_endpoints - 1, 786) ; i++) {  
+	// I don't understand 
+	// How or why the min there helps. 
+	// Yet somehow it works.
+	
 	  vec3 arc = arc_next;
 	  arc_next = arc_decode (texture2D (tex, vec2(.5, (1.5 + float(i) + float(offset)) / float(texture_size))));
 	  float d = arc.b;
@@ -805,7 +830,6 @@ main (int argc, char** argv)
 			   gl_FragColor,
 			   smoothstep (.002, .005, min_point_dist));
 	return;
-	
     }
   );
   program = create_program (vshader, fshader);
