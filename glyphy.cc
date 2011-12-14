@@ -211,7 +211,8 @@ drawable_swap_buffers (GdkDrawable *drawable)
 
 /* TODO Knobs */
 #define MIN_FONT_SIZE 1
-#define GRIDSIZE 32
+#define GRID_X 32
+#define GRID_Y 32
 #define TOLERANCE 3e-5
 
 
@@ -406,8 +407,8 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   glyph_width = grid_max_x - grid_min_x;
   glyph_height = grid_max_y - grid_min_y;
 
-  double box_width = glyph_width / GRIDSIZE;
-  double box_height = glyph_height / GRIDSIZE;
+  double box_width = glyph_width / GRID_X;
+  double box_height = glyph_height / GRID_Y;
 
 
 
@@ -419,11 +420,11 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   vector<arc_t> near_arcs;
 
   double min_dimension = std::min(glyph_width, glyph_height);
-  unsigned int header_length = GRIDSIZE * GRIDSIZE;
+  unsigned int header_length = GRID_X * GRID_Y;
   unsigned int offset = header_length;
   tex_data.resize (header_length);
-  for (int row = 0; row < GRIDSIZE; row++)
-    for (int col = 0; col < GRIDSIZE; col++)
+  for (int row = 0; row < GRID_Y; row++)
+    for (int col = 0; col < GRID_X; col++)
     {
       near_arcs.clear ();
       closest_arcs_to_cell (Point<Coord> (grid_min_x + (col * box_width), grid_min_y + (row * box_height)),
@@ -443,7 +444,7 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
 	p1 = arc.p1;
       }
 
-      tex_data[row * GRIDSIZE + col] = pair_to_rgba (offset, tex_data.size () - offset);
+      tex_data[row * GRID_X + col] = pair_to_rgba (offset, tex_data.size () - offset);
       offset = tex_data.size ();
     }
 
@@ -605,10 +606,10 @@ main (int argc, char** argv)
       {
 	float m = length (vec2 (float (dFdy (p)), float (dFdx (p)))); /* isotropic antialiasing */
 		
-	int p_cell_x = int (clamp (p.x, 0., 1.-1e-5) * GRIDSIZE);
-	int p_cell_y = int (clamp (p.y, 0., 1.-1e-5) * GRIDSIZE);
+	int p_cell_x = int (clamp (p.x, 0., 1.-1e-5) * GRID_X);
+	int p_cell_y = int (clamp (p.y, 0., 1.-1e-5) * GRID_Y);
 
-	ivec2 arc_position_data = rgba_to_pair(tex_1D (tex, p_cell_y * GRIDSIZE + p_cell_x));
+	ivec2 arc_position_data = rgba_to_pair(tex_1D (tex, p_cell_y * GRID_X + p_cell_x));
 	int offset = arc_position_data.x;
 	int num_endpoints =  arc_position_data.y;
 
@@ -650,7 +651,7 @@ main (int argc, char** argv)
 	gl_FragColor = mix(vec4(0,1,0,1),
 			   gl_FragColor,
 			   smoothstep (.002, .005, min_point_dist));
-	//gl_FragColor += vec4(0,0,1,1) * num_endpoints / 16;
+	gl_FragColor += vec4(0,0,1,1) * num_endpoints / 16;
 	// gl_FragColor = vec4(1,1,1,1) * smoothstep (0, 2 * m, min_dist);
 	return;
     }
