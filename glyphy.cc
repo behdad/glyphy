@@ -76,6 +76,8 @@ compile_shader (GLenum type, const GLchar* source)
       fprintf (stderr, "%s\n", info_log);
       free (info_log);
     }
+
+    abort ();
   }
 
   return shader;
@@ -114,6 +116,8 @@ create_program (GLuint vshader, GLuint fshader)
       fprintf (stderr, "%s\n", info_log);
       free (info_log);
     }
+
+    abort ();
   }
 
   return program;
