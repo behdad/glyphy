@@ -695,9 +695,10 @@ main (int argc, char** argv)
 	 gl_FragColor = mix(vec4(0,1,0,1),
 			   gl_FragColor,
 			   smoothstep (.002, .005, min_point_dist));
-	// gl_FragColor += vec4(0,0,1,1) * num_endpoints / 16;
+	gl_FragColor += vec4(0,0,1,1) * num_endpoints / 16;
+	gl_FragColor += vec4(.5,0,0,1) * smoothstep (-m, m, is_inside ? min_dist : -min_dist);
 	
-	//gl_FragColor = is_inside ? vec4(0,0,0,0) : vec4(1,1,1,1) * smoothstep (0, 2 * m, min_dist);
+	//gl_FragColor = vec4(1,1,1,1) * smoothstep (-m, m, is_inside ? -min_dist : min_dist);
 	return;
     }
   );
