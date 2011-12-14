@@ -715,6 +715,11 @@ main (int argc, char** argv)
         return ivec2 (x, y);
       }
 
+      vec4 tex_1D (const sampler2D tex, int i)
+      {
+	return texture2D (tex, vec2 (0.5, (i + .5) / float (texture_size)));
+      }
+
       void main()
       {
 	float m = float (fwidth (p)); /* isotropic antialiasing */
@@ -722,22 +727,22 @@ main (int argc, char** argv)
 	int p_cell_x = int (clamp (p.x, 0., 1.-1e-5) * GRIDSIZE);
 	int p_cell_y = int (clamp (p.y, 0., 1.-1e-5) * GRIDSIZE);
 
-	ivec2 arc_position_data = rgba_to_pair(texture2D (tex, vec2(0.5, float(.5 + (p_cell_y * GRIDSIZE + p_cell_x)) / float(texture_size))));
+	ivec2 arc_position_data = rgba_to_pair(tex_1D (tex, p_cell_y * GRIDSIZE + p_cell_x));
 	int offset = arc_position_data.x;
 	int num_endpoints =  arc_position_data.y;
 	
 	int i;
 	float min_dist = 1.;
 	float min_point_dist = 1.;
-	vec3 arc_next = arc_decode (texture2D (tex, vec2(.5, (.5 + float(offset)) / float(texture_size))));
+	vec3 arc_next = arc_decode (tex_1D (tex, offset));
 	
-	for (i = 0; i < num_endpoints - 1; i++) {
+	for (i = 1; i <= num_endpoints - 1; i++) {
 	// I don't understand 
 	// How or why the min there helps. 
 	// Yet somehow it works.
 	
 	  vec3 arc = arc_next;
-	  arc_next = arc_decode (texture2D (tex, vec2(.5, (1.5 + float(i) + float(offset)) / float(texture_size))));
+	  arc_next = arc_decode (tex_1D (tex, i + offset));
 	  float d = arc.b;
 	  if (d == -MAX_D) continue;
 	  if (abs (d) < 1e-5) d = 1e-5; // cheat 
