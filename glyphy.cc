@@ -236,8 +236,6 @@ closest_arcs_to_cell (Point<Coord> square_top_left,
   point_t center (square_top_left.x + cell_width / 2.,
                   square_top_left.y + cell_height / 2.);
   double min_distance = INFINITY;
-  arc_t nearest_arc = arc_list [0];
-  double distance = min_distance;
 
   for (int k = 0; k < arc_list.size (); k++) {
     arc_t arc = arc_list [k];
@@ -245,13 +243,12 @@ closest_arcs_to_cell (Point<Coord> square_top_left,
 
     if (current_distance < min_distance) {
       min_distance = current_distance;
-      nearest_arc = arc;
     }
   }
 
   // If d is the distance from the center of the square to the nearest arc, then
   // all nearest arcs to the square must be at most [d + s/sqrt(2)] from the center.
-  double half_diagonal = sqrt (cell_height * cell_height + cell_width * cell_width) / 2;
+  double half_diagonal = sqrt (cell_height * cell_height + cell_width * cell_width) / 1.4;
   Scalar radius = min_distance + half_diagonal;
 
   double faraway = double (grid_size) / MIN_FONT_SIZE;
@@ -334,9 +331,6 @@ pair_to_rgba (unsigned int num1, unsigned int num2)
 
 
 
-/***************************************************************************************************************************/
-/*** This uses the new SDF approach. ***************************************************************************************/
-/***************************************************************************************************************************/
 static void
 setup_texture (const char *font_path, const char UTF8, GLint program)
 {
@@ -565,6 +559,10 @@ main (int argc, char** argv)
       invariant varying highp vec2 p;
 
       vec2 perpendicular (const vec2 v) { return vec2 (-v.g, v.r); }
+      vec2 projection (const vec2 v, const vec2 base) { 
+        return length (base) < 1e-5 ? vec2 (0,0) :
+                  float (dot (v, base)) / float (dot (base, base)) * base;
+      } 
       int mod (const int a, const int b) { return a - (a / b) * b; }
       int div (const int a, const int b) { return a / b; }
 
@@ -606,6 +604,9 @@ main (int argc, char** argv)
 	int i;
 	float min_dist = 1.;
 	float min_point_dist = 1.;
+	float min_extended_dist = 1.;
+	bool is_inside = false;
+	
 	vec3 arc_prev = arc_decode (tex_1D (tex, offset));
 	for (i = 1; i <= num_endpoints - 1; i++)
 	{
@@ -621,7 +622,8 @@ main (int argc, char** argv)
 	  vec2 norm = normalize (perp);
 	  vec2 c = mix (p0, p1, .5) - perp * ((1 - d*d) / (4 * d));
 
-	  float dist;
+	  // Find the distance from p to the nearby arcs.
+	  float dist;	  
 	  if (sign (d) * dot (p - c, perpendicular (p0 - c)) <= 0 &&
 	      sign (d) * dot (p - c, perpendicular (p1 - c)) >= 0)
 	  {
@@ -629,20 +631,69 @@ main (int argc, char** argv)
 	  } else {
 	    dist = min (distance (p, p0), distance (p, p1));
 	  }
-	  min_dist = min (min_dist, dist);
+	  
+	  // If this new distance is roughly the same as the current minimum, compare extended distances.
+	  // Take the sign from the arc with larger extended distance.
+	  if (abs(dist - min_dist) < 1e-6) {
+	    float extended_dist;
+	    
+	    if (sign (d) * dot (p - c, perpendicular (p0 - c)) <= 0 &&
+	        sign (d) * dot (p - c, perpendicular (p1 - c)) >= 0) {
+	      extended_dist = dist;
+	    } 
+	    else if (sign (d) * dot (p - c, perpendicular (p0 - c)) > 0) {
+	      extended_dist = length (projection (p - p0, p0 - c)); 
+	    }
+	    else if (sign (d) * dot (p - c, perpendicular (p1 - c)) < 0) {
+	      extended_dist = length (projection (p - p1, p1 - c));
+	    }
+	    
+	    if (extended_dist > min_extended_dist) {
+	      min_extended_dist = extended_dist;
+	      if ((sign (d) > 0 && distance (p, c) <= distance (p0, c)) ||
+	          (sign (d) < 0 && distance (p, c) >= distance (p0, c)))
+	        is_inside = true;
+	      else
+	        is_inside = false;
+	    }
+	  }
+	  
+	  else if (dist < min_dist) {
+	    min_dist = dist;
+	    
+	    // Get the new minimum extended distance.
+	    if (sign (d) * dot (p - c, perpendicular (p0 - c)) <= 0 &&
+	        sign (d) * dot (p - c, perpendicular (p1 - c)) >= 0) {
+	      min_extended_dist = dist;
+	    } 
+	    else if (sign (d) * dot (p - c, perpendicular (p0 - c)) > 0) {
+	      min_extended_dist = length (projection (p - p0, p0 - c)); 
+	    }
+	    else if (sign (d) * dot (p - c, perpendicular (p1 - c)) < 0) {
+	      min_extended_dist = length (projection (p - p1, p1 - c));
+	    }
+	    
+	    if ((distance (p, c) <= distance (p0, c) && sign (d) > 0) ||
+	        (distance (p, c) >= distance (p0, c) && sign (d) < 0))
+	      is_inside = true;
+	    else
+	      is_inside = false;
+	  }
+	  
 
 	  float point_dist = min (distance (p, p0), distance (p, p1));
 	  min_point_dist = min (min_point_dist, point_dist);
 	}
 	
-	gl_FragColor = mix(vec4(1,0,0,1),
+	 gl_FragColor = mix(vec4(1,0,0,1),
 			   vec4(0,1,0,1) * ((1 + sin (min_dist / m))) * sin (pow (min_dist, .8) * 3.14159265358979),
 			   smoothstep (0, 2 * m, min_dist));
-	gl_FragColor = mix(vec4(0,1,0,1),
+	 gl_FragColor = mix(vec4(0,1,0,1),
 			   gl_FragColor,
 			   smoothstep (.002, .005, min_point_dist));
-	gl_FragColor += vec4(0,0,1,1) * num_endpoints / 16;
-	// gl_FragColor = vec4(1,1,1,1) * smoothstep (0, 2 * m, min_dist);
+	// gl_FragColor += vec4(0,0,1,1) * num_endpoints / 16;
+	
+	gl_FragColor = is_inside ? vec4(0,0,0,0) : vec4(1,1,1,1) * smoothstep (0, 2 * m, min_dist);
 	return;
     }
   );
