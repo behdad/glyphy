@@ -445,18 +445,19 @@ create_texture (const char *font_path, const char UTF8, GLint program)
   unsigned int tex_h = (tex_len + tex_w - 1) / tex_w;
   tex_data.resize (tex_w * tex_h);
 
-  printf ("Texture size %dx%d; %'d bytes\n", tex_w, tex_h, tex_w * tex_h * sizeof (tex_data[0]));
+  printf ("Texture size %ux%u; %'lu bytes\n", tex_w, tex_h, tex_w * tex_h * sizeof (tex_data[0]));
 
   GLuint texture;
   glGenTextures (1, &texture);
   glBindTexture (GL_TEXTURE_2D, texture);
-  gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, tex_w, tex_h, 0, GL_RGBA, GL_UNSIGNED_BYTE, &tex_data[0]);
-  glUniform1i (glGetUniformLocation(program, "tex_w"), tex_w);
-  glUniform1i (glGetUniformLocation(program, "tex_h"), tex_h);
-
   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
+  /* Upload*/
+  gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, tex_w, tex_h, 0, GL_RGBA, GL_UNSIGNED_BYTE, &tex_data[0]);
+
+  GLint tex_size[2] = {tex_w, tex_h};
+  glUniform2i (glGetUniformLocation(program, "tex_size"), tex_w, tex_h);
   glUniform1i (glGetUniformLocation(program, "tex"), 0);
   glActiveTexture (GL_TEXTURE0);
 }
@@ -478,8 +479,7 @@ create_program (void)
   );
   fshader = COMPILE_SHADER (GL_FRAGMENT_SHADER,
       uniform highp sampler2D tex;
-      uniform int tex_w;
-      uniform int tex_h;
+      uniform ivec2 tex_size;
 
       invariant varying highp vec2 p;
 
@@ -511,8 +511,8 @@ create_program (void)
 
       vec4 tex_1D (const sampler2D tex, int i)
       {
-	return texture2D (tex, vec2 ((mod (i, tex_w) + .5) / float (tex_w),
-				     (div (i, tex_w) + .5) / float (tex_h)));
+	return texture2D (tex, vec2 ((mod (i, tex_size.x) + .5) / float (tex_size.x),
+				     (div (i, tex_size.x) + .5) / float (tex_size.y)));
       }
 
       void main()
