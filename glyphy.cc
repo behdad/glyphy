@@ -210,7 +210,7 @@ drawable_swap_buffers (GdkDrawable *drawable)
 
 
 /* TODO Knobs */
-#define MIN_FONT_SIZE 16
+#define MIN_FONT_SIZE 1
 #define GRIDSIZE 32
 
 
@@ -642,7 +642,7 @@ main (int argc, char** argv)
 	ivec2 arc_position_data = rgba_to_pair(tex_1D (tex, p_cell_y * GRIDSIZE + p_cell_x));
 	int offset = arc_position_data.x;
 	int num_endpoints =  arc_position_data.y;
-	
+
 	int i;
 	float min_dist = 1.;
 	float min_point_dist = 1.;
@@ -677,12 +677,12 @@ main (int argc, char** argv)
 	}
 	
 	gl_FragColor = mix(vec4(1,0,0,1),
-			   vec4(0,0,1,1) * ((1 + sin (min_dist / m)) / 2) * sin (pow (min_dist, .8) * 3.14159265358979),
+			   vec4(0,1,0,1) * ((1 + sin (min_dist / m))) * sin (pow (min_dist, .8) * 3.14159265358979),
 			   smoothstep (0, 2 * m, min_dist));
 	gl_FragColor = mix(vec4(0,1,0,1),
 			   gl_FragColor,
 			   smoothstep (.002, .005, min_point_dist));
-	gl_FragColor += vec4(0,1,0,1) * num_endpoints / 16;
+	gl_FragColor += vec4(0,0,1,1) * num_endpoints / 16;
 	// gl_FragColor = vec4(1,1,1,1) * smoothstep (0, 2 * m, min_dist);
 	return;
     }
