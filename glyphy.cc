@@ -93,7 +93,7 @@ compile_shader (GLenum type, const GLchar* source)
 	  gl##name
 
 static GLuint
-create_program (GLuint vshader, GLuint fshader)
+link_program (GLuint vshader, GLuint fshader)
 {
   GLuint program;
   GLint linked;
@@ -336,8 +336,8 @@ pair_to_rgba (unsigned int num1, unsigned int num2)
 
 
 
-static void
-setup_texture (const char *font_path, const char UTF8, GLint program)
+static GLint
+create_texture (const char *font_path, const char UTF8, GLint program)
 {
   FT_Face face;
   FT_Library library;
@@ -443,111 +443,28 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   unsigned int tex_len = tex_data.size ();
   unsigned int tex_w = 128;
   unsigned int tex_h = (tex_len + tex_w - 1) / tex_w;
-  printf ("Texture size %dx%d; %'d bytes\n", tex_w, tex_h, tex_w * tex_h * 4);
+  tex_data.resize (tex_w * tex_h);
+
+  printf ("Texture size %dx%d; %'d bytes\n", tex_w, tex_h, tex_w * tex_h * sizeof (tex_data[0]));
+
+  GLuint texture;
+  glGenTextures (1, &texture);
+  glBindTexture (GL_TEXTURE_2D, texture);
   gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, tex_w, tex_h, 0, GL_RGBA, GL_UNSIGNED_BYTE, &tex_data[0]);
   glUniform1i (glGetUniformLocation(program, "tex_w"), tex_w);
   glUniform1i (glGetUniformLocation(program, "tex_h"), tex_h);
 
-  return;
+  glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
+  glUniform1i (glGetUniformLocation(program, "tex"), 0);
+  glActiveTexture (GL_TEXTURE0);
 }
 
-
-static
-gboolean configure_cb (GtkWidget *widget,
-		       GdkEventConfigure *event,
-		       gpointer user_data)
+static GLuint
+create_program (void)
 {
-  gdk_window_invalidate_rect (widget->window, NULL, TRUE);
-  return FALSE;
-}
-
-static int step_timer;
-static int num_frames;
-
-static
-gboolean expose_cb (GtkWidget *widget,
-		    GdkEventExpose *event,
-		    gpointer user_data)
-{
-  GtkAllocation allocation;
-  double theta = M_PI / 360.0 * step_timer / 3.;
-  GLfloat mat[] = { +cos(theta), +sin(theta), 0., 0.,
-		    -sin(theta), +cos(theta), 0., 0.,
-			     0.,          0., 1., 0.,
-			     0.,          0., 0., 1., };
-
-  drawable_make_current (widget->window);
-
-  gtk_widget_get_allocation (widget, &allocation);
-  glViewport(0, 0, allocation.width, allocation.height);
-  glClearColor(1., 1., 0., 0.);
-  glClear(GL_COLOR_BUFFER_BIT);
-  glUniformMatrix4fv (GPOINTER_TO_INT (user_data), 1, GL_FALSE, mat);
-
-  glDrawArrays (GL_TRIANGLE_FAN, 0, 4);
-
-  drawable_swap_buffers (widget->window);
-
-  return TRUE;
-}
-
-static gboolean
-step (gpointer data)
-{
-  num_frames++;
-  step_timer++;
-  gdk_window_invalidate_rect (GDK_WINDOW (data), NULL, TRUE);
-  return TRUE;
-}
-
-static gboolean
-print_fps (gpointer data)
-{
-  printf ("%gfps\n", num_frames / 5.);
-  num_frames = 0;
-  return TRUE;
-}
-
-int
-main (int argc, char** argv)
-{
-  GtkWidget *window;
-  char *font_path;
-  char utf8;
-  gboolean animate = FALSE;
-  if (argc >= 3) {
-     font_path = argv[1];
-     utf8 = argv[2][0];
-     if (argc >= 4)
-       animate = atoi (argv[3]);
-  }
-  else {
-    fprintf (stderr, "Usage: grid PATH_TO_FONT_FILE CHARACTER_TO_DRAW ANIMATE?\n");
-    return 1;
-  }
-
-  GLuint vshader, fshader, program, texture, a_pos_loc, a_tex_loc;
-
-  const GLfloat w_vertices[] = { -1, -1, 0,  -0.1, -0.1,
-				 +1, -1, 0,  1.1, -0.1,
-				 +1, +1, 0,  1.1, 1.1,
-				 -1, +1, 0,  -0.1, 1.1 };
-
-  gtk_init (&argc, &argv);
-
-  window = GTK_WIDGET (gtk_window_new (GTK_WINDOW_TOPLEVEL));
-  gtk_window_set_default_size (GTK_WINDOW (window), 600, 600);
-  g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (gtk_main_quit), NULL);
-
-  eglInitialize (eglGetDisplay (gdk_x11_display_get_xdisplay (gtk_widget_get_display (window))), NULL, NULL);
-  if (!eglBindAPI (EGL_OPENGL_ES_API))
-    die ("Failed to bind OpenGL ES API");
-
-  gtk_widget_show_all (window);
-
-  drawable_make_current (window->window);
-
+  GLuint vshader, fshader, program;
   vshader = COMPILE_SHADER (GL_VERTEX_SHADER,
       attribute vec4 a_position;
       attribute vec2 a_texCoord;
@@ -706,31 +623,124 @@ main (int argc, char** argv)
 	return;
     }
   );
-  program = create_program (vshader, fshader);
+  program = link_program (vshader, fshader);
+  return program;
+}
 
+
+static
+gboolean configure_cb (GtkWidget *widget,
+		       GdkEventConfigure *event,
+		       gpointer user_data)
+{
+  gdk_window_invalidate_rect (widget->window, NULL, TRUE);
+  return FALSE;
+}
+
+static int step_timer;
+static int num_frames;
+
+static
+gboolean expose_cb (GtkWidget *widget,
+		    GdkEventExpose *event,
+		    gpointer user_data)
+{
+  GtkAllocation allocation;
+  double theta = M_PI / 360.0 * step_timer / 3.;
+  GLfloat mat[] = { +cos(theta), +sin(theta), 0., 0.,
+		    -sin(theta), +cos(theta), 0., 0.,
+			     0.,          0., 1., 0.,
+			     0.,          0., 0., 1., };
+
+  drawable_make_current (widget->window);
+
+  gtk_widget_get_allocation (widget, &allocation);
+  glViewport(0, 0, allocation.width, allocation.height);
+  glClearColor(1., 1., 0., 0.);
+  glClear(GL_COLOR_BUFFER_BIT);
+  glUniformMatrix4fv (GPOINTER_TO_INT (user_data), 1, GL_FALSE, mat);
+
+  glDrawArrays (GL_TRIANGLE_FAN, 0, 4);
+
+  drawable_swap_buffers (widget->window);
+
+  return TRUE;
+}
+
+static gboolean
+step (gpointer data)
+{
+  num_frames++;
+  step_timer++;
+  gdk_window_invalidate_rect (GDK_WINDOW (data), NULL, TRUE);
+  return TRUE;
+}
+
+static gboolean
+print_fps (gpointer data)
+{
+  printf ("%gfps\n", num_frames / 5.);
+  num_frames = 0;
+  return TRUE;
+}
+
+int
+main (int argc, char** argv)
+{
+  GtkWidget *window;
+  char *font_path;
+  char utf8;
+  gboolean animate = FALSE;
+  if (argc >= 3) {
+     font_path = argv[1];
+     utf8 = argv[2][0];
+     if (argc >= 4)
+       animate = atoi (argv[3]);
+  }
+  else {
+    fprintf (stderr, "Usage: grid PATH_TO_FONT_FILE CHARACTER_TO_DRAW ANIMATE?\n");
+    return 1;
+  }
+
+  GLuint program, texture, a_pos_loc, a_tex_loc;
+
+  const GLfloat w_vertices[] = { -1, -1, 0,  -0.1, -0.1,
+				 +1, -1, 0,  1.1, -0.1,
+				 +1, +1, 0,  1.1, 1.1,
+				 -1, +1, 0,  -0.1, 1.1 };
+
+  gtk_init (&argc, &argv);
+
+  window = GTK_WIDGET (gtk_window_new (GTK_WINDOW_TOPLEVEL));
+  gtk_window_set_default_size (GTK_WINDOW (window), 600, 600);
+  g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (gtk_main_quit), NULL);
+
+  eglInitialize (eglGetDisplay (gdk_x11_display_get_xdisplay (gtk_widget_get_display (window))), NULL, NULL);
+  if (!eglBindAPI (EGL_OPENGL_ES_API))
+    die ("Failed to bind OpenGL ES API");
+
+  gtk_widget_show_all (window);
+
+  drawable_make_current (window->window);
+
+  program = create_program ();
   glUseProgram (program);
-  glUniform1i (glGetUniformLocation(program, "tex"), 0);
-  glActiveTexture (GL_TEXTURE0);
 
-  glGenTextures (1, &texture);
-  glBindTexture (GL_TEXTURE_2D, texture);
-
-  setup_texture (font_path, utf8, program);
-  glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  texture = create_texture (font_path, utf8, program);
 
   a_pos_loc = glGetAttribLocation(program, "a_position");
   a_tex_loc = glGetAttribLocation(program, "a_texCoord");
 
-  glVertexAttribPointer(a_pos_loc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), w_vertices+0);
-  glVertexAttribPointer(a_tex_loc, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), w_vertices+3);
-
-  glEnableVertexAttribArray(a_pos_loc);
-  glEnableVertexAttribArray(a_tex_loc);
+  glVertexAttribPointer (a_pos_loc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), w_vertices+0);
+  glVertexAttribPointer (a_tex_loc, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), w_vertices+3);
+  glEnableVertexAttribArray (a_pos_loc);
+  glEnableVertexAttribArray (a_tex_loc);
 
   gtk_widget_set_double_buffered (window, FALSE);
   gtk_widget_set_redraw_on_allocate (window, TRUE);
-  g_signal_connect (G_OBJECT (window), "expose-event", G_CALLBACK (expose_cb), GINT_TO_POINTER (glGetUniformLocation (program, "u_matViewProjection")));
+  /* TODO, the uniform location can change if we recompile program. */
+  g_signal_connect (G_OBJECT (window), "expose-event", G_CALLBACK (expose_cb),
+		    GINT_TO_POINTER (glGetUniformLocation (program, "u_matViewProjection")));
   g_signal_connect (G_OBJECT (window), "configure-event", G_CALLBACK (configure_cb), NULL);
 
   if (animate) {
