@@ -395,7 +395,6 @@ pair_to_rgba (unsigned int num1, unsigned int num2)
   v.g = LOWER_BITS (num1, 8, 16);
   v.b = UPPER_BITS (num2, 8, 16);
   v.a = LOWER_BITS (num2, 8, 16);
-  printf("Pair %x,%x as %x, %x, %x, %x.\n", num1, num2, v.r, v.g, v.b, v.a);
   return v;
 }
 
@@ -412,7 +411,7 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   FT_Init_FreeType (&library);   
   FT_New_Face ( library, font_path, 0, &face );
   unsigned int upem = face->units_per_EM;
-  double tolerance = upem * 1e-5; // in font design units
+  double tolerance = upem * 1e-4; // in font design units
 
 
   // Arc approximation code.
@@ -465,8 +464,8 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   glyph_height = grid_max_y - grid_min_y;
   printf ("Glyph dimensions: [%d, %d] x [%d, %d]. Width = %d, height = %d.\n",
           grid_min_x, grid_max_x, grid_min_y, grid_max_y, glyph_width, glyph_height);
-  
-    
+
+
 #define GRIDSIZE 32
   double box_width = glyph_width / GRIDSIZE;
   double box_height = glyph_height / GRIDSIZE;
@@ -540,14 +539,14 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   rgba_t tex_array [header_length + arc_data_vector.size () + 1000/*padding*/];
 
   for (int i = 0; i < header_length; i++) {
-    tex_array [i] = pair_to_rgba (offset, num_endpoints [i]);
-//    printf("(%d, %d) => (%d, %d, %d, %d) = (%d, %d).\n", offset, num_endpoints[i], tex_array[i].r, tex_array[i].g, tex_array[i].b, tex_array[i].a,
-//     tex_array[i].r * 256 + tex_array[i].g, tex_array[i].b * 256 + tex_array[i].a);
-
-    offset += num_endpoints [i];
+    tex_array [i] = pair_to_rgba (offset, num_endpoints[i]);
+    offset += num_endpoints[i];
+    if (num_endpoints[i] > 4) {
+      printf ("num_endpoints[%d]=%d\n", i, num_endpoints[i]);
+    }
   }
   for (int i = 0; i < arc_data_vector.size (); i++)
-    tex_array [i + header_length] = arc_data_vector [i];
+    tex_array [i + header_length] = arc_data_vector[i];
 
   unsigned int tex_len = header_length + arc_data_vector.size ();
   unsigned int tex_w = 16;
@@ -725,7 +724,7 @@ main (int argc, char** argv)
 
       void main()
       {
-	float m = float (fwidth (p)); /* isotropic antialiasing */
+	float m = length (vec2 (float (dFdy (p)), float (dFdx (p)))); /* isotropic antialiasing */
 		
 	int p_cell_x = int (clamp (p.x, 0., 1.-1e-5) * GRIDSIZE);
 	int p_cell_y = int (clamp (p.y, 0., 1.-1e-5) * GRIDSIZE);
