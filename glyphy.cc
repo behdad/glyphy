@@ -611,7 +611,7 @@ main (int argc, char** argv)
 	float min_extended_dist = 1.;
 	bool is_inside = false;
 	
-	vec3 arc_prev = arc_decode (vec4(0,0,0,0));
+	vec3 arc_prev = vec3 (0,0, 0);
 	for (i = 0; i < num_endpoints; i++)
 	{
 	  vec3 arc = arc_decode (tex_1D (tex, i + offset));
