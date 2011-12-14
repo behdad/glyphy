@@ -212,6 +212,7 @@ drawable_swap_buffers (GdkDrawable *drawable)
 /* TODO Knobs */
 #define MIN_FONT_SIZE 1
 #define GRIDSIZE 32
+#define TOLERANCE 3e-5
 
 
 
@@ -353,7 +354,7 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   FT_Init_FreeType (&library);   
   FT_New_Face ( library, font_path, 0, &face );
   unsigned int upem = face->units_per_EM;
-  double tolerance = upem * 3e-5; // in font design units
+  double tolerance = upem * TOLERANCE; // in font design units
 
 
   // Arc approximation code.
@@ -373,7 +374,6 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
     }
     std::vector<arc_t> arcs;
   } acc;
-
 
   if (FT_Load_Glyph (face,
 		     FT_Get_Char_Index (face, (FT_ULong) UTF8),
@@ -409,80 +409,48 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   double box_width = glyph_width / GRIDSIZE;
   double box_height = glyph_height / GRIDSIZE;
 
+
+
+
   // Make a 2d grid for arc/cell information.
-  /**************************************************************************************************************************************************/
+  vector<rgba_t> tex_data;
 
-  // arc_data_vector: Vector of rgba_t objects storing data of near arcs for ALL cells in the grid. 
-  //                  Contains duplicate entries. Used to translate to texture.
-  vector<rgba_t> arc_data_vector;
-  arc_data_vector.clear ();
-
-  // num_endpoints: The (i*GRIDSIZE + j)th entry corresponds to the number of arcs near the (i, j)th cell in the grid.
-  vector<int> num_endpoints;
+  // near_arcs: Vector of arcs near points in this single grid cell
+  vector<arc_t> near_arcs;
 
   double min_dimension = std::min(glyph_width, glyph_height);
+  unsigned int header_length = GRIDSIZE * GRIDSIZE;
+  unsigned int offset = header_length;
+  tex_data.resize (header_length);
   for (int row = 0; row < GRIDSIZE; row++)
-    for (int col = 0; col < GRIDSIZE; col++) {
-
-      // near_arcs: Vector of arcs near points in this single grid cell
-      vector<arc_t> near_arcs;
+    for (int col = 0; col < GRIDSIZE; col++)
+    {
       near_arcs.clear ();
-
-      // endpoints: Vector of endpoints of arcs in the vector near_arcs
-      vector<point_t> endpoints;
-      endpoints.clear ();
-
-      // d_values: Vector of d values for arcs in the vector near_arcs
-      vector<double> d_values;
-      d_values.clear ();
-
       closest_arcs_to_cell (Point<Coord> (grid_min_x + (col * box_width), grid_min_y + (row * box_height)),
                               box_width, box_height, min_dimension, acc.arcs, near_arcs);
 
-      int arc_counter;
-      for (arc_counter = 0; arc_counter + 1 < near_arcs.size (); arc_counter++) {
-        arc_t current_arc = near_arcs [arc_counter];
-        endpoints.push_back (current_arc.p0);
-        d_values.push_back (current_arc.d);
-        // Start a new loop in the outline.
-        if (current_arc.p1 != near_arcs [arc_counter+1].p0) {
-          endpoints.push_back (current_arc.p1);
-          d_values.push_back (INFINITY);
-        }
+#define ARC_ENCODE(p, d) \
+	arc_encode (((p).x - grid_min_x) / glyph_width, \
+		    ((p).y - grid_min_y) / glyph_height, \
+		    (d))
+
+      for (unsigned i = 0; i < near_arcs.size (); i++) {
+        arc_t arc = near_arcs[i];
+	tex_data.push_back (ARC_ENCODE (arc.p0, arc.d));
+        // Close the contour?
+        if (i + 1 == near_arcs.size () || arc.p1 != near_arcs [i+1].p0)
+	  tex_data.push_back (ARC_ENCODE (arc.p1, INFINITY));
       }
 
-      // The last arc needs to be done specially.
-      if (near_arcs.size () > 0) {
-        endpoints.push_back (near_arcs [arc_counter].p0);
-        endpoints.push_back (near_arcs [arc_counter].p1);
-        d_values.push_back (near_arcs [arc_counter].d);
-        d_values.push_back (INFINITY);
-      }
-
-      // Get arc endpoint data into an rgba_t vector.
-      for (int i = 0; i < endpoints.size (); i++)
-        arc_data_vector.push_back (arc_encode ((endpoints[i].x - grid_min_x) / glyph_width,
-	  	 	                       (endpoints[i].y - grid_min_y) / glyph_height,
-			                       d_values[i]));
-      num_endpoints.push_back (endpoints.size ());
+      tex_data[row * GRIDSIZE + col] = pair_to_rgba (offset, tex_data.size () - offset);
+      offset = tex_data.size ();
     }
 
-  int header_length = num_endpoints.size ();
-  int offset = header_length;
-  rgba_t tex_array [header_length + arc_data_vector.size () + 1000/*padding*/];
-
-  for (int i = 0; i < header_length; i++) {
-    tex_array [i] = pair_to_rgba (offset, num_endpoints[i]);
-    offset += num_endpoints[i];
-  }
-  for (int i = 0; i < arc_data_vector.size (); i++)
-    tex_array [i + header_length] = arc_data_vector[i];
-
-  unsigned int tex_len = header_length + arc_data_vector.size ();
+  unsigned int tex_len = tex_data.size ();
   unsigned int tex_w = 128;
   unsigned int tex_h = (tex_len + tex_w - 1) / tex_w;
-  printf ("Texture size %dx%d\n", tex_w, tex_h);
-  gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, tex_w, tex_h, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex_array);
+  printf ("Texture size %dx%d; %'d bytes\n", tex_w, tex_h, tex_w * tex_h * 4);
+  gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, tex_w, tex_h, 0, GL_RGBA, GL_UNSIGNED_BYTE, &tex_data[0]);
   glUniform1i (glGetUniformLocation(program, "tex_w"), tex_w);
   glUniform1i (glGetUniformLocation(program, "tex_h"), tex_h);
 
@@ -682,7 +650,7 @@ main (int argc, char** argv)
 	gl_FragColor = mix(vec4(0,1,0,1),
 			   gl_FragColor,
 			   smoothstep (.002, .005, min_point_dist));
-	gl_FragColor += vec4(0,0,1,1) * num_endpoints / 16;
+	//gl_FragColor += vec4(0,0,1,1) * num_endpoints / 16;
 	// gl_FragColor = vec4(1,1,1,1) * smoothstep (0, 2 * m, min_dist);
 	return;
     }
