@@ -234,16 +234,16 @@ closest_arcs_to_cell (Point<Coord> square_top_left,
 		      Scalar cell_width,
 		      Scalar cell_height,
 		      Scalar grid_size,
-		      vector<arc_t> arc_list,
+		      const vector<arc_t> &arc_list,
 		      vector<arc_t> &near_arcs)
 {
   // Find distance between cell center and cell's closest arc.
-  point_t center (square_top_left.x + cell_width / 2.,
-                  square_top_left.y + cell_height / 2.);
+  point_t center (square_top_left.x + .5 * cell_width,
+                  square_top_left.y + .5 * cell_height);
   double min_distance = INFINITY;
 
-  for (int k = 0; k < arc_list.size (); k++) {
-    arc_t arc = arc_list [k];
+  for (int i = 0; i < arc_list.size (); i++) {
+    arc_t arc = arc_list [i];
     double current_distance = fabs (arc.distance_to_point (center));
 
     if (current_distance < min_distance) {
@@ -258,8 +258,8 @@ closest_arcs_to_cell (Point<Coord> square_top_left,
 
   double faraway = double (grid_size) / MIN_FONT_SIZE;
   if (min_distance - half_diagonal <= faraway)
-    for (int k = 0; k < arc_list.size (); k++) {
-      arc_t current_arc = arc_list [k];
+    for (int i = 0; i < arc_list.size (); i++) {
+      arc_t current_arc = arc_list [i];
       if (fabs(current_arc.distance_to_point (center)) <= radius)
         near_arcs.push_back (current_arc);
     }
