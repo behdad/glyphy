@@ -611,8 +611,8 @@ main (int argc, char** argv)
 	float min_extended_dist = 1.;
 	bool is_inside = false;
 	
-	vec3 arc_prev = arc_decode (tex_1D (tex, offset));
-	for (i = 1; i <= num_endpoints - 1; i++)
+	vec3 arc_prev = arc_decode (vec4(0,0,0,0));
+	for (i = 0; i < num_endpoints; i++)
 	{
 	  vec3 arc = arc_decode (tex_1D (tex, i + offset));
 	  vec2 p0 = arc_prev.rg;
@@ -697,7 +697,7 @@ main (int argc, char** argv)
 			   smoothstep (.002, .005, min_point_dist));
 	// gl_FragColor += vec4(0,0,1,1) * num_endpoints / 16;
 	
-	gl_FragColor = is_inside ? vec4(0,0,0,0) : vec4(1,1,1,1) * smoothstep (0, 2 * m, min_dist);
+	//gl_FragColor = is_inside ? vec4(0,0,0,0) : vec4(1,1,1,1) * smoothstep (0, 2 * m, min_dist);
 	return;
     }
   );
