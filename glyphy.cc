@@ -387,14 +387,15 @@ arc_encodej (double x, double y, double d)
 
 
 
-static rgba_t 
-pair_to_rgba_t (unsigned int num1, unsigned int num2)
+static rgba_t
+pair_to_rgba (unsigned int num1, unsigned int num2)
 {
   rgba_t v;
-  v.r = (num1 & 0xff00) / 0x100;
-  v.g = num1 & 0xff;
-  v.b = (num2 & 0xff00) / 0x100;
-  v.a = num2 & 0xff;
+  v.r = UPPER_BITS (num1, 8, 16);
+  v.g = LOWER_BITS (num1, 8, 16);
+  v.b = UPPER_BITS (num2, 8, 16);
+  v.a = LOWER_BITS (num2, 8, 16);
+  printf("Pair %x,%x as %x, %x, %x, %x.\n", num1, num2, v.r, v.g, v.b, v.a);
   return v;
 }
 
@@ -539,7 +540,7 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   rgba_t tex_array [header_length + arc_data_vector.size () ];
 
   for (int i = 0; i < header_length; i++) {
-    tex_array [i] = pair_to_rgba_t (offset, num_endpoints [i]);
+    tex_array [i] = pair_to_rgba (offset, num_endpoints [i]);
 //    printf("(%d, %d) => (%d, %d, %d, %d) = (%d, %d).\n", offset, num_endpoints[i], tex_array[i].r, tex_array[i].g, tex_array[i].b, tex_array[i].a,
 //     tex_array[i].r * 256 + tex_array[i].g, tex_array[i].b * 256 + tex_array[i].a);
 
@@ -548,18 +549,11 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   for (int i = 0; i < arc_data_vector.size (); i++)
     tex_array [i + header_length] = arc_data_vector [i];
 
+  printf ("Texture size %dx%d\n", 1, header_length + arc_data_vector.size ());
   gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, 1, header_length + arc_data_vector.size (), 0, GL_RGBA, GL_UNSIGNED_BYTE, tex_array);
   glUniform1i (glGetUniformLocation(program, "upem"), upem);
   glUniform1i (glGetUniformLocation(program, "texture_size"), header_length + arc_data_vector.size ());
-  
-  rgba_t input (pair_to_rgba_t(7728, 12));
-  
-  printf("Got %d, %d as %d, %d, %d, %d.\n", 7728, 12, input.r, input.g, input.b, input.a);
-  glUniform1i (glGetUniformLocation(program, "inputr"), input.r);
-  glUniform1i (glGetUniformLocation(program, "inputg"), input.g);
-  glUniform1i (glGetUniformLocation(program, "inputb"), input.b);
-  glUniform1i (glGetUniformLocation(program, "inputa"), input.a);
-  
+
   return;
 
 }
@@ -649,10 +643,10 @@ main (int argc, char** argv)
 
   GLuint vshader, fshader, program, texture, a_pos_loc, a_tex_loc;
 
-  const GLfloat w_vertices[] = { -1, -1, 0,  0, 0,
-				 +1, -1, 0,  1, 0,
-				 +1, +1, 0,  1, 1,
-				 -1, +1, 0,  0, 1 };
+  const GLfloat w_vertices[] = { -1, -1, 0,  -0.1, -0.1,
+				 +1, -1, 0,  1.1, -0.1,
+				 +1, +1, 0,  1.1, 1.1,
+				 -1, +1, 0,  -0.1, 1.1 };
 
   gtk_init (&argc, &argv);
 
@@ -683,10 +677,6 @@ main (int argc, char** argv)
       uniform highp sampler2D tex;
       uniform int upem;
       uniform int num_points;
-      uniform int inputr;
-      uniform int inputg;
-      uniform int inputb;
-      uniform int inputa;
 
       uniform int texture_size;
 
@@ -718,78 +708,30 @@ main (int argc, char** argv)
 	return vec3 (x, y, d);
       }
 
-      vec2 rgba_t_to_pair (const vec4 v)
+      ivec2 rgba_to_pair (const vec4 v)
       {
-        float x = (int (256 * v.r) * 256 + int (256 * v.g));
-        float y = (int (256 * v.b) * 256 + int (256 * v.a));
-        return vec2 (x, y);
+        int x = int ((256-1e-5) * v.r) * 256 + int ((256-1e-5) * v.g);
+        int y = int ((256-1e-5) * v.b) * 256 + int ((256-1e-5) * v.a);
+        return ivec2 (x, y);
       }
 
-      /*void main1()
-      {
-	float m = float (fwidth (p)); // isotropic antialiasing 
-	int i;
-	float min_dist = 1;
-	float min_point_dist = 1;
-	vec3 arc_next = arc_decode (texture2D (tex, vec2(.5,.5 / float(num_points))));
-	
-	for (i = 0; i < num_points - 1; i++) {
-	  vec3 arc = arc_next;
-	  arc_next = arc_decode (texture2D (tex, vec2(.5, (1.5 + float(i)) / float(num_points))));
-	  float d = arc.b;
-	  if (d == -MAX_D) continue;
-	  if (abs (d) < 1e-5) d = 1e-5; // cheat 
-	  vec2 p0 = arc.rg;
-	  vec2 p1 = arc_next.rg;
-	  vec2 line = p1 - p0;
-	  vec2 perp = perpendicular (line);
-	  vec2 norm = normalize (perp);
-	  vec2 c = mix (p0, p1, .5) - perp * ((1 - d*d) / (4 * d));
-
-	  float dist;
-	  if (sign (d) * dot (p - c, perpendicular (p0 - c)) <= 0 &&
-	      sign (d) * dot (p - c, perpendicular (p1 - c)) >= 0)
-	  {
-	    dist = abs (distance (p, c) - distance (p0, c));
-	  } else {
-	    dist = min (distance (p, p0), distance (p, p1));
-	  }
-	  min_dist = min (min_dist, dist);
-
-	  float point_dist = min (distance (p, p0), distance (p, p1));
-	  min_point_dist = min (min_point_dist, point_dist);
-	}
-
-	gl_FragColor = mix(vec4(1,0,0,1),
-			   vec4(1,1,1,1) * ((1 + sin (min_dist / m)) / 2) * sin (pow (min_dist, .8) * 3.14159265358979),
-			   smoothstep (0, 2 * m, min_dist));
-	gl_FragColor = mix(vec4(0,1,0,1),
-			   gl_FragColor,
-			   smoothstep (.002, .005, min_point_dist));
-      } 
-      */
-      
       void main()
       {
 	float m = float (fwidth (p)); /* isotropic antialiasing */
 		
-	int p_cell_x = int (p.x * GRIDSIZE);
-	int p_cell_y = int (p.y * GRIDSIZE);
+	int p_cell_x = int (clamp (p.x, 0., 1.-1e-5) * GRIDSIZE);
+	int p_cell_y = int (clamp (p.y, 0., 1.-1e-5) * GRIDSIZE);
 
-	
-	vec2 arc_position_data = rgba_t_to_pair(texture2D (tex, vec2(0.5, float(.5 + (p_cell_y * GRIDSIZE + p_cell_x)) / float(texture_size))));
-	int offset = int(arc_position_data.x);
-	int num_endpoints =  int(arc_position_data.y);
-	
-	
+	ivec2 arc_position_data = rgba_to_pair(texture2D (tex, vec2(0.5, float(.5 + (p_cell_y * GRIDSIZE + p_cell_x)) / float(texture_size))));
+	int offset = arc_position_data.x;
+	int num_endpoints =  arc_position_data.y;
 	
 	int i;
 	float min_dist = 1.;
 	float min_point_dist = 1.;
 	vec3 arc_next = arc_decode (texture2D (tex, vec2(.5, (.5 + float(offset)) / float(texture_size))));
 	
-	
-	for (i = 0; i < min(num_endpoints - 1, 786) ; i++) {  
+	for (i = 0; i < num_endpoints - 1; i++) {
 	// I don't understand 
 	// How or why the min there helps. 
 	// Yet somehow it works.
