@@ -467,160 +467,160 @@ create_program (void)
 {
   GLuint vshader, fshader, program;
   vshader = COMPILE_SHADER (GL_VERTEX_SHADER,
-      attribute vec4 a_position;
-      attribute vec2 a_texCoord;
-      uniform mat4 u_matViewProjection;
-      invariant varying vec2 p;
-      void main()
-      {
-	gl_Position = u_matViewProjection * a_position;
-	p = a_texCoord;
-      }
+    attribute vec4 a_position;
+    attribute vec2 a_texCoord;
+    uniform mat4 u_matViewProjection;
+    invariant varying vec2 p;
+    void main()
+    {
+      gl_Position = u_matViewProjection * a_position;
+      p = a_texCoord;
+    }
   );
   fshader = COMPILE_SHADER (GL_FRAGMENT_SHADER,
-      uniform highp sampler2D tex;
-      uniform ivec2 tex_size;
+    uniform highp sampler2D tex;
+    uniform ivec2 tex_size;
 
-      invariant varying highp vec2 p;
+    invariant varying highp vec2 p;
 
-      vec2 perpendicular (const vec2 v) { return vec2 (-v.g, v.r); }
-      vec2 projection (const vec2 v, const vec2 base) { 
-        return length (base) < 1e-5 ? vec2 (0,0) :
-                  float (dot (v, base)) / float (dot (base, base)) * base;
-      } 
-      int mod (const int a, const int b) { return a - (a / b) * b; }
-      int div (const int a, const int b) { return a / b; }
+    vec2 perpendicular (const vec2 v) { return vec2 (-v.g, v.r); }
+    vec2 projection (const vec2 v, const vec2 base) {
+      return length (base) < 1e-5 ? vec2 (0,0) :
+		float (dot (v, base)) / float (dot (base, base)) * base;
+    }
+    int mod (const int a, const int b) { return a - (a / b) * b; }
+    int div (const int a, const int b) { return a / b; }
 
-      vec3 arc_decode (const vec4 v)
+    vec3 arc_decode (const vec4 v)
+    {
+      float x = (float (mod (int (v.ARC_ENCODE_OTHER_CHANNEL * (256-1e-5)) / (1 << (ARC_ENCODE_Y_BITS - 8 + ARC_ENCODE_D_BITS - 8)), (1 << (ARC_ENCODE_X_BITS - 8)))) +
+		 v.ARC_ENCODE_X_CHANNEL) / (1 << (ARC_ENCODE_X_BITS - 8));
+      float y = (float (mod (int (v.ARC_ENCODE_OTHER_CHANNEL * (256-1e-5)) / (1 << (ARC_ENCODE_D_BITS - 8)), (1 << (ARC_ENCODE_Y_BITS - 8)))) +
+		 v.ARC_ENCODE_Y_CHANNEL) / (1 << (ARC_ENCODE_Y_BITS - 8));
+      float d = v.ARC_ENCODE_D_CHANNEL + float (mod (int (v.ARC_ENCODE_OTHER_CHANNEL * (256-1e-5)), (1 << (ARC_ENCODE_D_BITS - 8)))) / (1 << 8);
+      d = MAX_D * (2 * d - 1);
+      return vec3 (x, y, d);
+    }
+
+    ivec2 rgba_to_pair (const vec4 v)
+    {
+      int x = int ((256-1e-5) * v.r) * 256 + int ((256-1e-5) * v.g);
+      int y = int ((256-1e-5) * v.b) * 256 + int ((256-1e-5) * v.a);
+      return ivec2 (x, y);
+    }
+
+    vec4 tex_1D (const sampler2D tex, int i)
+    {
+      return texture2D (tex, vec2 ((mod (i, tex_size.x) + .5) / float (tex_size.x),
+				   (div (i, tex_size.x) + .5) / float (tex_size.y)));
+    }
+
+    void main()
+    {
+      float m = length (vec2 (float (dFdy (p)), float (dFdx (p)))); /* isotropic antialiasing */
+
+      int p_cell_x = int (clamp (p.x, 0., 1.-1e-5) * GRID_X);
+      int p_cell_y = int (clamp (p.y, 0., 1.-1e-5) * GRID_Y);
+
+      ivec2 arc_position_data = rgba_to_pair(tex_1D (tex, p_cell_y * GRID_X + p_cell_x));
+      int offset = arc_position_data.x;
+      int num_endpoints =  arc_position_data.y;
+
+      int i;
+      float min_dist = 1.;
+      float min_point_dist = 1.;
+      float min_extended_dist = 1.;
+      bool is_inside = false;
+
+      vec3 arc_prev = vec3 (0,0, 0);
+      for (i = 0; i < num_endpoints; i++)
       {
-	float x = (float (mod (int (v.ARC_ENCODE_OTHER_CHANNEL * (256-1e-5)) / (1 << (ARC_ENCODE_Y_BITS - 8 + ARC_ENCODE_D_BITS - 8)), (1 << (ARC_ENCODE_X_BITS - 8)))) +
-		   v.ARC_ENCODE_X_CHANNEL) / (1 << (ARC_ENCODE_X_BITS - 8));
-	float y = (float (mod (int (v.ARC_ENCODE_OTHER_CHANNEL * (256-1e-5)) / (1 << (ARC_ENCODE_D_BITS - 8)), (1 << (ARC_ENCODE_Y_BITS - 8)))) +
-		   v.ARC_ENCODE_Y_CHANNEL) / (1 << (ARC_ENCODE_Y_BITS - 8));
-	float d = v.ARC_ENCODE_D_CHANNEL + float (mod (int (v.ARC_ENCODE_OTHER_CHANNEL * (256-1e-5)), (1 << (ARC_ENCODE_D_BITS - 8)))) / (1 << 8);
-	d = MAX_D * (2 * d - 1);
-	return vec3 (x, y, d);
-      }
+	vec3 arc = arc_decode (tex_1D (tex, i + offset));
+	vec2 p0 = arc_prev.rg;
+	arc_prev = arc;
+	float d = arc.b;
+	if (d == -MAX_D) continue;
+	if (abs (d) < 1e-5) d = 1e-5; // cheat
+	vec2 p1 = arc.rg;
+	vec2 line = p1 - p0;
+	vec2 perp = perpendicular (line);
+	vec2 norm = normalize (perp);
+	vec2 c = mix (p0, p1, .5) - perp * ((1 - d*d) / (4 * d));
 
-      ivec2 rgba_to_pair (const vec4 v)
-      {
-        int x = int ((256-1e-5) * v.r) * 256 + int ((256-1e-5) * v.g);
-        int y = int ((256-1e-5) * v.b) * 256 + int ((256-1e-5) * v.a);
-        return ivec2 (x, y);
-      }
-
-      vec4 tex_1D (const sampler2D tex, int i)
-      {
-	return texture2D (tex, vec2 ((mod (i, tex_size.x) + .5) / float (tex_size.x),
-				     (div (i, tex_size.x) + .5) / float (tex_size.y)));
-      }
-
-      void main()
-      {
-	float m = length (vec2 (float (dFdy (p)), float (dFdx (p)))); /* isotropic antialiasing */
-		
-	int p_cell_x = int (clamp (p.x, 0., 1.-1e-5) * GRID_X);
-	int p_cell_y = int (clamp (p.y, 0., 1.-1e-5) * GRID_Y);
-
-	ivec2 arc_position_data = rgba_to_pair(tex_1D (tex, p_cell_y * GRID_X + p_cell_x));
-	int offset = arc_position_data.x;
-	int num_endpoints =  arc_position_data.y;
-
-	int i;
-	float min_dist = 1.;
-	float min_point_dist = 1.;
-	float min_extended_dist = 1.;
-	bool is_inside = false;
-	
-	vec3 arc_prev = vec3 (0,0, 0);
-	for (i = 0; i < num_endpoints; i++)
+	// Find the distance from p to the nearby arcs.
+	float dist;
+	if (sign (d) * dot (p - c, perpendicular (p0 - c)) <= 0 &&
+	    sign (d) * dot (p - c, perpendicular (p1 - c)) >= 0)
 	{
-	  vec3 arc = arc_decode (tex_1D (tex, i + offset));
-	  vec2 p0 = arc_prev.rg;
-	  arc_prev = arc;
-	  float d = arc.b;
-	  if (d == -MAX_D) continue;
-	  if (abs (d) < 1e-5) d = 1e-5; // cheat
-	  vec2 p1 = arc.rg;
-	  vec2 line = p1 - p0;
-	  vec2 perp = perpendicular (line);
-	  vec2 norm = normalize (perp);
-	  vec2 c = mix (p0, p1, .5) - perp * ((1 - d*d) / (4 * d));
+	  dist = abs (distance (p, c) - distance (p0, c));
+	} else {
+	  dist = min (distance (p, p0), distance (p, p1));
+	}
 
-	  // Find the distance from p to the nearby arcs.
-	  float dist;
+	// If this new distance is roughly the same as the current minimum, compare extended distances.
+	// Take the sign from the arc with larger extended distance.
+	if (abs(dist - min_dist) < 1e-6) {
+	  float extended_dist;
+
 	  if (sign (d) * dot (p - c, perpendicular (p0 - c)) <= 0 &&
-	      sign (d) * dot (p - c, perpendicular (p1 - c)) >= 0)
-	  {
-	    dist = abs (distance (p, c) - distance (p0, c));
-	  } else {
-	    dist = min (distance (p, p0), distance (p, p1));
+	      sign (d) * dot (p - c, perpendicular (p1 - c)) >= 0) {
+	    extended_dist = dist;
 	  }
-	  
-	  // If this new distance is roughly the same as the current minimum, compare extended distances.
-	  // Take the sign from the arc with larger extended distance.
-	  if (abs(dist - min_dist) < 1e-6) {
-	    float extended_dist;
-	    
-	    if (sign (d) * dot (p - c, perpendicular (p0 - c)) <= 0 &&
-	        sign (d) * dot (p - c, perpendicular (p1 - c)) >= 0) {
-	      extended_dist = dist;
-	    } 
-	    else if (sign (d) * dot (p - c, perpendicular (p0 - c)) > 0) {
-	      extended_dist = length (projection (p - p0, p0 - c)); 
-	    }
-	    else if (sign (d) * dot (p - c, perpendicular (p1 - c)) < 0) {
-	      extended_dist = length (projection (p - p1, p1 - c));
-	    }
-	    
-	    if (extended_dist > min_extended_dist) {
-	      min_extended_dist = extended_dist;
-	      if ((sign (d) > 0 && distance (p, c) <= distance (p0, c)) ||
-	          (sign (d) < 0 && distance (p, c) >= distance (p0, c)))
-	        is_inside = true;
-	      else
-	        is_inside = false;
-	    }
+	  else if (sign (d) * dot (p - c, perpendicular (p0 - c)) > 0) {
+	    extended_dist = length (projection (p - p0, p0 - c));
 	  }
-	  
-	  else if (dist < min_dist) {
-	    min_dist = dist;
-	    
-	    // Get the new minimum extended distance.
-	    if (sign (d) * dot (p - c, perpendicular (p0 - c)) <= 0 &&
-	        sign (d) * dot (p - c, perpendicular (p1 - c)) >= 0) {
-	      min_extended_dist = dist;
-	    } 
-	    else if (sign (d) * dot (p - c, perpendicular (p0 - c)) > 0) {
-	      min_extended_dist = length (projection (p - p0, p0 - c)); 
-	    }
-	    else if (sign (d) * dot (p - c, perpendicular (p1 - c)) < 0) {
-	      min_extended_dist = length (projection (p - p1, p1 - c));
-	    }
-	    
-	    if ((distance (p, c) <= distance (p0, c) && sign (d) > 0) ||
-	        (distance (p, c) >= distance (p0, c) && sign (d) < 0))
+	  else if (sign (d) * dot (p - c, perpendicular (p1 - c)) < 0) {
+	    extended_dist = length (projection (p - p1, p1 - c));
+	  }
+
+	  if (extended_dist > min_extended_dist) {
+	    min_extended_dist = extended_dist;
+	    if ((sign (d) > 0 && distance (p, c) <= distance (p0, c)) ||
+		(sign (d) < 0 && distance (p, c) >= distance (p0, c)))
 	      is_inside = true;
 	    else
 	      is_inside = false;
 	  }
-	  
+	}
 
-	  float point_dist = min (distance (p, p0), distance (p, p1));
-	  min_point_dist = min (min_point_dist, point_dist);
+	else if (dist < min_dist) {
+	  min_dist = dist;
+
+	  // Get the new minimum extended distance.
+	  if (sign (d) * dot (p - c, perpendicular (p0 - c)) <= 0 &&
+	      sign (d) * dot (p - c, perpendicular (p1 - c)) >= 0) {
+	    min_extended_dist = dist;
+	  }
+	  else if (sign (d) * dot (p - c, perpendicular (p0 - c)) > 0) {
+	    min_extended_dist = length (projection (p - p0, p0 - c));
+	  }
+	  else if (sign (d) * dot (p - c, perpendicular (p1 - c)) < 0) {
+	    min_extended_dist = length (projection (p - p1, p1 - c));
+	  }
+
+	  if ((distance (p, c) <= distance (p0, c) && sign (d) > 0) ||
+	      (distance (p, c) >= distance (p0, c) && sign (d) < 0))
+	    is_inside = true;
+	  else
+	    is_inside = false;
 	}
 	
-	 gl_FragColor = mix(vec4(1,0,0,1),
-			   vec4(0,1,0,1) * ((1 + sin (min_dist / m))) * sin (pow (min_dist, .8) * M_PI),
-			   smoothstep (0, 2 * m, min_dist));
-	 gl_FragColor = mix(vec4(0,1,0,1),
-			   gl_FragColor,
-			   smoothstep (.002, .005, min_point_dist));
-	gl_FragColor += vec4(0,0,1,1) * num_endpoints / 16;
-	gl_FragColor += vec4(.5,0,0,1) * smoothstep (-m, m, is_inside ? min_dist : -min_dist);
-	
-	//gl_FragColor = vec4(1,1,1,1) * smoothstep (-m, m, is_inside ? -min_dist : min_dist);
-	return;
+
+	float point_dist = min (distance (p, p0), distance (p, p1));
+	min_point_dist = min (min_point_dist, point_dist);
+      }
+
+      gl_FragColor = mix(vec4(1,0,0,1),
+			 vec4(0,1,0,1) * ((1 + sin (min_dist / m))) * sin (pow (min_dist, .8) * M_PI),
+			 smoothstep (0, 2 * m, min_dist));
+      gl_FragColor = mix(vec4(0,1,0,1),
+			 gl_FragColor,
+			 smoothstep (.002, .005, min_point_dist));
+      gl_FragColor += vec4(0,0,1,1) * num_endpoints / 16;
+      gl_FragColor += vec4(.5,0,0,1) * smoothstep (-m, m, is_inside ? min_dist : -min_dist);
+
+      //gl_FragColor = vec4(1,1,1,1) * smoothstep (-m, m, is_inside ? -min_dist : min_dist);
+      return;
     }
   );
   program = link_program (vshader, fshader);
