@@ -385,6 +385,7 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   printf ("Num arcs %d; Approximation error %g; Tolerance %g; Percentage %g. %s\n",
 	  (int) acc.arcs.size (), e, tolerance, round (100 * e / tolerance), e <= tolerance ? "PASS" : "FAIL");
 
+  /* TODO: replace this with analytical extents of the arcs. */
   int grid_min_x, grid_max_x, grid_min_y, grid_max_y, glyph_width, glyph_height;
   grid_min_x = face->glyph->metrics.horiBearingX;
   grid_min_y = face->glyph->metrics.horiBearingY - face->glyph->metrics.height;
@@ -393,14 +394,10 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
 
   glyph_width = grid_max_x - grid_min_x;
   glyph_height = grid_max_y - grid_min_y;
-  printf ("Glyph dimensions: [%d, %d] x [%d, %d]. Width = %d, height = %d.\n",
-          grid_min_x, grid_max_x, grid_min_y, grid_max_y, glyph_width, glyph_height);
-
 
 #define GRIDSIZE 32
   double box_width = glyph_width / GRIDSIZE;
   double box_height = glyph_height / GRIDSIZE;
-
 
   // Make a 2d grid for arc/cell information.
   /**************************************************************************************************************************************************/
