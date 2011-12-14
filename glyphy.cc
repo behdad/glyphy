@@ -537,7 +537,7 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
 
   int header_length = num_endpoints.size ();
   int offset = header_length;
-  rgba_t tex_array [header_length + arc_data_vector.size () ];
+  rgba_t tex_array [header_length + arc_data_vector.size () + 1000/*padding*/];
 
   for (int i = 0; i < header_length; i++) {
     tex_array [i] = pair_to_rgba (offset, num_endpoints [i]);
@@ -549,10 +549,13 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   for (int i = 0; i < arc_data_vector.size (); i++)
     tex_array [i + header_length] = arc_data_vector [i];
 
-  printf ("Texture size %dx%d\n", 1, header_length + arc_data_vector.size ());
-  gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, 1, header_length + arc_data_vector.size (), 0, GL_RGBA, GL_UNSIGNED_BYTE, tex_array);
-  glUniform1i (glGetUniformLocation(program, "upem"), upem);
-  glUniform1i (glGetUniformLocation(program, "texture_size"), header_length + arc_data_vector.size ());
+  unsigned int tex_len = header_length + arc_data_vector.size ();
+  unsigned int tex_w = 16;
+  unsigned int tex_h = (tex_len + tex_w - 1) / tex_w;
+  printf ("Texture size %dx%d\n", tex_w, tex_h);
+  gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, tex_w, tex_h, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex_array);
+  glUniform1i (glGetUniformLocation(program, "tex_w"), tex_w);
+  glUniform1i (glGetUniformLocation(program, "tex_h"), tex_h);
 
   return;
 
@@ -675,15 +678,14 @@ main (int argc, char** argv)
   );
   fshader = COMPILE_SHADER (GL_FRAGMENT_SHADER,
       uniform highp sampler2D tex;
-      uniform int upem;
-      uniform int num_points;
-
-      uniform int texture_size;
+      uniform int tex_w;
+      uniform int tex_h;
 
       invariant varying highp vec2 p;
 
       vec2 perpendicular (const vec2 v) { return vec2 (-v.g, v.r); }
       int mod (const int a, const int b) { return a - (a / b) * b; }
+      int div (const int a, const int b) { return a / b; }
 
       vec3 arc_decode (const vec4 v)
       {
@@ -717,7 +719,8 @@ main (int argc, char** argv)
 
       vec4 tex_1D (const sampler2D tex, int i)
       {
-	return texture2D (tex, vec2 (0.5, (i + .5) / float (texture_size)));
+	return texture2D (tex, vec2 ((mod (i, tex_w) + .5) / float (tex_w),
+				     (div (i, tex_w) + .5) / float (tex_h)));
       }
 
       void main()
