@@ -479,7 +479,7 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
     tex_array [i + header_length] = arc_data_vector[i];
 
   unsigned int tex_len = header_length + arc_data_vector.size ();
-  unsigned int tex_w = 64;
+  unsigned int tex_w = 128;
   unsigned int tex_h = (tex_len + tex_w - 1) / tex_w;
   printf ("Texture size %dx%d\n", tex_w, tex_h);
   gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, tex_w, tex_h, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex_array);
@@ -542,7 +542,7 @@ step (gpointer data)
 static gboolean
 print_fps (gpointer data)
 {
-  printf ("%d frames per second\n", (num_frames + 2) / 5);
+  printf ("%gfps\n", num_frames / 5.);
   num_frames = 0;
   return TRUE;
 }
