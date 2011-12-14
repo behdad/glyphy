@@ -53,13 +53,13 @@ struct grid_cell {
   bool inside_glyph;
 };
 
-#define TEXSIZE 32  /*************************************************************************** 32? 64? Higher? Lower? Non-constant? **************/
-struct arcs_texture  /********************************************************************************* Struct or Class? **************************/
-{  
-    std::vector<point_t> arc_endpoints;
-    std::vector<double>  d_values;    
-    grid_cell grid [TEXSIZE][TEXSIZE];  /********************************************************** 32 by 32? 64 by 64? ***************************/
-};
+//#define TEXSIZE 32  /*************************************************************************** 32? 64? Higher? Lower? Non-constant? **************/
+//struct arcs_texture  /********************************************************************************* Struct or Class? **************************/
+//{  
+//    std::vector<point_t> arc_endpoints;
+//    std::vector<double>  d_values;    
+//    grid_cell grid [TEXSIZE][TEXSIZE];  /********************************************************** 32 by 32? 64 by 64? ***************************/
+//};
 
 
 static void
@@ -220,64 +220,8 @@ drawable_swap_buffers (GdkDrawable *drawable)
   glFinish ();
 }
 
-/** Given a point, finds the shortest distance to the arc that is closest to that point. 
-  * Sign of the distance depends on whether point is "inside" or "outside" the glyph.
-  * (Negative distance corresponds to being inside the glyph.)
-  */
-static double
-distance_to_an_arc (point_t p, arcs_texture tex, int x, int y)
-{
-#if 0
-  printf(      "(%d, %d). Grid says %s glyph.\tArc List: [", x, y, tex.grid[x][y].inside_glyph ? "inside" : "outside");
-  for (int i = 0; i < NUM_SAVED_ARCS; i++)
-    printf("%d, ", tex.grid[x][y].arcs[i]);
-  printf(        "]. \n\t\t  We saw: [");
-#endif
 
-  arc_t nearest_arc (tex.arc_endpoints.at (0),
-                         tex.arc_endpoints.at (1),
-                         tex.d_values.at (0));
-                         
-  // By default, the min distance is infinite. Sign depends on direction of closest arc.                       
-  double min_distance = (tex.grid[x][y].inside_glyph ? 1 : -1) * INFINITY; 
-  int arc_index = tex.grid[x][y].arcs[0];
-//  printf("%d, ", arc_index);
-
-  for (int k = 1; k < NUM_SAVED_ARCS && arc_index < 65535; k++)  {  /******************************* WANT: arc_index != -1. For unsigned char, this works. *****/
-    if (tex.d_values.at (arc_index) < INFINITY) {         
-      arc_t current_arc (tex.arc_endpoints.at (arc_index),
-                         tex.arc_endpoints.at (arc_index + 1),
-                         tex.d_values.at (arc_index));
-                         
-      double current_distance = current_arc.distance_to_point (p);    
-
-    // If two arcs are equally close to this point, take the sign from the one whose extension is farther away. 
-    // (Extend arcs using tangent lines from endpoints; this is done using the SignedVector operation "-".) 
-     if (fabs (fabs (current_distance) - fabs(min_distance)) < 1e-6) { 
-        SignedVector<Coord> to_arc_min = nearest_arc - p;
-        SignedVector<Coord> to_arc_current = current_arc - p;      
-        if (to_arc_min.len () < to_arc_current.len ()) {
-          min_distance = fabs (min_distance) * (to_arc_current.negative ? -1 : 1);
-        }
-      }
-      else if (fabs (current_distance) < fabs(min_distance)) {
-        min_distance = current_distance;
-        nearest_arc = current_arc;
-      }
-    }
-    arc_index = tex.grid[x][y].arcs[k];
-//    printf("%d, ", arc_index);
-  }
-//    printf("].\n");
-#if 0
-  if (arc_index >= 65535)
-    printf("arc_index is %d < 0... At this cell we are %s.\n\n", arc_index,  min_distance < 0 ? "outside" : "inside");
-#endif
-  return min_distance;
-}
-
-
-
+ 
 /** Given a cell, fills the vector closest_arcs with arcs that may be closest to some point in the cell.
   * Uses idea that all close arcs to cell must be ~close to center of cell. 
   */
@@ -364,17 +308,19 @@ G_STATIC_ASSERT (8 <= ARC_ENCODE_X_BITS && ARC_ENCODE_X_BITS < 16);
 G_STATIC_ASSERT (8 <= ARC_ENCODE_Y_BITS && ARC_ENCODE_Y_BITS < 16);
 G_STATIC_ASSERT (8 <= ARC_ENCODE_D_BITS && ARC_ENCODE_D_BITS <= 16);
 G_STATIC_ASSERT (ARC_ENCODE_X_BITS + ARC_ENCODE_Y_BITS + ARC_ENCODE_D_BITS <= 32);
+
 static const rgba_t
 arc_encode (double x, double y, double d)
 {
   rgba_t v;
 
+  // lets do 10 bits for d, and 11 for x and y each 
   unsigned int ix, iy, id;
   ix = lround (x * ((1 << ARC_ENCODE_X_BITS) - 1));
   g_assert (ix < (1 << ARC_ENCODE_X_BITS));
   iy = lround (y * ((1 << ARC_ENCODE_Y_BITS) - 1));
   g_assert (iy < (1 << ARC_ENCODE_Y_BITS));
-#define MAX_D .25 /* TODO */
+#define MAX_D .54 // TODO (0.25?)
   if (isinf (d))
     id = 0;
   else {
@@ -382,6 +328,13 @@ arc_encode (double x, double y, double d)
     id = lround (d * ((1 << (ARC_ENCODE_D_BITS - 1)) - 1) / MAX_D + (1 << (ARC_ENCODE_D_BITS - 1)));
   }
   g_assert (id < (1 << ARC_ENCODE_D_BITS));
+/*
+  v.r = ix & 0xff;
+  v.g = iy & 0xff;
+  v.b = id >> (ARC_ENCODE_D_BITS - 8);
+  v.a = ((ix >> 8) << (ARC_ENCODE_Y_BITS - 8 + ARC_ENCODE_D_BITS - 8))
+      | ((iy >> 8) << (ARC_ENCODE_D_BITS - 8))
+      | (id & ((1 << (ARC_ENCODE_D_BITS - 8)) - 1)); */
   v.ARC_ENCODE_X_CHANNEL = LOWER_BITS (ix, 8, ARC_ENCODE_X_BITS);
   v.ARC_ENCODE_Y_CHANNEL = LOWER_BITS (iy, 8, ARC_ENCODE_Y_BITS);
   v.ARC_ENCODE_D_CHANNEL = UPPER_BITS (id, 8, ARC_ENCODE_D_BITS);
@@ -392,14 +345,56 @@ arc_encode (double x, double y, double d)
 }
 
 
-static rgba_t 
-pair_to_rgba_t (int num1, int num2)
+/*
+
+static const rgba_t
+arc_encodej (double x, double y, double d)
 {
   rgba_t v;
-  v.r = (num1 & 0xff00) / 256;
-  v.g = num1 & 0x00ff;
-  v.b = (num2 & 0xff00) / 256;
-  v.a = num2 & 0x00ff;
+
+  // lets do 10 bits for d, and 11 for x and y each 
+  unsigned int ix, iy, id;
+  ix = lround (x * (1 << (ARC_ENCODE_X_BITS - 1)));
+  g_assert (ix < (1 << ARC_ENCODE_X_BITS));
+  iy = lround (y * (1 << (ARC_ENCODE_Y_BITS - 1)));
+  g_assert (iy < (1 << ARC_ENCODE_Y_BITS));
+#define MAX_D .54 // TODO
+  if (isinf (d))
+    id = 0;
+  else {
+    g_assert (fabs (d) < MAX_D);
+    d = (d / (2 * MAX_D)) + 0.5; // in [0, 1]
+    g_assert (0 <= d && d <= 1);
+    id = lround (d * (1 << (ARC_ENCODE_D_BITS - 1)));
+  }
+  g_assert (id < (1 << ARC_ENCODE_D_BITS));
+  v.r = ix & 0xff;
+  v.g = iy & 0xff;
+  v.b = id & 0xff;
+  v.a = ((ix >> 8) << (ARC_ENCODE_Y_BITS - 8 + ARC_ENCODE_D_BITS - 8))
+      | ((iy >> 8) << (ARC_ENCODE_D_BITS - 8))
+      | (id >> 8);
+=======
+  v.ARC_ENCODE_X_CHANNEL = LOWER_BITS (ix, 8, ARC_ENCODE_X_BITS);
+  v.ARC_ENCODE_Y_CHANNEL = LOWER_BITS (iy, 8, ARC_ENCODE_Y_BITS);
+  v.ARC_ENCODE_D_CHANNEL = UPPER_BITS (id, 8, ARC_ENCODE_D_BITS);
+  v.ARC_ENCODE_OTHER_CHANNEL = ((ix >> 8) << (ARC_ENCODE_Y_BITS - 8 + ARC_ENCODE_D_BITS - 8))
+			     | ((iy >> 8) << (ARC_ENCODE_D_BITS - 8))
+			     | (id & ((1 << (ARC_ENCODE_D_BITS - 8)) - 1));
+>>>>>>> d060cdad84179ca87ac3570c9c6d5c0f48c6fd5e
+  return v;
+}*/
+
+
+
+static rgba_t 
+pair_to_rgba_t (unsigned int num1, unsigned int num2)
+{
+  rgba_t v;
+  v.r = (num1 & 0xff00) / 0x100;
+  v.g = num1 & 0xff;
+  v.b = (num2 & 0xff00) / 0x100;
+  v.a = num2 & 0xff;
   return v;
 }
 
@@ -411,22 +406,12 @@ pair_to_rgba_t (int num1, int num2)
 static void
 setup_texture (const char *font_path, const char UTF8, GLint program)
 {
-
-  int width = 0, height = 0;
-  cairo_surface_t *image = NULL, *dest;
-  unsigned char *data;  
   FT_Face face;
   FT_Library library;
   FT_Init_FreeType (&library);   
   FT_New_Face ( library, font_path, 0, &face );
   unsigned int upem = face->units_per_EM;
-  double tolerance = upem * 2e-4; // in font design units
-
-  width = TEXSIZE;
-  height = TEXSIZE; 
-  width = (width+3)&~3;;
-  FT_Set_Char_Size (face, TEXSIZE, TEXSIZE, 0, 0);
-  printf("Width: %d. Height: %d.\n", width, height);
+  double tolerance = upem * 1e-5; // in font design units
 
 
   // Arc approximation code.
@@ -447,13 +432,8 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
     }
     std::vector<arc_t> arcs;
   } acc;
-  
-  arcs_texture tex;
 
-  acc.arcs.clear ();
-  tex.arc_endpoints.clear ();
-  tex.d_values.clear ();
-  
+
   // The actual arc decomposition is done here.
   if (FT_Load_Glyph (face,
 		     FT_Get_Char_Index (face, (FT_ULong) UTF8),
@@ -482,14 +462,18 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
 
   glyph_width = grid_max_x - grid_min_x;
   glyph_height = grid_max_y - grid_min_y;
-  printf ("Glyph dimensions: width = %d, height = %d.\n", glyph_width, glyph_height);
+  printf ("Glyph dimensions: [%d, %d] x [%d, %d]. Width = %d, height = %d.\n",
+          grid_min_x, grid_max_x, grid_min_y, grid_max_y, glyph_width, glyph_height);
   
-  
-  
-  
-#define GRIDSIZE 32  
+    
+#define GRIDSIZE 32
   double box_width = glyph_width / GRIDSIZE;
   double box_height = glyph_height / GRIDSIZE;
+
+
+
+  for (int i = 0; i < acc.arcs.size(); i++)
+    printf("Arc: (%g, %g) to (%g, %g), d = %g.\n", acc.arcs[i].p0.x, acc.arcs[i].p0.y,  acc.arcs[i].p1.x, acc.arcs[i].p1.y, acc.arcs[i].d);
 
 
     // Make a 2d grid for arc/cell information.
@@ -523,7 +507,7 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
                               box_width, box_height, min_dimension, acc.arcs, near_arcs);
 
       int arc_counter;
-      for (arc_counter = 0; arc_counter + 1 < near_arcs.size () ; arc_counter++) {
+      for (arc_counter = 0; arc_counter + 1 < near_arcs.size (); arc_counter++) {
         arc_t current_arc = near_arcs [arc_counter];
         endpoints.push_back (current_arc.p0);
         d_values.push_back (current_arc.d);
@@ -558,6 +542,7 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
     tex_array [i] = pair_to_rgba_t (offset, num_endpoints [i]);
 //    printf("(%d, %d) => (%d, %d, %d, %d) = (%d, %d).\n", offset, num_endpoints[i], tex_array[i].r, tex_array[i].g, tex_array[i].b, tex_array[i].a,
 //     tex_array[i].r * 256 + tex_array[i].g, tex_array[i].b * 256 + tex_array[i].a);
+
     offset += num_endpoints [i];
   }
   for (int i = 0; i < arc_data_vector.size (); i++)
@@ -566,38 +551,15 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, 1, header_length + arc_data_vector.size (), 0, GL_RGBA, GL_UNSIGNED_BYTE, tex_array);
   glUniform1i (glGetUniformLocation(program, "upem"), upem);
   glUniform1i (glGetUniformLocation(program, "texture_size"), header_length + arc_data_vector.size ());
-
-
-  // Populate lists for storing arc data.
-  /**************************************************************************************************************************************************/
-  int arc_count;
-  for (arc_count = 0; arc_count < acc.arcs.size () - 1; arc_count++) {
-    arc_t current_arc = acc.arcs.at (arc_count);
-    tex.arc_endpoints.push_back (current_arc.p0);
-    tex.d_values.push_back (current_arc.d);
-    // Close the current loop in the outline.
-    if (current_arc.p1 != acc.arcs.at (arc_count+1).p0) {
-      tex.arc_endpoints.push_back (current_arc.p1);
-      tex.d_values.push_back (INFINITY);
-    }
-  }
-  // The last arc needs to be done specially.
-  tex.arc_endpoints.push_back (acc.arcs.at (arc_count).p0);
-  tex.arc_endpoints.push_back (acc.arcs.at (arc_count).p1);
-  tex.d_values.push_back (acc.arcs.at (arc_count).d);
-  tex.d_values.push_back (INFINITY);
-
-  rgba_t arc_data[tex.arc_endpoints.size ()];
-  for (int i = 0; i < tex.arc_endpoints.size (); i++)
-    arc_data[i] = arc_encode ((tex.arc_endpoints[i].x - grid_min_x) / glyph_width,
-			      (tex.arc_endpoints[i].y - grid_min_y) / glyph_height,
-			      tex.d_values[i]);
-  //gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, 1, tex.arc_endpoints.size(), 0, GL_RGBA, GL_UNSIGNED_BYTE, arc_data);
-
-  glUniform1i (glGetUniformLocation(program, "upem"), upem);
-  glUniform1i (glGetUniformLocation(program, "num_points"), tex.arc_endpoints.size ());
-
-
+  
+  rgba_t input (pair_to_rgba_t(7728, 12));
+  
+  printf("Got %d, %d as %d, %d, %d, %d.\n", 7728, 12, input.r, input.g, input.b, input.a);
+  glUniform1i (glGetUniformLocation(program, "inputr"), input.r);
+  glUniform1i (glGetUniformLocation(program, "inputg"), input.g);
+  glUniform1i (glGetUniformLocation(program, "inputb"), input.b);
+  glUniform1i (glGetUniformLocation(program, "inputa"), input.a);
+  
   return;
 
 }
@@ -663,6 +625,13 @@ print_fps (gpointer data)
 int
 main (int argc, char** argv)
 {
+
+ // arc_decode( arc_encode(0.875, 0.466, 0.111154));
+  
+
+
+
+
   GtkWidget *window;
   char *font_path;
   char utf8;
@@ -714,6 +683,10 @@ main (int argc, char** argv)
       uniform highp sampler2D tex;
       uniform int upem;
       uniform int num_points;
+      uniform int inputr;
+      uniform int inputg;
+      uniform int inputb;
+      uniform int inputa;
 
       uniform int texture_size;
 
@@ -735,21 +708,31 @@ main (int argc, char** argv)
 	d = MAX_D * (2 * d - 1);
 	return vec3 (x, y, d);
       }
+      
+      vec3 arc_decodek (const vec4 v)
+      {
+	float x = (float ((mod (int (v.a * 256) / (1 << (ARC_ENCODE_D_BITS - 8 + ARC_ENCODE_Y_BITS - 8)), (1 << (ARC_ENCODE_X_BITS - 8)))) * (1<< 8)) + v.r) / (1 << (ARC_ENCODE_X_BITS - 1));
+	float y = (float ((mod (int (v.a * 256) / (1 << (ARC_ENCODE_D_BITS - 8)), (1 << (ARC_ENCODE_Y_BITS - 8)))) * (1<< 8)) + v.g) / (1 << (ARC_ENCODE_Y_BITS - 1));
+	float d = (float ((mod (int (v.a * 256), (1 << (ARC_ENCODE_D_BITS - 8)))) * (1<< 8)) + v.b) / (1 << (ARC_ENCODE_D_BITS - 1));
+	d = MAX_D * (2 * d - 1);
+	return vec3 (x, y, d);
+      }
 
       vec2 rgba_t_to_pair (const vec4 v)
       {
-        float x = (v.r * 256 + v.g);
-        float y = (v.b * 256 + v.a);
+        float x = (int (256 * v.r) * 256 + int (256 * v.g));
+        float y = (int (256 * v.b) * 256 + int (256 * v.a));
         return vec2 (x, y);
       }
 
- /*     void main()
+      /*void main1()
       {
 	float m = float (fwidth (p)); // isotropic antialiasing 
 	int i;
 	float min_dist = 1;
 	float min_point_dist = 1;
 	vec3 arc_next = arc_decode (texture2D (tex, vec2(.5,.5 / float(num_points))));
+	
 	for (i = 0; i < num_points - 1; i++) {
 	  vec3 arc = arc_next;
 	  arc_next = arc_decode (texture2D (tex, vec2(.5, (1.5 + float(i)) / float(num_points))));
@@ -783,8 +766,8 @@ main (int argc, char** argv)
 	gl_FragColor = mix(vec4(0,1,0,1),
 			   gl_FragColor,
 			   smoothstep (.002, .005, min_point_dist));
-      } */
-      
+      } 
+      */
       
       void main()
       {
@@ -792,15 +775,13 @@ main (int argc, char** argv)
 		
 	int p_cell_x = int (p.x * GRIDSIZE);
 	int p_cell_y = int (p.y * GRIDSIZE);
-	
 
 	
 	vec2 arc_position_data = rgba_t_to_pair(texture2D (tex, vec2(0.5, float(.5 + (p_cell_y * GRIDSIZE + p_cell_x)) / float(texture_size))));
-	int offset = int (256 * arc_position_data.x);
-	int num_endpoints = int (256 * arc_position_data.y) ;
+	int offset = int(arc_position_data.x);
+	int num_endpoints =  int(arc_position_data.y);
 	
-	gl_FragColor = (num_endpoints >= 13 ? vec4 (1,0,1,1) : vec4(0,0,0,0));
-	//return;
+	
 	
 	int i;
 	float min_dist = 1.;
@@ -808,12 +789,16 @@ main (int argc, char** argv)
 	vec3 arc_next = arc_decode (texture2D (tex, vec2(.5, (.5 + float(offset)) / float(texture_size))));
 	
 	
-	for (i = 0; i < num_endpoints - 1; i++) {
+	for (i = 0; i < min(num_endpoints - 1, 786) ; i++) {  
+	// I don't understand 
+	// How or why the min there helps. 
+	// Yet somehow it works.
+	
 	  vec3 arc = arc_next;
 	  arc_next = arc_decode (texture2D (tex, vec2(.5, (1.5 + float(i) + float(offset)) / float(texture_size))));
 	  float d = arc.b;
 	  if (d == -MAX_D) continue;
-	  if (abs (d) < 1e-5) d = 1e-5; /* cheat */
+	  if (abs (d) < 1e-5) d = 1e-5; // cheat 
 	  vec2 p0 = arc.rg;
 	  vec2 p1 = arc_next.rg;
 	  vec2 line = p1 - p0;
@@ -842,9 +827,7 @@ main (int argc, char** argv)
 			   gl_FragColor,
 			   smoothstep (.002, .005, min_point_dist));
 	return;
-	
     }
-      
   );
   program = create_program (vshader, fshader);
 
