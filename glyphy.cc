@@ -215,8 +215,9 @@ drawable_swap_buffers (GdkDrawable *drawable)
 
 /* TODO Knobs */
 #define MIN_FONT_SIZE 1
-#define GRID_X 32
-#define GRID_Y 32
+#define GRID_SIZE 32
+#define GRID_X GRID_SIZE
+#define GRID_Y GRID_SIZE
 #define TOLERANCE 3e-5
 
 
@@ -424,10 +425,13 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
 		    (d))
 
       point_t p1 = point_t (0, 0);
-      for (unsigned i = 0; i < near_arcs.size (); i++) {
+      for (unsigned i = 0; i < near_arcs.size (); i++)
+      {
         arc_t arc = near_arcs[i];
+
 	if (p1 != arc.p0)
 	  tex_data.push_back (ARC_ENCODE (arc.p0, INFINITY));
+
 	tex_data.push_back (ARC_ENCODE (arc.p1, arc.d));
 	p1 = arc.p1;
       }
@@ -627,7 +631,7 @@ main (int argc, char** argv)
 	  vec2 c = mix (p0, p1, .5) - perp * ((1 - d*d) / (4 * d));
 
 	  // Find the distance from p to the nearby arcs.
-	  float dist;	  
+	  float dist;
 	  if (sign (d) * dot (p - c, perpendicular (p0 - c)) <= 0 &&
 	      sign (d) * dot (p - c, perpendicular (p1 - c)) >= 0)
 	  {
@@ -690,7 +694,7 @@ main (int argc, char** argv)
 	}
 	
 	 gl_FragColor = mix(vec4(1,0,0,1),
-			   vec4(0,1,0,1) * ((1 + sin (min_dist / m))) * sin (pow (min_dist, .8) * 3.14159265358979),
+			   vec4(0,1,0,1) * ((1 + sin (min_dist / m))) * sin (pow (min_dist, .8) * M_PI),
 			   smoothstep (0, 2 * m, min_dist));
 	 gl_FragColor = mix(vec4(0,1,0,1),
 			   gl_FragColor,
