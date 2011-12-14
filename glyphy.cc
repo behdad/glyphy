@@ -434,12 +434,13 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
 		    ((p).y - grid_min_y) / glyph_height, \
 		    (d))
 
+      point_t p1 = point_t (0, 0);
       for (unsigned i = 0; i < near_arcs.size (); i++) {
         arc_t arc = near_arcs[i];
-	tex_data.push_back (ARC_ENCODE (arc.p0, arc.d));
-        // Close the contour?
-        if (i + 1 == near_arcs.size () || arc.p1 != near_arcs [i+1].p0)
-	  tex_data.push_back (ARC_ENCODE (arc.p1, INFINITY));
+	if (p1 != arc.p0)
+	  tex_data.push_back (ARC_ENCODE (arc.p0, INFINITY));
+	tex_data.push_back (ARC_ENCODE (arc.p1, arc.d));
+	p1 = arc.p1;
       }
 
       tex_data[row * GRIDSIZE + col] = pair_to_rgba (offset, tex_data.size () - offset);
@@ -614,17 +615,16 @@ main (int argc, char** argv)
 	int i;
 	float min_dist = 1.;
 	float min_point_dist = 1.;
-	vec3 arc_next = arc_decode (tex_1D (tex, offset));
-	
+	vec3 arc_prev = arc_decode (tex_1D (tex, offset));
 	for (i = 1; i <= num_endpoints - 1; i++)
 	{
-	  vec3 arc = arc_next;
-	  arc_next = arc_decode (tex_1D (tex, i + offset));
+	  vec3 arc = arc_decode (tex_1D (tex, i + offset));
+	  vec2 p0 = arc_prev.rg;
+	  arc_prev = arc;
 	  float d = arc.b;
 	  if (d == -MAX_D) continue;
 	  if (abs (d) < 1e-5) d = 1e-5; // cheat
-	  vec2 p0 = arc.rg;
-	  vec2 p1 = arc_next.rg;
+	  vec2 p1 = arc.rg;
 	  vec2 line = p1 - p0;
 	  vec2 perp = perpendicular (line);
 	  vec2 norm = normalize (perp);
