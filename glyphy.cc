@@ -206,7 +206,18 @@ drawable_swap_buffers (GdkDrawable *drawable)
 
 
 
+
+
+
+/* TODO Knobs */
 #define MIN_FONT_SIZE 16
+#define GRIDSIZE 32
+
+
+
+
+
+
 
 /** Given a cell, fills the vector closest_arcs with arcs that may be closest to some point in the cell.
   * Uses idea that all close arcs to cell must be ~close to center of cell. 
@@ -395,7 +406,6 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
   glyph_width = grid_max_x - grid_min_x;
   glyph_height = grid_max_y - grid_min_y;
 
-#define GRIDSIZE 32
   double box_width = glyph_width / GRIDSIZE;
   double box_height = glyph_height / GRIDSIZE;
 
@@ -469,7 +479,7 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
     tex_array [i + header_length] = arc_data_vector[i];
 
   unsigned int tex_len = header_length + arc_data_vector.size ();
-  unsigned int tex_w = 16;
+  unsigned int tex_w = 64;
   unsigned int tex_h = (tex_len + tex_w - 1) / tex_w;
   printf ("Texture size %dx%d\n", tex_w, tex_h);
   gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, tex_w, tex_h, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex_array);
@@ -667,11 +677,12 @@ main (int argc, char** argv)
 	}
 	
 	gl_FragColor = mix(vec4(1,0,0,1),
-			   vec4(1,1,1,1) * ((1 + sin (min_dist / m)) / 2) * sin (pow (min_dist, .8) * 3.14159265358979),
+			   vec4(0,0,1,1) * ((1 + sin (min_dist / m)) / 2) * sin (pow (min_dist, .8) * 3.14159265358979),
 			   smoothstep (0, 2 * m, min_dist));
 	gl_FragColor = mix(vec4(0,1,0,1),
 			   gl_FragColor,
 			   smoothstep (.002, .005, min_point_dist));
+	gl_FragColor += vec4(0,1,0,1) * num_endpoints / 16;
 	// gl_FragColor = vec4(1,1,1,1) * smoothstep (0, 2 * m, min_dist);
 	return;
     }
