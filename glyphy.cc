@@ -221,54 +221,44 @@ drawable_swap_buffers (GdkDrawable *drawable)
 
 
 
-/** Given a cell, fills the vector closest_arcs with arcs that may be closest to some point in the cell.
-  * Uses idea that all close arcs to cell must be ~close to center of cell. 
-  */
-static int 
+/* Given a cell, fills the vector closest_arcs with arcs that may be closest to some point in the cell.
+ * Uses idea that all close arcs to cell must be ~close to center of cell.
+ */
+static int
 closest_arcs_to_cell (Point<Coord> square_top_left,
-                        Scalar cell_width,
-                        Scalar cell_height,
-                        Scalar grid_size,
-                        vector<arc_t> arc_list,
-                        vector<arc_t> &near_arcs)
+		      Scalar cell_width,
+		      Scalar cell_height,
+		      Scalar grid_size,
+		      vector<arc_t> arc_list,
+		      vector<arc_t> &near_arcs)
 {
-  // Find distance between cell center and cell's closest arc. 
-  point_t center (square_top_left.x + cell_width / 2., 
+  // Find distance between cell center and cell's closest arc.
+  point_t center (square_top_left.x + cell_width / 2.,
                   square_top_left.y + cell_height / 2.);
   double min_distance = INFINITY;
   arc_t nearest_arc = arc_list [0];
   double distance = min_distance;
 
   for (int k = 0; k < arc_list.size (); k++) {
-    arc_t current_arc = arc_list [k];
-    double current_distance = current_arc.distance_to_point (center);    
+    arc_t arc = arc_list [k];
+    double current_distance = fabs (arc.distance_to_point (center));
 
-    // If two arcs are equally close to this point, take the sign from the one whose extension is farther away. 
-    // (Extend arcs using tangent lines from endpoints; this is done using the SignedVector operation "-".) 
-    if (fabs (fabs (current_distance) - fabs(min_distance)) < 1e-6) {
-      SignedVector<Coord> to_arc_min = nearest_arc - center;
-      SignedVector<Coord> to_arc_current = current_arc - center;
-      if (to_arc_min.len () < to_arc_current.len ()) {
-        min_distance = fabs (min_distance) * (to_arc_current.negative ? -1 : 1);
-      }
-    }
-    else if (fabs (current_distance) < fabs(min_distance)) {
+    if (current_distance < min_distance) {
       min_distance = current_distance;
-      nearest_arc = current_arc;
+      nearest_arc = arc;
     }
   }
 
   // If d is the distance from the center of the square to the nearest arc, then
   // all nearest arcs to the square must be at most [d + s/sqrt(2)] from the center.
-  min_distance = fabs (min_distance);
-  double half_diagonal = sqrt(cell_height * cell_height + cell_width * cell_width) / 2;
+  double half_diagonal = sqrt (cell_height * cell_height + cell_width * cell_width) / 2;
   Scalar radius = min_distance + half_diagonal;
 
   double faraway = double (grid_size) / MIN_FONT_SIZE;
   if (min_distance - half_diagonal <= faraway)
     for (int k = 0; k < arc_list.size (); k++) {
       arc_t current_arc = arc_list [k];
-      if (fabs(current_arc.distance_to_point (center)) < radius)
+      if (fabs(current_arc.distance_to_point (center)) <= radius)
         near_arcs.push_back (current_arc);
     }
 }
@@ -428,7 +418,7 @@ setup_texture (const char *font_path, const char UTF8, GLint program)
     {
       near_arcs.clear ();
       closest_arcs_to_cell (Point<Coord> (grid_min_x + (col * box_width), grid_min_y + (row * box_height)),
-                              box_width, box_height, min_dimension, acc.arcs, near_arcs);
+                            box_width, box_height, min_dimension, acc.arcs, near_arcs);
 
 #define ARC_ENCODE(p, d) \
 	arc_encode (((p).x - grid_min_x) / glyph_width, \
