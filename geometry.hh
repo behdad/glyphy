@@ -32,7 +32,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-#include <cairo-ft.h>
 
 
 using namespace std;

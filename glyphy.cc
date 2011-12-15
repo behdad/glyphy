@@ -1,15 +1,11 @@
-#include <gtk/gtk.h>
-#include <gdk/gdkx.h>
-#include <X11/Xlib.h>
+#include <GL/glew.h>
+#if defined(__APPLE__)
+    #include <Glut/glut.h>
+#else
+    #include <GL/glut.h>
+#endif
 
-#include <GLES2/gl2.h>
-#define GL_GLEXT_PROTOTYPES
-#include <GLES2/gl2ext.h>
-#include <EGL/egl.h>
-#define EGL_EGLEXT_PROTOTYPES
-#include <EGL/eglext.h>
-
-#include <cairo.h>
+#include <glib.h>
 
 #include <math.h>
 #include <stdlib.h>
@@ -17,19 +13,16 @@
 #include <unistd.h>
 
 #include <assert.h>
-#include <cairo-ft.h>
 #include <string>
 #include <list>
 
 #include "geometry.hh"
-#include "cairo-helper.hh"
 #include "freetype-helper.hh"
 #include "sample-curves.hh"
 #include "bezier-arc-approximation.hh"
 
 using namespace std;
 using namespace Geometry;
-using namespace CairoHelper;
 using namespace FreeTypeHelper;
 using namespace SampleCurves;
 using namespace BezierArcApproximation;
@@ -122,92 +115,6 @@ link_program (GLuint vshader, GLuint fshader)
 
   return program;
 }
-
-
-static void
-create_egl_for_drawable (EGLDisplay edpy, GdkDrawable *drawable, EGLSurface *surface, EGLContext *context)
-{
-  EGLConfig econfig;
-  EGLint num_configs;
-  const EGLint attribs[] = {
-    EGL_BUFFER_SIZE, 32,
-    EGL_RED_SIZE, 8,
-    EGL_GREEN_SIZE, 8,
-    EGL_BLUE_SIZE, 8,
-    EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-    EGL_SURFACE_TYPE, GDK_IS_WINDOW (drawable) ? EGL_WINDOW_BIT : EGL_PIXMAP_BIT,
-    EGL_NONE
-  };
-  const EGLint ctx_attribs[] = {
-    EGL_CONTEXT_CLIENT_VERSION, 2,
-    EGL_NONE
-  };
-
-  if (!eglChooseConfig(edpy, attribs, &econfig, 1, &num_configs) || !num_configs)
-    die ("Could not find EGL config");
-
-  if (!(*surface = eglCreateWindowSurface (edpy, econfig, GDK_DRAWABLE_XID (drawable), NULL)))
-    die ("Could not create EGL surface");
-
-  if (!(*context = eglCreateContext (edpy, econfig, EGL_NO_CONTEXT, ctx_attribs)))
-    die ("Could not create EGL context");
-}
-
-static GQuark
-drawable_egl_quark (void)
-{
-  static GQuark quark = 0;
-  if (G_UNLIKELY (!quark))
-    quark = g_quark_from_string ("egl_drawable");
-  return quark;
-}
-
-typedef struct {
-  EGLDisplay display;
-  EGLSurface surface;
-  EGLContext context;
-} drawable_egl_t;
-
-static void
-drawable_egl_destroy (drawable_egl_t *e)
-{
-  eglDestroyContext (e->display, e->context);
-  eglDestroySurface (e->display, e->surface);
-  g_slice_free (drawable_egl_t, e);
-}
-
-static drawable_egl_t *
-drawable_get_egl (GdkDrawable *drawable)
-{
-  drawable_egl_t *e;
-
-  if (G_UNLIKELY (!(e = (drawable_egl_t *) g_object_get_qdata ((GObject *) drawable, drawable_egl_quark ())))) {
-    e = g_slice_new (drawable_egl_t);
-    e->display = eglGetDisplay (GDK_DRAWABLE_XDISPLAY (drawable));
-    create_egl_for_drawable (e->display, drawable, &e->surface, &e->context);
-    g_object_set_qdata_full (G_OBJECT (drawable), drawable_egl_quark (), e, (GDestroyNotify) drawable_egl_destroy);
-  }
-
-  return e;
-}
-
-static void
-drawable_make_current (GdkDrawable *drawable)
-{
-  drawable_egl_t *e = drawable_get_egl (drawable);
-  eglMakeCurrent(e->display, e->surface, e->surface, e->context);
-}
-
-static void
-drawable_swap_buffers (GdkDrawable *drawable)
-{
-  drawable_egl_t *e = drawable_get_egl (drawable);
-  eglSwapBuffers (e->display, e->surface);
-  glFinish ();
-}
-
-
-
 
 
 
@@ -384,7 +291,7 @@ pair_to_rgba (unsigned int num1, unsigned int num2)
 
 
 static GLint
-create_texture (const char *font_path, const char UTF8, GLint program)
+create_texture (const char *font_path, const char UTF8)
 {
   FT_Face face;
   FT_Library library;
@@ -445,10 +352,6 @@ create_texture (const char *font_path, const char UTF8, GLint program)
 
   /* XXX */
   glyph_width = glyph_height = std::max (glyph_width, glyph_height);
-
-  double box_width = glyph_width / GRID_X;
-  double box_height = glyph_height / GRID_Y;
-
 
 
 
@@ -514,9 +417,13 @@ create_texture (const char *font_path, const char UTF8, GLint program)
   gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, tex_w, tex_h, 0, GL_RGBA, GL_UNSIGNED_BYTE, &tex_data[0]);
 
   GLint tex_size[2] = {tex_w, tex_h};
+  GLuint program;
+  glGetIntegerv (GL_CURRENT_PROGRAM, (GLint *) &program);
   glUniform2i (glGetUniformLocation(program, "tex_size"), tex_w, tex_h);
   glUniform1i (glGetUniformLocation(program, "tex"), 0);
   glActiveTexture (GL_TEXTURE0);
+
+  return texture;
 }
 
 static GLuint
@@ -679,75 +586,88 @@ create_program (void)
       gl_FragColor += vec4(0,0,1,1) * num_endpoints * 16./255.;
       gl_FragColor += vec4(.5,0,0,1) * smoothstep (-m, m, is_inside ? min_dist : -min_dist);
 
-      gl_FragColor = vec4(1,1,1,1) * smoothstep (-m, m, is_inside ? -min_dist : min_dist);
-      return;
+//      gl_FragColor = vec4(1,1,1,1) * smoothstep (-m, m, is_inside ? -min_dist : min_dist);
     }
   );
   program = link_program (vshader, fshader);
   return program;
 }
 
-
-static
-gboolean configure_cb (GtkWidget *widget,
-		       GdkEventConfigure *event,
-		       gpointer user_data)
-{
-  gdk_window_invalidate_rect (widget->window, NULL, TRUE);
-  return FALSE;
-}
-
 static int step_timer;
 static int num_frames;
 
-static
-gboolean expose_cb (GtkWidget *widget,
-		    GdkEventExpose *event,
-		    gpointer user_data)
+void display( void )
 {
-  GtkAllocation allocation;
+  int viewport[4];
+  glGetIntegerv (GL_VIEWPORT, viewport);
+  GLuint width  = viewport[2];
+  GLuint height = viewport[3];
+
   double theta = M_PI / 360.0 * step_timer / 3.;
   GLfloat mat[] = { +cos(theta), +sin(theta), 0., 0.,
 		    -sin(theta), +cos(theta), 0., 0.,
 			     0.,          0., 1., 0.,
 			     0.,          0., 0., 1., };
 
-  drawable_make_current (widget->window);
+  glClearColor (1, 1, 1, 1);
+  glClear (GL_COLOR_BUFFER_BIT);
 
-  gtk_widget_get_allocation (widget, &allocation);
-  glViewport(0, 0, allocation.width, allocation.height);
-  glClearColor(1., 1., 0., 0.);
-  glClear(GL_COLOR_BUFFER_BIT);
-  glUniformMatrix4fv (GPOINTER_TO_INT (user_data), 1, GL_FALSE, mat);
+  GLuint program;
+  glGetIntegerv (GL_CURRENT_PROGRAM, (GLint *) &program);
+  glUniformMatrix4fv (glGetUniformLocation (program, "u_matViewProjection"), 1, GL_FALSE, mat);
 
   glDrawArrays (GL_TRIANGLE_FAN, 0, 4);
 
-  drawable_swap_buffers (widget->window);
-
-  return TRUE;
+  glutSwapBuffers ();
 }
 
-static gboolean
-step (gpointer data)
+void
+reshape (int width, int height)
 {
+  glViewport (0, 0, width, height);
+  glMatrixMode (GL_PROJECTION);
+  glLoadIdentity ();
+  glOrtho (0, width, 0, height, -1, 1);
+  glMatrixMode (GL_MODELVIEW);
+  glutPostRedisplay ();
+}
+
+void keyboard( unsigned char key, int x, int y )
+{
+  switch (key) {
+    case '\033': exit (0);
+  }
+}
+
+static void
+timed_step (int ms)
+{
+  glutTimerFunc (ms, timed_step, ms);
   num_frames++;
   step_timer++;
-  gdk_window_invalidate_rect (GDK_WINDOW (data), NULL, TRUE);
-  return TRUE;
+  glutPostRedisplay ();
 }
 
-static gboolean
-print_fps (gpointer data)
+static void
+idle_step (void)
 {
+  glutIdleFunc (idle_step);
+  num_frames++;
+  step_timer++;
+  glutPostRedisplay ();
+}
+
+static void
+print_fps (int ms)
+{
+  glutTimerFunc (ms, print_fps, ms);
   printf ("%gfps\n", num_frames / 5.);
   num_frames = 0;
-  return TRUE;
 }
 
 int
 main (int argc, char** argv)
 {
-  GtkWidget *window;
   char *font_path;
   char utf8;
   gboolean animate = FALSE;
@@ -757,59 +677,47 @@ main (int argc, char** argv)
      if (argc >= 4)
        animate = atoi (argv[3]);
   }
-  else {
-    fprintf (stderr, "Usage: grid PATH_TO_FONT_FILE CHARACTER_TO_DRAW ANIMATE?\n");
-    return 1;
-  }
+  else
+    die ("Usage: grid PATH_TO_FONT_FILE CHARACTER_TO_DRAW ANIMATE?");
+
+  glutInit (&argc, argv);
+  glutInitWindowSize (512, 512);
+  glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+  glutCreateWindow("GLyphy");
+  glutReshapeFunc (reshape);
+  glutDisplayFunc (display);
+  glutKeyboardFunc (keyboard);
+
+  glewInit ();
+  if (!glewIsSupported ("GL_VERSION_2_0"))
+    die ("OpenGL 2.0 not supported");
 
   GLuint program, texture, a_pos_loc, a_tex_loc;
 
+
+  program = create_program ();
+  glUseProgram (program);
+
+  texture = create_texture (font_path, utf8);
+
+  a_pos_loc = glGetAttribLocation(program, "a_position");
+  a_tex_loc = glGetAttribLocation(program, "a_texCoord");
   const GLfloat w_vertices[] = { -1, -1, 0,  -0.1, -0.1,
 				 +1, -1, 0,  1.1, -0.1,
 				 +1, +1, 0,  1.1, 1.1,
 				 -1, +1, 0,  -0.1, 1.1 };
-
-  gtk_init (&argc, &argv);
-
-  window = GTK_WIDGET (gtk_window_new (GTK_WINDOW_TOPLEVEL));
-  gtk_window_set_default_size (GTK_WINDOW (window), 600, 600);
-  g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (gtk_main_quit), NULL);
-
-  eglInitialize (eglGetDisplay (gdk_x11_display_get_xdisplay (gtk_widget_get_display (window))), NULL, NULL);
-  if (!eglBindAPI (EGL_OPENGL_ES_API))
-    die ("Failed to bind OpenGL ES API");
-
-  gtk_widget_show_all (window);
-
-  drawable_make_current (window->window);
-
-  program = create_program ();
-
-  glUseProgram (program);
-
-  texture = create_texture (font_path, utf8, program);
-
-  a_pos_loc = glGetAttribLocation(program, "a_position");
-  a_tex_loc = glGetAttribLocation(program, "a_texCoord");
-
   glVertexAttribPointer (a_pos_loc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), w_vertices+0);
   glVertexAttribPointer (a_tex_loc, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), w_vertices+3);
   glEnableVertexAttribArray (a_pos_loc);
   glEnableVertexAttribArray (a_tex_loc);
 
-  gtk_widget_set_double_buffered (window, FALSE);
-  gtk_widget_set_redraw_on_allocate (window, TRUE);
-  /* TODO, the uniform location can change if we recompile program. */
-  g_signal_connect (G_OBJECT (window), "expose-event", G_CALLBACK (expose_cb),
-		    GINT_TO_POINTER (glGetUniformLocation (program, "u_matViewProjection")));
-  g_signal_connect (G_OBJECT (window), "configure-event", G_CALLBACK (configure_cb), NULL);
-
   if (animate) {
-    g_idle_add (step, window->window);
-    g_timeout_add (5000, print_fps, NULL);
+    //glutTimerFunc (40, timed_step, 40);
+    glutIdleFunc (idle_step);
+    glutTimerFunc (5000, print_fps, 5000);
   }
 
-  gtk_main ();
+  glutMainLoop ();
 
   return 0;
 }
