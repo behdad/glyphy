@@ -19,7 +19,7 @@ PKG_PROG_PKG_CONFIG
 
 dnl ==========================================================================
 
-m4_foreach_w([pkg], [cairo freetype2 cairo-ft gdk-x11-2.0 gtk+-2.0 egl glesv2], [
+m4_foreach_w([pkg], [glib-2.0 freetype2 cairo cairo-ft glu glew glut], [
 	m4_define([PKG], m4_translit(pkg,[-a-z.+],[_A-Z_]))
 	PKG_CHECK_MODULES(PKG, pkg, [have=true], [have=false])
 	if $have; then
