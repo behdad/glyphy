@@ -214,11 +214,11 @@ drawable_swap_buffers (GdkDrawable *drawable)
 
 
 /* TODO Knobs */
-#define MIN_FONT_SIZE 1
-#define GRID_SIZE 32
+#define MIN_FONT_SIZE 20
+#define GRID_SIZE 16
 #define GRID_X GRID_SIZE
 #define GRID_Y GRID_SIZE
-#define TOLERANCE 3e-5
+#define TOLERANCE 5e-4
 
 
 
@@ -229,32 +229,28 @@ drawable_swap_buffers (GdkDrawable *drawable)
 /* Given a cell, fills the vector closest_arcs with arcs that may be closest to some point in the cell.
  * Uses idea that all close arcs to cell must be ~close to center of cell.
  */
-static int
-closest_arcs_to_cell (Point<Coord> square_top_left,
-		      Scalar cell_width,
-		      Scalar cell_height,
-		      Scalar grid_size,
+static void
+closest_arcs_to_cell (point_t p0, point_t p1, /* corners */
+		      double grid_size,
 		      const vector<arc_t> &arcs,
 		      vector<arc_t> &near_arcs)
 {
-  // Find distance between cell center and cell's closest arc.
-  point_t center (square_top_left.x + .5 * cell_width,
-                  square_top_left.y + .5 * cell_height);
-
+  // Find distance between cell center and its closest arc.
+  point_t c = p0 + p1;
   double min_squared_distance = INFINITY;
   for (int i = 0; i < arcs.size (); i++)
-    min_squared_distance = min (min_squared_distance, arcs[i].squared_distance_to_point (center));
+    min_squared_distance = std::min (min_squared_distance, arcs[i].squared_distance_to_point (c));
 
   double min_distance = sqrt (min_squared_distance);
 
   // If d is the distance from the center of the square to the nearest arc, then
   // all nearest arcs to the square must be at most [d + half_diagonal] from the center.
-  double half_diagonal = hypot (cell_height, cell_width) * .5;
-  double radius_squared = pow (min_distance + half_diagonal, 2);
+  double half_diagonal = (c - p0).len ();
   double faraway = double (grid_size) / MIN_FONT_SIZE;
+  double radius_squared = pow (min_distance + half_diagonal + faraway, 2);
   if (min_distance - half_diagonal <= faraway)
     for (int i = 0; i < arcs.size (); i++) {
-      if (arcs[i].squared_distance_to_point (center) <= radius_squared)
+      if (arcs[i].squared_distance_to_point (c) <= radius_squared)
         near_arcs.push_back (arcs[i]);
     }
 }
@@ -390,6 +386,9 @@ create_texture (const char *font_path, const char UTF8, GLint program)
   glyph_width = grid_max_x - grid_min_x;
   glyph_height = grid_max_y - grid_min_y;
 
+  /* XXX */
+  glyph_width = glyph_height = std::max (glyph_width, glyph_height);
+
   double box_width = glyph_width / GRID_X;
   double box_height = glyph_height / GRID_Y;
 
@@ -406,12 +405,14 @@ create_texture (const char *font_path, const char UTF8, GLint program)
   unsigned int header_length = GRID_X * GRID_Y;
   unsigned int offset = header_length;
   tex_data.resize (header_length);
+  point_t origin = point_t (grid_min_x, grid_min_y);
   for (int row = 0; row < GRID_Y; row++)
     for (int col = 0; col < GRID_X; col++)
     {
+      point_t cp0 = origin + vector_t ((col + 0.) * glyph_width / GRID_X, (row + 0.) * glyph_height / GRID_Y);
+      point_t cp1 = origin + vector_t ((col + 1.) * glyph_width / GRID_X, (row + 1.) * glyph_height / GRID_Y);
       near_arcs.clear ();
-      closest_arcs_to_cell (Point<Coord> (grid_min_x + (col * box_width), grid_min_y + (row * box_height)),
-                            box_width, box_height, min_dimension, acc.arcs, near_arcs);
+      closest_arcs_to_cell (cp0, cp1, min_dimension, acc.arcs, near_arcs);
 
 #define ARC_ENCODE(p, d) \
 	arc_encode (((p).x - grid_min_x) / glyph_width, \
@@ -610,7 +611,7 @@ create_program (void)
       gl_FragColor = mix(vec4(0,1,0,1),
 			 gl_FragColor,
 			 smoothstep (.002, .005, min_point_dist));
-      gl_FragColor += vec4(0,0,1,1) * num_endpoints / 16;
+      gl_FragColor += vec4(0,0,1,1) * num_endpoints * 16./255.;
       gl_FragColor += vec4(.5,0,0,1) * smoothstep (-m, m, is_inside ? min_dist : -min_dist);
 
       //gl_FragColor = vec4(1,1,1,1) * smoothstep (-m, m, is_inside ? -min_dist : min_dist);
