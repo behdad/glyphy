@@ -211,8 +211,8 @@ drawable_swap_buffers (GdkDrawable *drawable)
 
 /* TODO Knobs */
 #define MIN_FONT_SIZE 1
-#define GRID_X 32
-#define GRID_Y 32
+#define GRID_X 16
+#define GRID_Y 16
 #define TOLERANCE 3e-5
 
 
@@ -248,7 +248,7 @@ closest_arcs_to_cell (Point<Coord> square_top_left,
 
   // If d is the distance from the center of the square to the nearest arc, then
   // all nearest arcs to the square must be at most [d + s/sqrt(2)] from the center.
-  double half_diagonal = sqrt (cell_height * cell_height + cell_width * cell_width) / 1.4;
+  double half_diagonal = sqrt (cell_height * cell_height + cell_width * cell_width) / 1.2;
   Scalar radius = min_distance + half_diagonal;
 
   double faraway = double (grid_size) / MIN_FONT_SIZE;
@@ -634,7 +634,7 @@ main (int argc, char** argv)
 	  
 	  // If this new distance is roughly the same as the current minimum, compare extended distances.
 	  // Take the sign from the arc with larger extended distance.
-	  if (abs(dist - min_dist) < 1e-6) {
+	  if (dist == min_dist) {
 	    float extended_dist;
 	    
 	    if (sign (d) * dot (p - c, perpendicular (p0 - c)) <= 0 &&
@@ -693,7 +693,7 @@ main (int argc, char** argv)
 			   smoothstep (.002, .005, min_point_dist));
 	// gl_FragColor += vec4(0,0,1,1) * num_endpoints / 16;
 	
-	gl_FragColor = is_inside ? vec4(0,0,0,0) : vec4(1,1,1,1) * smoothstep (0, 2 * m, min_dist);
+	//gl_FragColor = is_inside ? vec4(0,1,0,0) : vec4(1,1,1,1) * smoothstep (0, 2 * m, min_dist);
 	return;
     }
   );
