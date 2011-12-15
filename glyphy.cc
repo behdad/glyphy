@@ -225,13 +225,11 @@ drawable_swap_buffers (GdkDrawable *drawable)
 
 
 
-
-
 /* Given a cell, fills the vector closest_arcs with arcs that may be closest to some point in the cell.
  * Uses idea that all close arcs to cell must be ~close to center of cell.
  */
 static void
-closest_arcs_to_cell (point_t p0, point_t p1, /* corners */
+closest_arcs_to_cellA (point_t p0, point_t p1, /* corners */
 		      double grid_size,
 		      const vector<arc_t> &arcs,
 		      vector<arc_t> &near_arcs)
@@ -244,6 +242,66 @@ closest_arcs_to_cell (point_t p0, point_t p1, /* corners */
 
   double min_distance = sqrt (min_squared_distance);
 
+  // If d is the distance from the center of the square to the nearest arc, then
+  // all nearest arcs to the square must be at most [d + half_diagonal] from the center.
+  double half_diagonal = (c - p0).len ();
+  double faraway = double (grid_size) / MIN_FONT_SIZE;
+  double radius_squared = pow (min_distance + half_diagonal + faraway, 2);
+  if (min_distance - half_diagonal <= faraway)
+    for (int i = 0; i < arcs.size (); i++) {
+      if (arcs[i].squared_distance_to_point (c) <= radius_squared)
+        near_arcs.push_back (arcs[i]);
+    }
+}
+
+
+
+/* Given a cell, fills the vector closest_arcs with arcs that may be closest to some point in the cell.
+ * Uses idea that all close arcs to cell must be ~close to center of cell.
+ */
+static void
+closest_arcs_to_cell (point_t p0, point_t p1, /* corners */
+		      double grid_size,
+		      const vector<arc_t> &arcs,
+		      vector<arc_t> &near_arcs)
+{
+  bool inside_glyph = false;
+  arc_t nearest_arc = arcs[0];
+  arc_t current_arc = arcs[0];
+
+
+  // Find distance between cell center and its closest arc.
+  point_t c = p0 + p1;
+  double min_distance = INFINITY;
+//  nearest_arc = arcs[0];
+  
+  for (int k = 0; k < arcs.size (); k++) {
+      current_arc = arcs[k];
+      double current_distance = current_arc.distance_to_point (c);    
+
+    // If two arcs are equally close to this point, take the sign from the one whose extension is farther away. 
+    // (Extend arcs using tangent lines from endpoints; this is done using the SignedVector operation "-".) 
+      if (fabs (fabs (current_distance) - fabs(min_distance)) < 1e-6) { 
+        SignedVector<Coord> to_arc_min = nearest_arc - c;
+        SignedVector<Coord> to_arc_current = current_arc - c;      
+        if (to_arc_min.len () < to_arc_current.len ()) {
+          min_distance = fabs (min_distance) * (to_arc_current.negative ? -1 : 1);
+        }
+      }
+      else if (fabs (current_distance) < fabs(min_distance)) {
+        min_distance = current_distance;
+        nearest_arc = current_arc;
+      }
+    
+  }
+  
+  inside_glyph = (min_distance > 0); /*************************************************************** USE THIS! ********************************************/
+  near_arcs.push_back (arc_t ( point_t (0,0), point_t(0,0), inside_glyph ? 1 : -1));
+    
+  // If d is the distance from the center of the square to the nearest arc, then
+  // all nearest arcs to the square must be at most [d + s/sqrt(2)] from the center. 
+  min_distance = /*sqrt*/ fabs (min_distance);
+  
   // If d is the distance from the center of the square to the nearest arc, then
   // all nearest arcs to the square must be at most [d + half_diagonal] from the center.
   double half_diagonal = (c - p0).len ();
