@@ -215,7 +215,7 @@ drawable_swap_buffers (GdkDrawable *drawable)
 
 
 #define MIN_FONT_SIZE 20
-#define GRID_SIZE 64
+#define GRID_SIZE 128
 #define GRID_X GRID_SIZE
 #define GRID_Y GRID_SIZE
 #define TOLERANCE 5e-4
@@ -223,36 +223,6 @@ drawable_swap_buffers (GdkDrawable *drawable)
 
 
 
-
-
-/* Given a cell, fills the vector closest_arcs with arcs that may be closest to some point in the cell.
- * Uses idea that all close arcs to cell must be ~close to center of cell.
- */
-static void
-closest_arcs_to_cellA (point_t p0, point_t p1, /* corners */
-		      double grid_size,
-		      const vector<arc_t> &arcs,
-		      vector<arc_t> &near_arcs)
-{
-  // Find distance between cell center and its closest arc.
-  point_t c = p0 + p1;
-  double min_squared_distance = INFINITY;
-  for (int i = 0; i < arcs.size (); i++)
-    min_squared_distance = std::min (min_squared_distance, arcs[i].squared_distance_to_point (c));
-
-  double min_distance = sqrt (min_squared_distance);
-
-  // If d is the distance from the center of the square to the nearest arc, then
-  // all nearest arcs to the square must be at most [d + half_diagonal] from the center.
-  double half_diagonal = (c - p0).len ();
-  double faraway = double (grid_size) / MIN_FONT_SIZE;
-  double radius_squared = pow (min_distance + half_diagonal + faraway, 2);
-  if (min_distance - half_diagonal <= faraway)
-    for (int i = 0; i < arcs.size (); i++) {
-      if (arcs[i].squared_distance_to_point (c) <= radius_squared)
-        near_arcs.push_back (arcs[i]);
-    }
-}
 
 
 
@@ -318,6 +288,8 @@ closest_arcs_to_cell (point_t p0, point_t p1, /* corners */
 
 #define UPPER_BITS(v,bits,total_bits) ((v) >> ((total_bits) - (bits)))
 #define LOWER_BITS(v,bits,total_bits) ((v) & ((1 << (bits)) - 1))
+#define MIDDLE_BITS(v,bits,upper_bound,total_bits) (UPPER_BITS (LOWER_BITS (v, upper_bound, total_bits), bits, upper_bound))
+
 
 struct rgba_t {
   unsigned char r;
@@ -334,6 +306,9 @@ struct rgba_t {
 #define ARC_ENCODE_Y_CHANNEL g
 #define ARC_ENCODE_D_CHANNEL b
 #define ARC_ENCODE_OTHER_CHANNEL a
+
+
+
 
 G_STATIC_ASSERT (8 <= ARC_ENCODE_X_BITS && ARC_ENCODE_X_BITS < 16);
 G_STATIC_ASSERT (8 <= ARC_ENCODE_Y_BITS && ARC_ENCODE_Y_BITS < 16);
@@ -374,10 +349,10 @@ static rgba_t
 pair_to_rgba (unsigned int num1, unsigned int num2)
 {
   rgba_t v;
-  v.r = UPPER_BITS (num1, 8, 16);
-  v.g = LOWER_BITS (num1, 8, 16);
-  v.b = UPPER_BITS (num2, 8, 16);
-  v.a = LOWER_BITS (num2, 8, 16);
+  v.r = UPPER_BITS (num1, 8, 24);
+  v.g = MIDDLE_BITS (num1, 8, 16, 24);
+  v.b = LOWER_BITS (num1, 8, 24);
+  v.a = LOWER_BITS (num2, 8, 8);
   return v;
 }
 
@@ -561,8 +536,8 @@ create_program (void)
 
     ivec2 rgba_to_pair (const vec4 v)
     {
-      int x = int ((256-1e-5) * v.r) * 256 + int ((256-1e-5) * v.g);
-      int y = int ((256-1e-5) * v.b) * 256 + int ((256-1e-5) * v.a);
+      int x = int ((256-1e-5) * v.r) * 256 * 256 + int ((256-1e-5) * v.g) * 256 + int ((256-1e-5) * v.b);
+      int y = int ((256-1e-5) * v.a);
       return ivec2 (x, y);
     }
 
@@ -589,10 +564,10 @@ create_program (void)
       float min_point_dist = 1.;
       float min_extended_dist = 1.;
       
-      bool is_inside = (mod(arc_position_data.y, 2) == 1); //initial_sign_data.x == 1 ? true : false;
+      // Default check: is this pixel inside the glyph?
+      bool is_inside = (mod(arc_position_data.y, 2) == 1); 
 
       vec3 arc_prev = vec3 (0,0, 0);
-      //for (i = 1; i < num_endpoints; i++)
       for (i = 0; i < num_endpoints; i++)
       {
 	vec3 arc = arc_decode (tex_1D (tex, i + offset));
@@ -619,9 +594,10 @@ create_program (void)
 
 	// If this new distance is roughly the same as the current minimum, compare extended distances.
 	// Take the sign from the arc with larger extended distance.
-	if (abs(dist - min_dist) < 1e-6) {
+	if (abs(dist - min_dist) < 1e-5) {
 	  float extended_dist;
-
+	  
+	  /*************************************************************************** TODO: I am pretty sure something is wrong here. *****/
 	  if (sign (d) * dot (p - c, perpendicular (p0 - c)) <= 0 &&
 	      sign (d) * dot (p - c, perpendicular (p1 - c)) >= 0) {
 	    extended_dist = dist;
@@ -632,14 +608,15 @@ create_program (void)
 	  else if (sign (d) * dot (p - c, perpendicular (p1 - c)) < 0) {
 	    extended_dist = length (projection (p - p1, p1 - c));
 	  }
-
+	  
 	  if (extended_dist > min_extended_dist) {
 	    min_extended_dist = extended_dist;
 	    if ((sign (d) > 0 && distance (p, c) <= distance (p0, c)) ||
 		(sign (d) < 0 && distance (p, c) >= distance (p0, c)))
-	      is_inside = true;
+	      is_inside = true; //true;
 	    else
 	      is_inside = false;
+	      
 	  }
 	}
 
@@ -660,16 +637,17 @@ create_program (void)
 
 	  if ((distance (p, c) <= distance (p0, c) && sign (d) > 0) ||
 	      (distance (p, c) >= distance (p0, c) && sign (d) < 0))
-	    is_inside = true;
+	    is_inside = true; // true
 	  else
 	    is_inside = false;
 	}
+	
 	
 
 	float point_dist = min (distance (p, p0), distance (p, p1));
 	min_point_dist = min (min_point_dist, point_dist);
       }
-
+    
       gl_FragColor = mix(vec4(1,0,0,1),
 			 vec4(0,1,0,1) * ((1 + sin (min_dist / m))) * sin (pow (min_dist, .8) * M_PI),
 			 smoothstep (0, 2 * m, min_dist));
