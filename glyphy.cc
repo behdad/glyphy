@@ -215,7 +215,7 @@ drawable_swap_buffers (GdkDrawable *drawable)
 
 
 #define MIN_FONT_SIZE 20
-#define GRID_SIZE 128
+#define GRID_SIZE 64
 #define GRID_X GRID_SIZE
 #define GRID_Y GRID_SIZE
 #define TOLERANCE 5e-4
@@ -263,44 +263,42 @@ static void
 closest_arcs_to_cell (point_t p0, point_t p1, /* corners */
 		      double grid_size,
 		      const vector<arc_t> &arcs,
-		      vector<arc_t> &near_arcs)
+		      vector<arc_t> &near_arcs,
+		      bool &inside_glyph)
 {
-  bool inside_glyph = false;
-  arc_t nearest_arc = arcs[0];
+  inside_glyph = false;
   arc_t current_arc = arcs[0];
-
 
   // Find distance between cell center and its closest arc.
   point_t c = p0 + p1;
+  
+  SignedVector<Coord> to_arc_min = current_arc - c;
   double min_distance = INFINITY;
-//  nearest_arc = arcs[0];
   
   for (int k = 0; k < arcs.size (); k++) {
-      current_arc = arcs[k];
-      double current_distance = current_arc.distance_to_point (c);    
+    current_arc = arcs[k];
+    double current_distance = current_arc.distance_to_point (c);    
 
     // If two arcs are equally close to this point, take the sign from the one whose extension is farther away. 
     // (Extend arcs using tangent lines from endpoints; this is done using the SignedVector operation "-".) 
-      if (fabs (fabs (current_distance) - fabs(min_distance)) < 1e-6) { 
-        SignedVector<Coord> to_arc_min = nearest_arc - c;
-        SignedVector<Coord> to_arc_current = current_arc - c;      
-        if (to_arc_min.len () < to_arc_current.len ()) {
-          min_distance = fabs (min_distance) * (to_arc_current.negative ? -1 : 1);
-        }
+    if (fabs (fabs (current_distance) - fabs(min_distance)) < 1e-6) { 
+      SignedVector<Coord> to_arc_current = current_arc - c;      
+      if (to_arc_min.len () < to_arc_current.len ()) {
+        min_distance = fabs (current_distance) * (to_arc_current.negative ? -1 : 1);
       }
-      else if (fabs (current_distance) < fabs(min_distance)) {
-        min_distance = current_distance;
-        nearest_arc = current_arc;
-      }
-    
+    }
+    else
+      if (fabs (current_distance) < fabs(min_distance)) {
+      min_distance = current_distance;
+      to_arc_min = current_arc - c;
+    }
   }
   
-  inside_glyph = (min_distance > 0); /*************************************************************** USE THIS! ********************************************/
-  near_arcs.push_back (arc_t ( point_t (0,0), point_t(0,0), inside_glyph ? 1 : -1));
+  inside_glyph = (min_distance > 0); 
     
   // If d is the distance from the center of the square to the nearest arc, then
   // all nearest arcs to the square must be at most [d + s/sqrt(2)] from the center. 
-  min_distance = /*sqrt*/ fabs (min_distance);
+  min_distance =  fabs (min_distance);
   
   // If d is the distance from the center of the square to the nearest arc, then
   // all nearest arcs to the square must be at most [d + half_diagonal] from the center.
@@ -465,19 +463,23 @@ create_texture (const char *font_path, const char UTF8, GLint program)
   unsigned int offset = header_length;
   tex_data.resize (header_length);
   point_t origin = point_t (grid_min_x, grid_min_y);
+  
   for (int row = 0; row < GRID_Y; row++)
     for (int col = 0; col < GRID_X; col++)
     {
       point_t cp0 = origin + vector_t ((col + 0.) * glyph_width / GRID_X, (row + 0.) * glyph_height / GRID_Y);
       point_t cp1 = origin + vector_t ((col + 1.) * glyph_width / GRID_X, (row + 1.) * glyph_height / GRID_Y);
       near_arcs.clear ();
-      closest_arcs_to_cell (cp0, cp1, min_dimension, acc.arcs, near_arcs);
+      
+      bool inside_glyph;
+      closest_arcs_to_cell (cp0, cp1, min_dimension, acc.arcs, near_arcs, inside_glyph); 
 
 #define ARC_ENCODE(p, d) \
 	arc_encode (((p).x - grid_min_x) / glyph_width, \
 		    ((p).y - grid_min_y) / glyph_height, \
 		    (d))
 
+      
       point_t p1 = point_t (0, 0);
       for (unsigned i = 0; i < near_arcs.size (); i++)
       {
@@ -490,7 +492,8 @@ create_texture (const char *font_path, const char UTF8, GLint program)
 	p1 = arc.p1;
       }
 
-      tex_data[row * GRID_X + col] = pair_to_rgba (offset, tex_data.size () - offset);
+      // Use the last bit to store whether or not the pixel is inside the glyph. 
+      tex_data[row * GRID_X + col] = pair_to_rgba (offset, 2 * (tex_data.size () - offset) + (inside_glyph ? 1 : 0));
       offset = tex_data.size ();
     }
 
@@ -578,15 +581,18 @@ create_program (void)
 
       ivec2 arc_position_data = rgba_to_pair(tex_1D (tex, p_cell_y * GRID_X + p_cell_x));
       int offset = arc_position_data.x;
-      int num_endpoints =  arc_position_data.y;
+      int num_endpoints =  arc_position_data.y / 2;
+      
 
       int i;
       float min_dist = 1.;
       float min_point_dist = 1.;
       float min_extended_dist = 1.;
-      bool is_inside = false;
+      
+      bool is_inside = (mod(arc_position_data.y, 2) == 1); //initial_sign_data.x == 1 ? true : false;
 
       vec3 arc_prev = vec3 (0,0, 0);
+      //for (i = 1; i < num_endpoints; i++)
       for (i = 0; i < num_endpoints; i++)
       {
 	vec3 arc = arc_decode (tex_1D (tex, i + offset));
