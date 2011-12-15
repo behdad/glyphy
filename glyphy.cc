@@ -234,34 +234,28 @@ closest_arcs_to_cell (Point<Coord> square_top_left,
 		      Scalar cell_width,
 		      Scalar cell_height,
 		      Scalar grid_size,
-		      const vector<arc_t> &arc_list,
+		      const vector<arc_t> &arcs,
 		      vector<arc_t> &near_arcs)
 {
   // Find distance between cell center and cell's closest arc.
   point_t center (square_top_left.x + .5 * cell_width,
                   square_top_left.y + .5 * cell_height);
-  double min_distance = INFINITY;
 
-  for (int i = 0; i < arc_list.size (); i++) {
-    arc_t arc = arc_list [i];
-    double current_distance = fabs (arc.distance_to_point (center));
+  double min_squared_distance = INFINITY;
+  for (int i = 0; i < arcs.size (); i++)
+    min_squared_distance = min (min_squared_distance, arcs[i].squared_distance_to_point (center));
 
-    if (current_distance < min_distance) {
-      min_distance = current_distance;
-    }
-  }
+  double min_distance = sqrt (min_squared_distance);
 
   // If d is the distance from the center of the square to the nearest arc, then
-  // all nearest arcs to the square must be at most [d + s/sqrt(2)] from the center.
-  double half_diagonal = sqrt (cell_height * cell_height + cell_width * cell_width) / 1.4;
-  Scalar radius = min_distance + half_diagonal;
-
+  // all nearest arcs to the square must be at most [d + half_diagonal] from the center.
+  double half_diagonal = hypot (cell_height, cell_width) * .5;
+  double radius_squared = pow (min_distance + half_diagonal, 2);
   double faraway = double (grid_size) / MIN_FONT_SIZE;
   if (min_distance - half_diagonal <= faraway)
-    for (int i = 0; i < arc_list.size (); i++) {
-      arc_t current_arc = arc_list [i];
-      if (fabs(current_arc.distance_to_point (center)) <= radius)
-        near_arcs.push_back (current_arc);
+    for (int i = 0; i < arcs.size (); i++) {
+      if (arcs[i].squared_distance_to_point (center) <= radius_squared)
+        near_arcs.push_back (arcs[i]);
     }
 }
 
