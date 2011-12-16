@@ -75,7 +75,7 @@ compile_shader (GLenum type, const GLchar* source)
 
   return shader;
 }
-#define COMPILE_SHADER1(Type,Src) compile_shader (Type, "#version 130\n" #Src)
+#define COMPILE_SHADER1(Type,Src) compile_shader (Type, "#version 120\n" #Src)
 #define COMPILE_SHADER(Type,Src) COMPILE_SHADER1(Type,Src)
 #define gl(name) \
 	for (GLint __ee, __ii = 0; \
@@ -234,18 +234,6 @@ struct rgba_t {
 };
 
 
-#define ARC_ENCODE_X_BITS 12
-#define ARC_ENCODE_Y_BITS 12
-#define ARC_ENCODE_D_BITS (32 - ARC_ENCODE_X_BITS - ARC_ENCODE_Y_BITS)
-#define ARC_ENCODE_X_CHANNEL r
-#define ARC_ENCODE_Y_CHANNEL g
-#define ARC_ENCODE_D_CHANNEL b
-#define ARC_ENCODE_OTHER_CHANNEL a
-
-G_STATIC_ASSERT (8 <= ARC_ENCODE_X_BITS && ARC_ENCODE_X_BITS < 16);
-G_STATIC_ASSERT (8 <= ARC_ENCODE_Y_BITS && ARC_ENCODE_Y_BITS < 16);
-G_STATIC_ASSERT (8 <= ARC_ENCODE_D_BITS && ARC_ENCODE_D_BITS <= 16);
-G_STATIC_ASSERT (ARC_ENCODE_X_BITS + ARC_ENCODE_Y_BITS + ARC_ENCODE_D_BITS <= 32);
 
 static const rgba_t
 arc_encode (double x, double y, double d)
@@ -254,25 +242,23 @@ arc_encode (double x, double y, double d)
 
   // lets do 10 bits for d, and 11 for x and y each 
   unsigned int ix, iy, id;
-  ix = lround (x * ((1 << ARC_ENCODE_X_BITS) - 1));
-  g_assert (ix < (1 << ARC_ENCODE_X_BITS));
-  iy = lround (y * ((1 << ARC_ENCODE_Y_BITS) - 1));
-  g_assert (iy < (1 << ARC_ENCODE_Y_BITS));
+  ix = lround (x * 4095);
+  g_assert (ix < 4096);
+  iy = lround (y * 4095);
+  g_assert (iy < 4096);
 #define MAX_D .54 // TODO (0.25?)
   if (isinf (d))
     id = 0;
   else {
     g_assert (fabs (d) < MAX_D);
-    id = lround (d * ((1 << (ARC_ENCODE_D_BITS - 1)) - 1) / MAX_D + (1 << (ARC_ENCODE_D_BITS - 1)));
+    id = lround (d * 127. / MAX_D + 128);
   }
-  g_assert (id < (1 << ARC_ENCODE_D_BITS));
+  g_assert (id < 256);
 
-  v.ARC_ENCODE_X_CHANNEL = LOWER_BITS (ix, 8, ARC_ENCODE_X_BITS);
-  v.ARC_ENCODE_Y_CHANNEL = LOWER_BITS (iy, 8, ARC_ENCODE_Y_BITS);
-  v.ARC_ENCODE_D_CHANNEL = UPPER_BITS (id, 8, ARC_ENCODE_D_BITS);
-  v.ARC_ENCODE_OTHER_CHANNEL = ((ix >> 8) << (ARC_ENCODE_Y_BITS - 8 + ARC_ENCODE_D_BITS - 8))
-			     | ((iy >> 8) << (ARC_ENCODE_D_BITS - 8))
-			     | (id & ((1 << (ARC_ENCODE_D_BITS - 8)) - 1));
+  v.r = LOWER_BITS (ix, 8, 12);
+  v.g = LOWER_BITS (iy, 8, 12);
+  v.b = id;
+  v.a = ((ix >> 8) << 4) | (iy >> 8);
   return v;
 }
 
@@ -366,14 +352,14 @@ create_texture (const char *font_path, const char UTF8)
   unsigned int offset = header_length;
   tex_data.resize (header_length);
   point_t origin = point_t (grid_min_x, grid_min_y);
-  
+
   for (int row = 0; row < GRID_Y; row++)
     for (int col = 0; col < GRID_X; col++)
     {
       point_t cp0 = origin + vector_t ((col + 0.) * glyph_width / GRID_X, (row + 0.) * glyph_height / GRID_Y);
       point_t cp1 = origin + vector_t ((col + 1.) * glyph_width / GRID_X, (row + 1.) * glyph_height / GRID_Y);
       near_arcs.clear ();
-      
+
       bool inside_glyph;
       closest_arcs_to_cell (cp0, cp1, min_dimension, acc.arcs, near_arcs, inside_glyph); 
 
@@ -382,7 +368,7 @@ create_texture (const char *font_path, const char UTF8)
 		    ((p).y - grid_min_y) / glyph_height, \
 		    (d))
 
-      
+
       point_t p1 = point_t (0, 0);
       for (unsigned i = 0; i < near_arcs.size (); i++)
       {
@@ -434,7 +420,7 @@ create_program (void)
     attribute vec4 a_position;
     attribute vec2 a_texCoord;
     uniform mat4 u_matViewProjection;
-    invariant varying vec2 p;
+    varying vec2 p;
     void main()
     {
       gl_Position = u_matViewProjection * a_position;
@@ -442,10 +428,10 @@ create_program (void)
     }
   );
   fshader = COMPILE_SHADER (GL_FRAGMENT_SHADER,
-    uniform highp sampler2D tex;
+    uniform sampler2D tex;
     uniform ivec2 tex_size;
 
-    invariant varying highp vec2 p;
+    varying vec2 p;
 
     vec2 perpendicular (const vec2 v) { return vec2 (-v.g, v.r); }
     vec2 projection (const vec2 v, const vec2 base) {
@@ -454,22 +440,21 @@ create_program (void)
     }
     int mod (const int a, const int b) { return a - (a / b) * b; }
     int div (const int a, const int b) { return a / b; }
+    int floatToByte (const float v) { return int (v * (256 - 1e-5)); }
 
     vec3 arc_decode (const vec4 v)
     {
-      float x = (float (mod (int (v.ARC_ENCODE_OTHER_CHANNEL * (256-1e-5)) / (1 << (ARC_ENCODE_Y_BITS - 8 + ARC_ENCODE_D_BITS - 8)), (1 << (ARC_ENCODE_X_BITS - 8)))) +
-		 v.ARC_ENCODE_X_CHANNEL) / (1 << (ARC_ENCODE_X_BITS - 8));
-      float y = (float (mod (int (v.ARC_ENCODE_OTHER_CHANNEL * (256-1e-5)) / (1 << (ARC_ENCODE_D_BITS - 8)), (1 << (ARC_ENCODE_Y_BITS - 8)))) +
-		 v.ARC_ENCODE_Y_CHANNEL) / (1 << (ARC_ENCODE_Y_BITS - 8));
-      float d = v.ARC_ENCODE_D_CHANNEL + float (mod (int (v.ARC_ENCODE_OTHER_CHANNEL * (256-1e-5)), (1 << (ARC_ENCODE_D_BITS - 8)))) / (1 << 8);
+      float x = (float (mod (floatToByte (v.a) / 16, 16)) + v.r) / 16;
+      float y = (float (mod (floatToByte (v.a)     , 16)) + v.g) / 16;
+      float d = v.b;
       d = MAX_D * (2 * d - 1);
       return vec3 (x, y, d);
     }
 
     ivec2 rgba_to_pair (const vec4 v)
     {
-      int x = int ((256-1e-5) * v.r) * 256 + int ((256-1e-5) * v.g);
-      int y = int ((256-1e-5) * v.b) * 256 + int ((256-1e-5) * v.a);
+      int x = floatToByte (v.r) * 256 + floatToByte (v.g);
+      int y = floatToByte (v.b) * 256 + floatToByte (v.a);
       return ivec2 (x, y);
     }
 
