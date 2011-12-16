@@ -580,7 +580,7 @@ create_program (void)
 	vec2 line = p1 - p0;
 	vec2 perp = perpendicular (line);
 	vec2 norm = normalize (perp);
-	vec2 c = mix (p0, p1, .5) - perp * ((1 - d*d) / (4 * d));
+	vec2 c = mix (p0, p1, .5) - norm * ((1 - d*d) / (4 * d));
 
 	// Find the distance from p to the nearby arcs.
 	float dist;
@@ -609,14 +609,21 @@ create_program (void)
 	    extended_dist = length (projection (p - p1, p1 - c));
 	  }
 	  
-	  if (extended_dist > min_extended_dist) {
+	  if (extended_dist > min_extended_dist) {	  
 	    min_extended_dist = extended_dist;
+	    
+	    // Use sign from extended distance.
+	    
 	    if ((sign (d) > 0 && distance (p, c) <= distance (p0, c)) ||
 		(sign (d) < 0 && distance (p, c) >= distance (p0, c)))
+//	    float d2 = (d - 1.0) / (1.0 + d);
+//	    vec2 c2 = mix (p0, p1, .5) - perp * ((1 - d2*d2) / (4 * d2));
+//	    if (sign (d2) * sign( dot (p - c2, perpendicular (p0 - c2))) <= 0 &&
+//	        sign (d2) * sign( dot (p - c2, perpendicular (p1 - c2))) >= 0)
+
 	      is_inside = true; //true;
 	    else
 	      is_inside = false;
-	      
 	  }
 	}
 
@@ -634,6 +641,7 @@ create_program (void)
 	  else if (sign (d) * dot (p - c, perpendicular (p1 - c)) < 0) {
 	    min_extended_dist = length (projection (p - p1, p1 - c));
 	  }
+	 
 
 	  if ((distance (p, c) <= distance (p0, c) && sign (d) > 0) ||
 	      (distance (p, c) >= distance (p0, c) && sign (d) < 0))
