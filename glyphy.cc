@@ -446,13 +446,12 @@ create_program (void)
       ivec2 arc_position_data = rgba_to_pair(tex_1D (tex, p_cell_y * GRID_X + p_cell_x));
       int offset = arc_position_data.x;
       int num_endpoints =  arc_position_data.y / 2;
-      
 
       int i;
       float min_dist = 1.;
       float min_point_dist = 1.;
       float min_extended_dist = 1.;
-      
+
       // Default check: is this pixel inside the glyph?
       bool is_inside = (mod(arc_position_data.y, 2) == 1); 
 
