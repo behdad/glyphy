@@ -122,7 +122,7 @@ link_program (GLuint vshader, GLuint fshader)
 
 
 #define MIN_FONT_SIZE 20
-#define GRID_SIZE 32
+#define GRID_SIZE 64
 #define GRID_X GRID_SIZE
 #define GRID_Y GRID_SIZE
 #define TOLERANCE 5e-4
@@ -442,7 +442,7 @@ create_program (void)
       int p_cell_x = int (clamp (p.x, 0., 1.-1e-5) * GRID_X);
       int p_cell_y = int (clamp (p.y, 0., 1.-1e-5) * GRID_Y);
 
-      ivec2 arc_position_data = rgba_to_pair(tex_1D (tex, p_cell_y * GRID_X + p_cell_x));
+      ivec2 arc_position_data = rgba_to_pair (tex_1D (tex, p_cell_y * GRID_X + p_cell_x));
       int offset = arc_position_data.x;
       int num_endpoints =  div (arc_position_data.y, 2);
       int is_inside = mod (arc_position_data.y, 2);
@@ -458,6 +458,12 @@ create_program (void)
 	vec2 c;
 	float d;
       } closest_arc;
+      struct {
+        vec2 p0;
+	vec2 p1;
+	vec2 c;
+	float d;
+      } new_arc;
 
       vec3 arc_prev = vec3 (0,0, 0);
       float min_point_dist = distance (p, arc_prev.rg);
@@ -469,9 +475,6 @@ create_program (void)
 	float d = arc.b;
 	vec2 p1 = arc.rg;
 
-	// for highlighting points
-	min_point_dist = min (min_point_dist, distance (p, p1));
-
 	if (d == -MAX_D) continue;
 	if (abs (d) < 1e-5) d = 1e-5; // cheat
 	// find arc center
@@ -479,6 +482,9 @@ create_program (void)
 	vec2 perp = perpendicular (line);
 	vec2 norm = normalize (perp);
 	vec2 c = mix (p0, p1, .5) - perp * ((1 - d*d) / (4 * d));
+
+	// for highlighting points
+	min_point_dist = min (min_point_dist, distance (p, p1));
 
 	// unsigned distance
 	float dist;
@@ -507,23 +513,37 @@ create_program (void)
 	    float old_extended_dist;
 	    float new_extended_dist;
 
-	    if (sign (d) * dot (p - c, perpendicular (p0 - c)) > 0) {
-	      extended_dist = (dot (p, p0 - c) - dot (p0, p0 - c)) / length (p0 - c);
-	    }
-	    else if (sign (d) * dot (p - c, perpendicular (p1 - c)) < 0) {
-	      extended_dist = (dot (p, p1 - c) - dot (p1, p1 - c)) / length (p1 - c);
+	    new_arc.p0 = p0;
+	    new_arc.p1 = p1;
+	    new_arc.c  = c;
+	    new_arc.d  = d;
+	    if (sign (new_arc.d) * dot (p - new_arc.c, perpendicular (new_arc.p0 - new_arc.c)) > 0)
+	      extended_dist = - sign (new_arc.d) *  dot (p - new_arc.p0, normalize (new_arc.c - new_arc.p0));
+	    else if (sign (new_arc.d) * dot (p - new_arc.c, perpendicular (new_arc.p1 - new_arc.c)) < 0)
+	      extended_dist = - sign (new_arc.d) *  dot (p - new_arc.p1, normalize (new_arc.c - new_arc.p1));
+	    else {
+	      // XXX debug; not_reach
+	      gl_FragColor = vec4(0,1,0,1);
+	      return;
 	    }
 	    new_extended_dist = extended_dist;
 
-	    if (sign (closest_arc.d) * dot (p - c, perpendicular (closest_arc.p0 - c)) > 0) {
-	      extended_dist = (dot (p, closest_arc.p0 - c) - dot (closest_arc.p0, closest_arc.p0 - c)) / length (closest_arc.p0 - c);
-	    }
-	    else if (sign (closest_arc.d) * dot (p - c, perpendicular (closest_arc.p1 - c)) < 0) {
-	      extended_dist = (dot (p, closest_arc.p1 - c) - dot (closest_arc.p1, closest_arc.p1 - c)) / length (closest_arc.p1 - c);
+	    new_arc.p0 = closest_arc.p0;
+	    new_arc.p1 = closest_arc.p1;
+	    new_arc.c  = closest_arc.c;
+	    new_arc.d  = closest_arc.d;
+	    if (sign (new_arc.d) * dot (p - new_arc.c, perpendicular (new_arc.p0 - new_arc.c)) > 0)
+	      extended_dist = - sign (new_arc.d) *  dot (p - new_arc.p0, normalize (new_arc.c - new_arc.p0));
+	    else if (sign (new_arc.d) * dot (p - new_arc.c, perpendicular (new_arc.p1 - new_arc.c)) < 0)
+	      extended_dist = - sign (new_arc.d) *  dot (p - new_arc.p1, normalize (new_arc.c - new_arc.p1));
+	    else {
+	      // XXX debug; not_reach
+	      gl_FragColor = vec4(1,1,0,1);
+	      return;
 	    }
 	    old_extended_dist = extended_dist;
 
-	    if (abs (new_extended_dist) > abs (old_extended_dist)) {
+	    if (abs (new_extended_dist) < abs (old_extended_dist)) {
 	      min_dist = abs (old_extended_dist);
 	      is_inside = old_extended_dist < 0 ? IS_INSIDE_YES : IS_INSIDE_NO;
 	    } else {
