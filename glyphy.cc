@@ -480,7 +480,6 @@ create_program (void)
 	// find arc center
 	vec2 line = p1 - p0;
 	vec2 perp = perpendicular (line);
-	vec2 norm = normalize (perp);
 	vec2 c = mix (p0, p1, .5) - perp * ((1 - d*d) / (4 * d));
 
 	// for highlighting points
