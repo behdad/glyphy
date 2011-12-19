@@ -122,7 +122,7 @@ link_program (GLuint vshader, GLuint fshader)
 
 
 #define MIN_FONT_SIZE 20
-#define GRID_SIZE 128
+#define GRID_SIZE 32
 #define GRID_X GRID_SIZE
 #define GRID_Y GRID_SIZE
 #define TOLERANCE 5e-4
@@ -374,7 +374,6 @@ create_texture (const char *font_path, const char UTF8)
   /* Upload*/
   gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, tex_w, tex_h, 0, GL_RGBA, GL_UNSIGNED_BYTE, &tex_data[0]);
 
-  GLint tex_size[2] = {tex_w, tex_h};
   GLuint program;
   glGetIntegerv (GL_CURRENT_PROGRAM, (GLint *) &program);
   glUniform2i (glGetUniformLocation(program, "tex_size"), tex_w, tex_h);
@@ -383,6 +382,10 @@ create_texture (const char *font_path, const char UTF8)
 
   return texture;
 }
+
+#define IS_INSIDE_NO     0
+#define IS_INSIDE_YES    1
+#define IS_INSIDE_UNSURE 2
 
 static GLuint
 create_program (void)
@@ -406,10 +409,6 @@ create_program (void)
     varying vec2 p;
 
     vec2 perpendicular (const vec2 v) { return vec2 (-v.g, v.r); }
-    vec2 projection (const vec2 v, const vec2 base) {
-      return length (base) < 1e-5 ? vec2 (0,0) :
-		float (dot (v, base)) / float (dot (base, base)) * base;
-    }
     int mod (const int a, const int b) { return a - (a / b) * b; }
     int div (const int a, const int b) { return a / b; }
     int floatToByte (const float v) { return int (v * (256 - 1e-5)); }
@@ -445,107 +444,110 @@ create_program (void)
 
       ivec2 arc_position_data = rgba_to_pair(tex_1D (tex, p_cell_y * GRID_X + p_cell_x));
       int offset = arc_position_data.x;
-      int num_endpoints =  arc_position_data.y / 2;
+      int num_endpoints =  div (arc_position_data.y, 2);
+      int is_inside = mod (arc_position_data.y, 2);
 
       int i;
       float min_dist = 1.;
-      float min_point_dist = 1.;
       float min_extended_dist = 1.;
 
-      // Default check: is this pixel inside the glyph?
-      bool is_inside = (mod(arc_position_data.y, 2) == 1); 
+
+      struct {
+        vec2 p0;
+	vec2 p1;
+	vec2 c;
+	float d;
+      } closest_arc;
 
       vec3 arc_prev = vec3 (0,0, 0);
+      float min_point_dist = distance (p, arc_prev.rg);
       for (i = 0; i < num_endpoints; i++)
       {
 	vec3 arc = arc_decode (tex_1D (tex, i + offset));
 	vec2 p0 = arc_prev.rg;
 	arc_prev = arc;
 	float d = arc.b;
+	vec2 p1 = arc.rg;
+
+	// for highlighting points
+	min_point_dist = min (min_point_dist, distance (p, p1));
+
 	if (d == -MAX_D) continue;
 	if (abs (d) < 1e-5) d = 1e-5; // cheat
-	vec2 p1 = arc.rg;
+	// find arc center
 	vec2 line = p1 - p0;
 	vec2 perp = perpendicular (line);
 	vec2 norm = normalize (perp);
 	vec2 c = mix (p0, p1, .5) - perp * ((1 - d*d) / (4 * d));
 
-	// Find the distance from p to the nearby arcs.
+	// unsigned distance
 	float dist;
 	if (sign (d) * dot (p - c, perpendicular (p0 - c)) <= 0 &&
 	    sign (d) * dot (p - c, perpendicular (p1 - c)) >= 0)
 	{
-	  dist = abs (distance (p, c) - distance (p0, c));
+	  float signed_dist = distance (p, c) - distance (p0, c);
+	  dist = abs (signed_dist);
+	  if (dist <= min_dist) {
+	    min_dist = dist;
+	    is_inside = (sign (d) * sign (signed_dist)) < 0 ? IS_INSIDE_YES : IS_INSIDE_NO;
+	  }
 	} else {
 	  dist = min (distance (p, p0), distance (p, p1));
+	  if (dist < min_dist) {
+	    min_dist = dist;
+	    is_inside = IS_INSIDE_UNSURE;
+	    closest_arc.p0 = p0;
+	    closest_arc.p1 = p1;
+	    closest_arc.c  = c;
+	    closest_arc.d  = d;
+	  } else if (dist == min_dist && is_inside == IS_INSIDE_UNSURE) {
+	    // If this new distance is the same as the current minimum, compare extended distances.
+	    // Take the sign from the arc with larger extended distance.
+	    float extended_dist;
+	    float old_extended_dist;
+	    float new_extended_dist;
+
+	    if (sign (d) * dot (p - c, perpendicular (p0 - c)) > 0) {
+	      extended_dist = (dot (p, p0 - c) - dot (p0, p0 - c)) / length (p0 - c);
+	    }
+	    else if (sign (d) * dot (p - c, perpendicular (p1 - c)) < 0) {
+	      extended_dist = (dot (p, p1 - c) - dot (p1, p1 - c)) / length (p1 - c);
+	    }
+	    new_extended_dist = extended_dist;
+
+	    if (sign (closest_arc.d) * dot (p - c, perpendicular (closest_arc.p0 - c)) > 0) {
+	      extended_dist = (dot (p, closest_arc.p0 - c) - dot (closest_arc.p0, closest_arc.p0 - c)) / length (closest_arc.p0 - c);
+	    }
+	    else if (sign (closest_arc.d) * dot (p - c, perpendicular (closest_arc.p1 - c)) < 0) {
+	      extended_dist = (dot (p, closest_arc.p1 - c) - dot (closest_arc.p1, closest_arc.p1 - c)) / length (closest_arc.p1 - c);
+	    }
+	    old_extended_dist = extended_dist;
+
+	    if (abs (new_extended_dist) > abs (old_extended_dist)) {
+	      min_dist = abs (old_extended_dist);
+	      is_inside = old_extended_dist < 0 ? IS_INSIDE_YES : IS_INSIDE_NO;
+	    } else {
+	      min_dist = abs (new_extended_dist);
+	      is_inside = new_extended_dist < 0 ? IS_INSIDE_YES : IS_INSIDE_NO;
+	    }
+	  }
 	}
-
-	// If this new distance is roughly the same as the current minimum, compare extended distances.
-	// Take the sign from the arc with larger extended distance.
-	if (abs(dist - min_dist) < 1e-5) {
-	  float extended_dist;
-	  
-	  /*************************************************************************** TODO: I am pretty sure something is wrong here. *****/
-	  if (sign (d) * dot (p - c, perpendicular (p0 - c)) <= 0 &&
-	      sign (d) * dot (p - c, perpendicular (p1 - c)) >= 0) {
-	    extended_dist = dist;
-	  }
-	  else if (sign (d) * dot (p - c, perpendicular (p0 - c)) > 0) {
-	    extended_dist = length (projection (p - p0, p0 - c));
-	  }
-	  else if (sign (d) * dot (p - c, perpendicular (p1 - c)) < 0) {
-	    extended_dist = length (projection (p - p1, p1 - c));
-	  }
-	  
-	  if (extended_dist > min_extended_dist) {
-	    min_extended_dist = extended_dist;
-	    if ((sign (d) > 0 && distance (p, c) <= distance (p0, c)) ||
-		(sign (d) < 0 && distance (p, c) >= distance (p0, c)))
-	      is_inside = true; //true;
-	    else
-	      is_inside = false;
-	      
-	  }
-	}
-
-	else if (dist < min_dist) {
-	  min_dist = dist;
-
-	  // Get the new minimum extended distance.
-	  if (sign (d) * dot (p - c, perpendicular (p0 - c)) <= 0 &&
-	      sign (d) * dot (p - c, perpendicular (p1 - c)) >= 0) {
-	    min_extended_dist = dist;
-	  }
-	  else if (sign (d) * dot (p - c, perpendicular (p0 - c)) > 0) {
-	    min_extended_dist = length (projection (p - p0, p0 - c));
-	  }
-	  else if (sign (d) * dot (p - c, perpendicular (p1 - c)) < 0) {
-	    min_extended_dist = length (projection (p - p1, p1 - c));
-	  }
-
-	  if ((distance (p, c) <= distance (p0, c) && sign (d) > 0) ||
-	      (distance (p, c) >= distance (p0, c) && sign (d) < 0))
-	    is_inside = true; // true
-	  else
-	    is_inside = false;
-	}
-	
-	
-
-	float point_dist = min (distance (p, p0), distance (p, p1));
-	min_point_dist = min (min_point_dist, point_dist);
       }
-    
+
+      min_dist *= is_inside == IS_INSIDE_YES ? -1 : +1;
+
+
       gl_FragColor = mix(vec4(1,0,0,1),
 			 vec4(0,1,0,1) * ((1 + sin (min_dist / m))) * sin (pow (min_dist, .8) * M_PI),
-			 smoothstep (0, 2 * m, min_dist));
+			 smoothstep (0, 2 * m, abs (min_dist)));
       gl_FragColor = mix(vec4(0,1,0,1),
 			 gl_FragColor,
 			 smoothstep (.002, .005, min_point_dist));
-      gl_FragColor += vec4(0,0,1,1) * num_endpoints * 16./255.;
-      gl_FragColor += vec4(.5,0,0,1) * smoothstep (-m, m, is_inside ? min_dist : -min_dist);
 
-//      gl_FragColor = vec4(1,1,1,1) * smoothstep (-m, m, is_inside ? -min_dist : min_dist);
+      gl_FragColor += vec4(0,0,1,1) * num_endpoints * 16./255.;
+      gl_FragColor += vec4(.5,0,0,1) * smoothstep (-m, m, -min_dist);
+
+//      gl_FragColor = vec4(1,1,1,1) * smoothstep (-m, m, min_dist);
     }
   );
   program = link_program (vshader, fshader);
