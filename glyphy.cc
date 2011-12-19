@@ -544,8 +544,10 @@ create_program (void)
 	    old_extended_dist = extended_dist;
 
 	    if (abs (new_extended_dist) > abs (old_extended_dist)) {
+//	      min_dist = abs (new_extended_dist);
 	      is_inside = old_extended_dist < 0 ? IS_INSIDE_YES : IS_INSIDE_NO;
 	    } else {
+//	      min_dist = abs (old_extended_dist);
 	      is_inside = new_extended_dist < 0 ? IS_INSIDE_YES : IS_INSIDE_NO;
 	    }
 	  }
