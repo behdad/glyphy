@@ -303,11 +303,23 @@ create_texture (const char *font_path, const char UTF8)
 	  (int) acc.arcs.size (), e, tolerance, round (100 * e / tolerance), e <= tolerance ? "PASS" : "FAIL");
 
   /* TODO: replace this with analytical extents of the arcs. */
-  int grid_min_x, grid_max_x, grid_min_y, grid_max_y, glyph_width, glyph_height;
-  grid_min_x = face->glyph->metrics.horiBearingX;
-  grid_min_y = face->glyph->metrics.horiBearingY - face->glyph->metrics.height;
-  grid_max_x = face->glyph->metrics.horiBearingX + face->glyph->metrics.width;
-  grid_max_y = face->glyph->metrics.horiBearingY;
+  int grid_min_x = INFINITY;
+  int grid_max_x = -INFINITY;
+  int grid_min_y = INFINITY;
+  int grid_max_y = -INFINITY;
+  int glyph_width, glyph_height;
+  
+  for (int i = 0; i < acc.arcs.size (); i++) {
+    grid_min_x = std::min(grid_min_x, (int) acc.arcs[i].leftmost ().x.floor ());
+    grid_max_x = std::max(grid_max_x, (int) acc.arcs[i].rightmost ().x.ceil ());
+    grid_min_y = std::min(grid_min_y, (int) acc.arcs[i].lowest ().y.floor ());
+    grid_max_y = std::max(grid_max_y, (int) acc.arcs[i].highest ().y.ceil ());
+  }
+  
+//  grid_min_x = face->glyph->metrics.horiBearingX;
+//  grid_min_y = face->glyph->metrics.horiBearingY - face->glyph->metrics.height;
+//  grid_max_x = face->glyph->metrics.horiBearingX + face->glyph->metrics.width;
+//  grid_max_y = face->glyph->metrics.horiBearingY;
 
   glyph_width = grid_max_x - grid_min_x;
   glyph_height = grid_max_y - grid_min_y;
@@ -563,7 +575,6 @@ create_program (void)
       min_dist *= is_inside == IS_INSIDE_YES ? -1 : +1;
 
 
-
       gl_FragColor = mix(vec4(1,0,0,1),
 			 vec4(0,1,0,1) * ((1 + sin (min_dist / m))) * sin (pow (min_dist, .8) * M_PI),
 			 smoothstep (0, 2 * m, abs (min_dist)));
@@ -575,7 +586,7 @@ create_program (void)
 
       gl_FragColor += vec4(.5,0,0,1) * smoothstep (-m, m, -min_dist);
 
-//      gl_FragColor = vec4(1,1,1,1) * smoothstep (-m, m, min_dist);
+   //   gl_FragColor = vec4(1,1,1,1) * smoothstep (-m, m, min_dist);
 
     }
   );

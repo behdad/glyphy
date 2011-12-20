@@ -273,6 +273,11 @@ struct Arc {
   inline Scalar signed_squared_distance_to_point (const Point<Coord> &p) const;
   inline Scalar max_distance_to_point (const Point<Coord> &p) const;
   inline Point<Coord> nearest_part_to_point (const Point<Coord> &p) const;
+  
+  inline Point<Coord> leftmost (void) const;
+  inline Point<Coord> rightmost (void) const;
+  inline Point<Coord> highest (void) const;
+  inline Point<Coord> lowest (void) const;
 
   Point<Coord> p0, p1;
   Scalar d; /* Depth */
@@ -1020,6 +1025,39 @@ inline Point<Coord> Arc<Coord, Scalar>::nearest_part_to_point (const Point<Coord
   double d2 = p.squared_distance_to_point (p1);
   return (d1 < d2 ? p0 : p1);
 }
+
+template <typename Coord, typename Scalar>
+inline Point<Coord> Arc<Coord, Scalar>::leftmost (void) const {
+  Point<Coord> answer = (center ().x - radius (), center ().y);
+  if (sector_contains_point (answer))
+    return answer;
+  return (p0.x < p1.x ? p0 : p1);
+}
+
+template <typename Coord, typename Scalar>
+inline Point<Coord> Arc<Coord, Scalar>::rightmost (void) const {
+  Point<Coord> answer = (center ().x + radius (), center ().y);
+  if (sector_contains_point (answer))
+    return answer;
+  return (p0.x > p1.x ? p0 : p1);
+}
+
+template <typename Coord, typename Scalar>
+inline Point<Coord> Arc<Coord, Scalar>::lowest (void) const {
+  Point<Coord> answer = (center ().x, center ().y - radius ());
+  if (sector_contains_point (answer))
+    return answer;
+  return (p0.y < p1.y ? p0 : p1);
+}
+
+template <typename Coord, typename Scalar>
+inline Point<Coord> Arc<Coord, Scalar>::highest (void) const {
+  Point<Coord> answer = (center ().x, center ().y + radius ());
+  if (sector_contains_point (answer))
+    return answer;
+  return (p0.y > p1.y ? p0 : p1);
+}
+
 
 /* Bezier */
 
