@@ -52,27 +52,27 @@ grid_SOURCES = \
 
 endif
 
-if HAVE_CAIRO_FT
-if HAVE_GTK_2_0
-if HAVE_GDK_X11_2_0
-if HAVE_EGL
-if HAVE_GLESV2
+if HAVE_GLIB_2_0
+if HAVE_FREETYPE2
+if HAVE_GLU
+if HAVE_GLEW
+if HAVE_GLUT
 
 bin_PROGRAMS += glyphy
 
 glyphy_CPPFLAGS = \
-		$(CAIRO_FT_CFLAGS) \
-		$(GTK_2_0_CFLAGS) \
-		$(GDK_X11_2_0_CFLAGS) \
-		$(EGL_CFLAGS) \
-		$(GLESV2_CFLAGS) \
+		$(GLIB_2_0_CFLAGS) \
+		$(FREETYPE2_CFLAGS) \
+		$(GLU_CFLAGS) \
+		$(GLEW_CFLAGS) \
+		$(GLUT_CFLAGS) \
 		$(NULL)
 glyphy_LDADD = \
-		$(CAIRO_FT_LIBS) \
-		$(GTK_2_0_LIBS) \
-		$(GDK_X11_2_0_LIBS) \
-		$(EGL_LIBS) \
-		$(GLESV2_LIBS) \
+		$(GLIB_2_0_LIBS) \
+		$(FREETYPE2_LIBS) \
+		$(GLU_LIBS) \
+		$(GLEW_LIBS) \
+		$(GLUT_LIBS) \
 		-lm \
 		$(NULL)
 glyphy_SOURCES = \

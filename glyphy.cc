@@ -1,15 +1,11 @@
-#include <gtk/gtk.h>
-#include <gdk/gdkx.h>
-#include <X11/Xlib.h>
+#include <GL/glew.h>
+#if defined(__APPLE__)
+    #include <Glut/glut.h>
+#else
+    #include <GL/glut.h>
+#endif
 
-#include <GLES2/gl2.h>
-#define GL_GLEXT_PROTOTYPES
-#include <GLES2/gl2ext.h>
-#include <EGL/egl.h>
-#define EGL_EGLEXT_PROTOTYPES
-#include <EGL/eglext.h>
-
-#include <cairo.h>
+#include <glib.h>
 
 #include <math.h>
 #include <stdlib.h>
@@ -17,19 +13,16 @@
 #include <unistd.h>
 
 #include <assert.h>
-#include <cairo-ft.h>
 #include <string>
 #include <list>
 
 #include "geometry.hh"
-#include "cairo-helper.hh"
 #include "freetype-helper.hh"
 #include "sample-curves.hh"
 #include "bezier-arc-approximation.hh"
 
 using namespace std;
 using namespace Geometry;
-using namespace CairoHelper;
 using namespace FreeTypeHelper;
 using namespace SampleCurves;
 using namespace BezierArcApproximation;
@@ -82,7 +75,7 @@ compile_shader (GLenum type, const GLchar* source)
 
   return shader;
 }
-#define COMPILE_SHADER1(Type,Src) compile_shader (Type, "#version 130\n" #Src)
+#define COMPILE_SHADER1(Type,Src) compile_shader (Type, "#version 120\n" #Src)
 #define COMPILE_SHADER(Type,Src) COMPILE_SHADER1(Type,Src)
 #define gl(name) \
 	for (GLint __ee, __ii = 0; \
@@ -124,98 +117,12 @@ link_program (GLuint vshader, GLuint fshader)
 }
 
 
-static void
-create_egl_for_drawable (EGLDisplay edpy, GdkDrawable *drawable, EGLSurface *surface, EGLContext *context)
-{
-  EGLConfig econfig;
-  EGLint num_configs;
-  const EGLint attribs[] = {
-    EGL_BUFFER_SIZE, 32,
-    EGL_RED_SIZE, 8,
-    EGL_GREEN_SIZE, 8,
-    EGL_BLUE_SIZE, 8,
-    EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-    EGL_SURFACE_TYPE, GDK_IS_WINDOW (drawable) ? EGL_WINDOW_BIT : EGL_PIXMAP_BIT,
-    EGL_NONE
-  };
-  const EGLint ctx_attribs[] = {
-    EGL_CONTEXT_CLIENT_VERSION, 2,
-    EGL_NONE
-  };
-
-  if (!eglChooseConfig(edpy, attribs, &econfig, 1, &num_configs) || !num_configs)
-    die ("Could not find EGL config");
-
-  if (!(*surface = eglCreateWindowSurface (edpy, econfig, GDK_DRAWABLE_XID (drawable), NULL)))
-    die ("Could not create EGL surface");
-
-  if (!(*context = eglCreateContext (edpy, econfig, EGL_NO_CONTEXT, ctx_attribs)))
-    die ("Could not create EGL context");
-}
-
-static GQuark
-drawable_egl_quark (void)
-{
-  static GQuark quark = 0;
-  if (G_UNLIKELY (!quark))
-    quark = g_quark_from_string ("egl_drawable");
-  return quark;
-}
-
-typedef struct {
-  EGLDisplay display;
-  EGLSurface surface;
-  EGLContext context;
-} drawable_egl_t;
-
-static void
-drawable_egl_destroy (drawable_egl_t *e)
-{
-  eglDestroyContext (e->display, e->context);
-  eglDestroySurface (e->display, e->surface);
-  g_slice_free (drawable_egl_t, e);
-}
-
-static drawable_egl_t *
-drawable_get_egl (GdkDrawable *drawable)
-{
-  drawable_egl_t *e;
-
-  if (G_UNLIKELY (!(e = (drawable_egl_t *) g_object_get_qdata ((GObject *) drawable, drawable_egl_quark ())))) {
-    e = g_slice_new (drawable_egl_t);
-    e->display = eglGetDisplay (GDK_DRAWABLE_XDISPLAY (drawable));
-    create_egl_for_drawable (e->display, drawable, &e->surface, &e->context);
-    g_object_set_qdata_full (G_OBJECT (drawable), drawable_egl_quark (), e, (GDestroyNotify) drawable_egl_destroy);
-  }
-
-  return e;
-}
-
-static void
-drawable_make_current (GdkDrawable *drawable)
-{
-  drawable_egl_t *e = drawable_get_egl (drawable);
-  eglMakeCurrent(e->display, e->surface, e->surface, e->context);
-}
-
-static void
-drawable_swap_buffers (GdkDrawable *drawable)
-{
-  drawable_egl_t *e = drawable_get_egl (drawable);
-  eglSwapBuffers (e->display, e->surface);
-  glFinish ();
-}
-
-
-
-
-
 
 
 
 
 #define MIN_FONT_SIZE 20
-#define GRID_SIZE 128
+#define GRID_SIZE 64
 #define GRID_X GRID_SIZE
 #define GRID_Y GRID_SIZE
 #define TOLERANCE 1e-6
@@ -301,21 +208,6 @@ struct rgba_t {
 };
 
 
-#define ARC_ENCODE_X_BITS 12
-#define ARC_ENCODE_Y_BITS 12
-#define ARC_ENCODE_D_BITS (32 - ARC_ENCODE_X_BITS - ARC_ENCODE_Y_BITS)
-#define ARC_ENCODE_X_CHANNEL r
-#define ARC_ENCODE_Y_CHANNEL g
-#define ARC_ENCODE_D_CHANNEL b
-#define ARC_ENCODE_OTHER_CHANNEL a
-
-
-
-
-G_STATIC_ASSERT (8 <= ARC_ENCODE_X_BITS && ARC_ENCODE_X_BITS < 16);
-G_STATIC_ASSERT (8 <= ARC_ENCODE_Y_BITS && ARC_ENCODE_Y_BITS < 16);
-G_STATIC_ASSERT (8 <= ARC_ENCODE_D_BITS && ARC_ENCODE_D_BITS <= 16);
-G_STATIC_ASSERT (ARC_ENCODE_X_BITS + ARC_ENCODE_Y_BITS + ARC_ENCODE_D_BITS <= 32);
 
 static const rgba_t
 arc_encode (double x, double y, double d)
@@ -324,26 +216,25 @@ arc_encode (double x, double y, double d)
 
   // lets do 10 bits for d, and 11 for x and y each 
   unsigned int ix, iy, id;
-  ix = lround (x * ((1 << ARC_ENCODE_X_BITS) - 1));
-  g_assert (ix < (1 << ARC_ENCODE_X_BITS));
-  iy = lround (y * ((1 << ARC_ENCODE_Y_BITS) - 1));
-  g_assert (iy < (1 << ARC_ENCODE_Y_BITS));
+  ix = lround (x * 4095);
+  g_assert (ix < 4096);
+  iy = lround (y * 4095);
+  g_assert (iy < 4096);
 #define MAX_D .54 // TODO (0.25?)
   if (isinf (d))
     id = 0;
   else {
     g_assert (fabs (d) < MAX_D);
-    
-    id = lround (d * ((1 << (ARC_ENCODE_D_BITS - 1)) - 1) / MAX_D + (1 << (ARC_ENCODE_D_BITS - 1)));
-  }
-  g_assert (id < (1 << ARC_ENCODE_D_BITS));
 
-  v.ARC_ENCODE_X_CHANNEL = LOWER_BITS (ix, 8, ARC_ENCODE_X_BITS);
-  v.ARC_ENCODE_Y_CHANNEL = LOWER_BITS (iy, 8, ARC_ENCODE_Y_BITS);
-  v.ARC_ENCODE_D_CHANNEL = UPPER_BITS (id, 8, ARC_ENCODE_D_BITS);
-  v.ARC_ENCODE_OTHER_CHANNEL = ((ix >> 8) << (ARC_ENCODE_Y_BITS - 8 + ARC_ENCODE_D_BITS - 8))
-			     | ((iy >> 8) << (ARC_ENCODE_D_BITS - 8))
-			     | (id & ((1 << (ARC_ENCODE_D_BITS - 8)) - 1));
+    id = lround (d * 127. / MAX_D + 128);
+
+  }
+  g_assert (id < 256);
+
+  v.r = LOWER_BITS (ix, 8, 12);
+  v.g = LOWER_BITS (iy, 8, 12);
+  v.b = id;
+  v.a = ((ix >> 8) << 4) | (iy >> 8);
   return v;
 }
 
@@ -362,7 +253,7 @@ pair_to_rgba (unsigned int num1, unsigned int num2)
 
 
 static GLint
-create_texture (const char *font_path, const char UTF8, GLint program)
+create_texture (const char *font_path, const char UTF8)
 {
   FT_Face face;
   FT_Library library;
@@ -424,10 +315,6 @@ create_texture (const char *font_path, const char UTF8, GLint program)
   /* XXX */
   glyph_width = glyph_height = std::max (glyph_width, glyph_height);
 
-  double box_width = glyph_width / GRID_X;
-  double box_height = glyph_height / GRID_Y;
-
-
 
 
   // Make a 2d grid for arc/cell information.
@@ -441,14 +328,14 @@ create_texture (const char *font_path, const char UTF8, GLint program)
   unsigned int offset = header_length;
   tex_data.resize (header_length);
   point_t origin = point_t (grid_min_x, grid_min_y);
-  
+
   for (int row = 0; row < GRID_Y; row++)
     for (int col = 0; col < GRID_X; col++)
     {
       point_t cp0 = origin + vector_t ((col + 0.) * glyph_width / GRID_X, (row + 0.) * glyph_height / GRID_Y);
       point_t cp1 = origin + vector_t ((col + 1.) * glyph_width / GRID_X, (row + 1.) * glyph_height / GRID_Y);
       near_arcs.clear ();
-      
+
       bool inside_glyph;
       closest_arcs_to_cell (cp0, cp1, min_dimension, acc.arcs, near_arcs, inside_glyph); 
 
@@ -457,7 +344,7 @@ create_texture (const char *font_path, const char UTF8, GLint program)
 		    ((p).y - grid_min_y) / glyph_height, \
 		    (d))
 
-      
+
       point_t p1 = point_t (0, 0);
       for (unsigned i = 0; i < near_arcs.size (); i++)
       {
@@ -491,11 +378,18 @@ create_texture (const char *font_path, const char UTF8, GLint program)
   /* Upload*/
   gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, tex_w, tex_h, 0, GL_RGBA, GL_UNSIGNED_BYTE, &tex_data[0]);
 
-  GLint tex_size[2] = {tex_w, tex_h};
+  GLuint program;
+  glGetIntegerv (GL_CURRENT_PROGRAM, (GLint *) &program);
   glUniform2i (glGetUniformLocation(program, "tex_size"), tex_w, tex_h);
   glUniform1i (glGetUniformLocation(program, "tex"), 0);
   glActiveTexture (GL_TEXTURE0);
+
+  return texture;
 }
+
+#define IS_INSIDE_NO     0
+#define IS_INSIDE_YES    1
+#define IS_INSIDE_UNSURE 2
 
 static GLuint
 create_program (void)
@@ -505,7 +399,7 @@ create_program (void)
     attribute vec4 a_position;
     attribute vec2 a_texCoord;
     uniform mat4 u_matViewProjection;
-    invariant varying vec2 p;
+    varying vec2 p;
     void main()
     {
       gl_Position = u_matViewProjection * a_position;
@@ -513,34 +407,29 @@ create_program (void)
     }
   );
   fshader = COMPILE_SHADER (GL_FRAGMENT_SHADER,
-    uniform highp sampler2D tex;
+    uniform sampler2D tex;
     uniform ivec2 tex_size;
 
-    invariant varying highp vec2 p;
+    varying vec2 p;
 
     vec2 perpendicular (const vec2 v) { return vec2 (-v.g, v.r); }
-    vec2 projection (const vec2 v, const vec2 base) {
-      return length (base) < 1e-5 ? vec2 (0,0) :
-		float (dot (v, base)) / float (dot (base, base)) * base;
-    }
     int mod (const int a, const int b) { return a - (a / b) * b; }
     int div (const int a, const int b) { return a / b; }
+    int floatToByte (const float v) { return int (v * (256 - 1e-5)); }
 
     vec3 arc_decode (const vec4 v)
     {
-      float x = (float (mod (int (v.ARC_ENCODE_OTHER_CHANNEL * (256-1e-5)) / (1 << (ARC_ENCODE_Y_BITS - 8 + ARC_ENCODE_D_BITS - 8)), (1 << (ARC_ENCODE_X_BITS - 8)))) +
-		 v.ARC_ENCODE_X_CHANNEL) / (1 << (ARC_ENCODE_X_BITS - 8));
-      float y = (float (mod (int (v.ARC_ENCODE_OTHER_CHANNEL * (256-1e-5)) / (1 << (ARC_ENCODE_D_BITS - 8)), (1 << (ARC_ENCODE_Y_BITS - 8)))) +
-		 v.ARC_ENCODE_Y_CHANNEL) / (1 << (ARC_ENCODE_Y_BITS - 8));
-      float d = v.ARC_ENCODE_D_CHANNEL + float (mod (int (v.ARC_ENCODE_OTHER_CHANNEL * (256-1e-5)), (1 << (ARC_ENCODE_D_BITS - 8)))) / (1 << 8);
+      float x = (float (mod (floatToByte (v.a) / 16, 16)) + v.r) / 16;
+      float y = (float (mod (floatToByte (v.a)     , 16)) + v.g) / 16;
+      float d = v.b;
       d = MAX_D * (2 * d - 1);
       return vec3 (x, y, d);
     }
 
     ivec2 rgba_to_pair (const vec4 v)
     {
-      int x = int ((256-1e-5) * v.r) * 256 * 256 + int ((256-1e-5) * v.g) * 256 + int ((256-1e-5) * v.b);
-      int y = int ((256-1e-5) * v.a);
+      int x = (floatToByte (v.r) * 256 + floatToByte (v.g)) * 256 + floatToByte (v.b);
+      int y = floatToByte (v.a);
       return ivec2 (x, y);
     }
 
@@ -552,191 +441,223 @@ create_program (void)
 
     void main()
     {
-      float m = length (vec2 (float (dFdy (p)), float (dFdx (p)))); /* isotropic antialiasing */
+//      float m = length (vec2 (float (dFdy (p)), float (dFdx (p)))); /* isotropic antialiasing */
+      float m = float (fwidth (p));//length (vec2 (float (dFdy (p)), float (dFdx (p)))); /* isotropic antialiasing */
 
       int p_cell_x = int (clamp (p.x, 0., 1.-1e-5) * GRID_X);
       int p_cell_y = int (clamp (p.y, 0., 1.-1e-5) * GRID_Y);
 
-      ivec2 arc_position_data = rgba_to_pair(tex_1D (tex, p_cell_y * GRID_X + p_cell_x));
+      ivec2 arc_position_data = rgba_to_pair (tex_1D (tex, p_cell_y * GRID_X + p_cell_x));
       int offset = arc_position_data.x;
-      int num_endpoints =  arc_position_data.y / 2;
-      
+      int num_endpoints =  div (arc_position_data.y, 2);
+      int is_inside = mod (arc_position_data.y, 2);
 
       int i;
       float min_dist = 1.;
-      float min_point_dist = 1.;
       float min_extended_dist = 1.;
-      
-      // Default check: is this pixel inside the glyph?
-      bool is_inside = (mod(arc_position_data.y, 2) == 1); 
+
+
+      struct {
+        vec2 p0;
+	vec2 p1;
+	vec2 c;
+	float d;
+      } closest_arc;
+      struct {
+        vec2 p0;
+	vec2 p1;
+	vec2 c;
+	float d;
+      } new_arc;
 
       vec3 arc_prev = vec3 (0,0, 0);
+      float min_point_dist = distance (p, arc_prev.rg);
       for (i = 0; i < num_endpoints; i++)
       {
 	vec3 arc = arc_decode (tex_1D (tex, i + offset));
 	vec2 p0 = arc_prev.rg;
 	arc_prev = arc;
 	float d = arc.b;
+	vec2 p1 = arc.rg;
+
 	if (d == -MAX_D) continue;
 	if (abs (d) < 1e-5) d = 1e-5; // cheat
-	vec2 p1 = arc.rg;
+	// find arc center
 	vec2 line = p1 - p0;
 	vec2 perp = perpendicular (line);
-	vec2 norm = normalize (perp);
-	vec2 c = mix (p0, p1, .5) - norm * ((1 - d*d) / (4 * d));
+	vec2 c = mix (p0, p1, .5) - perp * ((1 - d*d) / (4 * d));
 
-	// Find the distance from p to the nearby arcs.
+	// for highlighting points
+	min_point_dist = min (min_point_dist, distance (p, p1));
+
+	// unsigned distance
 	float dist;
 	if (sign (d) * dot (p - c, perpendicular (p0 - c)) <= 0 &&
 	    sign (d) * dot (p - c, perpendicular (p1 - c)) >= 0)
 	{
-	  dist = abs (distance (p, c) - distance (p0, c));
+	  float signed_dist = distance (p, c) - distance (p0, c);
+	  dist = abs (signed_dist);
+	  if (dist <= min_dist) {
+	    min_dist = dist;
+	    is_inside = (sign (d) * sign (signed_dist)) < 0 ? IS_INSIDE_YES : IS_INSIDE_NO;
+	  }
 	} else {
 	  dist = min (distance (p, p0), distance (p, p1));
+
+	  if (dist < min_dist) {
+	    min_dist = dist;
+	    is_inside = IS_INSIDE_UNSURE;
+	    closest_arc.p0 = p0;
+	    closest_arc.p1 = p1;
+	    closest_arc.c  = c;
+	    closest_arc.d  = d;
+	  } else if (dist == min_dist && is_inside == IS_INSIDE_UNSURE) {
+	    // If this new distance is the same as the current minimum, compare extended distances.
+	    // Take the sign from the arc with larger extended distance.
+	    float extended_dist;
+	    float old_extended_dist;
+	    float new_extended_dist;
+
+	    new_arc.p0 = p0;
+	    new_arc.p1 = p1;
+	    new_arc.c  = c;
+	    new_arc.d  = d;
+	    if (sign (new_arc.d) * dot (p - new_arc.c, perpendicular (new_arc.p0 - new_arc.c)) > 0)
+	      extended_dist = - sign (new_arc.d) *  dot (p - new_arc.p0, normalize (new_arc.c - new_arc.p0));
+	    else if (sign (new_arc.d) * dot (p - new_arc.c, perpendicular (new_arc.p1 - new_arc.c)) < 0)
+	      extended_dist = - sign (new_arc.d) *  dot (p - new_arc.p1, normalize (new_arc.c - new_arc.p1));
+	    else {
+	      // XXX debug; not_reach
+	      gl_FragColor = vec4(0,1,0,1);
+	      return;
+	    }
+	    new_extended_dist = extended_dist;
+
+	    new_arc.p0 = closest_arc.p0;
+	    new_arc.p1 = closest_arc.p1;
+	    new_arc.c  = closest_arc.c;
+	    new_arc.d  = closest_arc.d;
+	    if (sign (new_arc.d) * dot (p - new_arc.c, perpendicular (new_arc.p0 - new_arc.c)) > 0)
+	      extended_dist = - sign (new_arc.d) *  dot (p - new_arc.p0, normalize (new_arc.c - new_arc.p0));
+	    else if (sign (new_arc.d) * dot (p - new_arc.c, perpendicular (new_arc.p1 - new_arc.c)) < 0)
+	      extended_dist = - sign (new_arc.d) *  dot (p - new_arc.p1, normalize (new_arc.c - new_arc.p1));
+	    else {
+	      // XXX debug; not_reach
+	      gl_FragColor = vec4(1,1,0,1);
+	      return;
+	    }
+	    old_extended_dist = extended_dist;
+
+	    if (abs (new_extended_dist) > abs (old_extended_dist)) {
+//	      min_dist = abs (new_extended_dist);
+	      is_inside = old_extended_dist < 0 ? IS_INSIDE_YES : IS_INSIDE_NO;
+	    } else {
+//	      min_dist = abs (old_extended_dist);
+	      is_inside = new_extended_dist < 0 ? IS_INSIDE_YES : IS_INSIDE_NO;
+	    }
+
+	  }
 	}
-
-	// If this new distance is roughly the same as the current minimum, compare extended distances.
-	// Take the sign from the arc with larger extended distance.
-	if (abs(dist - min_dist) < 1e-5) {
-	  float extended_dist;
-	  
-	  /*************************************************************************** TODO: I am pretty sure something is wrong here. *****/
-	  if (sign (d) * dot (p - c, perpendicular (p0 - c)) <= 0 &&
-	      sign (d) * dot (p - c, perpendicular (p1 - c)) >= 0) {
-	    extended_dist = dist;
-	  }
-	  else if (sign (d) * dot (p - c, perpendicular (p0 - c)) > 0) {
-	    extended_dist = length (projection (p - p0, p0 - c));
-	  }
-	  else if (sign (d) * dot (p - c, perpendicular (p1 - c)) < 0) {
-	    extended_dist = length (projection (p - p1, p1 - c));
-	  }
-	  
-	  if (extended_dist > min_extended_dist) {	  
-	    min_extended_dist = extended_dist;
-	    
-	    // Use sign from extended distance.
-	    
-	    if ((sign (d) > 0 && distance (p, c) <= distance (p0, c)) ||
-		(sign (d) < 0 && distance (p, c) >= distance (p0, c)))
-//	    float d2 = (d - 1.0) / (1.0 + d);
-//	    vec2 c2 = mix (p0, p1, .5) - perp * ((1 - d2*d2) / (4 * d2));
-//	    if (sign (d2) * sign( dot (p - c2, perpendicular (p0 - c2))) <= 0 &&
-//	        sign (d2) * sign( dot (p - c2, perpendicular (p1 - c2))) >= 0)
-
-	      is_inside = true; //true;
-	    else
-	      is_inside = false;
-	  }
-	}
-
-	else if (dist < min_dist) {
-	  min_dist = dist;
-
-	  // Get the new minimum extended distance.
-	  if (sign (d) * dot (p - c, perpendicular (p0 - c)) <= 0 &&
-	      sign (d) * dot (p - c, perpendicular (p1 - c)) >= 0) {
-	    min_extended_dist = dist;
-	  }
-	  else if (sign (d) * dot (p - c, perpendicular (p0 - c)) > 0) {
-	    min_extended_dist = length (projection (p - p0, p0 - c));
-	  }
-	  else if (sign (d) * dot (p - c, perpendicular (p1 - c)) < 0) {
-	    min_extended_dist = length (projection (p - p1, p1 - c));
-	  }
-	 
-
-	  if ((distance (p, c) <= distance (p0, c) && sign (d) > 0) ||
-	      (distance (p, c) >= distance (p0, c) && sign (d) < 0))
-	    is_inside = true; // true
-	  else
-	    is_inside = false;
-	}
-	
-	
-
-	float point_dist = min (distance (p, p0), distance (p, p1));
-	min_point_dist = min (min_point_dist, point_dist);
       }
-    
- /*     gl_FragColor = mix(vec4(1,0,0,1),
+
+      min_dist *= is_inside == IS_INSIDE_YES ? -1 : +1;
+
+
+
+      gl_FragColor = mix(vec4(1,0,0,1),
 			 vec4(0,1,0,1) * ((1 + sin (min_dist / m))) * sin (pow (min_dist, .8) * M_PI),
-			 smoothstep (0, 2 * m, min_dist));
+			 smoothstep (0, 2 * m, abs (min_dist)));
       gl_FragColor = mix(vec4(0,1,0,1),
 			 gl_FragColor,
 			 smoothstep (.002, .005, min_point_dist));
+
       gl_FragColor += vec4(0,0,1,1) * num_endpoints * 16./255.;
-      gl_FragColor += vec4(.5,0,0,1) * smoothstep (-m, m, is_inside ? min_dist : -min_dist);
-*/
-      gl_FragColor = vec4(1,1,1,1) * smoothstep (-m, m, is_inside ? -min_dist : min_dist);
-      return;
+
+      gl_FragColor += vec4(.5,0,0,1) * smoothstep (-m, m, -min_dist);
+
+//      gl_FragColor = vec4(1,1,1,1) * smoothstep (-m, m, min_dist);
+
     }
   );
   program = link_program (vshader, fshader);
   return program;
 }
 
-
-static
-gboolean configure_cb (GtkWidget *widget,
-		       GdkEventConfigure *event,
-		       gpointer user_data)
-{
-  gdk_window_invalidate_rect (widget->window, NULL, TRUE);
-  return FALSE;
-}
-
 static int step_timer;
 static int num_frames;
 
-static
-gboolean expose_cb (GtkWidget *widget,
-		    GdkEventExpose *event,
-		    gpointer user_data)
+void display( void )
 {
-  GtkAllocation allocation;
+  int viewport[4];
+  glGetIntegerv (GL_VIEWPORT, viewport);
+  GLuint width  = viewport[2];
+  GLuint height = viewport[3];
+
   double theta = M_PI / 360.0 * step_timer / 3.;
   GLfloat mat[] = { +cos(theta), +sin(theta), 0., 0.,
 		    -sin(theta), +cos(theta), 0., 0.,
 			     0.,          0., 1., 0.,
 			     0.,          0., 0., 1., };
 
-  drawable_make_current (widget->window);
+  glClearColor (0, 0, 0, 1);
+  glClear (GL_COLOR_BUFFER_BIT);
 
-  gtk_widget_get_allocation (widget, &allocation);
-  glViewport(0, 0, allocation.width, allocation.height);
-  glClearColor(1., 1., 0., 0.);
-  glClear(GL_COLOR_BUFFER_BIT);
-  glUniformMatrix4fv (GPOINTER_TO_INT (user_data), 1, GL_FALSE, mat);
+  GLuint program;
+  glGetIntegerv (GL_CURRENT_PROGRAM, (GLint *) &program);
+  glUniformMatrix4fv (glGetUniformLocation (program, "u_matViewProjection"), 1, GL_FALSE, mat);
 
   glDrawArrays (GL_TRIANGLE_FAN, 0, 4);
 
-  drawable_swap_buffers (widget->window);
-
-  return TRUE;
+  glutSwapBuffers ();
 }
 
-static gboolean
-step (gpointer data)
+void
+reshape (int width, int height)
 {
+  glViewport (0, 0, width, height);
+  glMatrixMode (GL_PROJECTION);
+  glLoadIdentity ();
+  glOrtho (0, width, 0, height, -1, 1);
+  glMatrixMode (GL_MODELVIEW);
+  glutPostRedisplay ();
+}
+
+void keyboard( unsigned char key, int x, int y )
+{
+  switch (key) {
+    case '\033': exit (0);
+  }
+}
+
+static void
+timed_step (int ms)
+{
+  glutTimerFunc (ms, timed_step, ms);
   num_frames++;
   step_timer++;
-  gdk_window_invalidate_rect (GDK_WINDOW (data), NULL, TRUE);
-  return TRUE;
+  glutPostRedisplay ();
 }
 
-static gboolean
-print_fps (gpointer data)
+static void
+idle_step (void)
 {
+  glutIdleFunc (idle_step);
+  num_frames++;
+  step_timer++;
+  glutPostRedisplay ();
+}
+
+static void
+print_fps (int ms)
+{
+  glutTimerFunc (ms, print_fps, ms);
   printf ("%gfps\n", num_frames / 5.);
   num_frames = 0;
-  return TRUE;
 }
 
 int
 main (int argc, char** argv)
 {
-  GtkWidget *window;
   char *font_path;
   char utf8;
   gboolean animate = FALSE;
@@ -746,59 +667,47 @@ main (int argc, char** argv)
      if (argc >= 4)
        animate = atoi (argv[3]);
   }
-  else {
-    fprintf (stderr, "Usage: grid PATH_TO_FONT_FILE CHARACTER_TO_DRAW ANIMATE?\n");
-    return 1;
-  }
+  else
+    die ("Usage: grid PATH_TO_FONT_FILE CHARACTER_TO_DRAW ANIMATE?");
+
+  glutInit (&argc, argv);
+  glutInitWindowSize (512, 512);
+  glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+  glutCreateWindow("GLyphy");
+  glutReshapeFunc (reshape);
+  glutDisplayFunc (display);
+  glutKeyboardFunc (keyboard);
+
+  glewInit ();
+  if (!glewIsSupported ("GL_VERSION_2_0"))
+    die ("OpenGL 2.0 not supported");
 
   GLuint program, texture, a_pos_loc, a_tex_loc;
 
+
+  program = create_program ();
+  glUseProgram (program);
+
+  texture = create_texture (font_path, utf8);
+
+  a_pos_loc = glGetAttribLocation(program, "a_position");
+  a_tex_loc = glGetAttribLocation(program, "a_texCoord");
   const GLfloat w_vertices[] = { -1, -1, 0,  -0.1, -0.1,
 				 +1, -1, 0,  1.1, -0.1,
 				 +1, +1, 0,  1.1, 1.1,
 				 -1, +1, 0,  -0.1, 1.1 };
-
-  gtk_init (&argc, &argv);
-
-  window = GTK_WIDGET (gtk_window_new (GTK_WINDOW_TOPLEVEL));
-  gtk_window_set_default_size (GTK_WINDOW (window), 600, 600);
-  g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (gtk_main_quit), NULL);
-
-  eglInitialize (eglGetDisplay (gdk_x11_display_get_xdisplay (gtk_widget_get_display (window))), NULL, NULL);
-  if (!eglBindAPI (EGL_OPENGL_ES_API))
-    die ("Failed to bind OpenGL ES API");
-
-  gtk_widget_show_all (window);
-
-  drawable_make_current (window->window);
-
-  program = create_program ();
-
-  glUseProgram (program);
-
-  texture = create_texture (font_path, utf8, program);
-
-  a_pos_loc = glGetAttribLocation(program, "a_position");
-  a_tex_loc = glGetAttribLocation(program, "a_texCoord");
-
   glVertexAttribPointer (a_pos_loc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), w_vertices+0);
   glVertexAttribPointer (a_tex_loc, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), w_vertices+3);
   glEnableVertexAttribArray (a_pos_loc);
   glEnableVertexAttribArray (a_tex_loc);
 
-  gtk_widget_set_double_buffered (window, FALSE);
-  gtk_widget_set_redraw_on_allocate (window, TRUE);
-  /* TODO, the uniform location can change if we recompile program. */
-  g_signal_connect (G_OBJECT (window), "expose-event", G_CALLBACK (expose_cb),
-		    GINT_TO_POINTER (glGetUniformLocation (program, "u_matViewProjection")));
-  g_signal_connect (G_OBJECT (window), "configure-event", G_CALLBACK (configure_cb), NULL);
-
   if (animate) {
-    g_idle_add (step, window->window);
-    g_timeout_add (5000, print_fps, NULL);
+    //glutTimerFunc (40, timed_step, 40);
+    glutIdleFunc (idle_step);
+    glutTimerFunc (5000, print_fps, 5000);
   }
 
-  gtk_main ();
+  glutMainLoop ();
 
   return 0;
 }

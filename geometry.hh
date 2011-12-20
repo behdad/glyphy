@@ -32,7 +32,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-#include <cairo-ft.h>
 
 
 using namespace std;
@@ -651,14 +650,14 @@ inline const Scalar Segment<Coord>::max_distance_to_arc (const Arc<Coord, Scalar
   double max_distance = fabs(a.distance_to_point(p0)) ;
   return  max_distance >  fabs(a.distance_to_point(p1)) ? max_distance : fabs(a.distance_to_point(p1)) ;
   
-  /******************************************************************************************************************** Assuming here that max distance between arc and segment uses endpoint of segment. Aah!! ******/
+  /****** Assuming here that max distance between arc and segment uses endpoint of segment. Aah!! ******/
  /* Point<Coord> on_line = (Line<Coord> (p0, p1)).nearest_part_to_point(a.center());
   double other_distance = fabs((a.center () - on_line).len () - a.radius ());
   
   if (a.sector_contains_point (on_line) && contains_in_span (on_line))
     min_distance = min_distance < other_distance ? min_distance : other_distance ;
   
-  return min_distance; /********************************************************************************************************************************************* O__O ****************************************/
+  return min_distance;
 }
 
 
