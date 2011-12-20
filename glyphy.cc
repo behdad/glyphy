@@ -218,7 +218,7 @@ drawable_swap_buffers (GdkDrawable *drawable)
 #define GRID_SIZE 128
 #define GRID_X GRID_SIZE
 #define GRID_Y GRID_SIZE
-#define TOLERANCE 5e-4
+#define TOLERANCE 1e-6
 
 
 
@@ -247,6 +247,8 @@ closest_arcs_to_cell (point_t p0, point_t p1, /* corners */
   
   for (int k = 0; k < arcs.size (); k++) {
     current_arc = arcs[k];
+    
+    // We can't use squared distance, because sign is important.
     double current_distance = current_arc.distance_to_point (c);    
 
     // If two arcs are equally close to this point, take the sign from the one whose extension is farther away. 
@@ -331,6 +333,7 @@ arc_encode (double x, double y, double d)
     id = 0;
   else {
     g_assert (fabs (d) < MAX_D);
+    
     id = lround (d * ((1 << (ARC_ENCODE_D_BITS - 1)) - 1) / MAX_D + (1 << (ARC_ENCODE_D_BITS - 1)));
   }
   g_assert (id < (1 << ARC_ENCODE_D_BITS));
@@ -656,7 +659,7 @@ create_program (void)
 	min_point_dist = min (min_point_dist, point_dist);
       }
     
-      gl_FragColor = mix(vec4(1,0,0,1),
+ /*     gl_FragColor = mix(vec4(1,0,0,1),
 			 vec4(0,1,0,1) * ((1 + sin (min_dist / m))) * sin (pow (min_dist, .8) * M_PI),
 			 smoothstep (0, 2 * m, min_dist));
       gl_FragColor = mix(vec4(0,1,0,1),
@@ -664,7 +667,7 @@ create_program (void)
 			 smoothstep (.002, .005, min_point_dist));
       gl_FragColor += vec4(0,0,1,1) * num_endpoints * 16./255.;
       gl_FragColor += vec4(.5,0,0,1) * smoothstep (-m, m, is_inside ? min_dist : -min_dist);
-
+*/
       gl_FragColor = vec4(1,1,1,1) * smoothstep (-m, m, is_inside ? -min_dist : min_dist);
       return;
     }

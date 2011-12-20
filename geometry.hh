@@ -180,6 +180,7 @@ struct Segment {
   inline const SignedVector<Coord> operator- (const Point<Coord> &p) const; /* shortest vector from point to ***line*** */
   inline const Scalar distance_to_point (const Point<Coord> &p) const; /* shortest distance from point to segment */
   inline const Scalar squared_distance_to_point (const Point<Coord> &p) const; /* shortest distance squared from point to segment */
+  inline const Scalar signed_squared_distance_to_point (const Point<Coord> &p) const; /* shortest distance squared from point to segment */
   inline const bool contains_in_span (const Point<Coord> &p) const; /* is p in the stripe formed by sliding this segment? */
   inline Point<Coord> nearest_part_to_point (const Point<Coord> &p) const;
   inline const Scalar distance_to_arc (const Arc<Coord, Scalar> &a) const;
@@ -270,6 +271,7 @@ struct Arc {
   inline bool sector_contains_point (const Point<Coord> &p) const;
   inline Scalar distance_to_point (const Point<Coord> &p) const;
   inline Scalar squared_distance_to_point (const Point<Coord> &p) const;
+  inline Scalar signed_squared_distance_to_point (const Point<Coord> &p) const;
   inline Scalar max_distance_to_point (const Point<Coord> &p) const;
   inline Point<Coord> nearest_part_to_point (const Point<Coord> &p) const;
 
@@ -587,6 +589,25 @@ inline const Scalar Segment<Coord>::distance_to_point (const Point<Coord> &p) co
   double dist_p_p0 = p.distance_to_point (p0);
   double dist_p_p1 = p.distance_to_point (p1);
   return (dist_p_p0 < dist_p_p1 ? dist_p_p0 : dist_p_p1) * (-(temp.n * Vector<Coord> (p) - temp.c) < 0 ? -1 : 1); 
+}
+
+
+#define SIGN(x) ((x > 0) - (x < 0))
+
+template <typename Coord>
+inline const Scalar Segment<Coord>::signed_squared_distance_to_point (const Point<Coord> &p) const {
+  if (p0 == p1)
+    return 0;
+    
+  // Check if z is between p0 and p1.
+  Line<Coord> temp (p0, p1);
+  double value = temp.c - temp.n * Vector<Coord> (p);
+  if (contains_in_span (p))
+    return (value * value * SIGN(value)) / (temp.n * temp.n) ;
+  
+  double dist_p_p0 = p.squared_distance_to_point (p0);
+  double dist_p_p1 = p.squared_distance_to_point (p1);
+  return (dist_p_p0 < dist_p_p1 ? dist_p_p0 : dist_p_p1) * SIGN(value); 
 }
 
 template <typename Coord>
@@ -947,6 +968,25 @@ inline Scalar Arc<Coord, Scalar>::squared_distance_to_point (const Point<Coord> 
   double d1 = p.squared_distance_to_point (p0);
   double d2 = p.squared_distance_to_point (p1);
   return (d1 < d2 ? d1 : d2);
+}
+
+/* Distance will be to an endpoint whenever necessary. */
+template <typename Coord, typename Scalar>
+inline Scalar Arc<Coord, Scalar>::signed_squared_distance_to_point (const Point<Coord> &p) const {
+  if (fabs(d) == 0) {
+    Segment<Coord> arc_segment (p0, p1);
+    return arc_segment.signed_squared_distance_to_point (p);
+  } 
+  
+  SignedVector<Coord> difference = *this - p;
+  
+  if (sector_contains_point (p) && fabs(d) > 0) {
+    double answer = p.distance_to_point (center ()) - radius ();
+    return answer * answer * (difference.negative ? -1 : 1); 
+  }
+  double d1 = p.squared_distance_to_point (p0);
+  double d2 = p.squared_distance_to_point (p1);
+  return (d1 < d2 ? d1 : d2) * (difference.negative ? -1 : 1);
 }
 
 /* Distance may not always be positive, but will be to an endpoint whenever necessary. */

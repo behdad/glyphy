@@ -583,11 +583,11 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
   }
   
 //  draw_distance_field (cr, acc.arcs);
-  gridify_and_find_arcs (cr, acc.arcs, true);
+//  gridify_and_find_arcs (cr, acc.arcs, true);
   
   cairo_set_source_rgba (cr, 0.5, 0.9, 0.8, 1);// 0.9, 1.0, 0.9, .3);
-  cairo_set_source_rgba (cr, 1, 0.3, 0., 0.5);
-  cairo_set_line_width (cr, 4*64); //4 * 
+  cairo_set_source_rgba (cr, 1, 0.3, 0., 0.2);
+  cairo_set_line_width (cr, 2*64); //4 * 
   for (unsigned int i = 0; i < acc.arcs.size (); i++)
     cairo_demo_arc (cr, acc.arcs[i]);
 
@@ -646,14 +646,14 @@ int main (int argc, char **argv)
  
 
  
-  demo_text (cr, "Times New Roman", "*");
+  demo_text (cr, "Times New Roman", ".");
 
  // font_path = "./googlefontdirectory/tangerine/Tangerine_Regular.ttf";
 //  font_path += ".otf";
 
   if (given_font)
     demo_text_2 (font_path);
-  printf("Done.\n");
+//  printf("Done.\n");
   
   
  /* // Just for getting some coordinates on the image....

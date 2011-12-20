@@ -209,6 +209,7 @@ int main (int argc, char **argv)
 //  demo_text (cr, "Times New Roman", "@");
 //  demo_text (cr, "DejaVu Sans", "@");
 
+  printf("Done.\n");
   cairo_destroy (cr);
 
   status = cairo_surface_write_to_png (surface, filename);
