@@ -565,22 +565,31 @@ create_program (void)
 	}
       }
 
-      min_dist *= is_inside == IS_INSIDE_YES ? -1 : +1;
+      float abs_dist = min_dist;
+      min_dist *= (is_inside == IS_INSIDE_YES) ? -1 : +1;
 
 
-      gl_FragColor = mix(vec4(1,0,0,1),
-			 vec4(0,1,0,1) * ((1 + sin (min_dist / m))) * sin (pow (min_dist, .8) * M_PI),
-			 smoothstep (0, 2 * m, abs (min_dist)));
-      gl_FragColor = mix(vec4(0,1,0,1),
-			 gl_FragColor,
-			 smoothstep (.002, .005, min_point_dist));
+      vec4 color = vec4(0,0,0,0);
 
-      gl_FragColor += vec4(0,0,1,1) * num_endpoints * 16./255.;
+      // Color the outline red
+      color += vec4(1,0,0,1) * smoothstep (2 * m, 0, abs_dist);
 
-      gl_FragColor += vec4(.5,0,0,1) * smoothstep (-m, m, -min_dist);
+      // Color the distance field in green
+      color = vec4(0,0,0,0);
+      color += vec4(0,1,0,1) * ((1 + sin (min_dist / m))) * sin (pow (abs_dist, .8) * M_PI);
 
-   //   gl_FragColor = vec4(1,1,1,1) * smoothstep (-m, m, min_dist);
+      // Color points green
+      color = mix(vec4(0,1,0,1), color, smoothstep (.002, .005, min_point_dist));
 
+      // Color the number of endpoints per cell blue
+      color += vec4(0,0,1,1) * num_endpoints * 16./255.;
+
+      // Color the inside of the glyph a light red
+      color += vec4(.5,0,0,1) * smoothstep (m, -m, min_dist);
+
+//      color = vec4(1,1,1,1) * smoothstep (-m, m, min_dist);
+
+      gl_FragColor = color;
     }
   );
   program = link_program (vshader, fshader);
