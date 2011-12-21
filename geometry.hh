@@ -1016,11 +1016,11 @@ inline Point<Coord> Arc<Coord, Scalar>::nearest_part_to_point (const Point<Coord
   if (fabs(d) == 0) {
     Segment<Coord> arc_segment (p0, p1);
     return arc_segment.nearest_part_to_point (p);
-  } 
+  }
 
   if (sector_contains_point (p) && fabs(d) > 0)
     return p + ( (1 - radius () / (p - center ()).len ()) * (center () - p));
-    
+
   double d1 = p.squared_distance_to_point (p0);
   double d2 = p.squared_distance_to_point (p1);
   return (d1 < d2 ? p0 : p1);
@@ -1028,7 +1028,7 @@ inline Point<Coord> Arc<Coord, Scalar>::nearest_part_to_point (const Point<Coord
 
 template <typename Coord, typename Scalar>
 inline Point<Coord> Arc<Coord, Scalar>::leftmost (void) const {
-  Point<Coord> answer = (center ().x - radius (), center ().y);
+  Point<Coord> answer (center ().x - radius (), center ().y);
   if (sector_contains_point (answer))
     return answer;
   return (p0.x < p1.x ? p0 : p1);
@@ -1036,7 +1036,7 @@ inline Point<Coord> Arc<Coord, Scalar>::leftmost (void) const {
 
 template <typename Coord, typename Scalar>
 inline Point<Coord> Arc<Coord, Scalar>::rightmost (void) const {
-  Point<Coord> answer = (center ().x + radius (), center ().y);
+  Point<Coord> answer (center ().x + radius (), center ().y);
   if (sector_contains_point (answer))
     return answer;
   return (p0.x > p1.x ? p0 : p1);
@@ -1044,7 +1044,7 @@ inline Point<Coord> Arc<Coord, Scalar>::rightmost (void) const {
 
 template <typename Coord, typename Scalar>
 inline Point<Coord> Arc<Coord, Scalar>::lowest (void) const {
-  Point<Coord> answer = (center ().x, center ().y - radius ());
+  Point<Coord> answer (center ().x, center ().y - radius ());
   if (sector_contains_point (answer))
     return answer;
   return (p0.y < p1.y ? p0 : p1);
@@ -1052,7 +1052,7 @@ inline Point<Coord> Arc<Coord, Scalar>::lowest (void) const {
 
 template <typename Coord, typename Scalar>
 inline Point<Coord> Arc<Coord, Scalar>::highest (void) const {
-  Point<Coord> answer = (center ().x, center ().y + radius ());
+  Point<Coord> answer (center ().x, center ().y + radius ());
   if (sector_contains_point (answer))
     return answer;
   return (p0.y > p1.y ? p0 : p1);

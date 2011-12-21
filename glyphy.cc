@@ -125,7 +125,7 @@ link_program (GLuint vshader, GLuint fshader)
 #define GRID_SIZE 64
 #define GRID_X GRID_SIZE
 #define GRID_Y GRID_SIZE
-#define TOLERANCE 1e-6
+#define TOLERANCE 1e-4
 
 
 
@@ -148,20 +148,20 @@ closest_arcs_to_cell (point_t p0, point_t p1, /* corners */
 
   // Find distance between cell center and its closest arc.
   point_t c = p0 + p1;
-  
+
   SignedVector<Coord> to_arc_min = current_arc - c;
   double min_distance = INFINITY;
-  
+
   for (int k = 0; k < arcs.size (); k++) {
     current_arc = arcs[k];
-    
-    // We can't use squared distance, because sign is important.
-    double current_distance = current_arc.distance_to_point (c);    
 
-    // If two arcs are equally close to this point, take the sign from the one whose extension is farther away. 
-    // (Extend arcs using tangent lines from endpoints; this is done using the SignedVector operation "-".) 
-    if (fabs (fabs (current_distance) - fabs(min_distance)) < 1e-6) { 
-      SignedVector<Coord> to_arc_current = current_arc - c;      
+    // We can't use squared distance, because sign is important.
+    double current_distance = current_arc.distance_to_point (c);
+
+    // If two arcs are equally close to this point, take the sign from the one whose extension is farther away.
+    // (Extend arcs using tangent lines from endpoints; this is done using the SignedVector operation "-".)
+    if (fabs (fabs (current_distance) - fabs(min_distance)) < 1e-6) {
+      SignedVector<Coord> to_arc_current = current_arc - c;
       if (to_arc_min.len () < to_arc_current.len ()) {
         min_distance = fabs (current_distance) * (to_arc_current.negative ? -1 : 1);
       }
@@ -172,13 +172,13 @@ closest_arcs_to_cell (point_t p0, point_t p1, /* corners */
       to_arc_min = current_arc - c;
     }
   }
-  
-  inside_glyph = (min_distance > 0); 
-    
+
+  inside_glyph = (min_distance > 0);
+
   // If d is the distance from the center of the square to the nearest arc, then
   // all nearest arcs to the square must be at most [d + s/sqrt(2)] from the center. 
   min_distance =  fabs (min_distance);
-  
+
   // If d is the distance from the center of the square to the nearest arc, then
   // all nearest arcs to the square must be at most [d + half_diagonal] from the center.
   double half_diagonal = (c - p0).len ();
@@ -302,31 +302,24 @@ create_texture (const char *font_path, const char UTF8)
   printf ("Num arcs %d; Approximation error %g; Tolerance %g; Percentage %g. %s\n",
 	  (int) acc.arcs.size (), e, tolerance, round (100 * e / tolerance), e <= tolerance ? "PASS" : "FAIL");
 
-  /* TODO: replace this with analytical extents of the arcs. */
-  int grid_min_x = INFINITY;
-  int grid_max_x = -INFINITY;
-  int grid_min_y = INFINITY;
-  int grid_max_y = -INFINITY;
+  int grid_min_x =  65535;
+  int grid_max_x = -65535;
+  int grid_min_y =  65335;
+  int grid_max_y = -65535;
   int glyph_width, glyph_height;
-  
+
   for (int i = 0; i < acc.arcs.size (); i++) {
-    grid_min_x = std::min(grid_min_x, (int) acc.arcs[i].leftmost ().x.floor ());
-    grid_max_x = std::max(grid_max_x, (int) acc.arcs[i].rightmost ().x.ceil ());
-    grid_min_y = std::min(grid_min_y, (int) acc.arcs[i].lowest ().y.floor ());
-    grid_max_y = std::max(grid_max_y, (int) acc.arcs[i].highest ().y.ceil ());
+    grid_min_x = std::min (grid_min_x, (int) floor (acc.arcs[i].leftmost ().x));
+    grid_max_x = std::max (grid_max_x, (int) ceil (acc.arcs[i].rightmost ().y));
+    grid_min_y = std::min (grid_min_y, (int) floor (acc.arcs[i].lowest ().y));
+    grid_max_y = std::max (grid_max_y, (int) ceil (acc.arcs[i].highest ().y));
   }
-  
-//  grid_min_x = face->glyph->metrics.horiBearingX;
-//  grid_min_y = face->glyph->metrics.horiBearingY - face->glyph->metrics.height;
-//  grid_max_x = face->glyph->metrics.horiBearingX + face->glyph->metrics.width;
-//  grid_max_y = face->glyph->metrics.horiBearingY;
 
   glyph_width = grid_max_x - grid_min_x;
   glyph_height = grid_max_y - grid_min_y;
 
   /* XXX */
   glyph_width = glyph_height = std::max (glyph_width, glyph_height);
-
 
 
   // Make a 2d grid for arc/cell information.
