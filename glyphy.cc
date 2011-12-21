@@ -576,7 +576,7 @@ create_program (void)
 
       // Color the distance field in green
       color = vec4(0,0,0,0);
-      color += vec4(0,1,0,1) * ((1 + sin (min_dist / m))) * sin (pow (abs_dist, .8) * M_PI);
+      color += vec4(0,1,0,1) * ((1 + sin (min_dist / m))) * sin (pow (abs_dist, .8) * M_PI) * .5;
 
       // Color points green
       color = mix(vec4(0,1,0,1), color, smoothstep (.002, .005, min_point_dist));
