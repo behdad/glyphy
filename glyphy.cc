@@ -429,6 +429,14 @@ create_program (void)
       return vec3 (x, y, d);
     }
 
+    vec2 arc_center (const vec2 p0, const vec2 p1, float d)
+    {
+      if (abs (d) < 1e-5) d = 1e-5; // cheat
+      vec2 line = p1 - p0;
+      vec2 perp = perpendicular (line);
+      return mix (p0, p1, .5) - perp * ((1 - d*d) / (4 * d));
+    }
+
     ivec2 rgba_to_pair (const vec4 v)
     {
       int x = (floatToByte (v.r) * 256 + floatToByte (v.g)) * 256 + floatToByte (v.b);
@@ -449,8 +457,8 @@ create_program (void)
 			      float (dFdy (p)))); 
       //float m = float (fwidth (p)); //for broken dFdx/dFdy
 
-      int p_cell_x = int (clamp (p.x, 0., 1.-1e-5) * GRID_X);
-      int p_cell_y = int (clamp (p.y, 0., 1.-1e-5) * GRID_Y);
+      int p_cell_x = int (clamp (int (p.x * GRID_X), 0, GRID_X - 1));
+      int p_cell_y = int (clamp (int (p.y * GRID_Y), 0, GRID_Y - 1));
 
       ivec2 arc_position_data = rgba_to_pair (tex_1D (tex, p_cell_y * GRID_X + p_cell_x));
       int offset = arc_position_data.x;
@@ -486,11 +494,9 @@ create_program (void)
 	vec2 p1 = arc.rg;
 
 	if (d == -MAX_D) continue;
-	if (abs (d) < 1e-5) d = 1e-5; // cheat
+
 	// find arc center
-	vec2 line = p1 - p0;
-	vec2 perp = perpendicular (line);
-	vec2 c = mix (p0, p1, .5) - perp * ((1 - d*d) / (4 * d));
+	vec2 c = arc_center (p0, p1, d);
 
 	// for highlighting points
 	min_point_dist = min (min_point_dist, distance (p, p1));
@@ -532,7 +538,7 @@ create_program (void)
 	    else if (sign (new_arc.d) * dot (p - new_arc.c, perpendicular (new_arc.p1 - new_arc.c)) < 0)
 	      extended_dist = - sign (new_arc.d) *  dot (p - new_arc.p1, normalize (new_arc.c - new_arc.p1));
 	    else {
-	      // XXX debug; not_reach
+	      // XXX debug; not_reached
 	      gl_FragColor = vec4(0,1,0,1);
 	      return;
 	    }
@@ -547,7 +553,7 @@ create_program (void)
 	    else if (sign (new_arc.d) * dot (p - new_arc.c, perpendicular (new_arc.p1 - new_arc.c)) < 0)
 	      extended_dist = - sign (new_arc.d) *  dot (p - new_arc.p1, normalize (new_arc.c - new_arc.p1));
 	    else {
-	      // XXX debug; not_reach
+	      // XXX debug; not_reached
 	      gl_FragColor = vec4(1,1,0,1);
 	      return;
 	    }
@@ -587,7 +593,7 @@ create_program (void)
       // Color the inside of the glyph a light red
       color += vec4(.5,0,0,1) * smoothstep (m, -m, min_dist);
 
-//      color = vec4(1,1,1,1) * smoothstep (-m, m, min_dist);
+      color = vec4(1,1,1,1) * smoothstep (-m, m, min_dist);
 
       gl_FragColor = color;
     }
