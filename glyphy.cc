@@ -482,8 +482,8 @@ create_program (void)
 	float d;
       } new_arc;
 
-      vec3 arc_prev = vec3 (0,0, 0);
-      float min_point_dist = distance (p, arc_prev.rg);
+      vec3 arc_prev = vec3 (0,0,0);
+      float min_point_dist = 1;
       for (i = 0; i < num_endpoints; i++)
       {
 	vec3 arc = arc_decode (tex_1D (tex, i + offset));
