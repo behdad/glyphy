@@ -444,8 +444,10 @@ create_program (void)
 
     void main()
     {
-//      float m = length (vec2 (float (dFdy (p)), float (dFdx (p)))); /* isotropic antialiasing */
-      float m = float (fwidth (p));//length (vec2 (float (dFdy (p)), float (dFdx (p)))); /* isotropic antialiasing */
+      /* isotropic antialiasing */
+      float m = length (vec2 (float (dFdx (p)),
+			      float (dFdy (p)))); 
+      //float m = float (fwidth (p)); //for broken dFdx/dFdy
 
       int p_cell_x = int (clamp (p.x, 0., 1.-1e-5) * GRID_X);
       int p_cell_y = int (clamp (p.y, 0., 1.-1e-5) * GRID_Y);
