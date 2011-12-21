@@ -5,8 +5,6 @@
     #include <GL/glut.h>
 #endif
 
-#include <glib.h>
-
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -82,7 +80,7 @@ compile_shader (GLenum type, const GLchar* source)
 	     __ii < 1; \
 	     (__ii++, \
 	      (__ee = glGetError()) && \
-	      (g_log (G_LOG_DOMAIN, G_LOG_LEVEL_ERROR, "gl" G_STRINGIFY (name) " failed with error %04X on line %d", __ee, __LINE__), 0))) \
+	      (fprintf (stderr, "gl" #name " failed with error %04X on line %d", __ee, __LINE__), abort (), 0))) \
 	  gl##name
 
 static GLuint
@@ -217,19 +215,19 @@ arc_encode (double x, double y, double d)
   // lets do 10 bits for d, and 11 for x and y each 
   unsigned int ix, iy, id;
   ix = lround (x * 4095);
-  g_assert (ix < 4096);
+  assert (ix < 4096);
   iy = lround (y * 4095);
-  g_assert (iy < 4096);
+  assert (iy < 4096);
 #define MAX_D .54 // TODO (0.25?)
   if (isinf (d))
     id = 0;
   else {
-    g_assert (fabs (d) < MAX_D);
+    assert (fabs (d) < MAX_D);
 
     id = lround (d * 127. / MAX_D + 128);
 
   }
-  g_assert (id < 256);
+  assert (id < 256);
 
   v.r = LOWER_BITS (ix, 8, 12);
   v.g = LOWER_BITS (iy, 8, 12);
@@ -664,7 +662,7 @@ main (int argc, char** argv)
 {
   char *font_path;
   char utf8;
-  gboolean animate = FALSE;
+  bool animate = false;
   if (argc >= 3) {
      font_path = argv[1];
      utf8 = argv[2][0];

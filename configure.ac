@@ -19,14 +19,32 @@ PKG_PROG_PKG_CONFIG
 
 dnl ==========================================================================
 
-m4_foreach_w([pkg], [glib-2.0 freetype2 cairo cairo-ft glu glew glut], [
-	m4_define([PKG], m4_translit(pkg,[-a-z.+],[_A-Z_]))
-	PKG_CHECK_MODULES(PKG, pkg, [have=true], [have=false])
-	if $have; then
-		AC_DEFINE([HAVE_]PKG, 1, [Have ]pkg[ library])
-	fi
-	AM_CONDITIONAL([HAVE_]PKG, $have)
+dnl syntax: pkgname, symbol
+AC_DEFUN([GLYPHY_CHECK_PACKAGE],
+[
+	m4_define([pkg], [$1])
+	m4_define([symbol], [$2])
+	m4_define([PKG], [m4_translit(pkg,[-a-z.+],[_A-Z_])])
+	PKG_CHECK_MODULES(PKG, pkg, [HAVE_]PKG[=true], [HAVE_]PKG[=false])
+	m4_foreach_w(lib, [m4_translit(PKG,[A-Z],[a-z]) PKG], [
+		if ! $HAVE_[]PKG; then
+			AC_CHECK_LIB(lib, symbol, [
+						   HAVE_]PKG[=true
+						   ]PKG[_LIBS=-l]lib[
+						  ])
+		fi
+	])
+	if [$HAVE_]PKG; then AC_DEFINE([HAVE_]PKG, 1, [Have ]pkg[ library]) fi
+	AM_CONDITIONAL([HAVE_]PKG, [$HAVE_]PKG)
 ])
+
+GLYPHY_CHECK_PACKAGE(freetype2, FT_Init_FreeType)
+GLYPHY_CHECK_PACKAGE(cairo, cairo_create)
+GLYPHY_CHECK_PACKAGE(cairo-ft, cairo_ft_scaled_font_lock_face)
+GLYPHY_CHECK_PACKAGE(gl, glCreateShader)
+GLYPHY_CHECK_PACKAGE(glew, glewInit)
+GLYPHY_CHECK_PACKAGE(glut, glutInit)
+
 
 dnl ===========================================================================
 

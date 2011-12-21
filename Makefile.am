@@ -52,25 +52,22 @@ grid_SOURCES = \
 
 endif
 
-if HAVE_GLIB_2_0
 if HAVE_FREETYPE2
-if HAVE_GLU
+if HAVE_GL
 if HAVE_GLEW
 if HAVE_GLUT
 
 bin_PROGRAMS += glyphy
 
 glyphy_CPPFLAGS = \
-		$(GLIB_2_0_CFLAGS) \
 		$(FREETYPE2_CFLAGS) \
-		$(GLU_CFLAGS) \
+		$(GL_CFLAGS) \
 		$(GLEW_CFLAGS) \
 		$(GLUT_CFLAGS) \
 		$(NULL)
 glyphy_LDADD = \
-		$(GLIB_2_0_LIBS) \
 		$(FREETYPE2_LIBS) \
-		$(GLU_LIBS) \
+		$(GL_LIBS) \
 		$(GLEW_LIBS) \
 		$(GLUT_LIBS) \
 		-lm \
@@ -79,7 +76,6 @@ glyphy_SOURCES = \
 		glyphy.cc \
 		$(NULL)
 
-endif
 endif
 endif
 endif
