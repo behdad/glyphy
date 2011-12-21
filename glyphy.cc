@@ -122,10 +122,10 @@ link_program (GLuint vshader, GLuint fshader)
 
 
 #define MIN_FONT_SIZE 20
-#define GRID_SIZE 64
+#define GRID_SIZE 32
 #define GRID_X GRID_SIZE
 #define GRID_Y GRID_SIZE
-#define TOLERANCE 1e-4
+#define TOLERANCE 3e-4
 
 
 
