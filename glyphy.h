@@ -25,6 +25,13 @@ typedef Arc<Coord, Scalar> arc_t;
 typedef Bezier<Coord> bezier_t;
 
 struct rgba_t {
+  unsigned char r;
+  unsigned char g;
+  unsigned char b;
+  unsigned char a;
+};
+
+struct bgra_t {
   unsigned char b;
   unsigned char g;
   unsigned char r;
@@ -44,10 +51,12 @@ closest_arcs_to_cell (point_t p0, point_t p1, /* corners */
 		      vector<arc_t> &near_arcs,
 		      bool &inside_glyph);
 
-const rgba_t
+template <typename ColorsStruct>
+const ColorsStruct
 arc_encode (double x, double y, double d);
 
-rgba_t
+template <typename ColorsStruct>
+ColorsStruct
 pair_to_rgba (unsigned int num1, unsigned int num2);
 
 GLint
@@ -56,6 +65,7 @@ create_texture (const char *font_path, const char UTF8);
 GLuint
 create_program (void);
 
+template <typename ColorsStruct>
 int
 generate_texture (unsigned int upem, FT_Outline *outline, int width,
 		  int *height, void **buffer);

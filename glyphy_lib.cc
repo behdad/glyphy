@@ -114,9 +114,24 @@ link_program (GLuint vshader, GLuint fshader)
 
 
 
+FT_Outline *face_to_outline (FT_Face face, unsigned int glyph_index)
+{
+  if (FT_Load_Glyph (face,
+		     glyph_index,
+		     FT_LOAD_NO_BITMAP |
+		     FT_LOAD_NO_HINTING |
+		     FT_LOAD_NO_AUTOHINT |
+		     FT_LOAD_NO_SCALE |
+		     FT_LOAD_LINEAR_DESIGN |
+		     FT_LOAD_IGNORE_TRANSFORM))
+    abort ();
+
+  assert (face->glyph->format == FT_GLYPH_FORMAT_OUTLINE);
+  return &face->glyph->outline;
+}
+
 void
-approximate_glyph_to_arcs (FT_Face face,
-			   unsigned int glyph_index,
+approximate_glyph_to_arcs (FT_Outline *outline,
 			   double tolerance,
 			   std::vector<arc_t> &arcs,
 			   double &error)
@@ -141,21 +156,10 @@ approximate_glyph_to_arcs (FT_Face face,
     std::vector<arc_t> &arcs;
   } acc (arcs);
 
-  if (FT_Load_Glyph (face,
-		     glyph_index,
-		     FT_LOAD_NO_BITMAP |
-		     FT_LOAD_NO_HINTING |
-		     FT_LOAD_NO_AUTOHINT |
-		     FT_LOAD_NO_SCALE |
-		     FT_LOAD_LINEAR_DESIGN |
-		     FT_LOAD_IGNORE_TRANSFORM))
-    abort ();
-
-  assert (face->glyph->format == FT_GLYPH_FORMAT_OUTLINE);
   ArcApproximatorOutlineSink outline_arc_approximator (acc.callback,
 						       static_cast<void *> (&acc),
 						       tolerance);
-  FreeTypeOutlineSource<ArcApproximatorOutlineSink>::decompose_outline (&face->glyph->outline,
+  FreeTypeOutlineSource<ArcApproximatorOutlineSink>::decompose_outline (outline,
 									outline_arc_approximator);
   error = outline_arc_approximator.error;
 }
@@ -230,10 +234,11 @@ closest_arcs_to_cell (point_t p0, point_t p1, /* corners */
 
 
 
-const rgba_t
+template <typename ColorsStruct>
+const ColorsStruct
 arc_encode (double x, double y, double d)
 {
-  rgba_t v;
+  ColorsStruct v;
 
   // lets do 10 bits for d, and 11 for x and y each 
   unsigned int ix, iy, id;
@@ -260,10 +265,11 @@ arc_encode (double x, double y, double d)
 }
 
 
-rgba_t
+template <typename ColorsStruct>
+ColorsStruct
 arclist_encode (unsigned int offset, unsigned int num_points, bool is_inside)
 {
-  rgba_t v;
+  ColorsStruct v;
   v.r = UPPER_BITS (offset, 8, 24);
   v.g = MIDDLE_BITS (offset, 8, 16, 24);
   v.b = LOWER_BITS (offset, 8, 24);
@@ -282,6 +288,7 @@ struct atlas_t {
 #endif
 
 
+#if 1
 GLint
 create_texture (const char *font_path, const char UTF8)
 {
@@ -294,7 +301,8 @@ create_texture (const char *font_path, const char UTF8)
   unsigned int glyph_index = FT_Get_Char_Index (face, (FT_ULong) UTF8);
   std::vector<arc_t> arcs;
   double error;
-  approximate_glyph_to_arcs (face, glyph_index, tolerance, arcs, error);
+  FT_Outline * outline = face_to_outline(face, glyph_index);
+  approximate_glyph_to_arcs (outline, tolerance, arcs, error);
   printf ("Char %c; Num arcs %d; Approx. err %g; Tolerance %g; Percentage %g. %s\n",
 	  UTF8, (int) arcs.size (), error, tolerance, round (100 * error / tolerance), error <= tolerance ? "PASS" : "FAIL");
 
@@ -342,7 +350,7 @@ create_texture (const char *font_path, const char UTF8)
       closest_arcs_to_cell (cp0, cp1, min_dimension, arcs, near_arcs, inside_glyph); 
 
 #define ARC_ENCODE(p, d) \
-	arc_encode (((p).x - grid_min_x) / glyph_width, \
+	arc_encode<struct rgba_t> (((p).x - grid_min_x) / glyph_width, \
 		    ((p).y - grid_min_y) / glyph_height, \
 		    (d))
 
@@ -388,7 +396,7 @@ create_texture (const char *font_path, const char UTF8)
 	saved_bytes += needle_len * sizeof (*needle);
       }
 
-      tex_data[row * GRID_X + col] = arclist_encode (offset, num_endpoints, inside_glyph);
+      tex_data[row * GRID_X + col] = arclist_encode<struct rgba_t> (offset, num_endpoints, inside_glyph);
       offset = tex_data.size ();
     }
 
@@ -418,6 +426,7 @@ create_texture (const char *font_path, const char UTF8)
 
   return texture;
 }
+#endif
 
 #define IS_INSIDE_NO     0
 #define IS_INSIDE_YES    1
@@ -619,55 +628,26 @@ create_program (void)
   return program;
 }
 
+template <typename ColorsStruct>
 int
 generate_texture (unsigned int upem, FT_Outline *outline, int width,
 		  int *height, void **buffer)
 {
   double tolerance = upem * TOLERANCE; // in font design units
-
-
-  // Arc approximation code.
-  typedef MaxDeviationApproximatorExact MaxDev;
-  typedef BezierArcErrorApproximatorBehdad<MaxDev> BezierArcError;
-  typedef BezierArcApproximatorMidpointTwoPart<BezierArcError> BezierArcApproximator;
-  typedef BezierArcsApproximatorSpringSystem<BezierArcApproximator> SpringSystem;
-  typedef ArcApproximatorOutlineSink<SpringSystem> ArcApproximatorOutlineSink;
-  class ArcAccumulator
-  {
-    public:
-    static bool callback (const arc_t &arc, void *closure)
-    { 
-       ArcAccumulator *acc = static_cast<ArcAccumulator *> (closure);
-       acc->arcs.push_back (arc);
-       return true;
-    }
-    std::vector<arc_t> arcs;
-  } acc;
-
-  //assert (face->glyph->format == FT_GLYPH_FORMAT_OUTLINE);
-  ArcApproximatorOutlineSink outline_arc_approximator (acc.callback,
-						       static_cast<void *> (&acc),
-						       tolerance);
-  // The actual arc decomposition is done here.
-  FreeTypeOutlineSource<ArcApproximatorOutlineSink>::decompose_outline (outline,
-  									outline_arc_approximator);
-  double e = outline_arc_approximator.error;
-/*
-  printf ("Num arcs %d; Approximation error %g; Tolerance %g; Percentage %g. %s\n",
-	  (int) acc.arcs.size (), e, tolerance, round (100 * e / tolerance), e <= tolerance ? "PASS" : "FAIL");
-*/
-
+  std::vector<arc_t> arcs;
+  double error;
+  approximate_glyph_to_arcs (outline, tolerance, arcs, error);
   int grid_min_x =  65535;
   int grid_max_x = -65535;
   int grid_min_y =  65335;
   int grid_max_y = -65535;
   int glyph_width, glyph_height;
 
-  for (int i = 0; i < acc.arcs.size (); i++) {
-    grid_min_x = std::min (grid_min_x, (int) floor (acc.arcs[i].leftmost ().x));
-    grid_max_x = std::max (grid_max_x, (int) ceil (acc.arcs[i].rightmost ().y));
-    grid_min_y = std::min (grid_min_y, (int) floor (acc.arcs[i].lowest ().y));
-    grid_max_y = std::max (grid_max_y, (int) ceil (acc.arcs[i].highest ().y));
+  for (int i = 0; i < arcs.size (); i++) {
+    grid_min_x = std::min (grid_min_x, (int) floor (arcs[i].leftmost ().x));
+    grid_max_x = std::max (grid_max_x, (int) ceil (arcs[i].rightmost ().y));
+    grid_min_y = std::min (grid_min_y, (int) floor (arcs[i].lowest ().y));
+    grid_max_y = std::max (grid_max_y, (int) ceil (arcs[i].highest ().y));
   }
 
   glyph_width = grid_max_x - grid_min_x;
@@ -678,7 +658,7 @@ generate_texture (unsigned int upem, FT_Outline *outline, int width,
 
 
   // Make a 2d grid for arc/cell information.
-  vector<rgba_t> tex_data;
+  vector<ColorsStruct> tex_data;
 
   // near_arcs: Vector of arcs near points in this single grid cell
   vector<arc_t> near_arcs;
@@ -688,6 +668,7 @@ generate_texture (unsigned int upem, FT_Outline *outline, int width,
   unsigned int offset = header_length;
   tex_data.resize (header_length);
   point_t origin = point_t (grid_min_x, grid_min_y);
+  unsigned int saved_bytes = 0;
 
   for (int row = 0; row < GRID_Y; row++)
     for (int col = 0; col < GRID_X; col++)
@@ -697,10 +678,10 @@ generate_texture (unsigned int upem, FT_Outline *outline, int width,
       near_arcs.clear ();
 
       bool inside_glyph;
-      closest_arcs_to_cell (cp0, cp1, min_dimension, acc.arcs, near_arcs, inside_glyph); 
+      closest_arcs_to_cell (cp0, cp1, min_dimension, arcs, near_arcs, inside_glyph); 
 
 #define ARC_ENCODE(p, d) \
-	arc_encode (((p).x - grid_min_x) / glyph_width, \
+	arc_encode<ColorsStruct> (((p).x - grid_min_x) / glyph_width, \
 		    ((p).y - grid_min_y) / glyph_height, \
 		    (d))
 
@@ -710,15 +691,43 @@ generate_texture (unsigned int upem, FT_Outline *outline, int width,
       {
         arc_t arc = near_arcs[i];
 
-	if (p1 != arc.p0)
+	if (i == 0 || p1 != arc.p0)
 	  tex_data.push_back (ARC_ENCODE (arc.p0, INFINITY));
 
 	tex_data.push_back (ARC_ENCODE (arc.p1, arc.d));
 	p1 = arc.p1;
       }
 
-      // Use the last bit to store whether or not the pixel is inside the glyph. 
-      tex_data[row * GRID_X + col] = pair_to_rgba (offset, 2 * (tex_data.size () - offset) + (inside_glyph ? 1 : 0));
+      unsigned int num_endpoints = tex_data.size () - offset;
+
+      /* See if we can fulfill this cell by using already-encoded arcs */
+      const ColorsStruct *needle = &tex_data[offset];
+      unsigned int needle_len = num_endpoints;
+      const ColorsStruct *haystack = &tex_data[header_length];
+      unsigned int haystack_len = offset - header_length;
+
+      bool found = false;
+      if (needle_len)
+	while (haystack_len >= needle_len) {
+	  /* Trick: we don't care about first endpoint's d value, so skip one
+	   * byte in comparison.  This works because arc_encode() packs the
+	   * d value in the first byte. */
+	  if (0 == memcmp (1 + (const char *) needle,
+			   1 + (const char *) haystack,
+			   needle_len * sizeof (*needle) - 1)) {
+	    found = true;
+	    break;
+	  }
+	  haystack++;
+	  haystack_len--;
+	}
+      if (found) {
+	tex_data.resize (offset);
+	offset = haystack - &tex_data[0];
+	saved_bytes += needle_len * sizeof (*needle);
+      }
+
+      tex_data[row * GRID_X + col] = arclist_encode<ColorsStruct> (offset, num_endpoints, inside_glyph);
       offset = tex_data.size ();
     }
 
@@ -732,3 +741,28 @@ generate_texture (unsigned int upem, FT_Outline *outline, int width,
   return 0;
 }
 
+template
+const struct rgba_t
+arc_encode (double x, double y, double d);
+
+template
+struct rgba_t
+arclist_encode (unsigned int offset, unsigned int num_points, bool is_inside);
+
+template
+int
+generate_texture<struct rgba_t> (unsigned int upem, FT_Outline *outline, int width,
+		  int *height, void **buffer);
+
+template
+const struct bgra_t
+arc_encode (double x, double y, double d);
+
+template
+struct bgra_t
+arclist_encode (unsigned int offset, unsigned int num_points, bool is_inside);
+
+template
+int
+generate_texture<struct bgra_t> (unsigned int upem, FT_Outline *outline, int width,
+		  int *height, void **buffer);
