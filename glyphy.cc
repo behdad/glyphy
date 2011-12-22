@@ -473,8 +473,8 @@ create_program (void)
       int is_inside = mod (arc_position_data.y, 2);
 
       int i;
-      float min_dist = 1.;
-      float min_extended_dist = 1.;
+      float min_dist = 1.5;
+      float min_extended_dist = 1.5;
 
 
       struct {
