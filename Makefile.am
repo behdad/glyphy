@@ -74,6 +74,7 @@ glyphy_LDADD = \
 		$(NULL)
 glyphy_SOURCES = \
 		glyphy_demo.cc \
+		glyphy_lib.cc \
 		$(NULL)
 
 endif
