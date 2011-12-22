@@ -439,9 +439,9 @@ create_program (void)
     {
       vec2 m = mix (p0, p1, .5);
       if (dot (p - m, p1 - m) < 0)
-	return dot (p - p0, (m - p0) * mat2(-d, -1,  1, -d));
+	return dot (p - p0, (m - p0) * mat2(-2*d, -1,  1, -2*d));
       else
-	return dot (p - p1, (p1 - m) * mat2( d, -1,  1, -d));
+	return dot (p - p1, (p1 - m) * mat2( 2*d, -1,  1, -2*d));
     }
 
     ivec2 rgba_to_pair (const vec4 v)
@@ -498,11 +498,13 @@ create_program (void)
 	// for highlighting points
 	min_point_dist = min (min_point_dist, distance (p, p1));
 
-	if (dot (p - p0, (p1 - p0) * mat2(1, -d, d, 1)) >= 0 &&
-	    dot (p - p1, (p1 - p0) * mat2(1, d, -d, 1)) <= 0)
+	// unsigned distance
+	float d2 = d * 2.;
+        if (dot (p - p0, (p1 - p0) * mat2(1, -d2,  d2, 1)) >= 0 &&
+	    dot (p - p1, (p1 - p0) * mat2(1,  d2, -d2, 1)) <= 0)
 	{
 	  vec2 c = arc_center (p0, p1, d);
-	  float signed_dist = distance (p, c) - distance (p0, c);
+	  float signed_dist = (distance (p, c) - distance (p0, c));
 	  float dist = abs (signed_dist);
 	  if (dist <= min_dist) {
 	    min_dist = dist;
@@ -510,7 +512,6 @@ create_program (void)
 	  }
 	} else {
 	  float dist = min (distance (p, p0), distance (p, p1));
-
 	  if (dist < min_dist) {
 	    min_dist = dist;
 	    is_inside = IS_INSIDE_UNSURE;
@@ -539,6 +540,8 @@ create_program (void)
         // Technically speaking this should not happen, but it does.  So fix it.
 	float extended_dist = arc_extended_dist (p, closest_arc.p0, closest_arc.p1, closest_arc.d);
 	is_inside = extended_dist < 0 ? IS_INSIDE_YES : IS_INSIDE_NO;
+	//gl_FragColor = vec4 (1,1,0,1);
+	//return;
       }
 
       float abs_dist = min_dist;
@@ -563,7 +566,7 @@ create_program (void)
       // Color the inside of the glyph a light red
       color += vec4(.5,0,0,1) * smoothstep (m, -m, min_dist);
 
-//      color = vec4(1,1,1,1) * smoothstep (-m, m, min_dist);
+      color = vec4(1,1,1,1) * smoothstep (-m, m, min_dist);
 
       gl_FragColor = color;
     }
