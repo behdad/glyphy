@@ -10,6 +10,7 @@
 
 #include <vector>
 #include "geometry.hh"
+#include "freetype-helper.hh"
 
 
 using namespace std;
@@ -54,5 +55,9 @@ create_texture (const char *font_path, const char UTF8);
 
 GLuint
 create_program (void);
+
+int
+generate_texture (FT_Outline *outline, int width,
+		  int *height, void **buffer);
 
 #endif

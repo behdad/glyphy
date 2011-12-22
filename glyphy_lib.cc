@@ -618,3 +618,11 @@ create_program (void)
   program = link_program (vshader, fshader);
   return program;
 }
+
+int
+generate_texture (FT_Outline *outline, int width,
+		  int *height, void **buffer)
+{
+	return 0;
+}
+
