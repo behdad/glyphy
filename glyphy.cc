@@ -383,7 +383,7 @@ create_texture (const char *font_path, const char UTF8)
 
   GLuint program;
   glGetIntegerv (GL_CURRENT_PROGRAM, (GLint *) &program);
-  glUniform2i (glGetUniformLocation(program, "u_tex_size"), tex_w, tex_h);
+  glUniform2i (glGetUniformLocation(program, "u_texSize"), tex_w, tex_h);
   glUniform1i (glGetUniformLocation(program, "u_tex"), 0);
   glActiveTexture (GL_TEXTURE0);
 
@@ -399,27 +399,35 @@ create_program (void)
 {
   GLuint vshader, fshader, program;
   vshader = COMPILE_SHADER (GL_VERTEX_SHADER,
-    attribute vec4 a_position;
-    attribute vec2 a_texCoord;
     uniform mat4 u_matViewProjection;
-    varying vec2 v_glyphCoord;
+    attribute vec4 a_position;
+    attribute float a_glyph;
+    varying vec3 v_glyph;
+
+    int mod (const int a, const int b) { return a - (a / b) * b; }
+    int div (const int a, const int b) { return a / b; }
+
+    vec3 glyph_decode (float v)
+    {
+      int g = int (v);
+      return vec3 (mod (g, 2), mod (div (g, 2), 2), div (g, 4));
+    }
+
     void main()
     {
       gl_Position = u_matViewProjection * a_position;
-      v_glyphCoord = a_texCoord;
+      v_glyph = glyph_decode (a_glyph);
     }
   );
   fshader = COMPILE_SHADER (GL_FRAGMENT_SHADER,
     uniform sampler2D u_tex;
-    uniform ivec2 u_tex_size;
-    varying vec2 v_glyphCoord;
+    uniform ivec2 u_texSize;
+    varying vec3 v_glyph;
 
     vec2 perpendicular (const vec2 v) { return vec2 (-v.y, v.x); }
     int mod (const int a, const int b) { return a - (a / b) * b; }
     int div (const int a, const int b) { return a / b; }
     int floatToByte (const float v) { return int (v * (256 - 1e-5)); }
-    float fmod (const float a, const float b) { return a - int(a / b) * b; }
-
     // returns tan (2 * atan (d));
     float tan2atan (float d) { return 2 * d / (1 - d*d); }
 
@@ -457,21 +465,21 @@ create_program (void)
 
     vec4 tex_1D (const sampler2D tex, int i)
     {
-      return texture2D (tex, vec2 ((mod (i, u_tex_size.x) + .5) / float (u_tex_size.x),
-				   (div (i, u_tex_size.x) + .5) / float (u_tex_size.y)));
+      return texture2D (tex, vec2 ((mod (i, u_texSize.x) + .5) / float (u_texSize.x),
+				   (div (i, u_texSize.x) + .5) / float (u_texSize.y)));
     }
 
     void main()
     {
-      vec2 p = v_glyphCoord;
+      vec2 p = v_glyph.xy;
+      int glyphOffset = int (v_glyph.z);
+
       gl_FragColor = vec4 (0,0,0,1);
 
       /* isotropic antialiasing */
       float m = length (vec2 (float (dFdx (p)),
 			      float (dFdy (p)))); 
       //float m = float (fwidth (p)); //for broken dFdx/dFdy
-      p.x = fmod (p.x*4, 1);
-      p.y = fmod (p.y*4, 1);
 
       int p_cell_x = int (clamp (int (p.x * GRID_X), 0, GRID_X - 1));
       int p_cell_y = int (clamp (int (p.y * GRID_Y), 0, GRID_Y - 1));
@@ -484,6 +492,7 @@ create_program (void)
       int i;
       float min_dist = 1.5;
       float min_extended_dist = 1.5;
+      float min_point_dist = 1.5;
 
 
       struct {
@@ -493,7 +502,6 @@ create_program (void)
       } closest_arc;
 
       vec3 arc_prev = vec3 (0,0,0);
-      float min_point_dist = 1;
       for (i = 0; i < num_endpoints; i++)
       {
 	vec3 arc = arc_decode (tex_1D (u_tex, i + offset));
@@ -677,30 +685,30 @@ main (int argc, char** argv)
   if (!glewIsSupported ("GL_VERSION_2_0"))
     die ("OpenGL 2.0 not supported");
 
-  GLuint program, texture, a_pos_loc, a_tex_loc;
 
-
-  program = create_program ();
+  GLuint program = create_program ();
   glUseProgram (program);
 
-  texture = create_texture (font_path, utf8);
+  GLuint texture = create_texture (font_path, utf8);
 
-  a_pos_loc = glGetAttribLocation(program, "a_position");
-  a_tex_loc = glGetAttribLocation(program, "a_texCoord");
-#if 0
-  const GLfloat w_vertices[] = { -1, -1, 0,  0.348, 0.635,
-				 +1, -1, 0,  0.354, 0.635,
-				 +1, +1, 0,  0.354, 0.641,
-				 -1, +1, 0,  0.348, 0.641 };
-#endif
-  const GLfloat w_vertices[] = { -1, -1, 0,  -.1, -.1,
-				 +1, -1, 0,  1.1, -.1,
-				 +1, +1, 0,  1.1, 1.1,
-				 -1, +1, 0,  -.1, 1.1 };
-  glVertexAttribPointer (a_pos_loc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), w_vertices+0);
-  glVertexAttribPointer (a_tex_loc, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), w_vertices+3);
+  struct glyph_attrib_t {
+    GLfloat x;
+    GLfloat y;
+    GLfloat g;
+  };
+  const glyph_attrib_t w_vertices[] = {{-1, -1, 0},
+				       {+1, -1, 1},
+				       {+1, +1, 3},
+				       {-1, +1, 2}};
+
+  GLuint a_pos_loc = glGetAttribLocation (program, "a_position");
+  GLuint a_glyph_loc = glGetAttribLocation (program, "a_glyph");
+  glVertexAttribPointer (a_pos_loc, 2, GL_FLOAT, GL_FALSE, sizeof (glyph_attrib_t),
+			 (const char *) w_vertices + offsetof (glyph_attrib_t, x));
+  glVertexAttribPointer (a_glyph_loc, 1, GL_FLOAT, GL_FALSE, sizeof (glyph_attrib_t),
+			 (const char *) w_vertices + offsetof (glyph_attrib_t, g));
   glEnableVertexAttribArray (a_pos_loc);
-  glEnableVertexAttribArray (a_tex_loc);
+  glEnableVertexAttribArray (a_glyph_loc);
 
   if (animate) {
     //glutTimerFunc (40, timed_step, 40);
