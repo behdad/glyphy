@@ -25,9 +25,9 @@ typedef Arc<Coord, Scalar> arc_t;
 typedef Bezier<Coord> bezier_t;
 
 struct rgba_t {
-  unsigned char r;
-  unsigned char g;
   unsigned char b;
+  unsigned char g;
+  unsigned char r;
   unsigned char a;
 };
 
@@ -57,7 +57,7 @@ GLuint
 create_program (void);
 
 int
-generate_texture (FT_Outline *outline, int width,
+generate_texture (unsigned int upem, FT_Outline *outline, int width,
 		  int *height, void **buffer);
 
 #endif

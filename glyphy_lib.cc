@@ -620,9 +620,115 @@ create_program (void)
 }
 
 int
-generate_texture (FT_Outline *outline, int width,
+generate_texture (unsigned int upem, FT_Outline *outline, int width,
 		  int *height, void **buffer)
 {
-	return 0;
+  double tolerance = upem * TOLERANCE; // in font design units
+
+
+  // Arc approximation code.
+  typedef MaxDeviationApproximatorExact MaxDev;
+  typedef BezierArcErrorApproximatorBehdad<MaxDev> BezierArcError;
+  typedef BezierArcApproximatorMidpointTwoPart<BezierArcError> BezierArcApproximator;
+  typedef BezierArcsApproximatorSpringSystem<BezierArcApproximator> SpringSystem;
+  typedef ArcApproximatorOutlineSink<SpringSystem> ArcApproximatorOutlineSink;
+  class ArcAccumulator
+  {
+    public:
+    static bool callback (const arc_t &arc, void *closure)
+    { 
+       ArcAccumulator *acc = static_cast<ArcAccumulator *> (closure);
+       acc->arcs.push_back (arc);
+       return true;
+    }
+    std::vector<arc_t> arcs;
+  } acc;
+
+  //assert (face->glyph->format == FT_GLYPH_FORMAT_OUTLINE);
+  ArcApproximatorOutlineSink outline_arc_approximator (acc.callback,
+						       static_cast<void *> (&acc),
+						       tolerance);
+  // The actual arc decomposition is done here.
+  FreeTypeOutlineSource<ArcApproximatorOutlineSink>::decompose_outline (outline,
+  									outline_arc_approximator);
+  double e = outline_arc_approximator.error;
+/*
+  printf ("Num arcs %d; Approximation error %g; Tolerance %g; Percentage %g. %s\n",
+	  (int) acc.arcs.size (), e, tolerance, round (100 * e / tolerance), e <= tolerance ? "PASS" : "FAIL");
+*/
+
+  int grid_min_x =  65535;
+  int grid_max_x = -65535;
+  int grid_min_y =  65335;
+  int grid_max_y = -65535;
+  int glyph_width, glyph_height;
+
+  for (int i = 0; i < acc.arcs.size (); i++) {
+    grid_min_x = std::min (grid_min_x, (int) floor (acc.arcs[i].leftmost ().x));
+    grid_max_x = std::max (grid_max_x, (int) ceil (acc.arcs[i].rightmost ().y));
+    grid_min_y = std::min (grid_min_y, (int) floor (acc.arcs[i].lowest ().y));
+    grid_max_y = std::max (grid_max_y, (int) ceil (acc.arcs[i].highest ().y));
+  }
+
+  glyph_width = grid_max_x - grid_min_x;
+  glyph_height = grid_max_y - grid_min_y;
+
+  /* XXX */
+  glyph_width = glyph_height = std::max (glyph_width, glyph_height);
+
+
+  // Make a 2d grid for arc/cell information.
+  vector<rgba_t> tex_data;
+
+  // near_arcs: Vector of arcs near points in this single grid cell
+  vector<arc_t> near_arcs;
+
+  double min_dimension = std::min(glyph_width, glyph_height);
+  unsigned int header_length = GRID_X * GRID_Y;
+  unsigned int offset = header_length;
+  tex_data.resize (header_length);
+  point_t origin = point_t (grid_min_x, grid_min_y);
+
+  for (int row = 0; row < GRID_Y; row++)
+    for (int col = 0; col < GRID_X; col++)
+    {
+      point_t cp0 = origin + vector_t ((col + 0.) * glyph_width / GRID_X, (row + 0.) * glyph_height / GRID_Y);
+      point_t cp1 = origin + vector_t ((col + 1.) * glyph_width / GRID_X, (row + 1.) * glyph_height / GRID_Y);
+      near_arcs.clear ();
+
+      bool inside_glyph;
+      closest_arcs_to_cell (cp0, cp1, min_dimension, acc.arcs, near_arcs, inside_glyph); 
+
+#define ARC_ENCODE(p, d) \
+	arc_encode (((p).x - grid_min_x) / glyph_width, \
+		    ((p).y - grid_min_y) / glyph_height, \
+		    (d))
+
+
+      point_t p1 = point_t (0, 0);
+      for (unsigned i = 0; i < near_arcs.size (); i++)
+      {
+        arc_t arc = near_arcs[i];
+
+	if (p1 != arc.p0)
+	  tex_data.push_back (ARC_ENCODE (arc.p0, INFINITY));
+
+	tex_data.push_back (ARC_ENCODE (arc.p1, arc.d));
+	p1 = arc.p1;
+      }
+
+      // Use the last bit to store whether or not the pixel is inside the glyph. 
+      tex_data[row * GRID_X + col] = pair_to_rgba (offset, 2 * (tex_data.size () - offset) + (inside_glyph ? 1 : 0));
+      offset = tex_data.size ();
+    }
+
+  unsigned int tex_len = tex_data.size ();
+  unsigned int tex_w = width;
+  unsigned int tex_h = (tex_len + tex_w - 1) / tex_w;
+  tex_data.resize (tex_w * tex_h);
+  *height = tex_h;
+  *buffer = new char[tex_data.size() * sizeof(tex_data[0])];
+  memcpy(*buffer, &tex_data[0], tex_data.size() * sizeof(tex_data[0]));
+  return 0;
 }
 
