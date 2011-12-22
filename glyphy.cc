@@ -437,6 +437,19 @@ create_program (void)
       return mix (p0, p1, .5) - perp * ((1 - d*d) / (4 * d));
     }
 
+    float arc_extended_dist (const vec2 p, const vec2 p0, const vec2 p1, float d, const vec2 c)
+    {
+      if (sign (d) * dot (p - c, perpendicular (p0 - c)) > 0)
+	return - sign (d) *  dot (p - p0, normalize (c - p0));
+      else if (sign (d) * dot (p - c, perpendicular (p1 - c)) < 0)
+	return - sign (d) *  dot (p - p1, normalize (c - p1));
+      else {
+	// XXX debug; not_reached
+	discard;
+	return 0;
+      }
+    }
+
     ivec2 rgba_to_pair (const vec4 v)
     {
       int x = (floatToByte (v.r) * 256 + floatToByte (v.g)) * 256 + floatToByte (v.b);
@@ -476,12 +489,6 @@ create_program (void)
 	vec2 c;
 	float d;
       } closest_arc;
-      struct {
-        vec2 p0;
-	vec2 p1;
-	vec2 c;
-	float d;
-      } new_arc;
 
       vec3 arc_prev = vec3 (0,0,0);
       float min_point_dist = 1;
@@ -506,11 +513,11 @@ create_program (void)
 	if (sign (d) * dot (p - c, perpendicular (p0 - c)) <= 0 &&
 	    sign (d) * dot (p - c, perpendicular (p1 - c)) >= 0)
 	{
-	  float signed_dist = distance (p, c) - distance (p0, c);
+	  float signed_dist = sign (d) * (distance (p, c) - distance (p0, c));
 	  dist = abs (signed_dist);
 	  if (dist <= min_dist) {
 	    min_dist = dist;
-	    is_inside = (sign (d) * sign (signed_dist)) < 0 ? IS_INSIDE_YES : IS_INSIDE_NO;
+	    is_inside = signed_dist < 0 ? IS_INSIDE_YES : IS_INSIDE_NO;
 	  }
 	} else {
 	  dist = min (distance (p, p0), distance (p, p1));
@@ -525,48 +532,16 @@ create_program (void)
 	  } else if (dist == min_dist && is_inside == IS_INSIDE_UNSURE) {
 	    // If this new distance is the same as the current minimum, compare extended distances.
 	    // Take the sign from the arc with larger extended distance.
-	    float extended_dist;
-	    float old_extended_dist;
-	    float new_extended_dist;
+	    float new_extended_dist = arc_extended_dist (p, p0, p1, d, c);
+	    float old_extended_dist = arc_extended_dist (p, closest_arc.p0, closest_arc.p1, closest_arc.d, closest_arc.c);
 
-	    new_arc.p0 = p0;
-	    new_arc.p1 = p1;
-	    new_arc.c  = c;
-	    new_arc.d  = d;
-	    if (sign (new_arc.d) * dot (p - new_arc.c, perpendicular (new_arc.p0 - new_arc.c)) > 0)
-	      extended_dist = - sign (new_arc.d) *  dot (p - new_arc.p0, normalize (new_arc.c - new_arc.p0));
-	    else if (sign (new_arc.d) * dot (p - new_arc.c, perpendicular (new_arc.p1 - new_arc.c)) < 0)
-	      extended_dist = - sign (new_arc.d) *  dot (p - new_arc.p1, normalize (new_arc.c - new_arc.p1));
-	    else {
-	      // XXX debug; not_reached
-	      gl_FragColor = vec4(0,1,0,1);
-	      return;
-	    }
-	    new_extended_dist = extended_dist;
-
-	    new_arc.p0 = closest_arc.p0;
-	    new_arc.p1 = closest_arc.p1;
-	    new_arc.c  = closest_arc.c;
-	    new_arc.d  = closest_arc.d;
-	    if (sign (new_arc.d) * dot (p - new_arc.c, perpendicular (new_arc.p0 - new_arc.c)) > 0)
-	      extended_dist = - sign (new_arc.d) *  dot (p - new_arc.p0, normalize (new_arc.c - new_arc.p0));
-	    else if (sign (new_arc.d) * dot (p - new_arc.c, perpendicular (new_arc.p1 - new_arc.c)) < 0)
-	      extended_dist = - sign (new_arc.d) *  dot (p - new_arc.p1, normalize (new_arc.c - new_arc.p1));
-	    else {
-	      // XXX debug; not_reached
-	      gl_FragColor = vec4(1,1,0,1);
-	      return;
-	    }
-	    old_extended_dist = extended_dist;
-
-	    if (abs (new_extended_dist) > abs (old_extended_dist)) {
+	    if (abs (new_extended_dist) <= abs (old_extended_dist)) {
 //	      min_dist = abs (new_extended_dist);
 	      is_inside = old_extended_dist < 0 ? IS_INSIDE_YES : IS_INSIDE_NO;
 	    } else {
 //	      min_dist = abs (old_extended_dist);
 	      is_inside = new_extended_dist < 0 ? IS_INSIDE_YES : IS_INSIDE_NO;
 	    }
-
 	  }
 	}
       }
