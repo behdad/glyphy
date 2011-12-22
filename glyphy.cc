@@ -534,6 +534,13 @@ create_program (void)
 	}
       }
 
+      if (is_inside == IS_INSIDE_UNSURE)
+      {
+        // Technically speaking this should not happen, but it does.  So fix it.
+	float extended_dist = arc_extended_dist (p, closest_arc.p0, closest_arc.p1, closest_arc.d);
+	is_inside = extended_dist < 0 ? IS_INSIDE_YES : IS_INSIDE_NO;
+      }
+
       float abs_dist = min_dist;
       min_dist *= (is_inside == IS_INSIDE_YES) ? -1 : +1;
 
@@ -556,7 +563,7 @@ create_program (void)
       // Color the inside of the glyph a light red
       color += vec4(.5,0,0,1) * smoothstep (m, -m, min_dist);
 
-      color = vec4(1,1,1,1) * smoothstep (-m, m, min_dist);
+//      color = vec4(1,1,1,1) * smoothstep (-m, m, min_dist);
 
       gl_FragColor = color;
     }
