@@ -415,7 +415,7 @@ create_program (void)
 
     varying vec2 p;
 
-    vec2 perpendicular (const vec2 v) { return vec2 (-v.g, v.r); }
+    vec2 perpendicular (const vec2 v) { return vec2 (-v.y, v.x); }
     int mod (const int a, const int b) { return a - (a / b) * b; }
     int div (const int a, const int b) { return a / b; }
     int floatToByte (const float v) { return int (v * (256 - 1e-5)); }
@@ -431,18 +431,17 @@ create_program (void)
 
     vec2 arc_center (const vec2 p0, const vec2 p1, float d)
     {
-      if (abs (d) < 1e-5) d = -1e-5; // Cheat.  Do we actually need this?
-      vec2 line = p1 - p0;
-      vec2 perp = perpendicular (line);
-      return mix (p0, p1, .5) - perp * ((1 - d*d) / (4 * d));
+      //if (abs (d) < 1e-5) d = -1e-5; // Cheat.  Do we actually need this?
+      return mix (p0, p1, .5) - perpendicular (p1 - p0) * ((1 - d*d) / (4 * d));
     }
 
-    float arc_extended_dist (const vec2 p, const vec2 p0, const vec2 p1, float d, const vec2 c)
+    float arc_extended_dist (const vec2 p, const vec2 p0, const vec2 p1, float d)
     {
-      if (sign (d) * dot (p - c, perpendicular (mix (p0, p1, .5) - c)) > 0)
-	return - sign (d) *  dot (p - p0, normalize (c - p0));
+      vec2 m = mix (p0, p1, .5);
+      if (dot (p - m, p1 - m) < 0)
+	return dot (p - p0, (m - p0) * mat2(-d, -1,  1, -d));
       else
-	return - sign (d) *  dot (p - p1, normalize (c - p1));
+	return dot (p - p1, (p1 - m) * mat2( d, -1,  1, -d));
     }
 
     ivec2 rgba_to_pair (const vec4 v)
@@ -481,7 +480,6 @@ create_program (void)
       struct {
         vec2 p0;
 	vec2 p1;
-	vec2 c;
 	float d;
       } closest_arc;
 
@@ -497,17 +495,15 @@ create_program (void)
 
 	if (d == -MAX_D) continue;
 
-	// find arc center
-	vec2 c = arc_center (p0, p1, d);
-
 	// for highlighting points
 	min_point_dist = min (min_point_dist, distance (p, p1));
 
 	// unsigned distance
 	float dist;
-	if (sign (d) * dot (p - c, perpendicular (p0 - c)) <= 0 &&
-	    sign (d) * dot (p - c, perpendicular (p1 - c)) >= 0)
+	if (dot (p - p0, (p1 - p0) * mat2(1, -d, d, 1)) >= 0 &&
+	    dot (p - p1, (p1 - p0) * mat2(1, d, -d, 1)) <= 0)
 	{
+	  vec2 c = arc_center (p0, p1, d);
 	  float signed_dist = sign (d) * (distance (p, c) - distance (p0, c));
 	  dist = abs (signed_dist);
 	  if (dist <= min_dist) {
@@ -522,19 +518,18 @@ create_program (void)
 	    is_inside = IS_INSIDE_UNSURE;
 	    closest_arc.p0 = p0;
 	    closest_arc.p1 = p1;
-	    closest_arc.c  = c;
 	    closest_arc.d  = d;
 	  } else if (dist == min_dist && is_inside == IS_INSIDE_UNSURE) {
 	    // If this new distance is the same as the current minimum, compare extended distances.
 	    // Take the sign from the arc with larger extended distance.
-	    float new_extended_dist = arc_extended_dist (p, p0, p1, d, c);
-	    float old_extended_dist = arc_extended_dist (p, closest_arc.p0, closest_arc.p1, closest_arc.d, closest_arc.c);
+	    float new_extended_dist = arc_extended_dist (p, p0, p1, d);
+	    float old_extended_dist = arc_extended_dist (p, closest_arc.p0, closest_arc.p1, closest_arc.d);
 
 	    if (abs (new_extended_dist) <= abs (old_extended_dist)) {
-	      min_dist = abs (old_extended_dist);
+//	      min_dist = abs (old_extended_dist);
 	      is_inside = old_extended_dist < 0 ? IS_INSIDE_YES : IS_INSIDE_NO;
 	    } else {
-	      min_dist = abs (new_extended_dist);
+//	      min_dist = abs (new_extended_dist);
 	      is_inside = new_extended_dist < 0 ? IS_INSIDE_YES : IS_INSIDE_NO;
 	    }
 	  }
@@ -563,7 +558,7 @@ create_program (void)
       // Color the inside of the glyph a light red
       color += vec4(.5,0,0,1) * smoothstep (m, -m, min_dist);
 
-//      color = vec4(1,1,1,1) * smoothstep (-m, m, min_dist);
+      color = vec4(1,1,1,1) * smoothstep (-m, m, min_dist);
 
       gl_FragColor = color;
     }
