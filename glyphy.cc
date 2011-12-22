@@ -120,7 +120,7 @@ link_program (GLuint vshader, GLuint fshader)
 
 
 #define MIN_FONT_SIZE 20
-#define GRID_SIZE 32
+#define GRID_SIZE 12
 #define GRID_X GRID_SIZE
 #define GRID_Y GRID_SIZE
 #define TOLERANCE 3e-4
@@ -383,8 +383,8 @@ create_texture (const char *font_path, const char UTF8)
 
   GLuint program;
   glGetIntegerv (GL_CURRENT_PROGRAM, (GLint *) &program);
-  glUniform2i (glGetUniformLocation(program, "tex_size"), tex_w, tex_h);
-  glUniform1i (glGetUniformLocation(program, "tex"), 0);
+  glUniform2i (glGetUniformLocation(program, "u_tex_size"), tex_w, tex_h);
+  glUniform1i (glGetUniformLocation(program, "u_tex"), 0);
   glActiveTexture (GL_TEXTURE0);
 
   return texture;
@@ -402,23 +402,26 @@ create_program (void)
     attribute vec4 a_position;
     attribute vec2 a_texCoord;
     uniform mat4 u_matViewProjection;
-    varying vec2 p;
+    varying vec2 v_glyphCoord;
     void main()
     {
       gl_Position = u_matViewProjection * a_position;
-      p = a_texCoord;
+      v_glyphCoord = a_texCoord;
     }
   );
   fshader = COMPILE_SHADER (GL_FRAGMENT_SHADER,
-    uniform sampler2D tex;
-    uniform ivec2 tex_size;
-
-    varying vec2 p;
+    uniform sampler2D u_tex;
+    uniform ivec2 u_tex_size;
+    varying vec2 v_glyphCoord;
 
     vec2 perpendicular (const vec2 v) { return vec2 (-v.y, v.x); }
     int mod (const int a, const int b) { return a - (a / b) * b; }
     int div (const int a, const int b) { return a / b; }
     int floatToByte (const float v) { return int (v * (256 - 1e-5)); }
+    float fmod (const float a, const float b) { return a - int(a / b) * b; }
+
+    // returns tan (2 * atan (d));
+    float tan2atan (float d) { return 2 * d / (1 - d*d); }
 
     vec3 arc_decode (const vec4 v)
     {
@@ -432,16 +435,17 @@ create_program (void)
     vec2 arc_center (const vec2 p0, const vec2 p1, float d)
     {
       //if (abs (d) < 1e-5) d = -1e-5; // Cheat.  Do we actually need this?
-      return mix (p0, p1, .5) - perpendicular (p1 - p0) * ((1 - d*d) / (4 * d));
+      return mix (p0, p1, .5) - perpendicular (p1 - p0) / (2 * tan2atan (d));
     }
 
     float arc_extended_dist (const vec2 p, const vec2 p0, const vec2 p1, float d)
     {
       vec2 m = mix (p0, p1, .5);
+      float d2 = tan2atan (d);
       if (dot (p - m, p1 - m) < 0)
-	return dot (p - p0, (m - p0) * mat2(-2*d, -1,  1, -2*d));
+	return dot (p - p0, normalize ((p1 - p0) * +mat2(-d2, -1, +1, -d2)));
       else
-	return dot (p - p1, (p1 - m) * mat2( 2*d, -1,  1, -2*d));
+	return dot (p - p1, normalize ((p1 - p0) * -mat2(-d2, +1, -1, -d2)));
     }
 
     ivec2 rgba_to_pair (const vec4 v)
@@ -453,21 +457,26 @@ create_program (void)
 
     vec4 tex_1D (const sampler2D tex, int i)
     {
-      return texture2D (tex, vec2 ((mod (i, tex_size.x) + .5) / float (tex_size.x),
-				   (div (i, tex_size.x) + .5) / float (tex_size.y)));
+      return texture2D (tex, vec2 ((mod (i, u_tex_size.x) + .5) / float (u_tex_size.x),
+				   (div (i, u_tex_size.x) + .5) / float (u_tex_size.y)));
     }
 
     void main()
     {
+      vec2 p = v_glyphCoord;
+      gl_FragColor = vec4 (0,0,0,1);
+
       /* isotropic antialiasing */
       float m = length (vec2 (float (dFdx (p)),
 			      float (dFdy (p)))); 
       //float m = float (fwidth (p)); //for broken dFdx/dFdy
+      p.x = fmod (p.x*4, 1);
+      p.y = fmod (p.y*4, 1);
 
       int p_cell_x = int (clamp (int (p.x * GRID_X), 0, GRID_X - 1));
       int p_cell_y = int (clamp (int (p.y * GRID_Y), 0, GRID_Y - 1));
 
-      ivec2 arc_position_data = rgba_to_pair (tex_1D (tex, p_cell_y * GRID_X + p_cell_x));
+      ivec2 arc_position_data = rgba_to_pair (tex_1D (u_tex, p_cell_y * GRID_X + p_cell_x));
       int offset = arc_position_data.x;
       int num_endpoints =  div (arc_position_data.y, 2);
       int is_inside = mod (arc_position_data.y, 2);
@@ -487,7 +496,7 @@ create_program (void)
       float min_point_dist = 1;
       for (i = 0; i < num_endpoints; i++)
       {
-	vec3 arc = arc_decode (tex_1D (tex, i + offset));
+	vec3 arc = arc_decode (tex_1D (u_tex, i + offset));
 	vec2 p0 = arc_prev.rg;
 	arc_prev = arc;
 	float d = arc.b;
@@ -499,9 +508,9 @@ create_program (void)
 	min_point_dist = min (min_point_dist, distance (p, p1));
 
 	// unsigned distance
-	float d2 = d * 2.;
-        if (dot (p - p0, (p1 - p0) * mat2(1, -d2,  d2, 1)) >= 0 &&
-	    dot (p - p1, (p1 - p0) * mat2(1,  d2, -d2, 1)) <= 0)
+	float d2 = tan2atan (d);
+        if (dot (p - p0, (p1 - p0) * mat2(1, -d2,  d2, 1)) > 0 &&
+	    dot (p - p1, (p1 - p0) * mat2(1,  d2, -d2, 1)) < 0)
 	{
 	  vec2 c = arc_center (p0, p1, d);
 	  float signed_dist = (distance (p, c) - distance (p0, c));
@@ -540,35 +549,29 @@ create_program (void)
         // Technically speaking this should not happen, but it does.  So fix it.
 	float extended_dist = arc_extended_dist (p, closest_arc.p0, closest_arc.p1, closest_arc.d);
 	is_inside = extended_dist < 0 ? IS_INSIDE_YES : IS_INSIDE_NO;
-	//gl_FragColor = vec4 (1,1,0,1);
-	//return;
+	//gl_FragColor += vec4 (0,1,0,0);
       }
 
       float abs_dist = min_dist;
       min_dist *= (is_inside == IS_INSIDE_YES) ? -1 : +1;
 
 
-      vec4 color = vec4(0,0,0,0);
-
       // Color the outline red
-      color += vec4(1,0,0,1) * smoothstep (2 * m, 0, abs_dist);
+      gl_FragColor += vec4(1,0,0,0) * smoothstep (2 * m, 0, abs_dist);
 
       // Color the distance field in green
-      color = vec4(0,0,0,0);
-      color += vec4(0,1,0,1) * ((1 + sin (min_dist / m))) * sin (pow (abs_dist, .8) * M_PI) * .5;
+      gl_FragColor += vec4(0,1,0,0) * ((1 + sin (min_dist / m))) * sin (pow (abs_dist, .8) * M_PI) * .5;
 
       // Color points green
-      color = mix(vec4(0,1,0,1), color, smoothstep (.002, .005, min_point_dist));
+      gl_FragColor = mix(vec4(0,1,0,1), gl_FragColor, smoothstep (2 * m, 3 * m, min_point_dist));
 
       // Color the number of endpoints per cell blue
-      color += vec4(0,0,1,1) * num_endpoints * 16./255.;
+      gl_FragColor += vec4(0,0,1,0) * num_endpoints * 16./255.;
 
       // Color the inside of the glyph a light red
-      color += vec4(.5,0,0,1) * smoothstep (m, -m, min_dist);
+      gl_FragColor += vec4(.5,0,0,0) * smoothstep (m, -m, min_dist);
 
-      color = vec4(1,1,1,1) * smoothstep (-m, m, min_dist);
-
-      gl_FragColor = color;
+      gl_FragColor = vec4(1,1,1,1) * smoothstep (-m, m, min_dist);
     }
   );
   program = link_program (vshader, fshader);
@@ -663,7 +666,7 @@ main (int argc, char** argv)
     die ("Usage: grid PATH_TO_FONT_FILE CHARACTER_TO_DRAW ANIMATE?");
 
   glutInit (&argc, argv);
-  glutInitWindowSize (512, 512);
+  glutInitWindowSize (712, 712);
   glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
   glutCreateWindow("GLyphy");
   glutReshapeFunc (reshape);
@@ -684,10 +687,16 @@ main (int argc, char** argv)
 
   a_pos_loc = glGetAttribLocation(program, "a_position");
   a_tex_loc = glGetAttribLocation(program, "a_texCoord");
-  const GLfloat w_vertices[] = { -1, -1, 0,  -0.1, -0.1,
-				 +1, -1, 0,  1.1, -0.1,
+#if 0
+  const GLfloat w_vertices[] = { -1, -1, 0,  0.348, 0.635,
+				 +1, -1, 0,  0.354, 0.635,
+				 +1, +1, 0,  0.354, 0.641,
+				 -1, +1, 0,  0.348, 0.641 };
+#endif
+  const GLfloat w_vertices[] = { -1, -1, 0,  -.1, -.1,
+				 +1, -1, 0,  1.1, -.1,
 				 +1, +1, 0,  1.1, 1.1,
-				 -1, +1, 0,  -0.1, 1.1 };
+				 -1, +1, 0,  -.1, 1.1 };
   glVertexAttribPointer (a_pos_loc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), w_vertices+0);
   glVertexAttribPointer (a_tex_loc, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), w_vertices+3);
   glEnableVertexAttribArray (a_pos_loc);
