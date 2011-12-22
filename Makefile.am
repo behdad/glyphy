@@ -73,7 +73,7 @@ glyphy_LDADD = \
 		-lm \
 		$(NULL)
 glyphy_SOURCES = \
-		glyphy.cc \
+		glyphy_demo.cc \
 		$(NULL)
 
 endif
