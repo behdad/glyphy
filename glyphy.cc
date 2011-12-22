@@ -498,20 +498,18 @@ create_program (void)
 	// for highlighting points
 	min_point_dist = min (min_point_dist, distance (p, p1));
 
-	// unsigned distance
-	float dist;
 	if (dot (p - p0, (p1 - p0) * mat2(1, -d, d, 1)) >= 0 &&
 	    dot (p - p1, (p1 - p0) * mat2(1, d, -d, 1)) <= 0)
 	{
 	  vec2 c = arc_center (p0, p1, d);
-	  float signed_dist = sign (d) * (distance (p, c) - distance (p0, c));
-	  dist = abs (signed_dist);
+	  float signed_dist = distance (p, c) - distance (p0, c);
+	  float dist = abs (signed_dist);
 	  if (dist <= min_dist) {
 	    min_dist = dist;
-	    is_inside = signed_dist < 0 ? IS_INSIDE_YES : IS_INSIDE_NO;
+	    is_inside = sign (d) * sign (signed_dist) < 0 ? IS_INSIDE_YES : IS_INSIDE_NO;
 	  }
 	} else {
-	  dist = min (distance (p, p0), distance (p, p1));
+	  float dist = min (distance (p, p0), distance (p, p1));
 
 	  if (dist < min_dist) {
 	    min_dist = dist;
