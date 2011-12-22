@@ -431,7 +431,7 @@ create_program (void)
 
     vec2 arc_center (const vec2 p0, const vec2 p1, float d)
     {
-      if (abs (d) < 1e-5) d = 1e-5; // cheat
+      if (abs (d) < 1e-5) d = -1e-5; // Cheat.  Do we actually need this?
       vec2 line = p1 - p0;
       vec2 perp = perpendicular (line);
       return mix (p0, p1, .5) - perp * ((1 - d*d) / (4 * d));
@@ -439,15 +439,10 @@ create_program (void)
 
     float arc_extended_dist (const vec2 p, const vec2 p0, const vec2 p1, float d, const vec2 c)
     {
-      if (sign (d) * dot (p - c, perpendicular (p0 - c)) > 0)
+      if (sign (d) * dot (p - c, perpendicular (mix (p0, p1, .5) - c)) > 0)
 	return - sign (d) *  dot (p - p0, normalize (c - p0));
-      else if (sign (d) * dot (p - c, perpendicular (p1 - c)) < 0)
+      else
 	return - sign (d) *  dot (p - p1, normalize (c - p1));
-      else {
-	// XXX debug; not_reached
-	discard;
-	return 0;
-      }
     }
 
     ivec2 rgba_to_pair (const vec4 v)
@@ -536,10 +531,10 @@ create_program (void)
 	    float old_extended_dist = arc_extended_dist (p, closest_arc.p0, closest_arc.p1, closest_arc.d, closest_arc.c);
 
 	    if (abs (new_extended_dist) <= abs (old_extended_dist)) {
-//	      min_dist = abs (new_extended_dist);
+	      min_dist = abs (old_extended_dist);
 	      is_inside = old_extended_dist < 0 ? IS_INSIDE_YES : IS_INSIDE_NO;
 	    } else {
-//	      min_dist = abs (old_extended_dist);
+	      min_dist = abs (new_extended_dist);
 	      is_inside = new_extended_dist < 0 ? IS_INSIDE_YES : IS_INSIDE_NO;
 	    }
 	  }
@@ -568,7 +563,7 @@ create_program (void)
       // Color the inside of the glyph a light red
       color += vec4(.5,0,0,1) * smoothstep (m, -m, min_dist);
 
-      color = vec4(1,1,1,1) * smoothstep (-m, m, min_dist);
+//      color = vec4(1,1,1,1) * smoothstep (-m, m, min_dist);
 
       gl_FragColor = color;
     }
