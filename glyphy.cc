@@ -130,8 +130,51 @@ link_program (GLuint vshader, GLuint fshader)
 
 
 
+void
+approximate_glyph_to_arcs (FT_Face face,
+			   unsigned int glyph_index,
+			   double tolerance,
+			   std::vector<arc_t> &arcs,
+			   double &error)
+{
+  // Arc approximation code.
+  typedef MaxDeviationApproximatorExact MaxDev;
+  typedef BezierArcErrorApproximatorBehdad<MaxDev> BezierArcError;
+  typedef BezierArcApproximatorMidpointTwoPart<BezierArcError> BezierArcApproximator;
+  typedef BezierArcsApproximatorSpringSystem<BezierArcApproximator> SpringSystem;
+  typedef ArcApproximatorOutlineSink<SpringSystem> ArcApproximatorOutlineSink;
 
+  class ArcAccumulator
+  {
+    public:
+    ArcAccumulator (std::vector<arc_t> &_arcs) : arcs (_arcs) {}
+    static bool callback (const arc_t &arc, void *closure)
+    {
+       ArcAccumulator *acc = static_cast<ArcAccumulator *> (closure);
+       acc->arcs.push_back (arc);
+       return true;
+    }
+    std::vector<arc_t> &arcs;
+  } acc (arcs);
 
+  if (FT_Load_Glyph (face,
+		     glyph_index,
+		     FT_LOAD_NO_BITMAP |
+		     FT_LOAD_NO_HINTING |
+		     FT_LOAD_NO_AUTOHINT |
+		     FT_LOAD_NO_SCALE |
+		     FT_LOAD_LINEAR_DESIGN |
+		     FT_LOAD_IGNORE_TRANSFORM))
+    abort ();
+
+  assert (face->glyph->format == FT_GLYPH_FORMAT_OUTLINE);
+  ArcApproximatorOutlineSink outline_arc_approximator (acc.callback,
+						       static_cast<void *> (&acc),
+						       tolerance);
+  FreeTypeOutlineSource<ArcApproximatorOutlineSink>::decompose_outline (&face->glyph->outline,
+									outline_arc_approximator);
+  error = outline_arc_approximator.error;
+}
 
 
 /* Given a cell, fills the vector closest_arcs with arcs that may be closest to some point in the cell.
@@ -264,48 +307,12 @@ create_texture (const char *font_path, const char UTF8)
   FT_New_Face ( library, font_path, 0, &face );
 
   double tolerance = face->units_per_EM * TOLERANCE; // in font design units
-
-  // Arc approximation code.
-  typedef MaxDeviationApproximatorExact MaxDev;
-  typedef BezierArcErrorApproximatorBehdad<MaxDev> BezierArcError;
-  typedef BezierArcApproximatorMidpointTwoPart<BezierArcError> BezierArcApproximator;
-  typedef BezierArcsApproximatorSpringSystem<BezierArcApproximator> SpringSystem;
-  typedef ArcApproximatorOutlineSink<SpringSystem> ArcApproximatorOutlineSink;
-
-  std:vector<arc_t> arcs;
-  class ArcAccumulator
-  {
-    public:
-    ArcAccumulator (std::vector<arc_t> &_arcs) : arcs (_arcs) {}
-    static bool callback (const arc_t &arc, void *closure)
-    { 
-       ArcAccumulator *acc = static_cast<ArcAccumulator *> (closure);
-       acc->arcs.push_back (arc);
-       return true;
-    }
-    std::vector<arc_t> &arcs;
-  } acc (arcs);
-
-  if (FT_Load_Glyph (face,
-		     FT_Get_Char_Index (face, (FT_ULong) UTF8),
-		     FT_LOAD_NO_BITMAP |
-		     FT_LOAD_NO_HINTING |
-		     FT_LOAD_NO_AUTOHINT |
-		     FT_LOAD_NO_SCALE |
-		     FT_LOAD_LINEAR_DESIGN |
-		     FT_LOAD_IGNORE_TRANSFORM))
-    abort ();
-
-  assert (face->glyph->format == FT_GLYPH_FORMAT_OUTLINE);
-  ArcApproximatorOutlineSink outline_arc_approximator (acc.callback,
-						       static_cast<void *> (&acc),
-						       tolerance);
-  // The actual arc decomposition is done here.
-  FreeTypeOutlineSource<ArcApproximatorOutlineSink>::decompose_outline (&face->glyph->outline,
-  									outline_arc_approximator);
-  double e = outline_arc_approximator.error;
+  unsigned int glyph_index = FT_Get_Char_Index (face, (FT_ULong) UTF8);
+  std::vector<arc_t> arcs;
+  double error;
+  approximate_glyph_to_arcs (face, glyph_index, tolerance, arcs, error);
   printf ("Char %c; Num arcs %d; Approx. err %g; Tolerance %g; Percentage %g. %s\n",
-	  UTF8, (int) arcs.size (), e, tolerance, round (100 * e / tolerance), e <= tolerance ? "PASS" : "FAIL");
+	  UTF8, (int) arcs.size (), error, tolerance, round (100 * error / tolerance), error <= tolerance ? "PASS" : "FAIL");
 
   int grid_min_x =  65535;
   int grid_max_x = -65535;
