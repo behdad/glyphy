@@ -238,13 +238,15 @@ arc_encode (double x, double y, double d)
 
 
 static rgba_t
-pair_to_rgba (unsigned int num1, unsigned int num2)
+arclist_encode (unsigned int offset, unsigned int num_points, bool is_inside)
 {
   rgba_t v;
-  v.r = UPPER_BITS (num1, 8, 24);
-  v.g = MIDDLE_BITS (num1, 8, 16, 24);
-  v.b = LOWER_BITS (num1, 8, 24);
-  v.a = LOWER_BITS (num2, 8, 8);
+  v.r = UPPER_BITS (offset, 8, 24);
+  v.g = MIDDLE_BITS (offset, 8, 16, 24);
+  v.b = LOWER_BITS (offset, 8, 24);
+  v.a = LOWER_BITS (num_points, 8, 8);
+  if (is_inside && !num_points)
+    v.a = 255;
   return v;
 }
 
@@ -361,7 +363,7 @@ create_texture (const char *font_path, const char UTF8)
       }
 
       // Use the last bit to store whether or not the pixel is inside the glyph. 
-      tex_data[row * GRID_X + col] = pair_to_rgba (offset, 2 * (tex_data.size () - offset) + (inside_glyph ? 1 : 0));
+      tex_data[row * GRID_X + col] = arclist_encode (offset, tex_data.size () - offset, inside_glyph);
       offset = tex_data.size ();
     }
 
@@ -456,11 +458,16 @@ create_program (void)
 	return dot (p - p1, normalize ((p1 - p0) * -mat2(-d2, +1, -1, -d2)));
     }
 
-    ivec2 rgba_to_pair (const vec4 v)
+    ivec3 arclist_decode (const vec4 v)
     {
-      int x = (floatToByte (v.r) * 256 + floatToByte (v.g)) * 256 + floatToByte (v.b);
-      int y = floatToByte (v.a);
-      return ivec2 (x, y);
+      int offset = (floatToByte (v.r) * 256 + floatToByte (v.g)) * 256 + floatToByte (v.b);
+      int num_points = floatToByte (v.a);
+      int is_inside = 0;
+      if (num_points == 255) {
+        num_points = 0;
+	is_inside = 1;
+      }
+      return ivec3 (offset, num_points, is_inside);
     }
 
     vec4 tex_1D (const sampler2D tex, int i)
@@ -484,10 +491,10 @@ create_program (void)
       int p_cell_x = int (clamp (int (p.x * GRID_X), 0, GRID_X - 1));
       int p_cell_y = int (clamp (int (p.y * GRID_Y), 0, GRID_Y - 1));
 
-      ivec2 arc_position_data = rgba_to_pair (tex_1D (u_tex, p_cell_y * GRID_X + p_cell_x));
-      int offset = arc_position_data.x;
-      int num_endpoints =  div (arc_position_data.y, 2);
-      int is_inside = mod (arc_position_data.y, 2);
+      ivec3 arclist = arclist_decode (tex_1D (u_tex, p_cell_y * GRID_X + p_cell_x));
+      int offset = arclist.x;
+      int num_endpoints =  arclist.y;
+      int is_inside = arclist.z == 1 ? IS_INSIDE_YES : IS_INSIDE_NO;
 
       int i;
       float min_dist = 1.5;
@@ -541,13 +548,11 @@ create_program (void)
 	    float new_extended_dist = arc_extended_dist (p, p0, p1, d);
 	    float old_extended_dist = arc_extended_dist (p, closest_arc.p0, closest_arc.p1, closest_arc.d);
 
-	    if (abs (new_extended_dist) <= abs (old_extended_dist)) {
-//	      min_dist = abs (old_extended_dist);
-	      is_inside = old_extended_dist < 0 ? IS_INSIDE_YES : IS_INSIDE_NO;
-	    } else {
-//	      min_dist = abs (new_extended_dist);
-	      is_inside = new_extended_dist < 0 ? IS_INSIDE_YES : IS_INSIDE_NO;
-	    }
+	    float extended_dist = abs (new_extended_dist) <= abs (old_extended_dist) ?
+				  old_extended_dist : new_extended_dist;
+
+//	      min_dist = abs (extended_dist);
+	    is_inside = extended_dist < 0 ? IS_INSIDE_YES : IS_INSIDE_NO;
 	  }
 	}
       }
