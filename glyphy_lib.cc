@@ -289,6 +289,7 @@ struct atlas_t {
 
 
 #if 1
+template <typename ColorsStruct>
 GLint
 create_texture (const char *font_path, const char UTF8)
 {
@@ -297,116 +298,15 @@ create_texture (const char *font_path, const char UTF8)
   FT_Init_FreeType (&library);   
   FT_New_Face ( library, font_path, 0, &face );
 
-  double tolerance = face->units_per_EM * TOLERANCE; // in font design units
+  unsigned int upem = face->units_per_EM;
   unsigned int glyph_index = FT_Get_Char_Index (face, (FT_ULong) UTF8);
-  std::vector<arc_t> arcs;
-  double error;
+
   FT_Outline * outline = face_to_outline(face, glyph_index);
-  approximate_glyph_to_arcs (outline, tolerance, arcs, error);
-  printf ("Char %c; Num arcs %d; Approx. err %g; Tolerance %g; Percentage %g. %s\n",
-	  UTF8, (int) arcs.size (), error, tolerance, round (100 * error / tolerance), error <= tolerance ? "PASS" : "FAIL");
 
-  int grid_min_x =  65535;
-  int grid_max_x = -65535;
-  int grid_min_y =  65335;
-  int grid_max_y = -65535;
-  int glyph_width, glyph_height;
+  int tex_w = SUB_TEX_W, tex_h;
+  void *buffer;
 
-  for (int i = 0; i < arcs.size (); i++) {
-    grid_min_x = std::min (grid_min_x, (int) floor (arcs[i].leftmost ().x));
-    grid_max_x = std::max (grid_max_x, (int) ceil (arcs[i].rightmost ().y));
-    grid_min_y = std::min (grid_min_y, (int) floor (arcs[i].lowest ().y));
-    grid_max_y = std::max (grid_max_y, (int) ceil (arcs[i].highest ().y));
-  }
-
-  glyph_width = grid_max_x - grid_min_x;
-  glyph_height = grid_max_y - grid_min_y;
-
-  /* XXX */
-  glyph_width = glyph_height = std::max (glyph_width, glyph_height);
-
-
-  // Make a 2d grid for arc/cell information.
-  vector<rgba_t> tex_data;
-
-  // near_arcs: Vector of arcs near points in this single grid cell
-  vector<arc_t> near_arcs;
-
-  double min_dimension = std::min(glyph_width, glyph_height);
-  unsigned int header_length = GRID_X * GRID_Y;
-  unsigned int offset = header_length;
-  tex_data.resize (header_length);
-  point_t origin = point_t (grid_min_x, grid_min_y);
-  unsigned int saved_bytes = 0;
-
-  for (int row = 0; row < GRID_Y; row++)
-    for (int col = 0; col < GRID_X; col++)
-    {
-      point_t cp0 = origin + vector_t ((col + 0.) * glyph_width / GRID_X, (row + 0.) * glyph_height / GRID_Y);
-      point_t cp1 = origin + vector_t ((col + 1.) * glyph_width / GRID_X, (row + 1.) * glyph_height / GRID_Y);
-      near_arcs.clear ();
-
-      bool inside_glyph;
-      closest_arcs_to_cell (cp0, cp1, min_dimension, arcs, near_arcs, inside_glyph); 
-
-#define ARC_ENCODE(p, d) \
-	arc_encode<struct rgba_t> (((p).x - grid_min_x) / glyph_width, \
-		    ((p).y - grid_min_y) / glyph_height, \
-		    (d))
-
-
-      point_t p1 = point_t (0, 0);
-      for (unsigned i = 0; i < near_arcs.size (); i++)
-      {
-        arc_t arc = near_arcs[i];
-
-	if (i == 0 || p1 != arc.p0)
-	  tex_data.push_back (ARC_ENCODE (arc.p0, INFINITY));
-
-	tex_data.push_back (ARC_ENCODE (arc.p1, arc.d));
-	p1 = arc.p1;
-      }
-
-      unsigned int num_endpoints = tex_data.size () - offset;
-
-      /* See if we can fulfill this cell by using already-encoded arcs */
-      const rgba_t *needle = &tex_data[offset];
-      unsigned int needle_len = num_endpoints;
-      const rgba_t *haystack = &tex_data[header_length];
-      unsigned int haystack_len = offset - header_length;
-
-      bool found = false;
-      if (needle_len)
-	while (haystack_len >= needle_len) {
-	  /* Trick: we don't care about first endpoint's d value, so skip one
-	   * byte in comparison.  This works because arc_encode() packs the
-	   * d value in the first byte. */
-	  if (0 == memcmp (1 + (const char *) needle,
-			   1 + (const char *) haystack,
-			   needle_len * sizeof (*needle) - 1)) {
-	    found = true;
-	    break;
-	  }
-	  haystack++;
-	  haystack_len--;
-	}
-      if (found) {
-	tex_data.resize (offset);
-	offset = haystack - &tex_data[0];
-	saved_bytes += needle_len * sizeof (*needle);
-      }
-
-      tex_data[row * GRID_X + col] = arclist_encode<struct rgba_t> (offset, num_endpoints, inside_glyph);
-      offset = tex_data.size ();
-    }
-
-  unsigned int tex_len = tex_data.size ();
-  unsigned int tex_w = SUB_TEX_W;
-  unsigned int tex_h = (tex_len + tex_w - 1) / tex_w;
-  tex_data.resize (tex_w * tex_h);
-
-  printf ("Texture size %ux%u; %'lu bytes; saved bytes: %'u\n", tex_w, tex_h,
-	  tex_w * tex_h * sizeof (tex_data[0]), saved_bytes);
+  generate_texture<ColorsStruct>(upem, &face->glyph->outline, tex_w, &tex_h, &buffer);
 
   GLuint texture;
   glGenTextures (1, &texture);
@@ -416,7 +316,8 @@ create_texture (const char *font_path, const char UTF8)
 
   /* Upload*/
   gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, TEX_W, TEX_H, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-  gl(TexSubImage2D) (GL_TEXTURE_2D, 0, 0, 0, tex_w, tex_h, GL_RGBA, GL_UNSIGNED_BYTE, &tex_data[0]);
+  gl(TexSubImage2D) (GL_TEXTURE_2D, 0, 0, 0, tex_w, tex_h, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
+  free(buffer);
 
   GLuint program;
   glGetIntegerv (GL_CURRENT_PROGRAM, (GLint *) &program);
@@ -755,6 +656,10 @@ generate_texture<struct rgba_t> (unsigned int upem, FT_Outline *outline, int wid
 		  int *height, void **buffer);
 
 template
+GLint
+create_texture<struct rgba_t> (const char *font_path, const char UTF8);
+
+template
 const struct bgra_t
 arc_encode (double x, double y, double d);
 
@@ -766,3 +671,7 @@ template
 int
 generate_texture<struct bgra_t> (unsigned int upem, FT_Outline *outline, int width,
 		  int *height, void **buffer);
+
+template
+GLint
+create_texture<struct bgra_t> (const char *font_path, const char UTF8);

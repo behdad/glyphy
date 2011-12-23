@@ -59,6 +59,7 @@ template <typename ColorsStruct>
 ColorsStruct
 pair_to_rgba (unsigned int num1, unsigned int num2);
 
+template <typename ColorsStruct>
 GLint
 create_texture (const char *font_path, const char UTF8);
 

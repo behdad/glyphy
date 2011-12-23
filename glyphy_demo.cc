@@ -114,7 +114,7 @@ main (int argc, char** argv)
   GLuint program = create_program ();
   glUseProgram (program);
 
-  GLuint texture = create_texture (font_path, utf8);
+  GLuint texture = create_texture<struct rgba_t> (font_path, utf8);
 
   struct glyph_attrib_t {
     GLfloat x;
