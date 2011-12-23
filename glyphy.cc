@@ -124,6 +124,9 @@ link_program (GLuint vshader, GLuint fshader)
 #define GRID_X GRID_SIZE
 #define GRID_Y GRID_SIZE
 #define TOLERANCE 3e-4
+#define TEX_W 512
+#define TEX_H 512
+#define SUB_TEX_W 128
 
 
 
@@ -368,7 +371,7 @@ create_texture (const char *font_path, const char UTF8)
     }
 
   unsigned int tex_len = tex_data.size ();
-  unsigned int tex_w = 128;
+  unsigned int tex_w = SUB_TEX_W;
   unsigned int tex_h = (tex_len + tex_w - 1) / tex_w;
   tex_data.resize (tex_w * tex_h);
 
@@ -381,11 +384,12 @@ create_texture (const char *font_path, const char UTF8)
   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
   /* Upload*/
-  gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, tex_w, tex_h, 0, GL_RGBA, GL_UNSIGNED_BYTE, &tex_data[0]);
+  gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, TEX_W, TEX_H, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+  gl(TexSubImage2D) (GL_TEXTURE_2D, 0, 0, 0, tex_w, tex_h, GL_RGBA, GL_UNSIGNED_BYTE, &tex_data[0]);
 
   GLuint program;
   glGetIntegerv (GL_CURRENT_PROGRAM, (GLint *) &program);
-  glUniform2i (glGetUniformLocation(program, "u_texSize"), tex_w, tex_h);
+  glUniform3i (glGetUniformLocation(program, "u_texSize"), TEX_W, TEX_H, SUB_TEX_W);
   glUniform1i (glGetUniformLocation(program, "u_tex"), 0);
   glActiveTexture (GL_TEXTURE0);
 
@@ -423,7 +427,7 @@ create_program (void)
   );
   fshader = COMPILE_SHADER (GL_FRAGMENT_SHADER,
     uniform sampler2D u_tex;
-    uniform ivec2 u_texSize;
+    uniform ivec3 u_texSize;
     varying vec3 v_glyph;
 
     vec2 perpendicular (const vec2 v) { return vec2 (-v.y, v.x); }
@@ -470,16 +474,17 @@ create_program (void)
       return ivec3 (offset, num_points, is_inside);
     }
 
-    vec4 tex_1D (const sampler2D tex, int i)
+    vec4 tex_1D (const sampler2D tex, int offset, int i)
     {
-      return texture2D (tex, vec2 ((mod (i, u_texSize.x) + .5) / float (u_texSize.x),
-				   (div (i, u_texSize.x) + .5) / float (u_texSize.y)));
+      vec2 orig = vec2 (mod (offset, u_texSize.x), div (offset, u_texSize.x));
+      return texture2D (tex, vec2 ((orig.x + mod (i, u_texSize.z) + .5) / float (u_texSize.x),
+				   (orig.y + div (i, u_texSize.z) + .5) / float (u_texSize.y)));
     }
 
     void main()
     {
       vec2 p = v_glyph.xy;
-      int glyphOffset = int (v_glyph.z);
+      int glyph_offset = int (v_glyph.z);
 
       gl_FragColor = vec4 (0,0,0,1);
 
@@ -491,7 +496,7 @@ create_program (void)
       int p_cell_x = int (clamp (int (p.x * GRID_X), 0, GRID_X - 1));
       int p_cell_y = int (clamp (int (p.y * GRID_Y), 0, GRID_Y - 1));
 
-      ivec3 arclist = arclist_decode (tex_1D (u_tex, p_cell_y * GRID_X + p_cell_x));
+      ivec3 arclist = arclist_decode (tex_1D (u_tex, glyph_offset, p_cell_y * GRID_X + p_cell_x));
       int offset = arclist.x;
       int num_endpoints =  arclist.y;
       int is_inside = arclist.z == 1 ? IS_INSIDE_YES : IS_INSIDE_NO;
@@ -511,7 +516,7 @@ create_program (void)
       vec3 arc_prev = vec3 (0,0,0);
       for (i = 0; i < num_endpoints; i++)
       {
-	vec3 arc = arc_decode (tex_1D (u_tex, i + offset));
+	vec3 arc = arc_decode (tex_1D (u_tex, glyph_offset, i + offset));
 	vec2 p0 = arc_prev.rg;
 	arc_prev = arc;
 	float d = arc.b;
