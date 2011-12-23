@@ -262,9 +262,8 @@ create_texture (const char *font_path, const char UTF8)
   FT_Library library;
   FT_Init_FreeType (&library);   
   FT_New_Face ( library, font_path, 0, &face );
-  unsigned int upem = face->units_per_EM;
-  double tolerance = upem * TOLERANCE; // in font design units
 
+  double tolerance = face->units_per_EM * TOLERANCE; // in font design units
 
   // Arc approximation code.
   typedef MaxDeviationApproximatorExact MaxDev;
@@ -272,17 +271,20 @@ create_texture (const char *font_path, const char UTF8)
   typedef BezierArcApproximatorMidpointTwoPart<BezierArcError> BezierArcApproximator;
   typedef BezierArcsApproximatorSpringSystem<BezierArcApproximator> SpringSystem;
   typedef ArcApproximatorOutlineSink<SpringSystem> ArcApproximatorOutlineSink;
+
+  std:vector<arc_t> arcs;
   class ArcAccumulator
   {
     public:
+    ArcAccumulator (std::vector<arc_t> &_arcs) : arcs (_arcs) {}
     static bool callback (const arc_t &arc, void *closure)
     { 
        ArcAccumulator *acc = static_cast<ArcAccumulator *> (closure);
        acc->arcs.push_back (arc);
        return true;
     }
-    std::vector<arc_t> arcs;
-  } acc;
+    std::vector<arc_t> &arcs;
+  } acc (arcs);
 
   if (FT_Load_Glyph (face,
 		     FT_Get_Char_Index (face, (FT_ULong) UTF8),
@@ -302,8 +304,8 @@ create_texture (const char *font_path, const char UTF8)
   FreeTypeOutlineSource<ArcApproximatorOutlineSink>::decompose_outline (&face->glyph->outline,
   									outline_arc_approximator);
   double e = outline_arc_approximator.error;
-  printf ("Num arcs %d; Approximation error %g; Tolerance %g; Percentage %g. %s\n",
-	  (int) acc.arcs.size (), e, tolerance, round (100 * e / tolerance), e <= tolerance ? "PASS" : "FAIL");
+  printf ("Char %c; Num arcs %d; Approx. err %g; Tolerance %g; Percentage %g. %s\n",
+	  UTF8, (int) arcs.size (), e, tolerance, round (100 * e / tolerance), e <= tolerance ? "PASS" : "FAIL");
 
   int grid_min_x =  65535;
   int grid_max_x = -65535;
@@ -311,11 +313,11 @@ create_texture (const char *font_path, const char UTF8)
   int grid_max_y = -65535;
   int glyph_width, glyph_height;
 
-  for (int i = 0; i < acc.arcs.size (); i++) {
-    grid_min_x = std::min (grid_min_x, (int) floor (acc.arcs[i].leftmost ().x));
-    grid_max_x = std::max (grid_max_x, (int) ceil (acc.arcs[i].rightmost ().y));
-    grid_min_y = std::min (grid_min_y, (int) floor (acc.arcs[i].lowest ().y));
-    grid_max_y = std::max (grid_max_y, (int) ceil (acc.arcs[i].highest ().y));
+  for (int i = 0; i < arcs.size (); i++) {
+    grid_min_x = std::min (grid_min_x, (int) floor (arcs[i].leftmost ().x));
+    grid_max_x = std::max (grid_max_x, (int) ceil (arcs[i].rightmost ().y));
+    grid_min_y = std::min (grid_min_y, (int) floor (arcs[i].lowest ().y));
+    grid_max_y = std::max (grid_max_y, (int) ceil (arcs[i].highest ().y));
   }
 
   glyph_width = grid_max_x - grid_min_x;
@@ -345,7 +347,7 @@ create_texture (const char *font_path, const char UTF8)
       near_arcs.clear ();
 
       bool inside_glyph;
-      closest_arcs_to_cell (cp0, cp1, min_dimension, acc.arcs, near_arcs, inside_glyph); 
+      closest_arcs_to_cell (cp0, cp1, min_dimension, arcs, near_arcs, inside_glyph); 
 
 #define ARC_ENCODE(p, d) \
 	arc_encode (((p).x - grid_min_x) / glyph_width, \
