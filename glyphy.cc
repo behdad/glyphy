@@ -120,13 +120,13 @@ link_program (GLuint vshader, GLuint fshader)
 
 
 #define MIN_FONT_SIZE 20
-#define GRID_SIZE 12
+#define GRID_SIZE 16
 #define GRID_X GRID_SIZE
 #define GRID_Y GRID_SIZE
 #define TOLERANCE 3e-4
 #define TEX_W 512
 #define TEX_H 512
-#define SUB_TEX_W 128
+#define SUB_TEX_W 64
 
 
 
@@ -275,9 +275,9 @@ arc_encode (double x, double y, double d)
   }
   assert (id < 256);
 
-  v.r = LOWER_BITS (ix, 8, 12);
-  v.g = LOWER_BITS (iy, 8, 12);
-  v.b = id;
+  v.r = id;
+  v.g = LOWER_BITS (ix, 8, 12);
+  v.b = LOWER_BITS (iy, 8, 12);
   v.a = ((ix >> 8) << 4) | (iy >> 8);
   return v;
 }
@@ -296,6 +296,13 @@ arclist_encode (unsigned int offset, unsigned int num_points, bool is_inside)
   return v;
 }
 
+#if 0
+struct atlas_t {
+  GLint tex;
+  std::hash_map<unsigned int, unsigned int, 
+
+};
+#endif
 
 
 static GLint
@@ -345,6 +352,7 @@ create_texture (const char *font_path, const char UTF8)
   unsigned int offset = header_length;
   tex_data.resize (header_length);
   point_t origin = point_t (grid_min_x, grid_min_y);
+  unsigned int saved_bytes = 0;
 
   for (int row = 0; row < GRID_Y; row++)
     for (int col = 0; col < GRID_X; col++)
@@ -367,15 +375,43 @@ create_texture (const char *font_path, const char UTF8)
       {
         arc_t arc = near_arcs[i];
 
-	if (p1 != arc.p0)
+	if (i == 0 || p1 != arc.p0)
 	  tex_data.push_back (ARC_ENCODE (arc.p0, INFINITY));
 
 	tex_data.push_back (ARC_ENCODE (arc.p1, arc.d));
 	p1 = arc.p1;
       }
 
-      // Use the last bit to store whether or not the pixel is inside the glyph. 
-      tex_data[row * GRID_X + col] = arclist_encode (offset, tex_data.size () - offset, inside_glyph);
+      unsigned int num_endpoints = tex_data.size () - offset;
+
+      /* See if we can fulfill this cell by using already-encoded arcs */
+      const rgba_t *needle = &tex_data[offset];
+      unsigned int needle_len = num_endpoints;
+      const rgba_t *haystack = &tex_data[header_length];
+      unsigned int haystack_len = offset - header_length;
+
+      bool found = false;
+      if (needle_len)
+	while (haystack_len >= needle_len) {
+	  /* Trick: we don't care about first endpoint's d value, so skip one
+	   * byte in comparison.  This works because arc_encode() packs the
+	   * d value in the first byte. */
+	  if (0 == memcmp (1 + (const char *) needle,
+			   1 + (const char *) haystack,
+			   needle_len * sizeof (*needle) - 1)) {
+	    found = true;
+	    break;
+	  }
+	  haystack++;
+	  haystack_len--;
+	}
+      if (found) {
+	tex_data.resize (offset);
+	offset = haystack - &tex_data[0];
+	saved_bytes += needle_len * sizeof (*needle);
+      }
+
+      tex_data[row * GRID_X + col] = arclist_encode (offset, num_endpoints, inside_glyph);
       offset = tex_data.size ();
     }
 
@@ -384,7 +420,8 @@ create_texture (const char *font_path, const char UTF8)
   unsigned int tex_h = (tex_len + tex_w - 1) / tex_w;
   tex_data.resize (tex_w * tex_h);
 
-  printf ("Texture size %ux%u; %'lu bytes\n", tex_w, tex_h, tex_w * tex_h * sizeof (tex_data[0]));
+  printf ("Texture size %ux%u; %'lu bytes; saved bytes: %'u\n", tex_w, tex_h,
+	  tex_w * tex_h * sizeof (tex_data[0]), saved_bytes);
 
   GLuint texture;
   glGenTextures (1, &texture);
@@ -448,9 +485,9 @@ create_program (void)
 
     vec3 arc_decode (const vec4 v)
     {
-      float x = (float (mod (floatToByte (v.a) / 16, 16)) + v.r) / 16;
-      float y = (float (mod (floatToByte (v.a)     , 16)) + v.g) / 16;
-      float d = v.b;
+      float d = v.r;
+      float x = (float (mod (floatToByte (v.a) / 16, 16)) + v.g) / 16;
+      float y = (float (mod (floatToByte (v.a)     , 16)) + v.b) / 16;
       d = MAX_D * (2 * d - 1);
       return vec3 (x, y, d);
     }
@@ -522,8 +559,8 @@ create_program (void)
 	float d;
       } closest_arc;
 
-      vec3 arc_prev = vec3 (0,0,0);
-      for (i = 0; i < num_endpoints; i++)
+      vec3 arc_prev = arc_decode (tex_1D (u_tex, glyph_offset, offset));
+      for (i = 1; i < num_endpoints; i++)
       {
 	vec3 arc = arc_decode (tex_1D (u_tex, glyph_offset, i + offset));
 	vec2 p0 = arc_prev.rg;
