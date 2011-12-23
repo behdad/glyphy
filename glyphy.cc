@@ -539,8 +539,8 @@ create_program (void)
 			      float (dFdy (p)))); 
       //float m = float (fwidth (p)); //for broken dFdx/dFdy
 
-      int p_cell_x = int (clamp (int (p.x * GRID_X), 0, GRID_X - 1));
-      int p_cell_y = int (clamp (int (p.y * GRID_Y), 0, GRID_Y - 1));
+      int p_cell_x = int (clamp (p.x, 0., 1.-1e-5) * GRID_X);
+      int p_cell_y = int (clamp (p.y, 0., 1.-1e-5) * GRID_Y);
 
       ivec3 arclist = arclist_decode (tex_1D (u_tex, glyph_offset, p_cell_y * GRID_X + p_cell_x));
       int offset = arclist.x;
