@@ -13,6 +13,7 @@ die (const char *msg)
 
 static int step_timer;
 static int num_frames;
+static bool animate = false;
 
 void display( void )
 {
@@ -50,37 +51,61 @@ reshape (int width, int height)
   glutPostRedisplay ();
 }
 
-void keyboard( unsigned char key, int x, int y )
-{
-  switch (key) {
-    case '\033': exit (0);
-  }
-}
-
 static void
 timed_step (int ms)
 {
-  glutTimerFunc (ms, timed_step, ms);
-  num_frames++;
-  step_timer++;
-  glutPostRedisplay ();
+  if (animate) {
+    glutTimerFunc (ms, timed_step, ms);
+    num_frames++;
+    step_timer++;
+    glutPostRedisplay ();
+  }
 }
 
 static void
 idle_step (void)
 {
-  glutIdleFunc (idle_step);
-  num_frames++;
-  step_timer++;
-  glutPostRedisplay ();
+  if (animate) {
+    glutIdleFunc (idle_step);
+    num_frames++;
+    step_timer++;
+    glutPostRedisplay ();
+  }
 }
 
 static void
 print_fps (int ms)
 {
-  glutTimerFunc (ms, print_fps, ms);
-  printf ("%gfps\n", num_frames / 5.);
+  if (animate) {
+    glutTimerFunc (ms, print_fps, ms);
+    printf ("%gfps\n", num_frames / 5.);
+    num_frames = 0;
+  }
+}
+
+void
+start_animation (void)
+{
   num_frames = 0;
+  //glutTimerFunc (40, timed_step, 40);
+  glutIdleFunc (idle_step);
+  glutTimerFunc (5000, print_fps, 5000);
+}
+
+void keyboard( unsigned char key, int x, int y )
+{
+  switch (key) {
+    case '\033':
+    case 'q':
+      exit (0);
+      break;
+
+    case '\040':
+      animate = !animate;
+      if (animate)
+        start_animation ();
+      break;
+  }
 }
 
 int
@@ -88,7 +113,6 @@ main (int argc, char** argv)
 {
   char *font_path;
   char utf8;
-  bool animate = false;
   if (argc >= 3) {
      font_path = argv[1];
      utf8 = argv[2][0];
@@ -136,11 +160,8 @@ main (int argc, char** argv)
   glEnableVertexAttribArray (a_pos_loc);
   glEnableVertexAttribArray (a_glyph_loc);
 
-  if (animate) {
-    //glutTimerFunc (40, timed_step, 40);
-    glutIdleFunc (idle_step);
-    glutTimerFunc (5000, print_fps, 5000);
-  }
+  if (animate)
+    start_animation ();
 
   glutMainLoop ();
 
