@@ -51,10 +51,10 @@ vec4 fragment_color(vec2 p)
 			  float (dFdy (p)))); 
   //float m = float (fwidth (p)); //for broken dFdx/dFdy
 
-  int p_cell_x = int (clamp (p.x, 0., 1.-1e-5) * 16 /*GRID_X*/);
-  int p_cell_y = int (clamp (p.y, 0., 1.-1e-5) * 16 /*GRID_Y*/);
+  int p_cell_x = int (clamp (p.x, 0., 1.-1e-5) * 16 /*GRID_W*/);
+  int p_cell_y = int (clamp (p.y, 0., 1.-1e-5) * 16 /*GRID_H*/);
 
-  ivec3 arclist = arclist_decode (tex_1D (u_tex, glyph_offset, p_cell_y * 16 /*GRID_X*/ + p_cell_x));
+  ivec3 arclist = arclist_decode (tex_1D (u_tex, glyph_offset, p_cell_y * 16 /*GRID_W*/ + p_cell_x));
   int offset = arclist.x;
   int num_endpoints =  arclist.y;
   int is_inside = arclist.z == 1 ? 1 /*IS_INSIDE_YES*/ : 0 /*IS_INSIDE_NO*/;

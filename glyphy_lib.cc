@@ -107,14 +107,24 @@ link_program (GLuint vshader, GLuint fshader)
 
 
 
-#define MIN_FONT_SIZE 20
+#if 0
+// Large font size profile
+#define MIN_FONT_SIZE 64
+#define TOLERANCE 5e-4
 #define GRID_SIZE 16
-#define GRID_X GRID_SIZE
-#define GRID_Y GRID_SIZE
-#define TOLERANCE 3e-4
+#else
+// Small font size profile
+#define MIN_FONT_SIZE 20
+#define TOLERANCE 5e-3
+#define GRID_SIZE 16
+#endif
+
+#define GRID_W GRID_SIZE
+#define GRID_H GRID_SIZE
 #define TEX_W 512
 #define TEX_H 512
 #define SUB_TEX_W 64
+#define MAX_TEX_FETCH 6
 
 
 
@@ -427,17 +437,18 @@ generate_texture (unsigned int upem, FT_Outline *outline, int width,
   vector<arc_t> near_arcs;
 
   double min_dimension = std::min(glyph_width, glyph_height);
-  unsigned int header_length = GRID_X * GRID_Y;
+  unsigned int header_length = GRID_W * GRID_H;
   unsigned int offset = header_length;
   tex_data.resize (header_length);
   point_t origin = point_t (grid_min_x, grid_min_y);
   unsigned int saved_bytes = 0;
+  unsigned int total_arcs;
 
-  for (int row = 0; row < GRID_Y; row++)
-    for (int col = 0; col < GRID_X; col++)
+  for (int row = 0; row < GRID_H; row++)
+    for (int col = 0; col < GRID_W; col++)
     {
-      point_t cp0 = origin + vector_t ((col + 0.) * glyph_width / GRID_X, (row + 0.) * glyph_height / GRID_Y);
-      point_t cp1 = origin + vector_t ((col + 1.) * glyph_width / GRID_X, (row + 1.) * glyph_height / GRID_Y);
+      point_t cp0 = origin + vector_t ((col + 0.) * glyph_width / GRID_W, (row + 0.) * glyph_height / GRID_H);
+      point_t cp1 = origin + vector_t ((col + 1.) * glyph_width / GRID_W, (row + 1.) * glyph_height / GRID_H);
       near_arcs.clear ();
 
       bool inside_glyph;
@@ -490,9 +501,22 @@ generate_texture (unsigned int upem, FT_Outline *outline, int width,
 	saved_bytes += needle_len * sizeof (*needle);
       }
 
-      tex_data[row * GRID_X + col] = arclist_encode (offset, num_endpoints, inside_glyph);
+      tex_data[row * GRID_W + col] = arclist_encode (offset, num_endpoints, inside_glyph);
       offset = tex_data.size ();
+
+      total_arcs += num_endpoints;
+
+      printf ("%2ld%c ", near_arcs.size (), found ? '.' : 'o');
+      if (col == GRID_W - 1)
+        printf ("\n");
     }
+
+  printf ("Used %d arcs; Approx. err %g; Tolerance %g; Percentage %g. %s\n",
+	  (int) arcs.size (), error, tolerance, round (100 * error / tolerance),
+	  error <= tolerance ? "PASS" : "FAIL");
+  printf ("Grid size %dx%d; Used %'ld bytes, saved %'d bytes\n",
+	  GRID_W, GRID_H, tex_data.size () * sizeof (tex_data[0]), saved_bytes);
+  printf ("Average %g texture accesses\n", 1 + double (total_arcs) / (GRID_W * GRID_H));
 
   unsigned int tex_len = tex_data.size ();
   unsigned int tex_w = width;
