@@ -120,17 +120,18 @@ main (int argc, char** argv)
     GLfloat x;
     GLfloat y;
     GLfloat g;
+    GLfloat h;
   };
-  const glyph_attrib_t w_vertices[] = {{-1, -1, 0},
-				       {+1, -1, 1},
-				       {+1, +1, 3},
-				       {-1, +1, 2}};
+  const glyph_attrib_t w_vertices[] = {{-1, -1, 0, 0},
+				       {+1, -1, 1, 0},
+				       {+1, +1, 1, 1},
+				       {-1, +1, 0, 1}};
 
   GLuint a_pos_loc = glGetAttribLocation (program, "a_position");
   GLuint a_glyph_loc = glGetAttribLocation (program, "a_glyph");
   glVertexAttribPointer (a_pos_loc, 2, GL_FLOAT, GL_FALSE, sizeof (glyph_attrib_t),
 			 (const char *) w_vertices + offsetof (glyph_attrib_t, x));
-  glVertexAttribPointer (a_glyph_loc, 1, GL_FLOAT, GL_FALSE, sizeof (glyph_attrib_t),
+  glVertexAttribPointer (a_glyph_loc, 2, GL_FLOAT, GL_FALSE, sizeof (glyph_attrib_t),
 			 (const char *) w_vertices + offsetof (glyph_attrib_t, g));
   glEnableVertexAttribArray (a_pos_loc);
   glEnableVertexAttribArray (a_glyph_loc);

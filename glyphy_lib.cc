@@ -340,16 +340,16 @@ create_program (void)
   vshader = COMPILE_SHADER (GL_VERTEX_SHADER,
     uniform mat4 u_matViewProjection;
     attribute vec4 a_position;
-    attribute float a_glyph;
-    varying vec3 v_glyph;
+    attribute vec2 a_glyph;
+    varying vec4 v_glyph;
 
     int mod (const int a, const int b) { return a - (a / b) * b; }
     int div (const int a, const int b) { return a / b; }
 
-    vec3 glyph_decode (float v)
+    vec4 glyph_decode (vec2 v)
     {
-      int g = int (v);
-      return vec3 (mod (g, 2), mod (div (g, 2), 2), div (g, 4));
+      ivec2 g = ivec2 (int(v.x), int(v.y));
+      return vec4 (mod (g.x, 2), mod (g.y, 2), div (g.x, 2), div(g.y, 2));
     }
 
     void main()
@@ -361,7 +361,7 @@ create_program (void)
   fshader = COMPILE_SHADER (GL_FRAGMENT_SHADER,
     uniform sampler2D u_tex;
     uniform ivec3 u_texSize;
-    varying vec3 v_glyph;
+    varying vec4 v_glyph;
 
     vec2 perpendicular (const vec2 v) { return vec2 (-v.y, v.x); }
     int mod (const int a, const int b) { return a - (a / b) * b; }
@@ -407,9 +407,9 @@ create_program (void)
       return ivec3 (offset, num_points, is_inside);
     }
 
-    vec4 tex_1D (const sampler2D tex, int offset, int i)
+    vec4 tex_1D (const sampler2D tex, ivec2 offset, int i)
     {
-      vec2 orig = vec2 (mod (offset, u_texSize.x), div (offset, u_texSize.x));
+      vec2 orig = offset;
       return texture2D (tex, vec2 ((orig.x + mod (i, u_texSize.z) + .5) / float (u_texSize.x),
 				   (orig.y + div (i, u_texSize.z) + .5) / float (u_texSize.y)));
     }
@@ -417,7 +417,7 @@ create_program (void)
     vec4 fragment_color(vec2 p)
     {
       vec4 result = vec4(0,0,0,1);
-      int glyph_offset = int (v_glyph.z);
+      ivec2 glyph_offset = ivec2(int(v_glyph.z), int(v_glyph.w));
 
       /* isotropic antialiasing */
       float m = length (vec2 (float (dFdx (p)),
