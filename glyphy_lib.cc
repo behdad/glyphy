@@ -414,12 +414,10 @@ create_program (void)
 				   (orig.y + div (i, u_texSize.z) + .5) / float (u_texSize.y)));
     }
 
-    void main()
+    vec4 fragment_color(vec2 p)
     {
-      vec2 p = v_glyph.xy;
+      vec4 result = vec4(0,0,0,1);
       int glyph_offset = int (v_glyph.z);
-
-      gl_FragColor = vec4 (0,0,0,1);
 
       /* isotropic antialiasing */
       float m = length (vec2 (float (dFdx (p)),
@@ -500,7 +498,7 @@ create_program (void)
         // Technically speaking this should not happen, but it does.  So fix it.
 	float extended_dist = arc_extended_dist (p, closest_arc.p0, closest_arc.p1, closest_arc.d);
 	is_inside = extended_dist < 0 ? IS_INSIDE_YES : IS_INSIDE_NO;
-	//gl_FragColor += vec4 (0,1,0,0);
+	//result += vec4 (0,1,0,0);
       }
 
       float abs_dist = min_dist;
@@ -508,21 +506,27 @@ create_program (void)
 
 
       // Color the outline red
-      gl_FragColor += vec4(1,0,0,0) * smoothstep (2 * m, 0, abs_dist);
+      result += vec4(1,0,0,0) * smoothstep (2 * m, 0, abs_dist);
 
       // Color the distance field in green
-      gl_FragColor += vec4(0,1,0,0) * ((1 + sin (min_dist / m))) * sin (pow (abs_dist, .8) * M_PI) * .5;
+      result += vec4(0,1,0,0) * ((1 + sin (min_dist / m))) * sin (pow (abs_dist, .8) * M_PI) * .5;
 
       // Color points green
-      gl_FragColor = mix(vec4(0,1,0,1), gl_FragColor, smoothstep (2 * m, 3 * m, min_point_dist));
+      result = mix(vec4(0,1,0,1), result, smoothstep (2 * m, 3 * m, min_point_dist));
 
       // Color the number of endpoints per cell blue
-      gl_FragColor += vec4(0,0,1,0) * num_endpoints * 16./255.;
+      result += vec4(0,0,1,0) * num_endpoints * 16./255.;
 
       // Color the inside of the glyph a light red
-      gl_FragColor += vec4(.5,0,0,0) * smoothstep (m, -m, min_dist);
+      result += vec4(.5,0,0,0) * smoothstep (m, -m, min_dist);
 
-      gl_FragColor = vec4(1,1,1,1) * smoothstep (-m, m, min_dist);
+      result = vec4(1,1,1,1) * smoothstep (-m, m, min_dist);
+      return result;
+    }
+
+    void main()
+    {
+      gl_FragColor = fragment_color(v_glyph.xy);
     }
   );
   program = link_program (vshader, fshader);
