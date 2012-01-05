@@ -550,7 +550,7 @@ generate_texture (unsigned int upem, FT_Outline *outline, int width,
 
   for (int i = 0; i < arcs.size (); i++) {
     grid_min_x = std::min (grid_min_x, (int) floor (arcs[i].leftmost ().x));
-    grid_max_x = std::max (grid_max_x, (int) ceil (arcs[i].rightmost ().y));
+    grid_max_x = std::max (grid_max_x, (int) ceil (arcs[i].rightmost ().x));
     grid_min_y = std::min (grid_min_y, (int) floor (arcs[i].lowest ().y));
     grid_max_y = std::max (grid_max_y, (int) ceil (arcs[i].highest ().y));
   }
