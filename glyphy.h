@@ -31,13 +31,6 @@ struct rgba_t {
   unsigned char a;
 };
 
-struct bgra_t {
-  unsigned char b;
-  unsigned char g;
-  unsigned char r;
-  unsigned char a;
-};
-
 GLuint
 compile_shader (GLenum type, const GLchar* source);
 
@@ -51,22 +44,18 @@ closest_arcs_to_cell (point_t p0, point_t p1, /* corners */
 		      vector<arc_t> &near_arcs,
 		      bool &inside_glyph);
 
-template <typename ColorsStruct>
-const ColorsStruct
+const struct rgba_t
 arc_encode (double x, double y, double d);
 
-template <typename ColorsStruct>
-ColorsStruct
+struct rgba_t
 pair_to_rgba (unsigned int num1, unsigned int num2);
 
-template <typename ColorsStruct>
 GLint
 create_texture (const char *font_path, const char UTF8);
 
 GLuint
 create_program (void);
 
-template <typename ColorsStruct>
 int
 generate_texture (unsigned int upem, FT_Outline *outline, int width,
 		  int *height, void **buffer);

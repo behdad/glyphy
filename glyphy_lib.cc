@@ -234,11 +234,10 @@ closest_arcs_to_cell (point_t p0, point_t p1, /* corners */
 
 
 
-template <typename ColorsStruct>
-const ColorsStruct
+const struct rgba_t
 arc_encode (double x, double y, double d)
 {
-  ColorsStruct v;
+  struct rgba_t v;
 
   // lets do 10 bits for d, and 11 for x and y each 
   unsigned int ix, iy, id;
@@ -265,11 +264,10 @@ arc_encode (double x, double y, double d)
 }
 
 
-template <typename ColorsStruct>
-ColorsStruct
+struct rgba_t
 arclist_encode (unsigned int offset, unsigned int num_points, bool is_inside)
 {
-  ColorsStruct v;
+  struct rgba_t v;
   v.r = UPPER_BITS (offset, 8, 24);
   v.g = MIDDLE_BITS (offset, 8, 16, 24);
   v.b = LOWER_BITS (offset, 8, 24);
@@ -289,7 +287,6 @@ struct atlas_t {
 
 
 #if 1
-template <typename ColorsStruct>
 GLint
 create_texture (const char *font_path, const char UTF8)
 {
@@ -306,7 +303,7 @@ create_texture (const char *font_path, const char UTF8)
   int tex_w = SUB_TEX_W, tex_h;
   void *buffer;
 
-  generate_texture<ColorsStruct>(upem, &face->glyph->outline, tex_w, &tex_h, &buffer);
+  generate_texture(upem, &face->glyph->outline, tex_w, &tex_h, &buffer);
 
   GLuint texture;
   glGenTextures (1, &texture);
@@ -533,7 +530,6 @@ create_program (void)
   return program;
 }
 
-template <typename ColorsStruct>
 int
 generate_texture (unsigned int upem, FT_Outline *outline, int width,
 		  int *height, void **buffer)
@@ -563,7 +559,7 @@ generate_texture (unsigned int upem, FT_Outline *outline, int width,
 
 
   // Make a 2d grid for arc/cell information.
-  vector<ColorsStruct> tex_data;
+  vector<struct rgba_t> tex_data;
 
   // near_arcs: Vector of arcs near points in this single grid cell
   vector<arc_t> near_arcs;
@@ -586,7 +582,7 @@ generate_texture (unsigned int upem, FT_Outline *outline, int width,
       closest_arcs_to_cell (cp0, cp1, min_dimension, arcs, near_arcs, inside_glyph); 
 
 #define ARC_ENCODE(p, d) \
-	arc_encode<ColorsStruct> (((p).x - grid_min_x) / glyph_width, \
+	arc_encode (((p).x - grid_min_x) / glyph_width, \
 		    ((p).y - grid_min_y) / glyph_height, \
 		    (d))
 
@@ -606,9 +602,9 @@ generate_texture (unsigned int upem, FT_Outline *outline, int width,
       unsigned int num_endpoints = tex_data.size () - offset;
 
       /* See if we can fulfill this cell by using already-encoded arcs */
-      const ColorsStruct *needle = &tex_data[offset];
+      const struct rgba_t *needle = &tex_data[offset];
       unsigned int needle_len = num_endpoints;
-      const ColorsStruct *haystack = &tex_data[header_length];
+      const struct rgba_t *haystack = &tex_data[header_length];
       unsigned int haystack_len = offset - header_length;
 
       bool found = false;
@@ -632,7 +628,7 @@ generate_texture (unsigned int upem, FT_Outline *outline, int width,
 	saved_bytes += needle_len * sizeof (*needle);
       }
 
-      tex_data[row * GRID_X + col] = arclist_encode<ColorsStruct> (offset, num_endpoints, inside_glyph);
+      tex_data[row * GRID_X + col] = arclist_encode (offset, num_endpoints, inside_glyph);
       offset = tex_data.size ();
     }
 
@@ -646,36 +642,3 @@ generate_texture (unsigned int upem, FT_Outline *outline, int width,
   return 0;
 }
 
-template
-const struct rgba_t
-arc_encode (double x, double y, double d);
-
-template
-struct rgba_t
-arclist_encode (unsigned int offset, unsigned int num_points, bool is_inside);
-
-template
-int
-generate_texture<struct rgba_t> (unsigned int upem, FT_Outline *outline, int width,
-		  int *height, void **buffer);
-
-template
-GLint
-create_texture<struct rgba_t> (const char *font_path, const char UTF8);
-
-template
-const struct bgra_t
-arc_encode (double x, double y, double d);
-
-template
-struct bgra_t
-arclist_encode (unsigned int offset, unsigned int num_points, bool is_inside);
-
-template
-int
-generate_texture<struct bgra_t> (unsigned int upem, FT_Outline *outline, int width,
-		  int *height, void **buffer);
-
-template
-GLint
-create_texture<struct bgra_t> (const char *font_path, const char UTF8);
