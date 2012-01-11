@@ -34,6 +34,8 @@
 #ifndef CAIRO_HELPER_HH
 #define CAIRO_HELPER_HH
 
+namespace GLyphy {
+
 namespace CairoHelper {
 
 using namespace Geometry;
@@ -474,4 +476,5 @@ class CairoOutlineSink
 
 } /* namespace CairoHelper */
 
+} /* namespace GLyphy */
 #endif

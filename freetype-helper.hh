@@ -34,6 +34,8 @@
 #ifndef FREETYPE_HELPER_HH
 #define FREETYPE_HELPER_HH
 
+namespace GLyphy {
+
 namespace FreeTypeHelper {
 
 using namespace Geometry;
@@ -96,4 +98,5 @@ class FreeTypeOutlineSource
 
 } /* namespace FreeTypeHelper */
 
+} /* namespace GLyphy */
 #endif

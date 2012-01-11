@@ -34,10 +34,10 @@
 #include <assert.h>
 
 
-using namespace std;
-
 #ifndef GEOMETRY_HH
 #define GEOMETRY_HH
+
+namespace GLyphy {
 
 namespace Geometry {
 
@@ -1153,4 +1153,5 @@ inline const Bezier<Coord> Bezier<Coord>::segment (const Scalar &t0, const Scala
 
 } /* namespace Geometry */
 
+} /* namespace GLyphy */
 #endif

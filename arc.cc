@@ -34,6 +34,7 @@
 #include "bezier-arc-approximation.hh"
 
 
+using namespace GLyphy;
 using namespace Geometry;
 using namespace CairoHelper;
 using namespace FreeTypeHelper;

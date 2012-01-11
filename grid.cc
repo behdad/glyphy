@@ -37,6 +37,7 @@
 
 
 using namespace std;
+using namespace GLyphy;
 using namespace Geometry;
 using namespace CairoHelper;
 using namespace FreeTypeHelper;

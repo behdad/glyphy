@@ -33,6 +33,8 @@
 #ifndef BEZIER_ARC_APPROXIMATION_HH
 #define BEZIER_ARC_APPROXIMATION_HH
 
+namespace GLyphy {
+
 namespace BezierArcApproximation {
 
 using namespace Geometry;
@@ -423,4 +425,5 @@ class ArcApproximatorOutlineSink
 
 } /* namespace BezierArcApproxmation */
 
+} /* namespace GLyphy */
 #endif

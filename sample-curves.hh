@@ -27,6 +27,8 @@
 #ifndef SAMPLE_CURVES_HH
 #define SAMPLE_CURVES_HH
 
+namespace GLyphy {
+
 namespace SampleCurves {
 
 using namespace Geometry;
@@ -176,4 +178,5 @@ sample_curve_semicircle_right (void)
 
 } /* namespace SampleCurves */
 
+} /* namespace GLyphy */
 #endif
