@@ -99,14 +99,14 @@ demo_text (cairo_t *cr, const char *family, const char *utf8)
   {
     public:
 
-    static bool callback (const arc_t &arc, void *closure)
+    static bool callback (const ::arc_t &arc, void *closure)
     {
        ArcAccumulator *acc = static_cast<ArcAccumulator *> (closure);
        acc->arcs.push_back (arc);
        return true;
     }
 
-    std::vector<arc_t> arcs;
+    std::vector< ::arc_t> arcs;
   } acc;
 
   cairo_save (cr);

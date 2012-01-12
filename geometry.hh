@@ -1151,6 +1151,8 @@ inline const Bezier<Coord> Bezier<Coord>::segment (const Scalar &t0, const Scala
   return split (t0).second.split ((t1 - t0) / (1 - t0)).first;
 }
 
+typedef Arc<Coord, Scalar> arc_t;
+
 } /* namespace Geometry */
 
 } /* namespace GLyphy */

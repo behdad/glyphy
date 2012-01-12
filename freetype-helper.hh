@@ -95,6 +95,20 @@ class FreeTypeOutlineSource
   }
 };
 
+FT_Outline *
+ft_face_to_outline (FT_Face face, unsigned int glyph_index);
+
+void
+ft_outline_to_arcs (FT_Outline *outline, double tolerance,
+		    std::vector<arc_t> &arcs, double &error);
+
+int
+ft_outline_to_texture (FT_Outline *outline, unsigned int upem, int width,
+		       int *height, void **buffer);
+
+int
+ft_face_to_texture (FT_Face face, FT_ULong uni, int width, int *height,
+		    void **buffer);
 
 } /* namespace FreeTypeHelper */
 

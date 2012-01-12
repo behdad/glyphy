@@ -12,6 +12,7 @@
 #include "freetype-helper.hh"
 
 using namespace GLyphy;
+using namespace FreeTypeHelper;
 
 static void
 die (const char *msg)
@@ -193,15 +194,10 @@ create_texture (const char *font_path, const char UTF8)
   FT_Init_FreeType (&library);   
   FT_New_Face ( library, font_path, 0, &face );
 
-  unsigned int upem = face->units_per_EM;
-  unsigned int glyph_index = FT_Get_Char_Index (face, (FT_ULong) UTF8);
-
-  FT_Outline * outline = face_to_outline(face, glyph_index);
-
   int tex_w = SUB_TEX_W, tex_h;
   void *buffer;
 
-  generate_texture(upem, &face->glyph->outline, tex_w, &tex_h, &buffer);
+  ft_face_to_texture (face, UTF8, tex_w, &tex_h, &buffer);
 
   GLuint texture;
   glGenTextures (1, &texture);

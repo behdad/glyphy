@@ -423,6 +423,28 @@ class ArcApproximatorOutlineSink
   }
 };
 
+typedef MaxDeviationApproximatorExact MaxDev;
+typedef BezierArcErrorApproximatorBehdad<MaxDev> BezierArcError;
+typedef BezierArcApproximatorMidpointTwoPart<BezierArcError>
+    BezierArcApproximator;
+typedef BezierArcsApproximatorSpringSystem<BezierArcApproximator>
+    SpringSystem;
+typedef ArcApproximatorOutlineSink<SpringSystem>
+    TArcApproximatorOutlineSink;
+
+class ArcAccumulator
+{
+  public:
+  ArcAccumulator (std::vector<arc_t> &_arcs) : arcs (_arcs) {}
+  static bool callback (const arc_t &arc, void *closure)
+  {
+     ArcAccumulator *acc = static_cast<ArcAccumulator *> (closure);
+     acc->arcs.push_back (arc);
+     return true;
+  }
+  std::vector<arc_t> &arcs;
+};
+
 } /* namespace BezierArcApproxmation */
 
 } /* namespace GLyphy */

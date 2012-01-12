@@ -8,8 +8,8 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <cstring>
 
-#include "freetype-helper.hh"
 #include "sample-curves.hh"
 #include "bezier-arc-approximation.hh"
 
@@ -17,7 +17,6 @@ using namespace std;
 
 namespace GLyphy {
 
-using namespace FreeTypeHelper;
 using namespace SampleCurves;
 using namespace BezierArcApproximation;
 
@@ -27,83 +26,28 @@ typedef Point<Coord> point_t;
 typedef Line<Coord> line_t;
 typedef Segment<Coord> segment_t;
 typedef Circle<Coord, Scalar> circle_t;
-typedef Arc<Coord, Scalar> arc_t;
 typedef Bezier<Coord> bezier_t;
 
-
-
-
-
-
+struct rgba_t {
+  unsigned char r;
+  unsigned char g;
+  unsigned char b;
+  unsigned char a;
+};
 
 #if 0
 // Large font size profile
 #define MIN_FONT_SIZE 64
-#define TOLERANCE 5e-4
 #define GRID_SIZE 16
 #else
 // Small font size profile
 #define MIN_FONT_SIZE 20
-#define TOLERANCE 5e-3
 #define GRID_SIZE 16
 #endif
 
 #define GRID_W GRID_SIZE
 #define GRID_H GRID_SIZE
 #define MAX_TEX_FETCH 6
-
-
-
-FT_Outline *face_to_outline (FT_Face face, unsigned int glyph_index)
-{
-  if (FT_Load_Glyph (face,
-		     glyph_index,
-		     FT_LOAD_NO_BITMAP |
-		     FT_LOAD_NO_HINTING |
-		     FT_LOAD_NO_AUTOHINT |
-		     FT_LOAD_NO_SCALE |
-		     FT_LOAD_LINEAR_DESIGN |
-		     FT_LOAD_IGNORE_TRANSFORM))
-    abort ();
-
-  assert (face->glyph->format == FT_GLYPH_FORMAT_OUTLINE);
-  return &face->glyph->outline;
-}
-
-void
-approximate_glyph_to_arcs (FT_Outline *outline,
-			   double tolerance,
-			   std::vector<arc_t> &arcs,
-			   double &error)
-{
-  // Arc approximation code.
-  typedef MaxDeviationApproximatorExact MaxDev;
-  typedef BezierArcErrorApproximatorBehdad<MaxDev> BezierArcError;
-  typedef BezierArcApproximatorMidpointTwoPart<BezierArcError> BezierArcApproximator;
-  typedef BezierArcsApproximatorSpringSystem<BezierArcApproximator> SpringSystem;
-  typedef ArcApproximatorOutlineSink<SpringSystem> ArcApproximatorOutlineSink;
-
-  class ArcAccumulator
-  {
-    public:
-    ArcAccumulator (std::vector<arc_t> &_arcs) : arcs (_arcs) {}
-    static bool callback (const arc_t &arc, void *closure)
-    {
-       ArcAccumulator *acc = static_cast<ArcAccumulator *> (closure);
-       acc->arcs.push_back (arc);
-       return true;
-    }
-    std::vector<arc_t> &arcs;
-  } acc (arcs);
-
-  ArcApproximatorOutlineSink outline_arc_approximator (acc.callback,
-						       static_cast<void *> (&acc),
-						       tolerance);
-  FreeTypeOutlineSource<ArcApproximatorOutlineSink>::decompose_outline (outline,
-									outline_arc_approximator);
-  error = outline_arc_approximator.error;
-}
-
 
 /* Given a cell, fills the vector closest_arcs with arcs that may be closest to some point in the cell.
  * Uses idea that all close arcs to cell must be ~close to center of cell.
@@ -227,13 +171,9 @@ struct atlas_t {
 #define IS_INSIDE_UNSURE 2
 
 int
-generate_texture (unsigned int upem, FT_Outline *outline, int width,
-		  int *height, void **buffer)
+arcs_to_texture (std::vector<arc_t> &arcs, int width, int *height,
+		 void **buffer)
 {
-  double tolerance = upem * TOLERANCE; // in font design units
-  std::vector<arc_t> arcs;
-  double error;
-  approximate_glyph_to_arcs (outline, tolerance, arcs, error);
   int grid_min_x =  65535;
   int grid_max_x = -65535;
   int grid_min_y =  65335;
@@ -335,9 +275,6 @@ generate_texture (unsigned int upem, FT_Outline *outline, int width,
         printf ("\n");
     }
 
-  printf ("Used %d arcs; Approx. err %g; Tolerance %g; Percentage %g. %s\n",
-	  (int) arcs.size (), error, tolerance, round (100 * error / tolerance),
-	  error <= tolerance ? "PASS" : "FAIL");
   printf ("Grid size %dx%d; Used %'ld bytes, saved %'d bytes\n",
 	  GRID_W, GRID_H, tex_data.size () * sizeof (tex_data[0]), saved_bytes);
   printf ("Average %g texture accesses\n", 1 + double (total_arcs) / (GRID_W * GRID_H));
