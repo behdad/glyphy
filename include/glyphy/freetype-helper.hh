@@ -22,7 +22,7 @@
  * Google Author(s): Behdad Esfahbod, Maysum Panju
  */
 
-#include "geometry.hh"
+#include <glyphy/geometry.hh>
 
 #include <algorithm>
 #include <vector>

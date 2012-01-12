@@ -29,7 +29,7 @@
 #include <vector>
 #include <queue>
 
-#include "geometry.hh"
+#include <glyphy/geometry.hh>
 
 #ifndef CAIRO_HELPER_HH
 #define CAIRO_HELPER_HH

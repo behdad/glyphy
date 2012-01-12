@@ -1,4 +1,4 @@
-#include "glyphy.h"
+#include <glyphy.hh>
 
 #include <math.h>
 

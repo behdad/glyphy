@@ -1,4 +1,4 @@
-#include "glyphy.h"
+#include <glyphy.hh>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -9,7 +9,7 @@
 #include <sstream>
 #include <string>
 
-#include "freetype-helper.hh"
+#include <glyphy/freetype-helper.hh>
 
 using namespace GLyphy;
 using namespace FreeTypeHelper;
@@ -135,7 +135,7 @@ create_program (void)
 				   (orig.y + div (i, u_texSize.z) + .5) / float (u_texSize.y)));
     }
   );
-  std::ifstream fshader_file("fragment_shader.glsl");
+  std::ifstream fshader_file(FSCODE_PATH);
   std::stringstream buff;
   buff << fshader_file.rdbuf();
   fShaderCode += buff.str();

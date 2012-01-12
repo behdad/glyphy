@@ -5,11 +5,13 @@ AC_INIT([glyphy],
         [glyphy],
         [http://code.google.com/p/glyphy/])
 
-AC_CONFIG_SRCDIR([geometry.hh])
-AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_SRCDIR([include/glyphy/geometry.hh])
+AC_CONFIG_HEADERS([include/glyphy/config.hh])
 
 AM_INIT_AUTOMAKE([1.11.1 dist-bzip2 no-dist-gzip -Wall])
 AM_SILENT_RULES([yes])
+AM_PROG_LIBTOOL
+LT_INIT
 
 AC_CANONICAL_HOST
 
@@ -62,8 +64,21 @@ GLYPHY_CHECK_PACKAGE(glut, glutInit, GLUT)
 
 dnl ===========================================================================
 
-AC_CONFIG_FILES([
-Makefile
-])
+glyphy_includedir=${includedir}/${PACKAGE_NAME}-${PACKAGE_VERSION}
+AC_SUBST(glyphy_includedir)
+
+glyphy_datadir=${datadir}/${PACKAGE_NAME}-${PACKAGE_VERSION}
+AC_SUBST(glyphy_datadir)
+
+glyphy_libversion="0:0:0"
+AC_SUBST(glyphy_libversion)
+
+AC_CONFIG_FILES([ Makefile
+		  include/Makefile
+		  src/Makefile
+		  demo/Makefile
+		  glyphy-${PACKAGE_VERSION}.pc ])
+
+AC_DEFINE_DIR([GLYPHY_SHADERDIR], [glyphy_datadir], [Directory containing shader code.])
 
 AC_OUTPUT

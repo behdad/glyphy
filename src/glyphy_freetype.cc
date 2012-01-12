@@ -1,7 +1,7 @@
 #include "freetype-helper.hh"
 
-#include "glyphy.h"
-#include "geometry.hh"
+#include <glyphy.hh>
+#include <glyphy/geometry.hh>
 #include "bezier-arc-approximation.hh"
 
 namespace GLyphy {

@@ -9,10 +9,12 @@
 #endif
 
 #include <vector>
-#include "geometry.hh"
-#include "bezier-arc-approximation.hh"
+#include <glyphy/geometry.hh>
+#include <glyphy/config.hh>
 
 namespace GLyphy {
+
+  const char *const FSCODE_PATH = GLYPHY_SHADERDIR "/fragment_shader.glsl";
 
   int
   arcs_to_texture (std::vector<Geometry::arc_t> &arcs, int width, int *height,

@@ -22,7 +22,7 @@
  * Google Author(s): Behdad Esfahbod, Maysum Panju
  */
 
-#include "geometry.hh"
+#include <glyphy/geometry.hh>
 
 #ifndef SAMPLE_CURVES_HH
 #define SAMPLE_CURVES_HH

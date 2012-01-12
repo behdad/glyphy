@@ -1,0 +1,2 @@
+/* Directory containing shader code. */
+#undef GLYPHY_SHADERDIR
