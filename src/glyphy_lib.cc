@@ -35,15 +35,6 @@ struct rgba_t {
   unsigned char a;
 };
 
-#if 0
-// Large font size profile
-#define MIN_FONT_SIZE 64
-#define GRID_SIZE 16
-#else
-// Small font size profile
-#define MIN_FONT_SIZE 20
-#define GRID_SIZE 16
-#endif
 
 #define GRID_W GRID_SIZE
 #define GRID_H GRID_SIZE

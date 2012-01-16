@@ -22,4 +22,16 @@ namespace GLyphy {
 
 } /* namespace GLyphy */
 
+#if 0
+// Large font size profile
+#define MIN_FONT_SIZE 64
+#define TOLERANCE 5e-4
+#define GRID_SIZE 16
+#else
+// Small font size profile
+#define MIN_FONT_SIZE 20
+#define TOLERANCE 5e-3
+#define GRID_SIZE 16
+#endif
+
 #endif

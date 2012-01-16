@@ -43,8 +43,6 @@ ft_outline_to_arcs (FT_Outline *outline,
   error = outline_arc_approximator.error;
 }
 
-#define TOLERANCE 5e-3
-
 int
 ft_outline_to_texture (FT_Outline *outline, unsigned int upem, int width,
 		       int *height, void **buffer)
