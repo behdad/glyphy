@@ -41,7 +41,7 @@ ivec3 arclist_decode (const vec4 v)
   return ivec3 (offset, num_points, is_inside);
 }
 
-vec4 fragment_color(vec2 p)
+vec4 fragment_color(vec2 p, vec4 v_glyph)
 {
   vec4 result = vec4(0,0,0,1);
   ivec2 glyph_offset = ivec2(int(v_glyph.z), int(v_glyph.w));
@@ -54,7 +54,7 @@ vec4 fragment_color(vec2 p)
   int p_cell_x = int (clamp (p.x, 0., 1.-1e-5) * 16 /*GRID_W*/);
   int p_cell_y = int (clamp (p.y, 0., 1.-1e-5) * 16 /*GRID_H*/);
 
-  ivec3 arclist = arclist_decode (tex_1D (u_tex, glyph_offset, p_cell_y * 16 /*GRID_W*/ + p_cell_x));
+  ivec3 arclist = arclist_decode (tex_1D (glyph_offset, p_cell_y * 16 /*GRID_W*/ + p_cell_x));
   int offset = arclist.x;
   int num_endpoints =  arclist.y;
   int is_inside = arclist.z == 1 ? 1 /*IS_INSIDE_YES*/ : 0 /*IS_INSIDE_NO*/;
@@ -71,10 +71,10 @@ vec4 fragment_color(vec2 p)
     float d;
   } closest_arc;
 
-  vec3 arc_prev = arc_decode (tex_1D (u_tex, glyph_offset, offset));
+  vec3 arc_prev = arc_decode (tex_1D (glyph_offset, offset));
   for (i = 1; i < num_endpoints; i++)
   {
-    vec3 arc = arc_decode (tex_1D (u_tex, glyph_offset, i + offset));
+    vec3 arc = arc_decode (tex_1D (glyph_offset, i + offset));
     vec2 p0 = arc_prev.rg;
     arc_prev = arc;
     float d = arc.b;

@@ -128,10 +128,10 @@ create_program (void)
 
     int mod (const int a, const int b) { return a - (a / b) * b; }
     int div (const int a, const int b) { return a / b; }
-    vec4 tex_1D (const sampler2D tex, ivec2 offset, int i)
+    vec4 tex_1D (ivec2 offset, int i)
     {
       vec2 orig = offset;
-      return texture2D (tex, vec2 ((orig.x + mod (i, u_texSize.z) + .5) / float (u_texSize.x),
+      return texture2D (u_tex, vec2 ((orig.x + mod (i, u_texSize.z) + .5) / float (u_texSize.x),
 				   (orig.y + div (i, u_texSize.z) + .5) / float (u_texSize.y)));
     }
   );
@@ -142,7 +142,7 @@ create_program (void)
   fShaderCode += GEN_STRING(
     void main()
     {
-      gl_FragColor = fragment_color(v_glyph.xy);
+      gl_FragColor = fragment_color(v_glyph.xy, v_glyph);
     }
   );
   fshader = compile_shader(GL_FRAGMENT_SHADER,
