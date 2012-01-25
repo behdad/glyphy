@@ -21,8 +21,6 @@
 #include <vector>
 
 #include <assert.h>
-#include <stdio.h>
-#include <algorithm>
 
 #ifndef BEZIER_ARC_APPROXIMATION_HH
 #define BEZIER_ARC_APPROXIMATION_HH
@@ -236,11 +234,8 @@ class BezierArcApproximatorMidpointTwoPart
     Arc a1 (m, b.p3, b.p0, true);
 
     double e0 = BezierArcErrorApproximator::approximate_bezier_arc_error (pair.first, a0);
- //   printf("First worked fine. ");
     double e1 = BezierArcErrorApproximator::approximate_bezier_arc_error (pair.second, a1);
     *error = std::max (e0, e1);
-//    printf("Second worked fine. ");
-//    printf("\n");
 
     return Arc (b.p0, b.p3, m, false);
   }

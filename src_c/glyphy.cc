@@ -22,12 +22,10 @@
 
 #include <glyphy.h>
 
-#include <math.h>
 #include <string.h>
-
+#include <stdio.h>
+#include <math.h>
 #include <assert.h>
-#include <string>
-#include <list>
 
 #include "bezier-arc-approximation.hh"
 

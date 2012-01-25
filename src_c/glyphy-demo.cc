@@ -21,17 +21,7 @@
 #include "geometry.hh"
 #include "bezier-arc-approximation.hh"
 
-#include <math.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
 #include <assert.h>
-
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <string>
-#include <vector>
 
 #include <GL/glew.h>
 #if defined(__APPLE__)
