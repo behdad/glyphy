@@ -219,23 +219,6 @@ void display( void )
 }
 
 
-FT_Outline *
-ft_face_to_outline (FT_Face face, unsigned int glyph_index)
-{
-  if (FT_Load_Glyph (face,
-		     glyph_index,
-		     FT_LOAD_NO_BITMAP |
-		     FT_LOAD_NO_HINTING |
-		     FT_LOAD_NO_AUTOHINT |
-		     FT_LOAD_NO_SCALE |
-		     FT_LOAD_LINEAR_DESIGN |
-		     FT_LOAD_IGNORE_TRANSFORM))
-    abort ();
-
-  assert (face->glyph->format == FT_GLYPH_FORMAT_OUTLINE);
-  return &face->glyph->outline;
-}
-
 template <typename OutlineSink>
 class FreeTypeOutlineSource
 {
@@ -331,13 +314,26 @@ ft_outline_to_texture (FT_Outline *outline, unsigned int upem, int width,
 }
 
 int
-ft_face_to_texture (FT_Face face, FT_ULong uni, int width, int *height,
+ft_face_to_texture (FT_Face face, FT_ULong unicode, int width, int *height,
 		    void **buffer)
 {
   unsigned int upem = face->units_per_EM;
-  unsigned int glyph_index = FT_Get_Char_Index (face, uni);
-  FT_Outline *outline = ft_face_to_outline(face, glyph_index);
-  return ft_outline_to_texture (outline, upem, width, height, buffer);
+  unsigned int glyph_index = FT_Get_Char_Index (face, unicode);
+
+  if (FT_Load_Glyph (face,
+		     glyph_index,
+		     FT_LOAD_NO_BITMAP |
+		     FT_LOAD_NO_HINTING |
+		     FT_LOAD_NO_AUTOHINT |
+		     FT_LOAD_NO_SCALE |
+		     FT_LOAD_LINEAR_DESIGN |
+		     FT_LOAD_IGNORE_TRANSFORM))
+    die ("Failed loading FreeType glyph");
+
+  if (face->glyph->format != FT_GLYPH_FORMAT_OUTLINE)
+    die ("FreeType loaded glyph format is not outline");
+
+  return ft_outline_to_texture (&face->glyph->outline, upem, width, height, buffer);
 }
 
 
