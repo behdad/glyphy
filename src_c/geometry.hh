@@ -96,6 +96,7 @@ struct Vector {
 
   inline bool is_nonzero (void) const;
   inline const Scalar len (void) const;
+  inline const Scalar len2 (void) const;
   inline const Vector normalized (void) const;
   inline const Vector perpendicular (void) const;
   inline const Vector normal (void) const; /* perpendicular().normalized() */
@@ -127,7 +128,7 @@ struct Line {
   inline const Point operator+ (const Line &l) const; /* line intersection! */
   inline const SignedVector operator- (const Point &p) const; /* shortest vector from point to line */
   inline const Point nearest_part_to_point (const Point &p) const;
-  
+
 
   inline const Line normalized (void) const;
   inline const Vector normal (void) const;
@@ -159,7 +160,7 @@ struct Quad {
   inline Quad (const Point &p0_, const Scalar w_, Scalar h_) :
                p0 (p0_), w (w_), h (h_) {};
 
- 
+
   inline const SignedVector operator- (const Point &p) const; /* shortest vector from point to quad */
   inline const Scalar distance_to_arc (const Arc &a) const; /* shortest distance from arc to quad */
   inline const Scalar max_distance_to_arc (const Arc &a) const; /* longest distance from arc to quad */
@@ -168,12 +169,12 @@ struct Quad {
   inline const Segment left (void) const;
   inline const Segment right (void) const;
   inline const Segment bottom (void) const;
-  
+
   inline const bool contains_point (const Point &p) const;
 
   Point p0; /* top left corner */
   Scalar w; /* width  */
-  Scalar h; /* height */ 
+  Scalar h; /* height */
 };
 
 
@@ -211,14 +212,14 @@ struct Arc {
   inline Circle circle (void) const;
 
   inline Bezier approximate_bezier (Scalar *error) const;
-  
+
   inline bool sector_contains_point (const Point &p) const;
   inline Scalar distance_to_point (const Point &p) const;
   inline Scalar squared_distance_to_point (const Point &p) const;
   inline Scalar signed_squared_distance_to_point (const Point &p) const;
   inline Scalar max_distance_to_point (const Point &p) const;
   inline Point nearest_part_to_point (const Point &p) const;
-  
+
   inline Point leftmost (void) const;
   inline Point rightmost (void) const;
   inline Point highest (void) const;
@@ -234,19 +235,12 @@ struct Bezier {
 		 p0 (p0_), p1 (p1_), p2 (p2_), p3 (p3_) {}
 
   inline const Point point (const Scalar &t) const;
-
   inline const Vector tangent (const Scalar &t) const;
-
   inline const Vector d_tangent (const Scalar &t) const;
-
   inline const Scalar curvature (const Scalar &t) const;
-
   inline const Circle osculating_circle (const Scalar &t) const;
-
   inline const Pair<Bezier> split (const Scalar &t) const;
-
   inline const Pair<Bezier> halve (void) const;
-
   inline const Bezier segment (const Scalar &t0, const Scalar &t1) const;
 
   Point p0, p1, p2, p3;
@@ -254,6 +248,63 @@ struct Bezier {
 
 
 /* Implementations */
+
+
+/* Point */
+
+inline Point::Point (const Vector &v) {
+  x = v.dx;
+  y = v.dy;
+}
+inline bool Point::operator == (const Point &p) const {
+  return x == p.x && y == p.y;
+}
+inline bool Point::operator != (const Point &p) const {
+  return !(*this == p);
+}
+inline Point& Point::operator+= (const Vector &v) {
+  x += v.dx;
+  y += v.dy;
+  return *this;
+}
+inline Point& Point::operator-= (const Vector &v) {
+  x -= v.dx;
+  y -= v.dy;
+  return *this;
+}
+inline const Point Point::operator+ (const Vector &v) const {
+  return Point (*this) += v;
+}
+inline const Point Point::operator- (const Vector &v) const {
+  return Point (*this) -= v;
+}
+inline const Vector Point::operator- (const Point &p) const {
+  return Vector (x - p.x, y - p.y);
+}
+
+inline const Point Point::operator+ (const Point &p) const { /* mid-point! */
+  return *this + (p - *this) / 2;
+}
+inline const Line Point::operator| (const Point &p) const { /* segment axis line! */
+  Vector d = p - *this;
+  return Line (d.dx * 2, d.dy * 2, d * Vector (p) + d * Vector (*this));
+}
+
+inline const Scalar Point::distance_to_point (const Point &p) const {
+  return ((*this) - p).len ();
+}
+
+inline const Scalar Point::squared_distance_to_point (const Point &p) const {
+  return ((*this) - p).len2 ();
+}
+
+inline bool Point::is_finite (void) const {
+  return isfinite (x) && isfinite (y);
+}
+inline const Point Point::lerp (const Scalar &a, const Point &p) const {
+  return Point ((1-a) * x + a * p.x, (1-a) * y + a * p.y);
+}
+
 
 /* Vector */
 
@@ -314,6 +365,9 @@ inline bool Vector::is_nonzero (void) const {
 inline const Scalar Vector::len (void) const {
   return hypot (dx, dy);
 }
+inline const Scalar Vector::len2 (void) const {
+  return dx * dx + dy * dy;
+}
 inline const Vector Vector::normalized (void) const {
   Scalar d = len ();
   return d ? *this / d : *this;
@@ -350,63 +404,6 @@ inline const SignedVector SignedVector::operator- (void) const {
 }
 
 
-/* Point */
-
-inline Point::Point (const Vector &v) {
-  x = v.dx;
-  y = v.dy;
-}
-inline bool Point::operator == (const Point &p) const {
-  return x == p.x && y == p.y;
-}
-inline bool Point::operator != (const Point &p) const {
-  return !(*this == p);
-}
-inline Point& Point::operator+= (const Vector &v) {
-  x += v.dx;
-  y += v.dy;
-  return *this;
-}
-inline Point& Point::operator-= (const Vector &v) {
-  x -= v.dx;
-  y -= v.dy;
-  return *this;
-}
-inline const Point Point::operator+ (const Vector &v) const {
-  return Point (*this) += v;
-}
-inline const Point Point::operator- (const Vector &v) const {
-  return Point (*this) -= v;
-}
-inline const Vector Point::operator- (const Point &p) const {
-  return Vector (x - p.x, y - p.y);
-}
-
-inline const Point Point::operator+ (const Point &p) const { /* mid-point! */
-  return *this + (p - *this) / 2;
-}
-inline const Line Point::operator| (const Point &p) const { /* segment axis line! */
-  Vector d = p - *this;
-  return Line (d.dx * 2, d.dy * 2, d * Vector (p) + d * Vector (*this));
-}
- 
-inline const Scalar Point::distance_to_point (const Point &p) const { /* distance to point! */
-  return ((*this) - p).len ();
-}
-
-inline const Scalar Point::squared_distance_to_point (const Point &p) const { /* square of distance to point! */
-  Vector difference = (*this) - p;
-  return difference * difference;
-}
-
-inline bool Point::is_finite (void) const {
-  return isfinite (x) && isfinite (y);
-}
-inline const Point Point::lerp (const Scalar &a, const Point &p) const {
-  return Point ((1-a) * x + a * p.x, (1-a) * y + a * p.y);
-}
-
-
 /* Line */
 
 inline const Point Line::operator+ (const Line &l) const {
@@ -420,7 +417,7 @@ inline const SignedVector Line::operator- (const Point &p) const {
   /* shortest vector from point to line */
 //  if (n.len() < 1e-3)
 //    printf("n is %g.\n", n.len());
-    
+
   Scalar mag = -(n * Vector (p) - c) / n.len ();
   return SignedVector (n.normalized () * mag, mag < 0); /******************************************************************************************* FIX. *************************************/
 }
@@ -443,7 +440,7 @@ inline const Point Line::nearest_part_to_point (const Point &p) const {
 
 /* Segment */
 inline const SignedVector Segment::operator- (const Point &p) const {
-  /* shortest vector from point to line */  
+  /* shortest vector from point to line */
   return p - Line (p1, p0); /************************************************************************************************** Should the order (p1, p0) depend on d?? ***********************/
 }
 
@@ -459,7 +456,7 @@ inline const bool Segment::contains_in_span (const Point &p) const {
   Point z = y + p;
 
   // Check if z is between p0 and p1.
-    
+
   if (fabs (p1.y - p0.y) > fabs (p1.x - p0.x)) {
     return ((z.y - p0.y > 0 && p1.y - p0.y > z.y - p0.y) ||
             (z.y - p0.y < 0 && p1.y - p0.y < z.y - p0.y));
@@ -473,15 +470,15 @@ inline const bool Segment::contains_in_span (const Point &p) const {
 inline const Scalar Segment::distance_to_point (const Point &p) const {
   if (p0 == p1)
     return 0;
-    
+
   // Check if z is between p0 and p1.
   Line temp (p0, p1);
   if (contains_in_span (p))
     return -(temp.n * Vector (p) - temp.c) / temp.n.len ();
-  
+
   double dist_p_p0 = p.distance_to_point (p0);
   double dist_p_p1 = p.distance_to_point (p1);
-  return (dist_p_p0 < dist_p_p1 ? dist_p_p0 : dist_p_p1) * (-(temp.n * Vector (p) - temp.c) < 0 ? -1 : 1); 
+  return (dist_p_p0 < dist_p_p1 ? dist_p_p0 : dist_p_p1) * (-(temp.n * Vector (p) - temp.c) < 0 ? -1 : 1);
 }
 
 
@@ -490,45 +487,45 @@ inline const Scalar Segment::distance_to_point (const Point &p) const {
 inline const Scalar Segment::signed_squared_distance_to_point (const Point &p) const {
   if (p0 == p1)
     return 0;
-    
+
   // Check if z is between p0 and p1.
   Line temp (p0, p1);
   double value = temp.c - temp.n * Vector (p);
   if (contains_in_span (p))
     return (value * value * SIGN(value)) / (temp.n * temp.n) ;
-  
+
   double dist_p_p0 = p.squared_distance_to_point (p0);
   double dist_p_p1 = p.squared_distance_to_point (p1);
-  return (dist_p_p0 < dist_p_p1 ? dist_p_p0 : dist_p_p1) * SIGN(value); 
+  return (dist_p_p0 < dist_p_p1 ? dist_p_p0 : dist_p_p1) * SIGN(value);
 }
 
 inline const Scalar Segment::squared_distance_to_point (const Point &p) const {
   if (p0 == p1)
     return 0;
-    
+
   // Check if z is between p0 and p1.
   Line temp (p0, p1);
   if (contains_in_span (p))
     return (temp.n * Vector (p) - temp.c) * (temp.n * Vector (p) - temp.c) / (temp.n * temp.n);
-  
+
   double dist_p_p0 = p.squared_distance_to_point (p0);
   double dist_p_p1 = p.squared_distance_to_point (p1);
-  return (dist_p_p0 < dist_p_p1 ? dist_p_p0 : dist_p_p1); 
+  return (dist_p_p0 < dist_p_p1 ? dist_p_p0 : dist_p_p1);
 }
 
 
 inline const Scalar Segment::distance_to_arc (const Arc &a) const {
-  
+
   double min_distance = fabs(a.distance_to_point(p0)) ;
   min_distance = min_distance <  fabs(a.distance_to_point(p1)) ? min_distance : fabs(a.distance_to_point(p1)) ;
-  
+
   Point on_line = (Line (p0, p1)).nearest_part_to_point(a.center());
   double other_distance = fabs((a.center () - on_line).len () - a.radius ());
-  
+
   if (a.sector_contains_point (on_line) && contains_in_span (on_line))
     min_distance = min_distance < other_distance ? min_distance : other_distance ;
-  
-  return min_distance; 
+
+  return min_distance;
 }
 
 
@@ -540,7 +537,7 @@ inline const Scalar Segment::max_distance_to_arc (const Arc &a) const {
 inline Point Segment::nearest_part_to_point (const Point &p) const {
   if (contains_in_span (p))
     return p - (*this - p);
-  
+
   double d1 = p.squared_distance_to_point (p0);
   double d2 = p.squared_distance_to_point (p1);
   return (d1 < d2 ? p0 : p1);
@@ -565,66 +562,65 @@ inline const Segment Quad::bottom (void) const {
 }
 
 inline const bool Quad::contains_point (const Point &p) const {
-  return ((p.x >= p0.x) && 
+  return ((p.x >= p0.x) &&
           (p.x <= p0.x + w) &&
           (p.y >= p0.y) &&
-          (p.y <= p0.y + h)); 
- }         
-          
+          (p.y <= p0.y + h));
+}
+
 inline const SignedVector Quad::operator- (const Point &p) const {
   /* shortest vector from point to quad. Return negative iff point within quad.? */
-    
+
   Vector current (0, 0);
   Vector answer = top ().nearest_part_to_point (p) - p;
-  
 
   current = left ().nearest_part_to_point (p) - p;
   if (current.len () < answer.len ()) {
     answer = current;
   }
-  
+
   current = right ().nearest_part_to_point (p) - p;
   if (current.len () < answer.len ()) {
     answer = current;
   }
-  
+
   current = bottom ().nearest_part_to_point (p) - p;
   if (current.len () < answer.len ()) {
     answer = current;
-  } 
-  
+  }
+
   return SignedVector (answer, contains_point (p) );
-}        
+}
 
 /**** Was originally SignedDistance, operator-. ***********/
 inline const Scalar Quad::distance_to_arc (const Arc &a) const {
   /* shortest distance from arc to quad. Return 0 if arc intersects quad.. */
   if (contains_point(a.p0))
     return 0;
-  
+
   double min_distance = left().distance_to_arc (a);
   double right_distance = right().distance_to_arc (a);
   double top_distance = top().distance_to_arc (a);
   double bottom_distance = bottom().distance_to_arc (a);
-  
+
   min_distance = min_distance < right_distance ? min_distance : right_distance;
   min_distance = min_distance < top_distance ? min_distance : top_distance;
   min_distance = min_distance < bottom_distance ? min_distance : bottom_distance;
-  
+
   return min_distance;
 
-}        
+}
 
 inline const Scalar Quad::max_distance_to_arc (const Arc &a) const {
   double max_distance = left().max_distance_to_arc (a);
   max_distance = max_distance > right().max_distance_to_arc (a) ? max_distance : right().max_distance_to_arc (a);
   max_distance = max_distance > top().max_distance_to_arc (a) ? max_distance : top().max_distance_to_arc (a);
   max_distance = max_distance > bottom().max_distance_to_arc (a) ? max_distance : bottom().max_distance_to_arc (a);
-  
+
   return max_distance;
 }
 
-      
+
 /* Circle */
 
 inline bool Circle::operator == (const Circle &c_) const {
@@ -658,17 +654,17 @@ inline bool Arc::operator != (const Arc &a) const {
 inline const SignedVector Arc::operator- (const Point &p) const {
 
   if (fabs(d) < 1e-5) {
-    Segment arc_segment (p0, p1);    
+    Segment arc_segment (p0, p1);
     return arc_segment - p;
-  }  
+  }
   if (sector_contains_point (p)){
     Vector difference = (center () - p).normalized () * fabs (p.distance_to_point (center ()) - radius ());
-    
-    return SignedVector  (difference, (p - center ()).len () < radius () ? d < 0 : d > 0); 
+
+    return SignedVector  (difference, (p - center ()).len () < radius () ? d < 0 : d > 0);
   }
   double d0 = p.squared_distance_to_point (p0);
   double d1 = p.squared_distance_to_point (p1);
-  
+
 //  if (fabs(d + 1) == 0)
 //    printf("d=-1!\t");
   Arc other_arc (p0, p1, (d - 1.0) / (1.0 + d));  /********************************* NOT Robust. But works? *****************/
@@ -677,11 +673,11 @@ inline const SignedVector Arc::operator- (const Point &p) const {
   if (normal.len() == 0)
     return SignedVector (Vector (0, 0), true);    /************************************ Check sign of this S.D. *************/
 
-  return SignedVector ( Line (normal.dx, normal.dy, normal * Vector ((d0 < d1 ? p0 : p1))) - p, !other_arc.sector_contains_point(p)); 
+  return SignedVector ( Line (normal.dx, normal.dy, normal * Vector ((d0 < d1 ? p0 : p1))) - p, !other_arc.sector_contains_point(p));
 
 
-  return SignedVector ((d0 < d1 ? Line (normal.dx, normal.dy, normal * Vector (p0)) - p : 
-                                         Line (normal.dx, normal.dy, normal * Vector (p1)) - p ), !other_arc.sector_contains_point(p)); 
+  return SignedVector ((d0 < d1 ? Line (normal.dx, normal.dy, normal * Vector (p0)) - p :
+                                         Line (normal.dx, normal.dy, normal * Vector (p1)) - p ), !other_arc.sector_contains_point(p));
                                          /******************************* Looks correct. *********/
 }
 
@@ -719,7 +715,7 @@ inline Bezier Arc::approximate_bezier (Scalar *error) const {
 
 
 inline bool Arc::sector_contains_point (const Point &p) const {
-   
+
   Point u = (Point) (p0 - center ());
   Point v =  (Point) (p1 - center ());
   Point q =  (Point) (p - center ());
@@ -727,9 +723,9 @@ inline bool Arc::sector_contains_point (const Point &p) const {
   /* Determinant should not be 0 (arc should not be degenerate..) */
   if (determinant == 0) {
     return ((v.x - u.x)*(q.y - u.y) - (v.y - u.y)*(q.x - u.x)) * d > 0;
-  } 
-  
-  /* Sector from p0 to p1 contains p <=> both values are positive 
+  }
+
+  /* Sector from p0 to p1 contains p <=> both values are positive
      (i.e. p lies in the convex Cone(p0, p1).  */
   double num1 = ((v.y * q.x) - (v.x * q.y)) * determinant;
   double num2 = ((u.x * q.y) - (u.y * q.x)) * determinant;
@@ -744,10 +740,10 @@ inline Scalar Arc::distance_to_point (const Point &p) const {
   if (fabs(d) == 0) {
     Segment arc_segment (p0, p1);
     return arc_segment.distance_to_point (p);
-  } 
-  
+  }
+
   SignedVector difference = *this - p;
-  
+
   if (sector_contains_point (p) && fabs(d) > 0)
     return fabs (p.distance_to_point (center ()) - radius ()) * (difference.negative ? -1 : 1);
   double d1 = p.squared_distance_to_point (p0);
@@ -760,13 +756,13 @@ inline Scalar Arc::squared_distance_to_point (const Point &p) const {
   if (fabs(d) == 0) {
     Segment arc_segment (p0, p1);
     return arc_segment.squared_distance_to_point (p);
-  } 
-  
+  }
+
   SignedVector difference = *this - p;
-  
+
   if (sector_contains_point (p) && fabs(d) > 0) {
     double answer = p.distance_to_point (center ()) - radius ();
-    return answer * answer; 
+    return answer * answer;
   }
   double d1 = p.squared_distance_to_point (p0);
   double d2 = p.squared_distance_to_point (p1);
@@ -778,13 +774,13 @@ inline Scalar Arc::signed_squared_distance_to_point (const Point &p) const {
   if (fabs(d) == 0) {
     Segment arc_segment (p0, p1);
     return arc_segment.signed_squared_distance_to_point (p);
-  } 
-  
+  }
+
   SignedVector difference = *this - p;
-  
+
   if (sector_contains_point (p) && fabs(d) > 0) {
     double answer = p.distance_to_point (center ()) - radius ();
-    return answer * answer * (difference.negative ? -1 : 1); 
+    return answer * answer * (difference.negative ? -1 : 1);
   }
   double d1 = p.squared_distance_to_point (p0);
   double d2 = p.squared_distance_to_point (p1);
@@ -797,10 +793,10 @@ inline Scalar Arc::max_distance_to_point (const Point &p) const {
     double d0 = p0.distance_to_point(p);
     double d1 = p1.distance_to_point(p);
     return d0 > d1 ? d0 : d1;
-  } 
-  
+  }
+
   SignedVector difference = *this - p;
-  
+
   if (sector_contains_point (p) && fabs(d) > 0)
     return fabs (p.distance_to_point (center ()) - radius ()) * (difference.negative ? -1 : 1);
   double d1 = p.distance_to_point (p0);
