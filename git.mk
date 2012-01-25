@@ -57,7 +57,8 @@ git-all: git-mk-install
 
 git-mk-install:
 	@echo Installing git makefile
-	@any_failed=; find $(top_srcdir) -name Makefile.am | while read x; do \
+	@any_failed=; \
+		find "`test -z "$(top_srcdir)" && echo . || echo "$(top_srcdir)"`" -name Makefile.am | while read x; do \
 		if grep 'include .*/git.mk' $$x >/dev/null; then \
 			echo $$x already includes git.mk; \
 		else \
