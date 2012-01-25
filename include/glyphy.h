@@ -152,6 +152,11 @@ glyphy_arc_accumulator_cubic_to (glyphy_arc_accumulator_t *accumulator,
 				 glyphy_point_t p3);
 
 glyphy_bool_t
+glyphy_arc_accumulator_arc_to (glyphy_arc_accumulator_t *accumulator,
+			       glyphy_point_t p1,
+			       double         d);
+
+glyphy_bool_t
 glyphy_arc_accumulator_close_path (glyphy_arc_accumulator_t *accumulator);
 
 
