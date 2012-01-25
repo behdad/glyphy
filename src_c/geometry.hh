@@ -23,22 +23,11 @@
  */
 
 #include <math.h>
-#include <stdlib.h>
-
-
-/***********************REMOVE************************************************/
-#include <stdio.h>
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <assert.h>
-
 
 #ifndef GEOMETRY_HH
 #define GEOMETRY_HH
 
 namespace GLyphy {
-
 namespace Geometry {
 
 typedef double Coord;
@@ -862,8 +851,8 @@ inline const SignedVector<Coord> Arc<Coord, Scalar>::operator- (const Point<Coor
   double d0 = p.squared_distance_to_point (p0);
   double d1 = p.squared_distance_to_point (p1);
   
-  if (fabs(d + 1) == 0)
-    printf("d=-1!\t");
+//  if (fabs(d + 1) == 0)
+//    printf("d=-1!\t");
   Arc<Coord, Scalar> other_arc (p0, p1, (d - 1.0) / (1.0 + d));  /********************************* NOT Robust. But works? *****************/
   Vector<Coord> normal = center () - (d0 < d1 ? p0 : p1) ;
 
@@ -1154,6 +1143,6 @@ inline const Bezier<Coord> Bezier<Coord>::segment (const Scalar &t0, const Scala
 typedef Arc<Coord, Scalar> arc_t;
 
 } /* namespace Geometry */
-
 } /* namespace GLyphy */
+
 #endif
