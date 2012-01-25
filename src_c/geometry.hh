@@ -1,5 +1,5 @@
 /*
- * Copyright © 2011  Google, Inc.
+ * Copyright © 2011,2012  Google, Inc.
  *
  * Permission is hereby granted, without written agreement and without
  * license or royalty fees, to use, copy, modify, and distribute this
@@ -65,8 +65,8 @@ struct Point {
   inline const Point operator+ (const Vector &v) const;
   inline const Point operator- (const Vector &v) const;
   inline const Vector operator- (const Point &p) const;
-  inline const Point operator+ (const Point &v) const; /* mid-point! */
-  inline const Line operator| (const Point &p) const; /* segment axis line! */
+  inline const Point midpoint (const Point &p) const;
+  inline const Line bisector (const Point &p) const;
   inline const Scalar distance_to_point (const Point &p) const; /* distance to point! */
   inline const Scalar squared_distance_to_point (const Point &p) const; /* square of distance to point! */
 
@@ -181,7 +181,7 @@ struct Quad {
 struct Circle {
   inline Circle (const Point &c_, const Scalar &r_) : c (c_), r (r_) {};
   inline Circle (const Point &p0, const Point &p1, const Point &p2) :
-		 c ((p0|p1) + (p2|p1)), r ((c - p0).len ()) {}
+		 c ((p0.bisector (p1)) + (p2.bisector (p1))), r ((c - p0).len ()) {}
 
   inline bool operator == (const Circle &c) const;
   inline bool operator != (const Circle &c) const;
@@ -282,10 +282,10 @@ inline const Vector Point::operator- (const Point &p) const {
   return Vector (x - p.x, y - p.y);
 }
 
-inline const Point Point::operator+ (const Point &p) const { /* mid-point! */
+inline const Point Point::midpoint (const Point &p) const {
   return *this + (p - *this) / 2;
 }
-inline const Line Point::operator| (const Point &p) const { /* segment axis line! */
+inline const Line Point::bisector (const Point &p) const {
   Vector d = p - *this;
   return Line (d.dx * 2, d.dy * 2, d * Vector (p) + d * Vector (*this));
 }
@@ -694,7 +694,7 @@ inline Scalar Arc::radius (void) const
 
 inline Point Arc::center (void) const
 {
-  return (p0 + p1) + (p0 - p1).perpendicular () * ((1 - d*d) / (4 * d));
+  return (p0.midpoint (p1)) + (p0 - p1).perpendicular () * ((1 - d*d) / (4 * d));
 }
 
 inline Circle Arc::circle (void) const
@@ -912,12 +912,12 @@ inline const Pair<Bezier > Bezier::split (const Scalar &t) const {
 
 inline const Pair<Bezier > Bezier::halve (void) const
 {
-  Point p01 = p0 + p1;
-  Point p12 = p1 + p2;
-  Point p23 = p2 + p3;
-  Point p012 = p01 + p12;
-  Point p123 = p12 + p23;
-  Point p0123 = p012 + p123;
+  Point p01 = p0.midpoint (p1);
+  Point p12 = p1.midpoint (p2);
+  Point p23 = p2.midpoint (p3);
+  Point p012 = p01.midpoint (p12);
+  Point p123 = p12.midpoint (p23);
+  Point p0123 = p012.midpoint (p123);
   return Pair<Bezier > (Bezier (p0, p01, p012, p0123),
 			       Bezier (p0123, p123, p23, p3));
 }

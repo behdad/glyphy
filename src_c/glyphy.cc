@@ -57,7 +57,7 @@ closest_arcs_to_cell (point_t p0, point_t p1, /* corners */
   arc_t current_arc = arcs[0];
 
   // Find distance between cell center and its closest arc.
-  point_t c = p0 + p1;
+  point_t c = p0.midpoint (p1);
 
   SignedVector to_arc_min = current_arc - c;
   double min_distance = INFINITY;
