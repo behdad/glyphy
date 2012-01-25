@@ -34,6 +34,7 @@ using namespace BezierArcApproximation;
 typedef Vector vector_t;
 typedef Point point_t;
 typedef Line line_t;
+typedef Arc arc_t;
 typedef Segment segment_t;
 typedef Circle circle_t;
 typedef Bezier bezier_t;
