@@ -192,6 +192,7 @@ create_program (void)
 				   (orig.y + div (i, u_texSize.z) + .5) / float (u_texSize.y)));
     }
   ),
+  glyphy_common_shader_source (),
   glyphy_sdf_shader_source (),
   STRINGIZE
   (

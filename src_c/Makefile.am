@@ -6,14 +6,6 @@ MAINTAINERCLEANFILES =
 BUILT_SOURCES =
 
 lib_LTLIBRARIES = libglyphy.la
-
-libglyphy_la_SOURCES = \
-	bezier-arc-approximation.hh \
-	glyphy.h \
-	glyphy.cc \
-	glyphy_glsl.h \
-	$(NULL)
-
 libglyphy_la_CPPFLAGS = \
 	$(NULL)
 libglyphy_la_LIBADD = \
@@ -22,20 +14,30 @@ libglyphy_la_LIBADD = \
 libglyphy_la_LDFLAGS = \
 	-version-info @glyphy_libversion@ \
 	$(NULL)
-
-pkginclude_HEADERS = \
+libglyphy_la_SOURCES = \
+	bezier-arc-approximation.hh \
+	glyphy.cc \
+	$(GLYPHY_PUBLICHEADERS) \
+	$(GLYPHY_SHADERHEADERS) \
+	$(NULL)
+GLYPHY_PUBLICHEADERS = \
 	glyphy.h \
 	$(NULL)
-
-SHADERS = \
+GLYPHY_PUBLICSHADERS = \
+	glyphy-common.glsl \
 	glyphy-sdf.glsl \
 	$(NULL)
+GLYPHY_SHADERHEADERS = $(patsubst %.glsl,%-glsl.h, $(GLYPHY_PUBLICSHADERS))
+BUILT_SOURCES += $(GLYPHY_SHADERHEADERS)
 
+pkginclude_HEADERS = \
+	$(GLYPHY_PUBLICHEADERS) \
+	$(NULL)
 pkgdata_DATA = \
-	$(SHADERS) \
+	$(GLYPHY_PUBLICSHADERS) \
 	$(NULL)
 
-BUILT_SOURCES += $(patsubst %.glsl,%-glsl.h, $(SHADERS))
+
 
 EXTRA_DIST += stringize
 %-glsl.h: %.glsl stringize

@@ -251,6 +251,12 @@ glyphy_sdf_from_rgba (const glyphy_rgba_t *rgba,
 
 
 const char *
+glyphy_common_shader_source (void);
+
+const char *
+glyphy_common_shader_source_path (void);
+
+const char *
 glyphy_sdf_shader_source (void);
 
 const char *
