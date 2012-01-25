@@ -139,7 +139,7 @@ struct Line {
 
 struct Segment {
   inline Segment (const Point &p0_, const Point &p1_) :
-               p0 (p0_), p1 (p1_) {};
+		  p0 (p0_), p1 (p1_) {};
 
   inline const SignedVector operator- (const Point &p) const; /* shortest vector from point to ***line*** */
   inline const Scalar distance_to_point (const Point &p) const; /* shortest distance from point to segment */
@@ -151,15 +151,14 @@ struct Segment {
   inline const Scalar max_distance_to_arc (const Arc &a) const;
 
 
-  Point p0; /* endpoint */
-  Point p1; /* endpoint */
+  Point p0;
+  Point p1;
 };
 
 
 struct Quad {
   inline Quad (const Point &p0_, const Scalar w_, Scalar h_) :
                p0 (p0_), w (w_), h (h_) {};
-
 
   inline const SignedVector operator- (const Point &p) const; /* shortest vector from point to quad */
   inline const Scalar distance_to_arc (const Arc &a) const; /* shortest distance from arc to quad */
