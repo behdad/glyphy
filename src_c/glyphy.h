@@ -19,7 +19,7 @@
 #ifndef GLYPHY_H
 #define GLYPHY_H
 
-#ifdef __cplusplus__
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -257,7 +257,7 @@ const char *
 glyphy_sdf_shader_source_path (void);
 
 
-#ifdef __cplusplus__
+#ifdef __cplusplus
 }
 #endif
 

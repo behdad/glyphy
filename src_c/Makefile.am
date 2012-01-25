@@ -3,6 +3,7 @@ EXTRA_DIST =
 CLEANFILES =
 DISTCLEANFILES =
 MAINTAINERCLEANFILES =
+BUILT_SOURCES =
 
 lib_LTLIBRARIES = libglyphy.la
 
@@ -10,6 +11,7 @@ libglyphy_la_SOURCES = \
 	bezier-arc-approximation.hh \
 	glyphy.h \
 	glyphy.cc \
+	glyphy_glsl.h \
 	$(NULL)
 
 libglyphy_la_CPPFLAGS = \
@@ -24,6 +26,20 @@ libglyphy_la_LDFLAGS = \
 pkginclude_HEADERS = \
 	glyphy.h \
 	$(NULL)
+
+SHADERS = \
+	glyphy-sdf.glsl \
+	$(NULL)
+
+pkgdata_DATA = \
+	$(SHADERS) \
+	$(NULL)
+
+BUILT_SOURCES += $(patsubst %.glsl,%-glsl.h, $(SHADERS))
+
+%-glsl.h: %.glsl stringize
+	$(AM_V_GEN) ./stringize "static const char *`echo "$<" | sed 's@.*/@@;s/[-.]/_/g'`" < "$<" > "$@.tmp" && \
+	mv "$@.tmp" "$@" || ($(RM) "$@.tmp"; false)
 
 
 

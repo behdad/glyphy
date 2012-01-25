@@ -1,3 +1,25 @@
+/*
+ * Copyright 2012 Google, Inc. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Google Author(s): Behdad Esfahbod, Maysum Panju, Wojciech Baranowski
+ */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <glyphy.h>
 
 #include <math.h>
@@ -63,7 +85,7 @@ closest_arcs_to_cell (point_t p0, point_t p1, /* corners */
   SignedVector to_arc_min = current_arc - c;
   double min_distance = INFINITY;
 
-  for (int k = 0; k < arcs.size (); k++) {
+  for (unsigned int k = 0; k < arcs.size (); k++) {
     current_arc = arcs[k];
 
     // We can't use squared distance, because sign is important.
@@ -96,7 +118,7 @@ closest_arcs_to_cell (point_t p0, point_t p1, /* corners */
   double faraway = double (grid_size) / MIN_FONT_SIZE;
   double radius_squared = pow (min_distance + half_diagonal + faraway, 2);
   if (min_distance - half_diagonal <= faraway)
-    for (int i = 0; i < arcs.size (); i++) {
+    for (unsigned int i = 0; i < arcs.size (); i++) {
       if (arcs[i].squared_distance_to_point (c) <= radius_squared)
         near_arcs.push_back (arcs[i]);
     }
@@ -175,7 +197,7 @@ arcs_to_texture (std::vector<arc_t> &arcs, int width, int *height,
   int grid_max_y = -65535;
   int glyph_width, glyph_height;
 
-  for (int i = 0; i < arcs.size (); i++) {
+  for (unsigned int i = 0; i < arcs.size (); i++) {
     grid_min_x = std::min (grid_min_x, (int) floor (arcs[i].leftmost ().x));
     grid_max_x = std::max (grid_max_x, (int) ceil (arcs[i].rightmost ().x));
     grid_min_y = std::min (grid_min_y, (int) floor (arcs[i].lowest ().y));
@@ -285,3 +307,18 @@ arcs_to_texture (std::vector<arc_t> &arcs, int width, int *height,
 }
 
 } /* namespace GLyphy */
+
+#include "glyphy-sdf-glsl.h"
+
+const char *
+glyphy_sdf_shader_source (void)
+{
+  return glyphy_sdf_glsl;
+}
+
+const char *
+glyphy_sdf_shader_source_path (void)
+{
+  /* TODO path separator */
+  return PKGDATADIR "/glyphy-sdf.glsl";
+}

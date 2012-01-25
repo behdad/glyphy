@@ -72,7 +72,7 @@ die (const char *msg)
 }
 
 GLuint
-compile_shader (GLenum type, const GLchar* source)
+compile_shader (GLenum type, GLsizei count, const GLchar** sources)
 {
   GLuint shader;
   GLint compiled;
@@ -80,7 +80,7 @@ compile_shader (GLenum type, const GLchar* source)
   if (!(shader = glCreateShader(type)))
     return shader;
 
-  glShaderSource (shader, 1, &source, 0);
+  glShaderSource (shader, count, sources, 0);
   glCompileShader (shader);
 
   glGetShaderiv (shader, GL_COMPILE_STATUS, &compiled);
@@ -103,8 +103,6 @@ compile_shader (GLenum type, const GLchar* source)
   return shader;
 }
 
-#define COMPILE_SHADER1(Type,Src) compile_shader (Type, "#version 120\n" #Src)
-#define COMPILE_SHADER(Type,Src) COMPILE_SHADER1(Type,Src)
 #define gl(name) \
 	for (GLint __ee, __ii = 0; \
 	     __ii < 1; \
@@ -144,19 +142,19 @@ link_program (GLuint vshader, GLuint fshader)
   return program;
 }
 
-const char *
-glyphy_sdf_shader_source_path (void)
-{
-  return "glyphy.glsl";
-}
+#define STRINGIZE1(Src) #Src
+#define STRINGIZE(Src) STRINGIZE1(Src)
+#define ARRAY_LEN(Array) (sizeof (Array) / sizeof (*Array))
 
-#define GEN_STRING1(Src) #Src
-#define GEN_STRING(Src) GEN_STRING1(Src)
+#define GLSL_VERSION_STRING "#version 120\n"
+
 GLuint
 create_program (void)
 {
   GLuint vshader, fshader, program;
-  vshader = COMPILE_SHADER (GL_VERTEX_SHADER,
+  const GLchar *vshader_sources[] = {GLSL_VERSION_STRING,
+				     STRINGIZE
+  (
     uniform mat4 u_matViewProjection;
     attribute vec4 a_position;
     attribute vec2 a_glyph;
@@ -176,8 +174,11 @@ create_program (void)
       gl_Position = u_matViewProjection * a_position;
       v_glyph = glyph_decode (a_glyph);
     }
-  );
-  std::string fShaderCode = std::string("#version 120\n") + GEN_STRING(
+  )};
+  vshader = compile_shader (GL_VERTEX_SHADER, ARRAY_LEN (vshader_sources), vshader_sources);
+  const GLchar *fshader_sources[] = {GLSL_VERSION_STRING,
+				     STRINGIZE
+  (
     uniform sampler2D u_tex;
     uniform ivec3 u_texSize;
     varying vec4 v_glyph;
@@ -190,19 +191,17 @@ create_program (void)
       return texture2D (u_tex, vec2 ((orig.x + mod (i, u_texSize.z) + .5) / float (u_texSize.x),
 				   (orig.y + div (i, u_texSize.z) + .5) / float (u_texSize.y)));
     }
-  );
-  std::ifstream fshader_file (glyphy_sdf_shader_source_path ());
-  std::stringstream buff;
-  buff << fshader_file.rdbuf();
-  fShaderCode += buff.str();
-  fShaderCode += GEN_STRING(
+  ),
+  glyphy_sdf_shader_source (),
+  STRINGIZE
+  (
+
     void main()
     {
       gl_FragColor = fragment_color(v_glyph.xy, v_glyph);
     }
-  );
-  fshader = compile_shader(GL_FRAGMENT_SHADER,
-			    fShaderCode.c_str());
+  )};
+  fshader = compile_shader (GL_FRAGMENT_SHADER, ARRAY_LEN (fshader_sources), fshader_sources);
 
   program = link_program (vshader, fshader);
   return program;

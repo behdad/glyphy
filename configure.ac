@@ -73,13 +73,15 @@ AC_SUBST(glyphy_datadir)
 glyphy_libversion="0:0:0"
 AC_SUBST(glyphy_libversion)
 
+AC_DEFINE_DIR([GLYPHY_SHADERDIR], [glyphy_datadir], [Directory containing shader code.])
+
+AC_DEFINE_DIR([PKGDATADIR], [$pkgdatadir], [Define to the directory containing package data.])
+
 AC_CONFIG_FILES([ Makefile
 		  include/Makefile
 		  src/Makefile
 		  src_c/Makefile
 		  demo/Makefile
 		  glyphy-${PACKAGE_VERSION}.pc ])
-
-AC_DEFINE_DIR([GLYPHY_SHADERDIR], [glyphy_datadir], [Directory containing shader code.])
 
 AC_OUTPUT
