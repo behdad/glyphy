@@ -198,7 +198,7 @@ create_program (void)
 
     void main()
     {
-      gl_FragColor = fragment_color(v_glyph.xy, v_glyph);
+      gl_FragColor = glyphy_fragment_color(v_glyph.xy, v_glyph);
     }
   )};
   fshader = compile_shader (GL_FRAGMENT_SHADER, ARRAY_LEN (fshader_sources), fshader_sources);
