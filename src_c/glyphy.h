@@ -25,6 +25,9 @@
 #ifndef GLYPHY_H
 #define GLYPHY_H
 
+#ifdef __cplusplus__
+extern "C" {
+#endif
 
 typedef int glyphy_bool_t;
 
@@ -44,26 +47,26 @@ typedef struct {
   glyphy_point_t p0;
   glyphy_point_t p1;
   double d;
-} glyph_arc_t;
+} glyphy_arc_t;
 
 
 /* Build from a conventional arc representation */
 glyphy_bool_t
 glyphy_arc_from_conventional (glyphy_point_t center,
 			      double         radius,
-			      double         angle0
-			      double         angle1
+			      double         angle0,
+			      double         angle1,
 			      glyphy_bool_t  negative,
 			      glyphy_arc_t  *arc);
 
 /* Convert to a conventional arc representation */
 glyphy_bool_t
-glyphy_arc_to_ceonventional (glyphy_arc_t    arc,
-			     glyphy_point_t *center,
-			     double         *radius,
-			     double         *angle0
-			     double         *angle1
-			     glyphy_bool_t  *negative);
+glyphy_arc_to_conventional (glyphy_arc_t    arc,
+			    glyphy_point_t *center,
+			    double         *radius,
+			    double         *angle0,
+			    double         *angle1,
+			    glyphy_bool_t  *negative);
 
 glyphy_bool_t
 glyphy_arc_is_a_line (glyphy_arc_t arc);
@@ -108,12 +111,14 @@ typedef struct {
   double d;
 } glyphy_arc_endpoint_t;
 
+typedef struct glyphy_arc_accumulator_t glyphy_arc_accumulator_t;
+
 typedef glyphy_bool_t (*glyphy_arc_endpoint_accumulator_callback_t) (glyphy_arc_accumulator_t *accumulator,
-								     glyphy_arc_endpoint       endpoint,
-								     void *user_data);
+								     glyphy_arc_endpoint_t    endpoint,
+								     void                     *user_data);
 
 /* TODO Make this a refcounted opaque type?  Or add destroy_notify? */
-typedef struct {
+typedef struct glyphy_arc_accumulator_t {
   glyphy_bool_t  has_current_point;
   glyphy_point_t current_point;
   unsigned int   num_endpoints;
@@ -129,7 +134,7 @@ typedef struct {
 void
 glyphy_arc_accumulator_init (glyphy_arc_accumulator_t *accumulator,
 			     double                    tolerance,
-			     glyphy_arc_endpoint_accumulator_callback_t callback;
+			     glyphy_arc_endpoint_accumulator_callback_t callback,
 			     void                     *user_data);
 
 glyphy_bool_t
@@ -244,5 +249,8 @@ const char *
 glyphy_sdf_shader_source_path (void);
 
 
+#ifdef __cplusplus__
+}
+#endif
 
 #endif /* GLYPHY_H */
