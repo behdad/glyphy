@@ -23,14 +23,11 @@
 #include <glyphy.h>
 
 #include <math.h>
+#include <string.h>
 
 #include <assert.h>
 #include <string>
 #include <list>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <cstring>
 
 #include "bezier-arc-approximation.hh"
 
