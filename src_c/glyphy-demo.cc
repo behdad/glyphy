@@ -45,16 +45,14 @@
 #include FT_OUTLINE_H
 
 
-#if 0
+#if 1
 // Large font size profile
 #define MIN_FONT_SIZE 64
 #define TOLERANCE 5e-4
-#define GRID_SIZE 16
 #else
 // Small font size profile
 #define MIN_FONT_SIZE 20
 #define TOLERANCE 5e-3
-#define GRID_SIZE 16
 #endif
 
 
@@ -328,7 +326,9 @@ ft_outline_to_arcs (FT_Outline *outline,
 
 namespace GLyphy {
 extern int
-arcs_to_texture (std::vector<arc_t> &arcs, int width, int *height,
+arcs_to_texture (std::vector<arc_t> &arcs,
+		 double min_font_size,
+		 int width, int *height,
 		 void **buffer);
 }
 
@@ -341,7 +341,7 @@ ft_outline_to_texture (FT_Outline *outline, unsigned int upem, int width,
   std::vector<arc_t> arcs;
   double error;
   ft_outline_to_arcs (outline, tolerance, arcs, error);
-  res = GLyphy::arcs_to_texture(arcs, width, height, buffer);
+  res = GLyphy::arcs_to_texture(arcs, MIN_FONT_SIZE, width, height, buffer);
   printf ("Used %d arcs; Approx. err %g; Tolerance %g; Percentage %g. %s\n",
 	  (int) arcs.size (), error, tolerance, round (100 * error / tolerance),
 	  error <= tolerance ? "PASS" : "FAIL");

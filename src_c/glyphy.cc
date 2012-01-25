@@ -31,18 +31,6 @@
 
 #include "bezier-arc-approximation.hh"
 
-#if 0
-// Large font size profile
-#define MIN_FONT_SIZE 64
-#define TOLERANCE 5e-4
-#define GRID_SIZE 16
-#else
-// Small font size profile
-#define MIN_FONT_SIZE 20
-#define TOLERANCE 5e-3
-#define GRID_SIZE 16
-#endif
-
 using namespace std;
 
 namespace GLyphy {
@@ -59,6 +47,7 @@ typedef Circle circle_t;
 typedef Bezier bezier_t;
 
 
+#define GRID_SIZE 16
 #define GRID_W GRID_SIZE
 #define GRID_H GRID_SIZE
 #define MAX_TEX_FETCH 6
@@ -69,6 +58,7 @@ typedef Bezier bezier_t;
 void
 closest_arcs_to_cell (point_t p0, point_t p1, /* corners */
 		      double grid_size,
+		      double min_font_size,
 		      const vector<arc_t> &arcs,
 		      vector<arc_t> &near_arcs,
 		      bool &inside_glyph)
@@ -112,7 +102,7 @@ closest_arcs_to_cell (point_t p0, point_t p1, /* corners */
   // If d is the distance from the center of the square to the nearest arc, then
   // all nearest arcs to the square must be at most [d + half_diagonal] from the center.
   double half_diagonal = (c - p0).len ();
-  double faraway = double (grid_size) / MIN_FONT_SIZE;
+  double faraway = grid_size / min_font_size;
   double radius_squared = pow (min_distance + half_diagonal + faraway, 2);
   if (min_distance - half_diagonal <= faraway)
     for (unsigned int i = 0; i < arcs.size (); i++) {
@@ -185,7 +175,9 @@ struct atlas_t {
 #define IS_INSIDE_UNSURE 2
 
 int
-arcs_to_texture (std::vector<arc_t> &arcs, int width, int *height,
+arcs_to_texture (std::vector<arc_t> &arcs,
+		 double min_font_size,
+		 int width, int *height,
 		 void **buffer)
 {
   int grid_min_x =  65535;
@@ -230,7 +222,7 @@ arcs_to_texture (std::vector<arc_t> &arcs, int width, int *height,
       near_arcs.clear ();
 
       bool inside_glyph;
-      closest_arcs_to_cell (cp0, cp1, min_dimension, arcs, near_arcs, inside_glyph); 
+      closest_arcs_to_cell (cp0, cp1, min_dimension, min_font_size, arcs, near_arcs, inside_glyph); 
 
 #define ARC_ENCODE(p, d) \
 	arc_encode (((p).x - grid_min_x) / glyph_width, \

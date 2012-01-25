@@ -250,6 +250,8 @@ glyphy_sdf_from_rgba (const glyphy_rgba_t *rgba,
  */
 
 
+/* TODO make this enum-based */
+
 const char *
 glyphy_common_shader_source (void);
 
