@@ -56,11 +56,11 @@ glyphy_arc_from_conventional (glyphy_point_t center,
 /* Convert to a conventional arc representation */
 glyphy_bool_t
 glyphy_arc_to_conventional (glyphy_arc_t    arc,
-			    glyphy_point_t *center,
-			    double         *radius,
-			    double         *angle0,
-			    double         *angle1,
-			    glyphy_bool_t  *negative);
+			    glyphy_point_t *center /* may be NULL */,
+			    double         *radius /* may be NULL */,
+			    double         *angle0 /* may be NULL */,
+			    double         *angle1 /* may be NULL */,
+			    glyphy_bool_t  *negative /* may be NULL */);
 
 glyphy_bool_t
 glyphy_arc_is_a_line (glyphy_arc_t arc);
@@ -68,30 +68,44 @@ glyphy_arc_is_a_line (glyphy_arc_t arc);
 
 
 /*
- * Approximate single pieces of geometry with one arc
+ * Approximate single pieces of geometry to/from one arc
  */
 
 
 void
-glyph_arc_for_line (glyphy_point_t p0,
-		    glyphy_point_t p1,
-		    glyphy_arc_t   *arc);
+glyph_arc_from_line (glyphy_point_t  p0,
+		     glyphy_point_t  p1,
+		     glyphy_arc_t   *arc);
 
 void
-glyph_arc_approximate_conic (glyphy_point_t p0,
-			     glyphy_point_t p1,
-			     glyphy_point_t p2,
-			     glyphy_arc_t   *arc,
-			     double         *error);
+glyph_arc_from_conic (glyphy_point_t  p0,
+		      glyphy_point_t  p1,
+		      glyphy_point_t  p2,
+		      glyphy_arc_t   *arc,
+		      double         *error);
 
 void
-glyph_arc_approximate_cubic (glyphy_point_t p0,
-			     glyphy_point_t p1,
-			     glyphy_point_t p2,
-			     glyphy_point_t p3,
-			     glyphy_arc_t   *arc,
-			     double         *error);
+glyph_arc_from_cubic (glyphy_point_t  p0,
+		      glyphy_point_t  p1,
+		      glyphy_point_t  p2,
+		      glyphy_point_t  p3,
+		      glyphy_arc_t   *arc,
+		      double         *error);
 
+void
+glyph_arc_to_conic (glyphy_arc_t    arc,
+		    glyphy_point_t *p0,
+		    glyphy_point_t *p1,
+		    glyphy_point_t *p2,
+		    double         *error);
+
+void
+glyph_arc_to_cubic (glyphy_arc_t    arc,
+		    glyphy_point_t *p0,
+		    glyphy_point_t *p1,
+		    glyphy_point_t *p2,
+		    glyphy_point_t *p3,
+		    double         *error);
 
 
 /*
