@@ -76,6 +76,7 @@ AC_SUBST(glyphy_libversion)
 AC_CONFIG_FILES([ Makefile
 		  include/Makefile
 		  src/Makefile
+		  src_c/Makefile
 		  demo/Makefile
 		  glyphy-${PACKAGE_VERSION}.pc ])
 
