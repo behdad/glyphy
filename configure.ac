@@ -6,7 +6,7 @@ AC_INIT([glyphy],
         [http://code.google.com/p/glyphy/])
 
 AC_CONFIG_SRCDIR([include/glyphy/geometry.hh])
-AC_CONFIG_HEADERS([include/glyphy/config.hh])
+AC_CONFIG_HEADERS([include/glyphy/config.h])
 
 AM_INIT_AUTOMAKE([1.11.1 dist-bzip2 no-dist-gzip -Wall])
 AM_SILENT_RULES([yes])

@@ -10,7 +10,7 @@
 
 #include <vector>
 #include <glyphy/geometry.hh>
-#include <glyphy/config.hh>
+#include <glyphy/config.h>
 
 namespace GLyphy {
 

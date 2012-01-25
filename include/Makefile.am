@@ -3,7 +3,7 @@ nobase_glyphy_include_HEADERS = \
 	glyphy.hh \
 	glyphy/geometry.hh \
 	glyphy/freetype-helper.hh \
-	glyphy/config.hh \
+	glyphy/config.h \
 	$(NULL)
 
 glyphy_datadir = @glyphy_datadir@
