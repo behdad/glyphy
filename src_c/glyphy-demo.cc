@@ -101,14 +101,6 @@ compile_shader (GLenum type, GLsizei count, const GLchar** sources)
   return shader;
 }
 
-#define gl(name) \
-	for (GLint __ee, __ii = 0; \
-	     __ii < 1; \
-	     (__ii++, \
-	      (__ee = glGetError()) && \
-	      (fprintf (stderr, "gl" #name " failed with error %04X on line %d", __ee, __LINE__), abort (), 0))) \
-	  gl##name
-
 GLuint
 link_program (GLuint vshader, GLuint fshader)
 {
@@ -364,6 +356,14 @@ ft_face_to_texture (FT_Face face, FT_ULong uni, int width, int *height,
 #define TEX_W 512
 #define TEX_H 512
 #define SUB_TEX_W 64
+
+#define gl(name) \
+	for (GLint __ee, __ii = 0; \
+	     __ii < 1; \
+	     (__ii++, \
+	      (__ee = glGetError()) && \
+	      (fprintf (stderr, "gl" #name " failed with error %04X on line %d", __ee, __LINE__), abort (), 0))) \
+	  gl##name
 
 GLint
 create_texture (const char *font_path, const char UTF8)
