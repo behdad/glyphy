@@ -37,6 +37,7 @@ pkgdata_DATA = \
 
 BUILT_SOURCES += $(patsubst %.glsl,%-glsl.h, $(SHADERS))
 
+EXTRA_DIST += stringize
 %-glsl.h: %.glsl stringize
 	$(AM_V_GEN) ./stringize "static const char *`echo "$<" | sed 's@.*/@@;s/[-.]/_/g'`" < "$<" > "$@.tmp" && \
 	mv "$@.tmp" "$@" || ($(RM) "$@.tmp"; false)
