@@ -25,3 +25,5 @@ libglyphy_0_1_la_SOURCES = \
 	glyphy_lib.cc \
 	sample-curves.hh \
 	$(NULL)
+
+-include $(top_srcdir)/git.mk

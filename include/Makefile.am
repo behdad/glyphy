@@ -10,3 +10,5 @@ glyphy_datadir = @glyphy_datadir@
 glyphy_data_DATA = \
 	glyphy/fragment_shader.glsl \
 	$(NULL)
+
+-include $(top_srcdir)/git.mk
