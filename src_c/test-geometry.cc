@@ -24,9 +24,17 @@
 
 #include <geometry.hh>
 
+#include <assert.h>
+
 using namespace GLyphy::Geometry;
 
 int
 main (int argc, char **argv)
 {
+  Pair<double> p (1, 2);
+  assert (p.first == 1);
+  assert (p.second == 2);
+
+
+
 }
