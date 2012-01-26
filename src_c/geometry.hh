@@ -24,7 +24,6 @@
 namespace GLyphy {
 namespace Geometry {
 
-typedef double Coord;
 typedef double Scalar;
 
 template <typename Type> struct Pair;
@@ -49,7 +48,7 @@ struct Pair {
 };
 
 struct Point {
-  inline Point (Coord x_, Coord y_) : x (x_), y (y_) {};
+  inline Point (double x_, double y_) : x (x_), y (y_) {};
   inline explicit Point (const Vector &v);
 
   inline bool operator == (const Point &p) const;
@@ -67,11 +66,11 @@ struct Point {
   inline bool is_finite (void) const;
   inline const Point lerp (const Scalar &a, const Point &p) const;
 
-  Coord x, y;
+  double x, y;
 };
 
 struct Vector {
-  inline Vector (Coord dx_, Coord dy_) : dx (dx_), dy (dy_) {};
+  inline Vector (double dx_, double dy_) : dx (dx_), dy (dy_) {};
   inline explicit Vector (const Point &p) : dx (p.x), dy (p.y) {};
 
   inline bool operator == (const Vector &v) const;
@@ -99,7 +98,7 @@ struct Vector {
   inline const Vector rebase (const Vector &bx, const Vector &by) const;
   inline const Vector rebase (const Vector &bx) const;
 
-  Coord dx, dy;
+  double dx, dy;
 };
 
 struct SignedVector : Vector {
@@ -114,7 +113,7 @@ struct SignedVector : Vector {
 };
 
 struct Line {
-  inline Line (Coord a_, Coord b_, Scalar c_) : n (a_, b_), c (c_) {};
+  inline Line (double a_, double b_, Scalar c_) : n (a_, b_), c (c_) {};
   inline Line (Vector n_, Scalar c_) : n (n_), c (c_) {};
   inline Line (const Point &p0, const Point &p1) :
                n ((p1 - p0).perpendicular ()), c (n * Vector (p0)) {};
