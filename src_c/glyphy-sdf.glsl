@@ -62,15 +62,15 @@ vec4 /*<*/glyphy_fragment_color/*>*/ (vec2 p, vec4 v_glyph)
 
     // unsigned distance
     float d2 = tan2atan (d);
-    if (dot (p - p0, (p1 - p0) * mat2(1, -d2,  d2, 1)) > 0 &&
-	dot (p - p1, (p1 - p0) * mat2(1,  d2, -d2, 1)) < 0)
+    if (dot (p - p0, (p1 - p0) * mat2(1,  d2, -d2, 1)) > 0 &&
+	dot (p - p1, (p1 - p0) * mat2(1, -d2,  d2, 1)) < 0)
     {
       vec2 c = /*<*/glyphy_arc_center/*>*/ (p0, p1, d);
       float signed_dist = (distance (p, c) - distance (p0, c));
       float dist = abs (signed_dist);
       if (dist <= min_dist) {
 	min_dist = dist;
-	is_inside = sign (d) * sign (signed_dist) < 0 ? 1 /*IS_INSIDE_YES*/ : 0 /*IS_INSIDE_NO*/;
+	is_inside = sign (d) * sign (signed_dist) >= 0 ? 1 /*IS_INSIDE_YES*/ : 0 /*IS_INSIDE_NO*/;
       }
     } else {
       float dist = min (distance (p, p0), distance (p, p1));

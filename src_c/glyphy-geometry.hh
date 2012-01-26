@@ -189,13 +189,13 @@ struct Arc {
   inline Arc (const Point &p0_, const Point &p1_, const Point &pm, bool complement) :
 	      p0 (p0_), p1 (p1_),
 	      d (p0_ == pm || p1_ == pm ? 0 :
-		 tan ((complement ? 0 : M_PI_2) - ((p1_-pm).angle () - (p0_-pm).angle ()) / 2)) {}
+		 tan (((p1_-pm).angle () - (p0_-pm).angle ()) / 2 - (complement ? 0 : M_PI_2))) {}
   inline Arc (const Point &p0_, const Point &p1_, const double &d_) :
 	      p0 (p0_), p1 (p1_), d (d_) {}
   inline Arc (const Circle &c, const double &a0, const double &a1, bool complement) :
 	      p0 (c.c + Vector (cos(a0),sin(a0)) * c.r),
 	      p1 (c.c + Vector (cos(a1),sin(a1)) * c.r),
-	      d (tan ((complement ? 0 : M_PI_2) - (a1 - a0) / 4)) {}
+	      d (tan ((a1 - a0) / 4 - (complement ? 0 : M_PI_2))) {}
   inline Arc (const glyphy_arc_t &a) : p0 (a.p0), p1 (a.p1), d (a.d) {};
   inline operator glyphy_arc_t (void) { glyphy_arc_t a = {p0, p1, d}; return a; }
 
@@ -656,14 +656,14 @@ inline const SignedVector Arc::operator- (const Point &p) const {
   if (sector_contains_point (p)){
     Vector difference = (center () - p).normalized () * fabs (p.distance_to_point (center ()) - radius ());
 
-    return SignedVector  (difference, (p - center ()).len () < radius () ? d < 0 : d > 0);
+    return SignedVector  (difference, ((p - center ()).len () < radius ()) ^ (d < 0));
   }
   double d0 = p.squared_distance_to_point (p0);
   double d1 = p.squared_distance_to_point (p1);
 
 //  if (fabs(d + 1) == 0)
 //    printf("d=-1!\t");
-  Arc other_arc (p0, p1, (d - 1.0) / (1.0 + d));  /********************************* NOT Robust. But works? *****************/
+  Arc other_arc (p0, p1, (1.0 + d) / (1.0 - d));  /********************************* NOT Robust. But works? *****************/
   Vector normal = center () - (d0 < d1 ? p0 : p1) ;
 
   if (normal.len() == 0)
@@ -690,7 +690,7 @@ inline double Arc::radius (void) const
 
 inline Point Arc::center (void) const
 {
-  return (p0.midpoint (p1)) + (p0 - p1).perpendicular () * ((1 - d*d) / (4 * d));
+  return (p0.midpoint (p1)) + (p1 - p0).perpendicular () * ((1 - d*d) / (4 * d));
 }
 
 inline Circle Arc::circle (void) const
@@ -703,8 +703,8 @@ inline Bezier Arc::approximate_bezier (double *error) const {
   if (error)
     *error = (p1 - p0).len () * pow (fabs (d), 5) / (54 * (1 + d*d));
 
-  Point p0s = p0 + ((1 - d*d) / 3) * (p1 - p0) + (2 * d / 3) * (p1 - p0).perpendicular ();
-  Point p1s = p1 + ((1 - d*d) / 3) * (p0 - p1) + (2 * d / 3) * (p1 - p0).perpendicular ();
+  Point p0s = p0 + ((1 - d*d) / 3) * (p1 - p0) - (2 * d / 3) * (p1 - p0).perpendicular ();
+  Point p1s = p1 + ((1 - d*d) / 3) * (p0 - p1) - (2 * d / 3) * (p1 - p0).perpendicular ();
 
   return Bezier (p0, p0s, p1s, p1);
 }
@@ -718,7 +718,7 @@ inline bool Arc::sector_contains_point (const Point &p) const {
   double determinant = (u.x * v.y) - (u.y * v.x);
   /* Determinant should not be 0 (arc should not be degenerate..) */
   if (determinant == 0) {
-    return ((v.x - u.x)*(q.y - u.y) - (v.y - u.y)*(q.x - u.x)) * d > 0;
+    return ((v.x - u.x)*(q.y - u.y) - (v.y - u.y)*(q.x - u.x)) * d < 0;
   }
 
   /* Sector from p0 to p1 contains p <=> both values are positive

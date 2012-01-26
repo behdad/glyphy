@@ -33,7 +33,7 @@ vec3 /*<*/glyphy_arc_decode/*>*/ (const vec4 v)
 vec2 /*<*/glyphy_arc_center/*>*/ (const vec2 p0, const vec2 p1, float d)
 {
   //if (abs (d) < 1e-5) d = -1e-5; // Cheat.  Do we actually need this?
-  return mix (p0, p1, .5) - /*<*/glyphy_perpendicular/*>*/ (p1 - p0) / (2 * tan2atan (d));
+  return mix (p0, p1, .5) + /*<*/glyphy_perpendicular/*>*/ (p1 - p0) / (2 * tan2atan (d));
 }
 
 float /*<*/glyphy_arc_extended_dist/*>*/ (const vec2 p, const vec2 p0, const vec2 p1, float d)
@@ -41,9 +41,9 @@ float /*<*/glyphy_arc_extended_dist/*>*/ (const vec2 p, const vec2 p0, const vec
   vec2 m = mix (p0, p1, .5);
   float d2 = tan2atan (d);
   if (dot (p - m, p1 - m) < 0)
-    return dot (p - p0, normalize ((p1 - p0) * +mat2(-d2, -1, +1, -d2)));
+    return dot (p - p0, normalize ((p1 - p0) * +mat2(d2, -1, +1, d2)));
   else
-    return dot (p - p1, normalize ((p1 - p0) * -mat2(-d2, +1, -1, -d2)));
+    return dot (p - p1, normalize ((p1 - p0) * -mat2(d2, +1, -1, d2)));
 }
 
 ivec3 /*<*/glyphy_arclist_decode/*>*/ (const vec4 v)
