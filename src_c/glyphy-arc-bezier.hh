@@ -132,7 +132,7 @@ class BezierBezierErrorApproximatorSimpleMagnitudeDecomposed
 
 
 template <class BezierBezierErrorApproximator>
-class BezierArcErrorApproximatorViaBezier
+class ArcBezierErrorApproximatorViaBezier
 {
   public:
   static double approximate_bezier_arc_error (const Bezier &b0, const Arc &a)
@@ -144,7 +144,7 @@ class BezierArcErrorApproximatorViaBezier
   }
 };
 
-class BezierArcErrorApproximatorSampling
+class ArcBezierErrorApproximatorSampling
 {
   public:
   static double approximate_bezier_arc_error (const Bezier &b, const Arc &a,
@@ -162,7 +162,7 @@ class BezierArcErrorApproximatorSampling
 };
 
 template <class MaxDeviationApproximator>
-class BezierArcErrorApproximatorBehdad
+class ArcBezierErrorApproximatorBehdad
 {
   public:
   static double approximate_bezier_arc_error (const Bezier &b0, const Arc &a)
@@ -217,8 +217,8 @@ class BezierArcErrorApproximatorBehdad
 
 
 
-template <class BezierArcErrorApproximator>
-class BezierArcApproximatorMidpointSimple
+template <class ArcBezierErrorApproximator>
+class ArcBezierApproximatorMidpointSimple
 {
   public:
   static const Arc approximate_bezier_with_arc (const Bezier &b, double *error)
@@ -228,14 +228,14 @@ class BezierArcApproximatorMidpointSimple
 
     Arc a (b.p0, b.p3, m, false);
 
-    *error = BezierArcErrorApproximator::approximate_bezier_arc_error (b, a);
+    *error = ArcBezierErrorApproximator::approximate_bezier_arc_error (b, a);
 
     return a;
   }
 };
 
-template <class BezierArcErrorApproximator>
-class BezierArcApproximatorMidpointTwoPart
+template <class ArcBezierErrorApproximator>
+class ArcBezierApproximatorMidpointTwoPart
 {
   public:
   static const Arc approximate_bezier_with_arc (const Bezier &b, double *error)
@@ -246,8 +246,8 @@ class BezierArcApproximatorMidpointTwoPart
     Arc a0 (b.p0, m, b.p3, true);
     Arc a1 (m, b.p3, b.p0, true);
 
-    double e0 = BezierArcErrorApproximator::approximate_bezier_arc_error (pair.first, a0);
-    double e1 = BezierArcErrorApproximator::approximate_bezier_arc_error (pair.second, a1);
+    double e0 = ArcBezierErrorApproximator::approximate_bezier_arc_error (pair.first, a0);
+    double e1 = ArcBezierErrorApproximator::approximate_bezier_arc_error (pair.second, a1);
     *error = std::max (e0, e1);
 
     return Arc (b.p0, b.p3, m, false);
@@ -255,8 +255,8 @@ class BezierArcApproximatorMidpointTwoPart
 };
 
 typedef MaxDeviationApproximatorExact MaxDeviationApproximatorDefault;
-typedef BezierArcErrorApproximatorBehdad<MaxDeviationApproximatorDefault> BezierArcErrorApproximatorDefault;
-typedef BezierArcApproximatorMidpointTwoPart<BezierArcErrorApproximatorDefault> BezierArcApproximatorDefault;
+typedef ArcBezierErrorApproximatorBehdad<MaxDeviationApproximatorDefault> ArcBezierErrorApproximatorDefault;
+typedef ArcBezierApproximatorMidpointTwoPart<ArcBezierErrorApproximatorDefault> ArcBezierApproximatorDefault;
 
 } /* namespace ArcBezier */
 } /* namespace GLyphy */

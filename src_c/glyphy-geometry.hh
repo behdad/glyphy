@@ -55,7 +55,7 @@ struct Point {
   inline Point (double x_, double y_) : x (x_), y (y_) {};
   inline explicit Point (const Vector &v);
   inline Point (const glyphy_point_t &p) : x (p.x), y (p.y) {};
-  inline operator glyphy_point_t (void) { glyphy_point_t p = {x, y}; return p; }
+  inline operator glyphy_point_t (void) const { glyphy_point_t p = {x, y}; return p; }
 
   inline bool operator == (const Point &p) const;
   inline bool operator != (const Point &p) const;
@@ -201,7 +201,7 @@ struct Arc {
 	      p1 (c.c + Vector (cos(a1),sin(a1)) * c.r),
 	      d (tan ((a1 - a0) / 4 - (complement ? 0 : M_PI_2))) {}
   inline Arc (const glyphy_arc_t &a) : p0 (a.p0), p1 (a.p1), d (a.d) {};
-  inline operator glyphy_arc_t (void) { glyphy_arc_t a = {p0, p1, d}; return a; }
+  inline operator glyphy_arc_t (void) const { glyphy_arc_t a = {p0, p1, d}; return a; }
 
   inline bool operator == (const Arc &a) const;
   inline bool operator != (const Arc &a) const;

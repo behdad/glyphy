@@ -23,8 +23,10 @@
 #include <glyphy.h>
 
 #include "glyphy-geometry.hh"
+#include "glyphy-arc-bezier.hh"
 
 using namespace GLyphy::Geometry;
+using namespace GLyphy::ArcBezier;
 
 
 
@@ -79,46 +81,46 @@ glyphy_arc_is_a_line (glyphy_arc_t arc)
 
 
 void
-glyph_arc_from_line (glyphy_point_t  p0,
-		     glyphy_point_t  p1,
-		     glyphy_arc_t   *arc)
+glyphy_arc_from_line (glyphy_point_t  p0,
+		      glyphy_point_t  p1,
+		      glyphy_arc_t   *arc)
 {
   *arc = Arc (p0, p1, 0);
 }
 
 void
-glyph_arc_from_conic (glyphy_point_t  p0,
-		      glyphy_point_t  p1,
-		      glyphy_point_t  p2,
-		      glyphy_arc_t   *arc,
-		      double         *error)
+glyphy_arc_from_conic (glyphy_point_t  p0,
+		       glyphy_point_t  p1,
+		       glyphy_point_t  p2,
+		       glyphy_arc_t   *arc,
+		       double         *error)
 {
-  /* Port this to go through the bezier code */
-  Point m = (Point (p0).midpoint (p1)).midpoint (Point (p1).midpoint (p2));
-  *arc = Arc (p0, p2, m, false);
-  *error = 0; /*XXXXXXXXXXXX */
+  glyphy_arc_from_cubic (p0,
+			Point (p0).lerp (2/3., p1),
+			Point (p2).lerp (2/3., p1),
+			p2,
+			arc,
+			error);
 }
 
 void
-glyph_arc_from_cubic (glyphy_point_t  p0,
-		      glyphy_point_t  p1,
-		      glyphy_point_t  p2,
-		      glyphy_point_t  p3,
-		      glyphy_arc_t   *arc,
-		      double         *error)
+glyphy_arc_from_cubic (glyphy_point_t  p0,
+		       glyphy_point_t  p1,
+		       glyphy_point_t  p2,
+		       glyphy_point_t  p3,
+		       glyphy_arc_t   *arc,
+		       double         *error)
 {
-  Bezier b (p0, p1, p2, p3);
-  *arc = Arc (p0, p3, b.point (.5), false);
-  *error = 0; /* XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX */
+  *arc = ArcBezierApproximatorDefault::approximate_bezier_with_arc (Bezier (p0, p1, p2, p3), error);
 }
 
 void
-glyph_arc_to_cubic (glyphy_arc_t    arc,
-		    glyphy_point_t *p0,
-		    glyphy_point_t *p1,
-		    glyphy_point_t *p2,
-		    glyphy_point_t *p3,
-		    double         *error)
+glyphy_arc_to_cubic (glyphy_arc_t    arc,
+		     glyphy_point_t *p0,
+		     glyphy_point_t *p1,
+		     glyphy_point_t *p2,
+		     glyphy_point_t *p3,
+		     double         *error)
 {
   Bezier b = Arc (arc).approximate_bezier (error);
   *p0 = arc.p0;

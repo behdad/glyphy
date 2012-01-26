@@ -33,7 +33,7 @@ using namespace std;
 
 namespace GLyphy {
 
-using namespace BezierArcApproximation;
+using namespace ArcBezierApproximation;
 
 
 typedef Vector vector_t;

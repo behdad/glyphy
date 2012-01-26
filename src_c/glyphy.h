@@ -73,32 +73,32 @@ glyphy_arc_is_a_line (glyphy_arc_t arc);
 
 
 void
-glyph_arc_from_line (glyphy_point_t  p0,
-		     glyphy_point_t  p1,
-		     glyphy_arc_t   *arc);
-
-void
-glyph_arc_from_conic (glyphy_point_t  p0,
+glyphy_arc_from_line (glyphy_point_t  p0,
 		      glyphy_point_t  p1,
-		      glyphy_point_t  p2,
-		      glyphy_arc_t   *arc,
-		      double         *error);
+		      glyphy_arc_t   *arc);
 
 void
-glyph_arc_from_cubic (glyphy_point_t  p0,
-		      glyphy_point_t  p1,
-		      glyphy_point_t  p2,
-		      glyphy_point_t  p3,
-		      glyphy_arc_t   *arc,
-		      double         *error);
+glyphy_arc_from_conic (glyphy_point_t  p0,
+		       glyphy_point_t  p1,
+		       glyphy_point_t  p2,
+		       glyphy_arc_t   *arc,
+		       double         *error);
 
 void
-glyph_arc_to_cubic (glyphy_arc_t    arc,
-		    glyphy_point_t *p0,
-		    glyphy_point_t *p1,
-		    glyphy_point_t *p2,
-		    glyphy_point_t *p3,
-		    double         *error);
+glyphy_arc_from_cubic (glyphy_point_t  p0,
+		       glyphy_point_t  p1,
+		       glyphy_point_t  p2,
+		       glyphy_point_t  p3,
+		       glyphy_arc_t   *arc,
+		       double         *error);
+
+void
+glyphy_arc_to_cubic (glyphy_arc_t    arc,
+		     glyphy_point_t *p0,
+		     glyphy_point_t *p1,
+		     glyphy_point_t *p2,
+		     glyphy_point_t *p3,
+		     double         *error);
 
 
 /*

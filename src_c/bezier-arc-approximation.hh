@@ -16,8 +16,8 @@
  * Google Author(s): Behdad Esfahbod, Maysum Panju
  */
 
-#include <glyphy-geometry.hh>
-#include <glyphy-arc-bezier.hh>
+#include "glyphy-geometry.hh"
+#include "glyphy-arc-bezier.hh"
 
 #include <assert.h>
 
@@ -28,13 +28,13 @@
 #define BEZIER_ARC_APPROXIMATION_HH
 
 namespace GLyphy {
-namespace BezierArcApproximation {
+namespace ArcBezierApproximation {
 
 using namespace Geometry;
 using namespace ArcBezier;
 
-template <class BezierArcApproximator>
-class BezierArcsApproximatorSpringSystem
+template <class ArcBezierApproximator>
+class ArcsBezierApproximatorSpringSystem
 {
   static inline void calc_arcs (const Bezier &b,
 				const std::vector<double> &t,
@@ -50,7 +50,7 @@ class BezierArcsApproximatorSpringSystem
     for (unsigned int i = 0; i < n; i++)
     {
       Bezier segment = b.segment (t[i], t[i + 1]);
-      arcs.push_back (BezierArcApproximator::approximate_bezier_with_arc (segment, &e[i]));
+      arcs.push_back (ArcBezierApproximator::approximate_bezier_with_arc (segment, &e[i]));
 
       max_e = std::max (max_e, e[i]);
       min_e = std::min (min_e, e[i]);
@@ -132,7 +132,7 @@ class BezierArcsApproximatorSpringSystem
   }
 };
 
-template <class BezierArcsApproximator>
+template <class ArcsBezierApproximator>
 class ArcApproximatorOutlineSink
 {
   public:
@@ -166,8 +166,8 @@ class ArcApproximatorOutlineSink
   bool
   conic_to (const Point &p1, const Point &p2)
   {
-    return cubic_to (p0 + 2/3. * (p1 - p0),
-		     p2 + 2/3. * (p1 - p2),
+    return cubic_to (p0.lerp (2/3., p1),
+		     p2.lerp (2/3., p1),
 		     p2);
   }
 
@@ -189,7 +189,7 @@ class ArcApproximatorOutlineSink
   bezier (const Bezier &b)
   {
     double e;
-    std::vector<Arc > &arcs = BezierArcsApproximator
+    std::vector<Arc > &arcs = ArcsBezierApproximator
       ::approximate_bezier_with_arcs (b, tolerance, &e);
     error = std::max (error, e);
 
@@ -203,8 +203,8 @@ class ArcApproximatorOutlineSink
   }
 };
 
-typedef BezierArcsApproximatorSpringSystem<BezierArcApproximatorDefault> BezierArcsApproximatorDefault;
-typedef ArcApproximatorOutlineSink<BezierArcsApproximatorDefault> ArcApproximatorOutlineSinkDefault;
+typedef ArcsBezierApproximatorSpringSystem<ArcBezierApproximatorDefault> ArcsBezierApproximatorDefault;
+typedef ArcApproximatorOutlineSink<ArcsBezierApproximatorDefault> ArcApproximatorOutlineSinkDefault;
 
 class ArcAccumulator
 {
@@ -219,7 +219,7 @@ class ArcAccumulator
   std::vector<Arc> &arcs;
 };
 
-} /* namespace BezierArcApproxmation */
+} /* namespace ArcBezierApproxmation */
 } /* namespace GLyphy */
 
 #endif /* BEZIER_ARC_APPROXIMATION_HH */

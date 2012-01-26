@@ -47,7 +47,7 @@
 
 
 using namespace GLyphy::Geometry;
-using namespace GLyphy::BezierArcApproximation;
+using namespace GLyphy::ArcBezierApproximation;
 
 
 typedef Arc arc_t;
