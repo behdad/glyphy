@@ -281,11 +281,11 @@ ft_outline_to_arcs (FT_Outline *outline,
 		    double &error)
 {
   ArcAccumulator acc(arcs);
-  TArcApproximatorOutlineSink outline_arc_approximator (acc.callback,
-						       static_cast<void *> (&acc),
-						       tolerance);
-  FreeTypeOutlineSource<TArcApproximatorOutlineSink>::decompose_outline (outline,
-									 outline_arc_approximator);
+  ArcApproximatorOutlineSinkDefault outline_arc_approximator (acc.callback,
+							      static_cast<void *> (&acc),
+							      tolerance);
+  FreeTypeOutlineSource<ArcApproximatorOutlineSinkDefault>::decompose_outline (outline,
+									       outline_arc_approximator);
   error = outline_arc_approximator.error;
 }
 

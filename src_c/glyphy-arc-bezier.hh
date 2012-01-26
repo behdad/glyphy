@@ -240,6 +240,10 @@ class BezierArcApproximatorMidpointTwoPart
   }
 };
 
+typedef MaxDeviationApproximatorExact MaxDeviationApproximatorDefault;
+typedef BezierArcErrorApproximatorBehdad<MaxDeviationApproximatorDefault> BezierArcErrorApproximatorDefault;
+typedef BezierArcApproximatorMidpointTwoPart<BezierArcErrorApproximatorDefault> BezierArcApproximatorDefault;
+
 } /* namespace ArcBezier */
 } /* namespace GLyphy */
 

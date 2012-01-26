@@ -203,14 +203,8 @@ class ArcApproximatorOutlineSink
   }
 };
 
-typedef MaxDeviationApproximatorExact MaxDev;
-typedef BezierArcErrorApproximatorBehdad<MaxDev> BezierArcError;
-typedef BezierArcApproximatorMidpointTwoPart<BezierArcError>
-    BezierArcApproximator;
-typedef BezierArcsApproximatorSpringSystem<BezierArcApproximator>
-    SpringSystem;
-typedef ArcApproximatorOutlineSink<SpringSystem>
-    TArcApproximatorOutlineSink;
+typedef BezierArcsApproximatorSpringSystem<BezierArcApproximatorDefault> BezierArcsApproximatorDefault;
+typedef ArcApproximatorOutlineSink<BezierArcsApproximatorDefault> ArcApproximatorOutlineSinkDefault;
 
 class ArcAccumulator
 {
