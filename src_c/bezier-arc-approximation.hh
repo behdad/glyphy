@@ -193,7 +193,7 @@ class BezierArcErrorApproximatorBehdad
 	(-tan_half_alpha <= tan_v && tan_v <= tan_half_alpha))
       return ea + v.len ();
 
-    Scalar c2 = (b1.p3 - b1.p0).len () / 2;
+    double c2 = (b1.p3 - b1.p0).len () / 2;
     double r = c2 * (a.d * a.d + 1) / (2 * fabs (a.d));
 
     eb = Vector (c2/tan_half_alpha + v.dy, c2 + v.dx).len () - r;
