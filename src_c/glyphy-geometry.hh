@@ -37,6 +37,10 @@ struct Circle;
 struct Arc;
 struct Bezier;
 
+/* returns tan (2 * atan (d)) */
+inline double tan2atan (double d) { return 2 * d / (1 - d*d); }
+/* returns sin (2 * atan (d)) */
+inline double sin2atan (double d) { return 2 * d / (1 + d*d); }
 
 template <typename Type>
 struct Pair {
@@ -685,12 +689,12 @@ inline const SignedVector operator- (const Point &p, const Arc &a) {
 
 inline double Arc::radius (void) const
 {
-  return fabs ((p1 - p0).len () * (1 + d*d) / (4 * d));
+  return fabs ((p1 - p0).len () / (2 * sin2atan (d)));
 }
 
 inline Point Arc::center (void) const
 {
-  return (p0.midpoint (p1)) + (p1 - p0).perpendicular () * ((1 - d*d) / (4 * d));
+  return (p0.midpoint (p1)) + (p1 - p0).perpendicular () / (2 * tan2atan (d));
 }
 
 inline Circle Arc::circle (void) const

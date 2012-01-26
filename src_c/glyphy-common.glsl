@@ -18,7 +18,7 @@
 
 vec2 /*<*/glyphy_perpendicular/*>*/ (const vec2 v) { return vec2 (-v.y, v.x); }
 int floatToByte (const float v) { return int (v * (256 - 1e-5)); }
-// returns tan (2 * atan (d));
+/* returns tan (2 * atan (d)) */
 float tan2atan (float d) { return 2 * d / (1 - d*d); }
 
 vec3 /*<*/glyphy_arc_decode/*>*/ (const vec4 v)
