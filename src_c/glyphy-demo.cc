@@ -18,7 +18,7 @@
 
 #include <glyphy.h>
 
-#include "geometry.hh"
+#include "glyphy-geometry.hh"
 #include "bezier-arc-approximation.hh"
 
 #include <assert.h>

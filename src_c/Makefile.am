@@ -17,6 +17,7 @@ libglyphy_la_LDFLAGS = \
 libglyphy_la_SOURCES = \
 	bezier-arc-approximation.hh \
 	glyphy.cc \
+	glyphy-geometry.hh \
 	$(GLYPHY_PUBLICHEADERS) \
 	$(GLYPHY_SHADERHEADERS) \
 	$(NULL)
