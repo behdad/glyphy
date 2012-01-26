@@ -34,14 +34,15 @@ using namespace GLyphy::Geometry;
 
 
 /* Build from a conventional arc representation */
-glyphy_arc_t
-glyphy_arc_from_conventional (glyphy_point_t center,
-			      double         radius,
-			      double         angle0,
-			      double         angle1,
-			      glyphy_bool_t  negative)
+void
+glyphy_arc_from_conventional (glyphy_point_t  center,
+			      double          radius,
+			      double          angle0,
+			      double          angle1,
+			      glyphy_bool_t   negative,
+			      glyphy_arc_t   *arc)
 {
-  return Arc (Circle (center, radius), angle0, angle1, negative);
+  *arc = Arc (Circle (center, radius), angle0, angle1, negative);
 };
 
 /* Convert to a conventional arc representation */
@@ -80,14 +81,21 @@ glyphy_arc_is_a_line (glyphy_arc_t arc)
 void
 glyph_arc_from_line (glyphy_point_t  p0,
 		     glyphy_point_t  p1,
-		     glyphy_arc_t   *arc);
+		     glyphy_arc_t   *arc)
+{
+  *arc = Arc (p0, p1, 0);
+}
 
 void
 glyph_arc_from_conic (glyphy_point_t  p0,
 		      glyphy_point_t  p1,
 		      glyphy_point_t  p2,
 		      glyphy_arc_t   *arc,
-		      double         *error);
+		      double         *error)
+{
+  Point m = (Point (p0).midpoint (p1)).midpoint (Point (p1).midpoint (p2));
+  *arc = Arc (p0, p2, m, false);
+}
 
 void
 glyph_arc_from_cubic (glyphy_point_t  p0,
@@ -95,14 +103,12 @@ glyph_arc_from_cubic (glyphy_point_t  p0,
 		      glyphy_point_t  p2,
 		      glyphy_point_t  p3,
 		      glyphy_arc_t   *arc,
-		      double         *error);
-
-void
-glyph_arc_to_conic (glyphy_arc_t    arc,
-		    glyphy_point_t *p0,
-		    glyphy_point_t *p1,
-		    glyphy_point_t *p2,
-		    double         *error);
+		      double         *error)
+{
+  Bezier b (p0, p1, p2, p3);
+  *arc = Arc (p0, p3, b.point (.5), false);
+  *error = 0; /* XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX */
+}
 
 void
 glyph_arc_to_cubic (glyphy_arc_t    arc,
@@ -110,4 +116,11 @@ glyph_arc_to_cubic (glyphy_arc_t    arc,
 		    glyphy_point_t *p1,
 		    glyphy_point_t *p2,
 		    glyphy_point_t *p3,
-		    double         *error);
+		    double         *error)
+{
+  Bezier b = Arc (arc).approximate_bezier (error);
+  *p0 = arc.p0;
+  *p1 = b.p1;
+  *p2 = b.p2;
+  *p3 = arc.p1;
+}

@@ -45,12 +45,13 @@ typedef struct {
 
 
 /* Build from a conventional arc representation */
-glyphy_arc_t
-glyphy_arc_from_conventional (glyphy_point_t center,
-			      double         radius,
-			      double         angle0,
-			      double         angle1,
-			      glyphy_bool_t  negative);
+void
+glyphy_arc_from_conventional (glyphy_point_t  center,
+			      double          radius,
+			      double          angle0,
+			      double          angle1,
+			      glyphy_bool_t   negative,
+			      glyphy_arc_t   *arc);
 
 /* Convert to a conventional arc representation */
 void
@@ -90,13 +91,6 @@ glyph_arc_from_cubic (glyphy_point_t  p0,
 		      glyphy_point_t  p3,
 		      glyphy_arc_t   *arc,
 		      double         *error);
-
-void
-glyph_arc_to_conic (glyphy_arc_t    arc,
-		    glyphy_point_t *p0,
-		    glyphy_point_t *p1,
-		    glyphy_point_t *p2,
-		    double         *error);
 
 void
 glyph_arc_to_cubic (glyphy_arc_t    arc,
