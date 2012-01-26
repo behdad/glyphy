@@ -30,6 +30,15 @@ namespace ArcBezier {
 
 using namespace Geometry;
 
+/*
+ * Note:
+ *
+ * Some of the classes here are alternative implementations of the same
+ * functionality and not used in the library.  Used for algorithm
+ * comparisons.
+ */
+
+
 
 class MaxDeviationApproximatorFast
 {
@@ -113,10 +122,10 @@ class BezierBezierErrorApproximatorSimpleMagnitudeDecomposed
     assert (b0.p0 == b1.p0);
     assert (b0.p3 == b1.p3);
 
-    return Vector (MaxDeviationApproximator::approximate_deviation
-			  (b1.p1.x - b0.p1.x, b1.p2.x - b0.p2.x),
-			  MaxDeviationApproximator::approximate_deviation
-			  (b1.p1.y - b0.p1.y, b1.p2.y - b0.p2.y)).len ();
+    return hypot (MaxDeviationApproximator::approximate_deviation
+		  (b1.p1.x - b0.p1.x, b1.p2.x - b0.p2.x),
+		  MaxDeviationApproximator::approximate_deviation
+		  (b1.p1.y - b0.p1.y, b1.p2.y - b0.p2.y));
   }
 };
 
@@ -141,10 +150,13 @@ class BezierArcErrorApproximatorSampling
   static double approximate_bezier_arc_error (const Bezier &b, const Arc &a,
 					      double step = .001)
   {
+    assert (b.p0 == a.p0);
+    assert (b.p3 == a.p1);
+
     Circle c = a.circle ();
     double e = 0;
-    for (double t = 0; t <= 1; t += step)
-      e = std::max (e, fabs ((c.c - b.point (t)).len () - c.r));
+    for (double t = step; t < 1; t += step)
+      e = std::max (e, a.distance_to_point (b.point (t)));
     return e;
   }
 };
@@ -155,7 +167,6 @@ class BezierArcErrorApproximatorBehdad
   public:
   static double approximate_bezier_arc_error (const Bezier &b0, const Arc &a)
   {
- //   printf("A. b0.p0=(%g,%g), a.p0=(%g,%g), b0.p3=(%g,%g), a.p1=(%g,%g).\n", b0.p0.x, b0.p0.y, a.p0.x, a.p0.y, b0.p3.x, b0.p3.y, a.p1.x, a.p1.y);
     assert (b0.p0 == a.p0);
     assert (b0.p3 == a.p1);
 
@@ -173,21 +184,24 @@ class BezierArcErrorApproximatorBehdad
     v1 = v1.rebase (b);
 
     Vector v (MaxDeviationApproximator::approximate_deviation (v0.dx, v1.dx),
-		     MaxDeviationApproximator::approximate_deviation (v0.dy, v1.dy));
+	      MaxDeviationApproximator::approximate_deviation (v0.dy, v1.dy));
 
-    // Edge cases: If d is too close to being 1 default to a weak bound.
+    /* Edge cases: If d*d is too close to being 1 default to a weak bound. */
     if (fabs(a.d * a.d - 1) < 1e-4)
       return ea + v.len ();
 
-    double tan_half_alpha = 2 * fabs (a.d) / (1 - a.d*a.d); /********** We made sure that a.d != 1  *************/
+    /* We made sure that fabs(a.d) != 1 */
+    double tan_half_alpha = 2 * fabs (a.d) / (1 - a.d*a.d);
     double tan_v;
 
-    if (fabs(v.dy) < 1e-6) { /************* If v.dy == 0, perturb just a bit. *********/
-       /* TODO figure this one out. */
+    /* If v.dy == 0, perturb just a bit. */
+    if (fabs(v.dy) < 1e-6) {
+       /* TODO Figure this one out. */
        v.dy = 1e-6;
     }
     tan_v = v.dx / v.dy;
     double eb;
+    /* TODO Double check and simplify these checks */
     if (fabs (a.d) < 1e-6 || tan_half_alpha < 0 ||
 	(-tan_half_alpha <= tan_v && tan_v <= tan_half_alpha))
       return ea + v.len ();
@@ -195,7 +209,7 @@ class BezierArcErrorApproximatorBehdad
     double c2 = (b1.p3 - b1.p0).len () / 2;
     double r = c2 * (a.d * a.d + 1) / (2 * fabs (a.d));
 
-    eb = Vector (c2/tan_half_alpha + v.dy, c2 + v.dx).len () - r;
+    eb = Vector (c2 / tan_half_alpha + v.dy, c2 + v.dx).len () - r;
 
     return ea + eb;
   }
