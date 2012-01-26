@@ -18,6 +18,7 @@ libglyphy_la_SOURCES = \
 	bezier-arc-approximation.hh \
 	glyphy.cc \
 	glyphy-arc.cc \
+	glyphy-arc-bezier.hh \
 	glyphy-geometry.hh \
 	$(GLYPHY_PUBLICHEADERS) \
 	$(GLYPHY_SHADERHEADERS) \

@@ -93,8 +93,10 @@ glyph_arc_from_conic (glyphy_point_t  p0,
 		      glyphy_arc_t   *arc,
 		      double         *error)
 {
+  /* Port this to go through the bezier code */
   Point m = (Point (p0).midpoint (p1)).midpoint (Point (p1).midpoint (p2));
   *arc = Arc (p0, p2, m, false);
+  *error = 0; /*XXXXXXXXXXXX */
 }
 
 void

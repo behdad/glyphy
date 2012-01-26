@@ -17,230 +17,21 @@
  */
 
 #include <glyphy-geometry.hh>
-
-#include <vector>
+#include <glyphy-arc-bezier.hh>
 
 #include <assert.h>
+
+#include <algorithm>
+#include <vector>
 
 #ifndef BEZIER_ARC_APPROXIMATION_HH
 #define BEZIER_ARC_APPROXIMATION_HH
 
 namespace GLyphy {
-
 namespace BezierArcApproximation {
 
 using namespace Geometry;
-
-
-class MaxDeviationApproximatorFast
-{
-  public:
-  /* Returns upper bound for max(abs(d₀ t (1-t)² + d₁ t² (1-t)) for 0≤t≤1. */
-  static double approximate_deviation (double d0, double d1)
-  {
-    d0 = fabs (d0);
-    d1 = fabs (d1);
-    double e0 = 3./4. * std::max (d0, d1);
-    double e1 = 4./9. * (d0 + d1);
-    return std::min (e0, e1);
-  }
-};
-
-class MaxDeviationApproximatorExact
-{
-  public:
-  /* Returns max(abs(d₀ t (1-t)² + d₁ t² (1-t)) for 0≤t≤1. */
-  static double approximate_deviation (double d0, double d1)
-  {
-    double candidates[4] = {0,1};
-    unsigned int num_candidates = 2;
-    if (d0 == d1)
-      candidates[num_candidates++] = .5;
-    else {
-      double delta = d0*d0 - d0*d1 + d1*d1;
-      double t2 = 1. / (3 * (d0 - d1));
-      double t0 = (2 * d0 - d1) * t2;
-      if (delta == 0)
-	candidates[num_candidates++] = t0;
-      else if (delta > 0) {
-	/* This code can be optimized to avoid the sqrt if the solution
-	 * is not feasible (ie. lies outside (0,1)).  I have implemented
-	 * that in cairo-spline.c:_cairo_spline_bound().  Can be reused
-	 * here.
-	 */
-	double t1 = sqrt (delta) * t2;
-	candidates[num_candidates++] = t0 - t1;
-	candidates[num_candidates++] = t0 + t1;
-      }
-    }
-
-    double e = 0;
-    for (unsigned int i = 0; i < num_candidates; i++) {
-      double t = candidates[i];
-      double ee;
-      if (t < 0. || t > 1.)
-	continue;
-      ee = fabs (3 * t * (1-t) * (d0 * (1 - t) + d1 * t));
-      e = std::max (e, ee);
-    }
-
-    return e;
-  }
-};
-
-
-
-
-template <class MaxDeviationApproximator>
-class BezierBezierErrorApproximatorSimpleMagnitude
-{
-  public:
-  static double approximate_bezier_bezier_error (const Bezier &b0, const Bezier &b1)
-  {
-    assert (b0.p0 == b1.p0);
-    assert (b0.p3 == b1.p3);
-
-    return MaxDeviationApproximator::approximate_deviation ((b1.p1 - b0.p1).len (),
-							    (b1.p2 - b0.p2).len ());
-  }
-};
-
-template <class MaxDeviationApproximator>
-class BezierBezierErrorApproximatorSimpleMagnitudeDecomposed
-{
-  public:
-  static double approximate_bezier_bezier_error (const Bezier &b0, const Bezier &b1)
-  {
-    assert (b0.p0 == b1.p0);
-    assert (b0.p3 == b1.p3);
-
-    return Vector (MaxDeviationApproximator::approximate_deviation
-			  (b1.p1.x - b0.p1.x, b1.p2.x - b0.p2.x),
-			  MaxDeviationApproximator::approximate_deviation
-			  (b1.p1.y - b0.p1.y, b1.p2.y - b0.p2.y)).len ();
-  }
-};
-
-
-
-template <class BezierBezierErrorApproximator>
-class BezierArcErrorApproximatorViaBezier
-{
-  public:
-  static double approximate_bezier_arc_error (const Bezier &b0, const Arc &a)
-  {
-    double ea;
-    Bezier b1 = a.approximate_bezier (&ea);
-    double eb = BezierBezierErrorApproximator::approximate_bezier_bezier_error (b0, b1);
-    return ea + eb;
-  }
-};
-
-class BezierArcErrorApproximatorSampling
-{
-  public:
-  static double approximate_bezier_arc_error (const Bezier &b, const Arc &a,
-					      double step = .001)
-  {
-    Circle c = a.circle ();
-    double e = 0;
-    for (double t = 0; t <= 1; t += step)
-      e = std::max (e, fabs ((c.c - b.point (t)).len () - c.r));
-    return e;
-  }
-};
-
-template <class MaxDeviationApproximator>
-class BezierArcErrorApproximatorBehdad
-{
-  public:
-  static double approximate_bezier_arc_error (const Bezier &b0, const Arc &a)
-  {
- //   printf("A. b0.p0=(%g,%g), a.p0=(%g,%g), b0.p3=(%g,%g), a.p1=(%g,%g).\n", b0.p0.x, b0.p0.y, a.p0.x, a.p0.y, b0.p3.x, b0.p3.y, a.p1.x, a.p1.y);
-    assert (b0.p0 == a.p0);
-    assert (b0.p3 == a.p1);
-
-    double ea;
-    Bezier b1 = a.approximate_bezier (&ea);
-
-    assert (b0.p0 == b1.p0);
-    assert (b0.p3 == b1.p3);
-
-    Vector v0 = b1.p1 - b0.p1;
-    Vector v1 = b1.p2 - b0.p2;
-
-    Vector b = (b0.p3 - b0.p0).normalized ();
-    v0 = v0.rebase (b);
-    v1 = v1.rebase (b);
-
-    Vector v (MaxDeviationApproximator::approximate_deviation (v0.dx, v1.dx),
-		     MaxDeviationApproximator::approximate_deviation (v0.dy, v1.dy));
-
-    // Edge cases: If d is too close to being 1 default to a weak bound.
-    if (fabs(a.d * a.d - 1) < 1e-4)
-      return ea + v.len ();
-
-    double tan_half_alpha = 2 * fabs (a.d) / (1 - a.d*a.d); /********** We made sure that a.d != 1  *************/
-    double tan_v;
-
-    if (fabs(v.dy) < 1e-6) { /************* If v.dy == 0, perturb just a bit. *********/
-       /* TODO figure this one out. */
-       v.dy = 1e-6;
-    }
-    tan_v = v.dx / v.dy;
-    double eb;
-    if (fabs (a.d) < 1e-6 || tan_half_alpha < 0 ||
-	(-tan_half_alpha <= tan_v && tan_v <= tan_half_alpha))
-      return ea + v.len ();
-
-    double c2 = (b1.p3 - b1.p0).len () / 2;
-    double r = c2 * (a.d * a.d + 1) / (2 * fabs (a.d));
-
-    eb = Vector (c2/tan_half_alpha + v.dy, c2 + v.dx).len () - r;
-
-    return ea + eb;
-  }
-};
-
-
-
-template <class BezierArcErrorApproximator>
-class BezierArcApproximatorMidpointSimple
-{
-  public:
-  static const Arc approximate_bezier_with_arc (const Bezier &b, double *error)
-  {
-    Pair<Bezier > pair = b.halve ();
-    Point m = pair.second.p0;
-
-    Arc a (b.p0, b.p3, m, false);
-
-    *error = BezierArcErrorApproximator::approximate_bezier_arc_error (b, a);
-
-    return a;
-  }
-};
-
-template <class BezierArcErrorApproximator>
-class BezierArcApproximatorMidpointTwoPart
-{
-  public:
-  static const Arc approximate_bezier_with_arc (const Bezier &b, double *error)
-  {
-    Pair<Bezier > pair = b.halve ();
-    Point m = pair.second.p0;
-
-    Arc a0 (b.p0, m, b.p3, true);
-    Arc a1 (m, b.p3, b.p0, true);
-
-    double e0 = BezierArcErrorApproximator::approximate_bezier_arc_error (pair.first, a0);
-    double e1 = BezierArcErrorApproximator::approximate_bezier_arc_error (pair.second, a1);
-    *error = std::max (e0, e1);
-
-    return Arc (b.p0, b.p3, m, false);
-  }
-};
-
+using namespace ArcBezier;
 
 template <class BezierArcApproximator>
 class BezierArcsApproximatorSpringSystem
@@ -435,6 +226,6 @@ class ArcAccumulator
 };
 
 } /* namespace BezierArcApproxmation */
-
 } /* namespace GLyphy */
-#endif
+
+#endif /* BEZIER_ARC_APPROXIMATION_HH */

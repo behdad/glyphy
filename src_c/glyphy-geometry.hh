@@ -20,8 +20,8 @@
 
 #include <math.h>
 
-#ifndef GEOMETRY_HH
-#define GEOMETRY_HH
+#ifndef GLYPHY_GEOMETRY_HH
+#define GLYPHY_GEOMETRY_HH
 
 namespace GLyphy {
 namespace Geometry {
@@ -931,4 +931,4 @@ inline const Bezier Bezier::segment (const double &t0, const double &t1) const
 } /* namespace Geometry */
 } /* namespace GLyphy */
 
-#endif
+#endif /* GLYPHY_GEOMETRY_HH */
