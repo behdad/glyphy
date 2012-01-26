@@ -8,12 +8,14 @@ AC_INIT([glyphy],
 AC_CONFIG_SRCDIR([include/glyphy/geometry.hh])
 AC_CONFIG_HEADERS([include/glyphy/config.h])
 
-AM_INIT_AUTOMAKE([1.11.1 dist-bzip2 no-dist-gzip -Wall])
+AM_INIT_AUTOMAKE([1.11.1 gnu dist-bzip2 no-dist-gzip -Wall])
 AM_SILENT_RULES([yes])
-AM_PROG_LIBTOOL
-LT_INIT
 
 AC_CANONICAL_HOST
+
+# Initialize libtool
+LT_PREREQ([2.2])
+LT_INIT([disable-static])
 
 # Check for programs
 AC_PROG_CC
@@ -77,11 +79,13 @@ AC_DEFINE_DIR([GLYPHY_SHADERDIR], [glyphy_datadir], [Directory containing shader
 
 AC_DEFINE_DIR([PKGDATADIR], [$pkgdatadir], [Define to the directory containing package data.])
 
-AC_CONFIG_FILES([ Makefile
-		  include/Makefile
-		  src/Makefile
-		  src_c/Makefile
-		  demo/Makefile
-		  glyphy-${PACKAGE_VERSION}.pc ])
+AC_CONFIG_FILES([
+Makefile
+include/Makefile
+src/Makefile
+src_c/Makefile
+demo/Makefile
+glyphy-${PACKAGE_VERSION}.pc
+])
 
 AC_OUTPUT
