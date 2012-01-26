@@ -16,6 +16,8 @@
  * Google Author(s): Behdad Esfahbod, Maysum Panju
  */
 
+#include <glyphy.h>
+
 #include <math.h>
 
 #ifndef GEOMETRY_HH
@@ -48,6 +50,8 @@ struct Pair {
 struct Point {
   inline Point (double x_, double y_) : x (x_), y (y_) {};
   inline explicit Point (const Vector &v);
+  inline Point (const glyphy_point_t &p) : x (p.x), y (p.y) {};
+  inline operator glyphy_point_t (void) { glyphy_point_t p = {x, y}; return p; }
 
   inline bool operator == (const Point &p) const;
   inline bool operator != (const Point &p) const;
@@ -188,10 +192,12 @@ struct Arc {
 		 tan ((complement ? 0 : M_PI_2) - ((p1_-pm).angle () - (p0_-pm).angle ()) / 2)) {}
   inline Arc (const Point &p0_, const Point &p1_, const double &d_) :
 	      p0 (p0_), p1 (p1_), d (d_) {}
-  inline Arc (const Circle &c, const double &a0, const double &a1) :
+  inline Arc (const Circle &c, const double &a0, const double &a1, bool complement) :
 	      p0 (c.c + Vector (cos(a0),sin(a0)) * c.r),
 	      p1 (c.c + Vector (cos(a1),sin(a1)) * c.r),
-	      d (tan ((a1 - a0) / 4)) {}
+	      d (tan ((complement ? 0 : M_PI_2) - (a1 - a0) / 4)) {}
+  inline Arc (const glyphy_arc_t &a) : p0 (a.p0), p1 (a.p1), d (a.d) {};
+  inline operator glyphy_arc_t (void) { glyphy_arc_t a = {p0, p1, d}; return a; }
 
   inline bool operator == (const Arc &a) const;
   inline bool operator != (const Arc &a) const;

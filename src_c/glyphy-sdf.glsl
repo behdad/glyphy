@@ -23,7 +23,7 @@ vec4 /*<*/glyphy_fragment_color/*>*/ (vec2 p, vec4 v_glyph)
 
   /* isotropic antialiasing */
   float m = length (vec2 (float (dFdx (p)),
-			  float (dFdy (p)))); 
+			  float (dFdy (p))));
   //float m = float (fwidth (p)); //for broken dFdx/dFdy
 
   int p_cell_x = int (clamp (p.x, 0., 1.-1e-5) * 16 /*GRID_W*/);

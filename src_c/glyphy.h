@@ -45,16 +45,15 @@ typedef struct {
 
 
 /* Build from a conventional arc representation */
-glyphy_bool_t
+glyphy_arc_t
 glyphy_arc_from_conventional (glyphy_point_t center,
 			      double         radius,
 			      double         angle0,
 			      double         angle1,
-			      glyphy_bool_t  negative,
-			      glyphy_arc_t  *arc);
+			      glyphy_bool_t  negative);
 
 /* Convert to a conventional arc representation */
-glyphy_bool_t
+void
 glyphy_arc_to_conventional (glyphy_arc_t    arc,
 			    glyphy_point_t *center /* may be NULL */,
 			    double         *radius /* may be NULL */,
