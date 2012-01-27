@@ -27,6 +27,11 @@ extern "C" {
 
 
 
+#define GLYPHY_PASTE_ARGS(prefix, name) prefix ## name
+#define GLYPHY_PASTE(prefix, name) GLYPHY_PASTE_ARGS (prefix, name)
+
+
+
 /*
  * Approximate outlines with multiple arcs
  */

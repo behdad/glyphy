@@ -21,10 +21,13 @@
 #endif
 
 #include <glyphy.h>
+#include <glyphy-freetype.h>
 
-#include "glyphy-demo-freetype.h"
 #include "glyphy-demo-glut.h"
 #include "glyphy-demo-shaders.h"
+
+#include <vector>
+
 
 
 #if 1
@@ -77,6 +80,14 @@ ft_outline_to_texture (const glyphy_arc_endpoint_t *endpoints,
   return true;
 }
 
+static glyphy_bool_t
+accumulate_endpoint (glyphy_arc_endpoint_t              *endpoint,
+		     std::vector<glyphy_arc_endpoint_t> *endpoints)
+{
+  endpoints->push_back (*endpoint);
+  return true;
+}
+
 void
 ft_face_to_texture (FT_Face face, FT_ULong unicode, void *buffer,
 		    unsigned int *output_len)
@@ -99,10 +110,16 @@ ft_face_to_texture (FT_Face face, FT_ULong unicode, void *buffer,
   double tolerance = face->units_per_EM * TOLERANCE; /* in font design units */
   double faraway = double (face->units_per_EM) / MIN_FONT_SIZE;
   std::vector<glyphy_arc_endpoint_t> endpoints;
-  double error;
 
-  if (!ft_outline_to_arcs (&face->glyph->outline, tolerance, endpoints, &error))
+  glyphy_arc_accumulator_t acc;
+  glyphy_arc_accumulator_init (&acc, tolerance,
+			       (glyphy_arc_endpoint_accumulator_callback_t) accumulate_endpoint,
+			       &endpoints);
+
+  if (FT_Err_Ok != glyphy_freetype_outline_decompose (&face->glyph->outline, acc))
     die ("Failed converting glyph outline to arcs");
+
+  double error = acc.max_error;
 
   printf ("Used %u arc endpoints; Approx. err %g; Tolerance %g; Percentage %g. %s\n",
 	  endpoints.size (), error, tolerance, round (100 * error / tolerance),
