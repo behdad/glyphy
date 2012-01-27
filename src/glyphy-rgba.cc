@@ -26,7 +26,6 @@
 #include "glyphy-rgba.hh"
 
 #include <string.h>
-#include <stdio.h>
 #include <math.h>
 #include <assert.h>
 
@@ -164,7 +163,6 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
   unsigned int offset = header_length;
   tex_data.resize (header_length);
   Point origin = Point (extents.min_x, extents.min_y);
-  unsigned int saved_bytes = 0;
   unsigned int total_arcs = 0;
 
   for (int row = 0; row < GRID_H; row++)
@@ -216,21 +214,13 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
       if (found) {
 	tex_data.resize (offset);
 	offset = haystack - &tex_data[0];
-	saved_bytes += needle_len * sizeof (*needle);
       }
 
       tex_data[row * GRID_W + col] = arclist_encode (offset, current_endpoints, inside_glyph);
       offset = tex_data.size ();
 
       total_arcs += current_endpoints;
-
-      printf ("%2ld%c ", near_endpoints.size (), found ? '.' : 'o');
-      if (col == GRID_W - 1)
-        printf ("\n");
     }
-
-  printf ("Grid size %dx%d; Used %'ld bytes, saved %'d bytes\n",
-	  GRID_W, GRID_H, tex_data.size () * sizeof (tex_data[0]), saved_bytes);
 
   if (avg_fetch_achieved)
     *avg_fetch_achieved = 1 + double (total_arcs) / (GRID_W * GRID_H);

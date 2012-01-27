@@ -148,8 +148,10 @@ create_texture (const char *font_path, unsigned int unicode)
 			        buffer, sizeof (buffer),
 			        &output_size);
 
+  printf ("Used %'u bytes\n", output_size);
+
   int tex_w = SUB_TEX_W;
-  int tex_h = (output_size * sizeof (glyphy_rgba_t) + tex_w - 1) / tex_w;
+  int tex_h = (output_size + sizeof (glyphy_rgba_t) * (tex_w - 1)) / sizeof (glyphy_rgba_t) / tex_w;
 
   GLuint texture;
   glGenTextures (1, &texture);
