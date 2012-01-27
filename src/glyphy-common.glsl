@@ -43,6 +43,12 @@ glyphy_float_to_byte (const float v)
   return int (v * (256 - GLYPHY_EPSILON));
 }
 
+ivec4
+glyphy_vec4_to_bytes (const vec4 v)
+{
+  return ivec4 (v * (256 - GLYPHY_EPSILON));
+}
+
 ivec2
 glyphy_float_to_two_nimbles (const float v)
 {
@@ -60,6 +66,10 @@ glyphy_tan2atan (float d)
 vec3
 glyphy_arc_decode (const vec4 v)
 {
+  /* Note that this never returns d == 0.  For straight lines,
+   * a d value of .0039215686 is returned.  In fact, the d has
+   * that bias for all values.
+   */
   vec2 p = (vec2 (glyphy_float_to_two_nimbles (v.a)) + v.gb) / 16;
   float d = v.r;
   if (d == 0)
@@ -83,9 +93,9 @@ glyphy_arc_extended_dist (const vec2 p, const vec2 p0, const vec2 p1, float d)
   vec2 m = mix (p0, p1, .5);
   float d2 = glyphy_tan2atan (d);
   if (dot (p - m, p1 - m) < 0)
-    return dot (p - p0, normalize ((p1 - p0) * +mat2(d2, -1, +1, d2)));
+    return dot (p - p0, normalize ((p1 - p0) * mat2(+d2, -1, +1, +d2)));
   else
-    return dot (p - p1, normalize ((p1 - p0) * -mat2(d2, +1, -1, d2)));
+    return dot (p - p1, normalize ((p1 - p0) * mat2(-d2, -1, +1, -d2)));
 }
 
 /* Return value is:
@@ -97,10 +107,9 @@ glyphy_arc_extended_dist (const vec2 p, const vec2 p0, const vec2 p1, float d)
 ivec3
 glyphy_arclist_decode (const vec4 v)
 {
-  int offset = (glyphy_float_to_byte (v.r) * 256 +
-		glyphy_float_to_byte (v.g)) * 256 +
-		glyphy_float_to_byte (v.b);
-  int num_endpoints = glyphy_float_to_byte (v.a);
+  ivec4 iv = glyphy_vec4_to_bytes (v) * ivec4 (65536, 256, 1, 1);
+  int offset = iv.r + iv.g + iv.b;
+  int num_endpoints = iv.a;
   int side = 0; /* unsure */
   if (num_endpoints == 255) {
     num_endpoints = 0;

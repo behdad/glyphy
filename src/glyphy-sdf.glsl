@@ -27,7 +27,7 @@ glyphy_sdf (vec2 p, sampler2D atlas_tex, vec4 atlas_info, vec4 atlas_pos, int gl
   ivec3 arclist = glyphy_arclist_decode (arclist_data);
   int offset = arclist.x;
   int num_endpoints =  arclist.y;
-  int side = arclist.z;
+  float side = arclist.z;
 
   int i;
   float min_dist = GLYPHY_INFINITY;
@@ -64,7 +64,7 @@ glyphy_sdf (vec2 p, sampler2D atlas_tex, vec4 atlas_info, vec4 atlas_pos, int gl
       float dist = abs (signed_dist);
       if (dist <= min_dist) {
 	min_dist = dist;
-	side = ((sign (d) >= 0) ? +1 : -1) * (sign (signed_dist) >= 0 ? -1 : +1);
+	side = sign (d) * (signed_dist >= 0 ? -1 : +1);
       }
     } else {
       float dist = min (distance (p, p0), distance (p, p1));
@@ -83,21 +83,18 @@ glyphy_sdf (vec2 p, sampler2D atlas_tex, vec4 atlas_info, vec4 atlas_pos, int gl
 	float extended_dist = abs (new_extended_dist) <= abs (old_extended_dist) ?
 			      old_extended_dist : new_extended_dist;
 
-//	      min_dist = abs (extended_dist);
-	side = extended_dist < 0 ? -1 : +1;
+	/* For emboldening and stuff: */
+	// min_dist = abs (extended_dist);
+	side = sign (extended_dist);
       }
     }
   }
 
-  if (side == 0)
-  {
+  if (side == 0) {
     // Technically speaking this should not happen, but it does.  So fix it.
     float extended_dist = glyphy_arc_extended_dist (p, closest_arc.p0, closest_arc.p1, closest_arc.d);
-    side = extended_dist < 0 ? -1 : +1;
+    side = sign (extended_dist);
   }
 
-  float abs_dist = min_dist;
-  min_dist *= side;
-
-  return min_dist;
+  return min_dist * side;
 }
