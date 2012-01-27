@@ -35,6 +35,32 @@
 #define GLYPHY_EPSILON  1e-5
 #endif
 
+
+struct glyphy(arc_t) {
+  vec2  p0;
+  vec2  p1;
+  float d;
+};
+
+struct glyphy(arc_endpoint_t) {
+  vec2  p;
+  float d;
+};
+
+/* Return value is:
+ * z: If num_endpoints is zero, this specifies whether we are inside (-1)
+ *    or outside (+1).  Otherwise we're unsure (0).
+ */
+struct glyphy(arc_list_t) {
+  /* Offset to the arc-endpoints from the beginning of the glyph blob */
+  int offset;
+  /* Number of endpoints in the list (may be zero) */
+  int num_endpoints;
+  /* If num_endpoints is zero, this specifies whether we are inside (-1)
+   * or outside (+1).  Otherwise we're unsure (0). */
+  int side;
+};
+
 bool
 glyphy(isinf) (float v)
 {
@@ -79,8 +105,8 @@ glyphy(tan2atan) (float d)
   return 2 * d / (1 - d * d);
 }
 
-vec3
-glyphy(arc_decode) (const vec4 v)
+glyphy(arc_endpoint_t)
+glyphy(arc_endpoint_decode) (const vec4 v)
 {
   /* Note that this never returns d == 0.  For straight lines,
    * a d value of .0039215686 is returned.  In fact, the d has
@@ -93,35 +119,29 @@ glyphy(arc_decode) (const vec4 v)
 #define GLYPHY_MAX_D .5
     d = GLYPHY_MAX_D * (2 * d - 1);
 #undef GLYPHY_MAX_D
-  return vec3 (p, d);
+  return glyphy(arc_endpoint_t) (p, d);
 }
 
 vec2
-glyphy(arc_center) (const vec2 p0, const vec2 p1, float d)
+glyphy(arc_center) (glyphy(arc_t) a)
 {
-  return mix (p0, p1, .5) +
-	 glyphy(perpendicular) (p1 - p0) / (2 * glyphy(tan2atan) (d));
+  return mix (a.p0, a.p1, .5) +
+	 glyphy(perpendicular) (a.p1 - a.p0) / (2 * glyphy(tan2atan) (a.d));
 }
 
 float
-glyphy(arc_extended_dist) (const vec2 p, const vec2 p0, const vec2 p1, float d)
+glyphy(arc_extended_dist) (const vec2 p, glyphy(arc_t) a)
 {
-  vec2 m = mix (p0, p1, .5);
-  float d2 = glyphy(tan2atan) (d);
-  if (dot (p - m, p1 - m) < 0)
-    return dot (p - p0, normalize ((p1 - p0) * mat2(+d2, -1, +1, +d2)));
+  vec2 m = mix (a.p0, a.p1, .5);
+  float d2 = glyphy(tan2atan) (a.d);
+  if (dot (p - m, a.p1 - m) < 0)
+    return dot (p - a.p0, normalize ((a.p1 - a.p0) * mat2(+d2, -1, +1, +d2)));
   else
-    return dot (p - p1, normalize ((p1 - p0) * mat2(-d2, -1, +1, -d2)));
+    return dot (p - a.p1, normalize ((a.p1 - a.p0) * mat2(-d2, -1, +1, -d2)));
 }
 
-/* Return value is:
- * x: Offset to the arc-endpoints from the beginning of the glyph blob
- * y: Number of endpoints in the list (may be zero)
- * z: If num_endpoints is zero, this specifies whether we are inside (-1)
- *    or outside (+1).  Otherwise we're unsure (0).
- */
-ivec3
-glyphy(arclist_decode) (const vec4 v)
+glyphy(arc_list_t)
+glyphy(arc_list_decode) (const vec4 v)
 {
   ivec4 iv = glyphy(vec4_to_bytes) (v) * ivec4 (65536, 256, 1, 1);
   int offset = iv.r + iv.g + iv.b;
@@ -132,5 +152,5 @@ glyphy(arclist_decode) (const vec4 v)
     side = -1;
   } else if (num_endpoints == 0)
     side = +1;
-  return ivec3 (offset, num_endpoints, side);
+  return glyphy(arc_list_t) (offset, num_endpoints, side);
 }
