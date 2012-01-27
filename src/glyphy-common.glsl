@@ -63,18 +63,24 @@ float
     return dot (p - p1, normalize ((p1 - p0) * -mat2(d2, +1, -1, d2)));
 }
 
+/* Return value is:
+ * x: Offset to the arc-endpoints from the beginning of the glyph blob
+ * y: Number of endpoints in the list (may be zero)
+ * z: If num_endpoints is zero, this specifies whether we are inside (-1)
+ *    or outside (+1).  Otherwise we're unsure (0).
+ */
 ivec3
 /*<*/glyphy_arclist_decode/*>*/ (const vec4 v)
 {
   int offset = (/*<*/glyphy_float_to_byte/*>*/ (v.r) * 256 +
 		/*<*/glyphy_float_to_byte/*>*/ (v.g)) * 256 +
 		/*<*/glyphy_float_to_byte/*>*/ (v.b);
-  int num_points = /*<*/glyphy_float_to_byte/*>*/ (v.a);
+  int num_endpoints = /*<*/glyphy_float_to_byte/*>*/ (v.a);
   int side = 0; /* unsure */
-  if (num_points == 255) {
-    num_points = 0;
+  if (num_endpoints == 255) {
+    num_endpoints = 0;
     side = -1;
-  } else if (num_points == 0)
+  } else if (num_endpoints == 0)
     side = +1;
-  return ivec3 (offset, num_points, side);
+  return ivec3 (offset, num_endpoints, side);
 }

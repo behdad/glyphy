@@ -16,7 +16,8 @@
  * Google Author(s): Behdad Esfahbod, Maysum Panju
  */
 
-vec4 /*<*/glyphy_fragment_color/*>*/ (vec2 p, vec4 v_glyph)
+vec4
+/*<*/glyphy_fragment_color/*>*/ (vec2 p, vec4 v_glyph)
 {
   ivec2 glyph_offset = ivec2(int(v_glyph.z), int(v_glyph.w));
 
@@ -28,7 +29,8 @@ vec4 /*<*/glyphy_fragment_color/*>*/ (vec2 p, vec4 v_glyph)
   int p_cell_x = int (clamp (p.x, 0., 1.-1e-5) * 16 /*GRID_W*/);
   int p_cell_y = int (clamp (p.y, 0., 1.-1e-5) * 16 /*GRID_H*/);
 
-  ivec3 arclist = /*<*/glyphy_arclist_decode/*>*/ (tex_1D (glyph_offset, p_cell_y * 16 /*GRID_W*/ + p_cell_x));
+  vec4 arclist_data = tex_1D (glyph_offset, p_cell_y * 16 /*GRID_W*/ + p_cell_x);
+  ivec3 arclist = /*<*/glyphy_arclist_decode/*>*/ (arclist_data);
   int offset = arclist.x;
   int num_endpoints =  arclist.y;
   int side = arclist.z;
@@ -37,7 +39,6 @@ vec4 /*<*/glyphy_fragment_color/*>*/ (vec2 p, vec4 v_glyph)
   float min_dist = 1.5;
   float min_extended_dist = 1.5;
   float min_point_dist = 1.5;
-
 
   struct {
     vec2 p0;
@@ -109,11 +110,12 @@ vec4 /*<*/glyphy_fragment_color/*>*/ (vec2 p, vec4 v_glyph)
   min_dist *= side;
 
 
+/*
   // Color the outline red
   result += vec4(1,0,0,0) * smoothstep (2 * m, 0, abs_dist);
 
   // Color the distance field in green
-  result += vec4(0,1,0,0) * ((1 + sin (min_dist / m))) * sin (pow (abs_dist, .8) * 3.1415 /*M_PI*/) * .5;
+  result += vec4(0,1,0,0) * ((1 + sin (min_dist / m))) * sin (pow (abs_dist, .8) * 3.14159265358979) * .5;
 
   // Color points green
   result = mix(vec4(0,1,0,1), result, smoothstep (2 * m, 3 * m, min_point_dist));
@@ -123,7 +125,7 @@ vec4 /*<*/glyphy_fragment_color/*>*/ (vec2 p, vec4 v_glyph)
 
   // Color the inside of the glyph a light red
   result += vec4(.5,0,0,0) * smoothstep (m, -m, min_dist);
-
+*/
   result = vec4(1,1,1,1) * smoothstep (-m, m, min_dist);
   return result;
 }
