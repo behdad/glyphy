@@ -16,16 +16,9 @@
  * Google Author(s): Behdad Esfahbod, Maysum Panju
  */
 
-vec4
-/*<*/glyphy_fragment_color/*>*/ (vec2 p, vec4 v_glyph)
+float
+/*<*/glyphy_sdf/*>*/ (vec2 p, ivec2 glyph_offset)
 {
-  ivec2 glyph_offset = ivec2(int(v_glyph.z), int(v_glyph.w));
-
-  /* isotropic antialiasing */
-  float m = length (vec2 (float (dFdx (p)),
-			  float (dFdy (p))));
-  //float m = float (fwidth (p)); //for broken dFdx/dFdy
-
   int p_cell_x = int (clamp (p.x, 0., 1.-1e-5) * 16 /*GRID_W*/);
   int p_cell_y = int (clamp (p.y, 0., 1.-1e-5) * 16 /*GRID_H*/);
 
@@ -36,17 +29,15 @@ vec4
   int side = arclist.z;
 
   int i;
-  float min_dist = 1.5;
-  float min_extended_dist = 1.5;
-  float min_point_dist = 1.5;
+  float min_dist = 1e5;
+  float min_extended_dist = 1e5;
+  float min_point_dist = 1e5;
 
   struct {
     vec2 p0;
     vec2 p1;
     float d;
   } closest_arc;
-
-  vec4 result = vec4(0,0,0,1);
 
   vec3 arc_prev = /*<*/glyphy_arc_decode/*>*/ (tex_1D (glyph_offset, offset));
   for (i = 1; i < num_endpoints; i++)
@@ -102,31 +93,10 @@ vec4
     // Technically speaking this should not happen, but it does.  So fix it.
     float extended_dist = /*<*/glyphy_arc_extended_dist/*>*/ (p, closest_arc.p0, closest_arc.p1, closest_arc.d);
     side = extended_dist < 0 ? -1 : +1;
-    //result = vec4 (1,0,0,0);
-    //return result;
   }
 
   float abs_dist = min_dist;
   min_dist *= side;
 
-
-/*
-  // Color the outline red
-  result += vec4(1,0,0,0) * smoothstep (2 * m, 0, abs_dist);
-
-  // Color the distance field in green
-  result += vec4(0,1,0,0) * ((1 + sin (min_dist / m))) * sin (pow (abs_dist, .8) * 3.14159265358979) * .5;
-
-  // Color points green
-  result = mix(vec4(0,1,0,1), result, smoothstep (2 * m, 3 * m, min_point_dist));
-
-  // Color the number of endpoints per cell blue
-  result += vec4(0,0,1,0) * num_endpoints * 16./255.;
-
-  // Color the inside of the glyph a light red
-  result += vec4(.5,0,0,0) * smoothstep (m, -m, min_dist);
-*/
-  result = vec4(1,1,1,1) * smoothstep (-m, m, min_dist);
-  return result;
+  return min_dist;
 }
-
