@@ -84,14 +84,14 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
 
     // If two arcs are equally close to this point, take the sign from the one whose extension is farther away.
     // (Extend arcs using tangent lines from endpoints; this is done using the SignedVector operation "-".)
-    if (fabs (fabs (current_distance) - fabs (min_distance)) < 1e-6) {
+    if (fabs (current_distance) == fabs (min_distance)) {
       SignedVector to_arc_current = current_arc - c;
       if (to_arc_min.len () < to_arc_current.len ()) {
         min_distance = fabs (current_distance) * (to_arc_current.negative ? -1 : 1);
       }
     }
     else
-      if (fabs (current_distance) < fabs(min_distance)) {
+      if (fabs (current_distance) < fabs (min_distance)) {
       min_distance = current_distance;
       to_arc_min = current_arc - c;
     }
@@ -100,11 +100,8 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
   inside_glyph = (min_distance > 0);
 
   // If d is the distance from the center of the square to the nearest arc, then
-  // all nearest arcs to the square must be at most [d + s/sqrt(2)] from the center. 
+  // all nearest arcs to the square must be at most almost [d + half_diagonal] from the center.
   min_distance =  fabs (min_distance);
-
-  // If d is the distance from the center of the square to the nearest arc, then
-  // all nearest arcs to the square must be at most [d + half_diagonal] from the center.
   double half_diagonal = (c - c0).len ();
   double radius_squared = pow (min_distance + half_diagonal + faraway, 2);
   if (min_distance - half_diagonal <= faraway)

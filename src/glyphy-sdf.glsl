@@ -18,7 +18,6 @@
 
 vec4 /*<*/glyphy_fragment_color/*>*/ (vec2 p, vec4 v_glyph)
 {
-  vec4 result = vec4(0,0,0,1);
   ivec2 glyph_offset = ivec2(int(v_glyph.z), int(v_glyph.w));
 
   /* isotropic antialiasing */
@@ -46,6 +45,8 @@ vec4 /*<*/glyphy_fragment_color/*>*/ (vec2 p, vec4 v_glyph)
     float d;
   } closest_arc;
 
+  vec4 result = vec4(0,0,0,1);
+
   vec3 arc_prev = /*<*/glyphy_arc_decode/*>*/ (tex_1D (glyph_offset, offset));
   for (i = 1; i < num_endpoints; i++)
   {
@@ -62,15 +63,15 @@ vec4 /*<*/glyphy_fragment_color/*>*/ (vec2 p, vec4 v_glyph)
 
     // unsigned distance
     float d2 = tan2atan (d);
-    if (dot (p - p0, (p1 - p0) * mat2(1,  d2, -d2, 1)) > 0 &&
-	dot (p - p1, (p1 - p0) * mat2(1, -d2,  d2, 1)) < 0)
+    if (dot (p - p0, (p1 - p0) * mat2(1,  d2, -d2, 1)) >= 0 &&
+	dot (p - p1, (p1 - p0) * mat2(1, -d2,  d2, 1)) <= 0)
     {
       vec2 c = /*<*/glyphy_arc_center/*>*/ (p0, p1, d);
       float signed_dist = (distance (p, c) - distance (p0, c));
       float dist = abs (signed_dist);
       if (dist <= min_dist) {
 	min_dist = dist;
-	side = sign (d) * sign (signed_dist) >= 0 ? -1 : +1;
+	side = ((sign (d) >= 0) ? +1 : -1) * (sign (signed_dist) >= 0 ? -1 : +1);
       }
     } else {
       float dist = min (distance (p, p0), distance (p, p1));
@@ -95,12 +96,15 @@ vec4 /*<*/glyphy_fragment_color/*>*/ (vec2 p, vec4 v_glyph)
     }
   }
 
+
+
   if (side == 0)
   {
     // Technically speaking this should not happen, but it does.  So fix it.
     float extended_dist = /*<*/glyphy_arc_extended_dist/*>*/ (p, closest_arc.p0, closest_arc.p1, closest_arc.d);
     side = extended_dist < 0 ? -1 : +1;
-    //result += vec4 (0,1,0,0);
+    //result = vec4 (1,0,0,0);
+    //return result;
   }
 
   float abs_dist = min_dist;
