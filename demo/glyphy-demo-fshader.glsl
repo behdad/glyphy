@@ -23,7 +23,7 @@ void main()
   vec2 dpdy = dFdy (p);
   float m = max (length (dpdx), length (dpdy));
 
-  float sdist = glyphy_sdf (p, u_atlas_tex, u_atlas_info, atlas_pos, glyph_layout);
+  float sdist = glyphy_sdf (p, glyph_layout, u_atlas_tex, u_atlas_info, atlas_pos);
   float udist = abs (sdist);
 
   vec4 color = vec4 (0,0,0,1);

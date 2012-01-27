@@ -16,13 +16,38 @@
  * Google Author(s): Behdad Esfahbod, Maysum Panju
  */
 
+#ifndef GLYPHY_TEXTURE1D_FUNC
+#define GLYPHY_TEXTURE1D_FUNC glyphy_texture1D_func
+#endif
+#ifndef GLYPHY_TEXTURE1D_EXTRA_DECLS
+#define GLYPHY_TEXTURE1D_EXTRA_DECLS
+#endif
+#ifndef GLYPHY_TEXTURE1D_EXTRA_ARGS
+#define GLYPHY_TEXTURE1D_EXTRA_ARGS
+#endif
+
+#ifndef GLYPHY_SDF_TEXTURE1D_FUNC
+#define GLYPHY_SDF_TEXTURE1D_FUNC GLYPHY_TEXTURE1D_FUNC
+#endif
+#ifndef GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS
+#define GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS GLYPHY_TEXTURE1D_EXTRA_DECLS
+#endif
+#ifndef GLYPHY_SDF_TEXTURE1D_EXTRA_ARGS
+#define GLYPHY_SDF_TEXTURE1D_EXTRA_ARGS GLYPHY_TEXTURE1D_EXTRA_ARGS
+#endif
+#ifndef GLYPHY_SDF_TEXTURE1D(offset)
+#define GLYPHY_SDF_TEXTURE1D(offset) \
+	GLYPHY_SDF_TEXTURE1D_FUNC (offset GLYPHY_TEXTURE1D_EXTRA_ARGS)
+#endif
+
+
 float
-glyphy(sdf) (vec2 p, sampler2D atlas_tex, vec4 atlas_info, vec4 atlas_pos, int glyph_layout)
+glyphy(sdf) (vec2 p, int glyph_layout GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 {
   ivec2 grid_size = ivec2 (mod (glyph_layout, 256), glyph_layout / 256); // width, height
   ivec2 p_cell = ivec2 (clamp (p, vec2 (0,0), vec2(1,1) * (1.-GLYPHY_EPSILON)) * vec2 (grid_size));
 
-  vec4 arclist_data = glyphy(texture1D_func) (atlas_tex, atlas_info, atlas_pos, p_cell.y * grid_size.x + p_cell.x);
+  vec4 arclist_data = GLYPHY_SDF_TEXTURE1D (p_cell.y * grid_size.x + p_cell.x);
   ivec3 arclist = glyphy(arclist_decode) (arclist_data);
   int offset = arclist.x;
   int num_endpoints =  arclist.y;
@@ -39,10 +64,10 @@ glyphy(sdf) (vec2 p, sampler2D atlas_tex, vec4 atlas_info, vec4 atlas_pos, int g
     float d;
   } closest_arc;
 
-  vec3 arc_prev = glyphy(arc_decode) (glyphy(texture1D_func) (atlas_tex, atlas_info, atlas_pos, offset));
+  vec3 arc_prev = glyphy(arc_decode) (GLYPHY_SDF_TEXTURE1D (offset));
   for (i = 1; i < num_endpoints; i++)
   {
-    vec3 arc = glyphy(arc_decode) (glyphy(texture1D_func) (atlas_tex, atlas_info, atlas_pos, i + offset));
+    vec3 arc = glyphy(arc_decode) (GLYPHY_SDF_TEXTURE1D (offset + i));
     vec2 p0 = arc_prev.rg;
     arc_prev = arc;
     vec2 p1 = arc.rg;
