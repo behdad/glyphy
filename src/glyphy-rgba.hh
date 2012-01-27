@@ -45,14 +45,12 @@ arc_encode (double x, double y, double d)
   assert (ix < 4096);
   iy = lround (y * 4095);
   assert (iy < 4096);
-#define MAX_D .5
+#define GLYPHY_MAX_D .5
   if (isinf (d))
     id = 0;
   else {
-    assert (fabs (d) < MAX_D);
-
-    id = lround (d * 127. / MAX_D + 128);
-
+    assert (fabs (d) < GLYPHY_MAX_D);
+    id = lround (d * 127. / GLYPHY_MAX_D + 128);
   }
   assert (id < 256);
 

@@ -20,8 +20,8 @@ float
 glyphy_sdf (vec2 p, sampler2D atlas_tex, vec4 atlas_info, vec4 atlas_pos, int glyph_layout)
 {
   ivec2 grid_size = ivec2 (mod (glyph_layout, 256), glyph_layout / 256); // width, height
-  int p_cell_x = int (clamp (p.x, 0., 1.-1e-5) * grid_size.x);
-  int p_cell_y = int (clamp (p.y, 0., 1.-1e-5) * grid_size.y);
+  int p_cell_x = int (clamp (p.x, 0., 1.-GLYPHY_EPSILON) * grid_size.x);
+  int p_cell_y = int (clamp (p.y, 0., 1.-GLYPHY_EPSILON) * grid_size.y);
 
   vec4 arclist_data = glyphy_texture1D_func (atlas_tex, atlas_info, atlas_pos, p_cell_y * grid_size.x + p_cell_x);
   ivec3 arclist = glyphy_arclist_decode (arclist_data);
@@ -30,9 +30,9 @@ glyphy_sdf (vec2 p, sampler2D atlas_tex, vec4 atlas_info, vec4 atlas_pos, int gl
   int side = arclist.z;
 
   int i;
-  float min_dist = 1e5;
-  float min_extended_dist = 1e5;
-  float min_point_dist = 1e5;
+  float min_dist = GLYPHY_INFINITY;
+  float min_extended_dist = GLYPHY_INFINITY;
+  float min_point_dist = GLYPHY_INFINITY;
 
   struct {
     vec2 p0;
@@ -49,7 +49,7 @@ glyphy_sdf (vec2 p, sampler2D atlas_tex, vec4 atlas_info, vec4 atlas_pos, int gl
     float d = arc.b;
     vec2 p1 = arc.rg;
 
-    if (d == -.5 /*MAX_D*/) continue;
+    if (glyphy_isinf (d)) continue;
 
     // for highlighting points
     min_point_dist = min (min_point_dist, distance (p, p1));

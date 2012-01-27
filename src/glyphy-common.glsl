@@ -16,6 +16,21 @@
  * Google Author(s): Behdad Esfahbod, Maysum Panju
  */
 
+#define GLYPHY_INFINITY 1e9
+#define GLYPHY_EPSILON  1e-5
+
+bool
+glyphy_isinf (float v)
+{
+  return abs (v) > GLYPHY_INFINITY / 2.;
+}
+
+bool
+glyphy_iszero (float v)
+{
+  return abs (v) < GLYPHY_EPSILON * 2.;
+}
+
 vec2
 glyphy_perpendicular (const vec2 v)
 {
@@ -25,7 +40,14 @@ glyphy_perpendicular (const vec2 v)
 int
 glyphy_float_to_byte (const float v)
 {
-  return int (v * (256 - 1e-5));
+  return int (v * (256 - GLYPHY_EPSILON));
+}
+
+ivec2
+glyphy_float_to_two_nimbles (const float v)
+{
+  int f = glyphy_float_to_byte (v);
+  return ivec2 (f / 16, mod (f, 16));
 }
 
 /* returns tan (2 * atan (d)) */
@@ -38,11 +60,14 @@ glyphy_tan2atan (float d)
 vec3
 glyphy_arc_decode (const vec4 v)
 {
+  vec2 p = (vec2 (glyphy_float_to_two_nimbles (v.a)) + v.gb) / 16;
   float d = v.r;
-  float x = (float (mod (glyphy_float_to_byte (v.a) / 16, 16)) + v.g) / 16;
-  float y = (float (mod (glyphy_float_to_byte (v.a)     , 16)) + v.b) / 16;
-  d = .5 /*MAX_D*/ * (2 * d - 1);
-  return vec3 (x, y, d);
+  if (d == 0)
+    d = GLYPHY_INFINITY;
+#define GLYPHY_MAX_D .5
+    d = GLYPHY_MAX_D * (2 * d - 1);
+#undef GLYPHY_MAX_D
+  return vec3 (p, d);
 }
 
 vec2
