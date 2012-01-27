@@ -32,7 +32,7 @@ vec4 /*<*/glyphy_fragment_color/*>*/ (vec2 p, vec4 v_glyph)
   ivec3 arclist = /*<*/glyphy_arclist_decode/*>*/ (tex_1D (glyph_offset, p_cell_y * 16 /*GRID_W*/ + p_cell_x));
   int offset = arclist.x;
   int num_endpoints =  arclist.y;
-  int is_inside = arclist.z == 1 ? 1 /*IS_INSIDE_YES*/ : 0 /*IS_INSIDE_NO*/;
+  int side = arclist.z == 1 ? -1 : +1;
 
   int i;
   float min_dist = 1.5;
@@ -70,17 +70,17 @@ vec4 /*<*/glyphy_fragment_color/*>*/ (vec2 p, vec4 v_glyph)
       float dist = abs (signed_dist);
       if (dist <= min_dist) {
 	min_dist = dist;
-	is_inside = sign (d) * sign (signed_dist) >= 0 ? 1 /*IS_INSIDE_YES*/ : 0 /*IS_INSIDE_NO*/;
+	side = sign (d) * sign (signed_dist) >= 0 ? -1 : +1;
       }
     } else {
       float dist = min (distance (p, p0), distance (p, p1));
       if (dist < min_dist) {
 	min_dist = dist;
-	is_inside = 2 /*IS_INSIDE_UNSURE*/;
+	side = 0; /* unsure */
 	closest_arc.p0 = p0;
 	closest_arc.p1 = p1;
 	closest_arc.d  = d;
-      } else if (dist == min_dist && is_inside == 2 /*IS_INSIDE_UNSURE*/) {
+      } else if (dist == min_dist && side == 0) {
 	// If this new distance is the same as the current minimum, compare extended distances.
 	// Take the sign from the arc with larger extended distance.
 	float new_extended_dist = /*<*/glyphy_arc_extended_dist/*>*/ (p, p0, p1, d);
@@ -90,21 +90,21 @@ vec4 /*<*/glyphy_fragment_color/*>*/ (vec2 p, vec4 v_glyph)
 			      old_extended_dist : new_extended_dist;
 
 //	      min_dist = abs (extended_dist);
-	is_inside = extended_dist < 0 ? 1 /*IS_INSIDE_YES*/ : 0 /*IS_INSIDE_NO*/;
+	side = extended_dist < 0 ? -1 : +1;
       }
     }
   }
 
-  if (is_inside == 2 /*IS_INSIDE_UNSURE*/)
+  if (side == 0)
   {
     // Technically speaking this should not happen, but it does.  So fix it.
     float extended_dist = /*<*/glyphy_arc_extended_dist/*>*/ (p, closest_arc.p0, closest_arc.p1, closest_arc.d);
-    is_inside = extended_dist < 0 ? 1 /*IS_INSIDE_YES*/ : 0 /*IS_INSIDE_NO*/;
+    side = extended_dist < 0 ? -1 : +1;
     //result += vec4 (0,1,0,0);
   }
 
   float abs_dist = min_dist;
-  min_dist *= (is_inside == 1 /*IS_INSIDE_YES*/) ? -1 : +1;
+  min_dist *= side;
 
 
   // Color the outline red

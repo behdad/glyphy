@@ -167,10 +167,6 @@ struct atlas_t {
 };
 #endif
 
-#define IS_INSIDE_NO     0
-#define IS_INSIDE_YES    1
-#define IS_INSIDE_UNSURE 2
-
 int
 arcs_to_texture (std::vector<arc_t> &arcs,
 		 double min_font_size,
