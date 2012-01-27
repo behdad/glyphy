@@ -17,12 +17,12 @@
  */
 
 float
-glyphy_sdf (vec2 p, int glyph_layout, sampler2D atlas_tex, vec4 atlas_info)
+glyphy_sdf (vec2 p, sampler2D atlas_tex, vec4 atlas_info, vec4 atlas_pos, int glyph_layout)
 {
   int p_cell_x = int (clamp (p.x, 0., 1.-1e-5) * 16 /*GRID_W*/);
   int p_cell_y = int (clamp (p.y, 0., 1.-1e-5) * 16 /*GRID_H*/);
 
-  vec4 arclist_data = glyphy_texture1D_func (atlas_tex, atlas_info, p_cell_y * 16 /*GRID_W*/ + p_cell_x);
+  vec4 arclist_data = glyphy_texture1D_func (atlas_tex, atlas_info, atlas_pos, p_cell_y * 16 /*GRID_W*/ + p_cell_x);
   ivec3 arclist = glyphy_arclist_decode (arclist_data);
   int offset = arclist.x;
   int num_endpoints =  arclist.y;
@@ -39,10 +39,10 @@ glyphy_sdf (vec2 p, int glyph_layout, sampler2D atlas_tex, vec4 atlas_info)
     float d;
   } closest_arc;
 
-  vec3 arc_prev = glyphy_arc_decode (glyphy_texture1D_func (atlas_tex, atlas_info, offset));
+  vec3 arc_prev = glyphy_arc_decode (glyphy_texture1D_func (atlas_tex, atlas_info, atlas_pos, offset));
   for (i = 1; i < num_endpoints; i++)
   {
-    vec3 arc = glyphy_arc_decode (glyphy_texture1D_func (atlas_tex, atlas_info, i + offset));
+    vec3 arc = glyphy_arc_decode (glyphy_texture1D_func (atlas_tex, atlas_info, atlas_pos, i + offset));
     vec2 p0 = arc_prev.rg;
     arc_prev = arc;
     float d = arc.b;

@@ -1,4 +1,5 @@
-uniform sampler2D u_tex;
+uniform sampler2D u_atlas_tex;
+uniform vec4 u_atlas_info;
 
 varying vec4 v_glyph;
 
@@ -6,14 +7,14 @@ void main()
 {
   vec2 p = v_glyph.xy;
   int glyph_layout = 0;//unused for now
-  vec4 atlas_info = vec4 (v_glyph.zw, 0, 0);
+  vec4 atlas_pos = vec4 (v_glyph.zw, 0, 0);
 
   /* isotropic antialiasing */
   float m = length (vec2 (float (dFdx (p)),
 			  float (dFdy (p))));
   //float m = float (fwidth (p)); //for broken dFdx/dFdy
 
-  float sdist = glyphy_sdf (p, glyph_layout, u_tex, atlas_info);
+  float sdist = glyphy_sdf (p, u_atlas_tex, u_atlas_info, atlas_pos, glyph_layout);
   float udist = abs (sdist);
 
   vec4 color = vec4(0,0,0,1);
