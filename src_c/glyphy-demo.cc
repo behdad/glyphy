@@ -19,7 +19,7 @@
 #include <glyphy.h>
 
 #include "glyphy-geometry.hh"
-#include "bezier-arc-approximation.hh"
+#include "glyphy-arcs-bezier.hh"
 
 #include <assert.h>
 
@@ -47,7 +47,7 @@
 
 
 using namespace GLyphy::Geometry;
-using namespace GLyphy::ArcBezierApproximation;
+using namespace GLyphy::ArcsBezier;
 
 
 typedef Arc arc_t;

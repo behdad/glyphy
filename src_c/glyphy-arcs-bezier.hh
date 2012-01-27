@@ -24,11 +24,11 @@
 #include <algorithm>
 #include <vector>
 
-#ifndef BEZIER_ARC_APPROXIMATION_HH
-#define BEZIER_ARC_APPROXIMATION_HH
+#ifndef GLYPHY_ARCS_BEZIER_HH
+#define GLYPHY_ARCS_BEZIER_HH
 
 namespace GLyphy {
-namespace ArcBezierApproximation {
+namespace ArcsBezier {
 
 using namespace Geometry;
 using namespace ArcBezier;
@@ -96,14 +96,14 @@ class ArcsBezierApproximatorSpringSystem
   }
 
   public:
-  static std::vector<Arc > &approximate_bezier_with_arcs (const Bezier &b,
-									 double tolerance,
-									 double *perror,
-									 unsigned int max_segments = 1000)
+  static void approximate_bezier_with_arcs (const Bezier &b,
+					    double tolerance,
+					    std::vector<Arc> &arcs,
+					    double *perror,
+					    unsigned int max_segments = 100)
   {
     std::vector<double> t;
     std::vector<double> e;
-    std::vector<Arc > &arcs = * new std::vector<Arc >;
     double max_e, min_e;
     unsigned int n_jiggle = 0;
 
@@ -128,7 +128,6 @@ class ArcsBezierApproximatorSpringSystem
     if (perror)
       *perror = max_e;
     //fprintf (stderr, "n_jiggle %d\n", n_jiggle);
-    return arcs;
   }
 };
 
@@ -189,8 +188,8 @@ class ArcApproximatorOutlineSink
   bezier (const Bezier &b)
   {
     double e;
-    std::vector<Arc > &arcs = ArcsBezierApproximator
-      ::approximate_bezier_with_arcs (b, tolerance, &e);
+    std::vector<Arc> arcs;
+    ArcsBezierApproximator::approximate_bezier_with_arcs (b, tolerance, arcs, &e);
     error = std::max (error, e);
 
     bool ret;
@@ -198,7 +197,6 @@ class ArcApproximatorOutlineSink
       if (!(ret = arc (arcs[i])))
         break;
 
-    delete &arcs;
     return ret;
   }
 };
@@ -219,7 +217,7 @@ class ArcAccumulator
   std::vector<Arc> &arcs;
 };
 
-} /* namespace ArcBezierApproxmation */
+} /* namespace ArcsBezier */
 } /* namespace GLyphy */
 
-#endif /* BEZIER_ARC_APPROXIMATION_HH */
+#endif /* GLYPHY_ARCS_BEZIER_HH */

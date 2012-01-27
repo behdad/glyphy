@@ -15,10 +15,11 @@ libglyphy_la_LDFLAGS = \
 	-version-info @glyphy_libversion@ \
 	$(NULL)
 libglyphy_la_SOURCES = \
-	bezier-arc-approximation.hh \
 	glyphy.cc \
 	glyphy-arc.cc \
 	glyphy-arc-bezier.hh \
+	glyphy-arcs.cc \
+	glyphy-arcs-bezier.hh \
 	glyphy-geometry.hh \
 	$(GLYPHY_PUBLICHEADERS) \
 	$(GLYPHY_SHADERHEADERS) \

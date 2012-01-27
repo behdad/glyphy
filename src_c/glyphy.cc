@@ -27,13 +27,13 @@
 #include <math.h>
 #include <assert.h>
 
-#include "bezier-arc-approximation.hh"
+#include "glyphy-arcs-bezier.hh"
 
 using namespace std;
 
 namespace GLyphy {
 
-using namespace ArcBezierApproximation;
+using namespace ArcsBezier;
 
 
 typedef Vector vector_t;

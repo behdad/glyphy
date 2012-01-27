@@ -115,17 +115,18 @@ typedef struct {
 typedef struct glyphy_arc_accumulator_t glyphy_arc_accumulator_t;
 
 typedef glyphy_bool_t (*glyphy_arc_endpoint_accumulator_callback_t) (glyphy_arc_accumulator_t *accumulator,
-								     glyphy_arc_endpoint_t    endpoint,
+								     glyphy_arc_endpoint_t    *endpoint,
 								     void                     *user_data);
 
 /* TODO Make this a refcounted opaque type?  Or add destroy_notify? */
 typedef struct glyphy_arc_accumulator_t {
-  glyphy_bool_t  has_current_point;
   glyphy_point_t current_point;
   unsigned int   num_endpoints;
 
   double tolerance;
-  double error;
+  double max_error;
+
+  glyphy_bool_t success;
 
   glyphy_arc_endpoint_accumulator_callback_t  callback;
   void                                       *user_data;
@@ -138,32 +139,29 @@ glyphy_arc_accumulator_init (glyphy_arc_accumulator_t *accumulator,
 			     glyphy_arc_endpoint_accumulator_callback_t callback,
 			     void                     *user_data);
 
-glyphy_bool_t
+void
 glyphy_arc_accumulator_move_to (glyphy_arc_accumulator_t *accumulator,
 				glyphy_point_t p0);
 
-glyphy_bool_t
+void
 glyphy_arc_accumulator_line_to (glyphy_arc_accumulator_t *accumulator,
 				glyphy_point_t p1);
 
-glyphy_bool_t
+void
 glyphy_arc_accumulator_conic_to (glyphy_arc_accumulator_t *accumulator,
 				 glyphy_point_t p1,
 				 glyphy_point_t p2);
 
-glyphy_bool_t
+void
 glyphy_arc_accumulator_cubic_to (glyphy_arc_accumulator_t *accumulator,
 				 glyphy_point_t p1,
 				 glyphy_point_t p2,
 				 glyphy_point_t p3);
 
-glyphy_bool_t
+void
 glyphy_arc_accumulator_arc_to (glyphy_arc_accumulator_t *accumulator,
 			       glyphy_point_t p1,
 			       double         d);
-
-glyphy_bool_t
-glyphy_arc_accumulator_close_path (glyphy_arc_accumulator_t *accumulator);
 
 
 
