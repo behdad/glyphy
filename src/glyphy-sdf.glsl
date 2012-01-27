@@ -20,10 +20,9 @@ float
 glyphy_sdf (vec2 p, sampler2D atlas_tex, vec4 atlas_info, vec4 atlas_pos, int glyph_layout)
 {
   ivec2 grid_size = ivec2 (mod (glyph_layout, 256), glyph_layout / 256); // width, height
-  int p_cell_x = int (clamp (p.x, 0., 1.-GLYPHY_EPSILON) * grid_size.x);
-  int p_cell_y = int (clamp (p.y, 0., 1.-GLYPHY_EPSILON) * grid_size.y);
+  ivec2 p_cell = ivec2 (clamp (p, vec2 (0,0), vec2(1,1) * (1.-GLYPHY_EPSILON)) * vec2 (grid_size));
 
-  vec4 arclist_data = glyphy_texture1D_func (atlas_tex, atlas_info, atlas_pos, p_cell_y * grid_size.x + p_cell_x);
+  vec4 arclist_data = glyphy_texture1D_func (atlas_tex, atlas_info, atlas_pos, p_cell.y * grid_size.x + p_cell.x);
   ivec3 arclist = glyphy_arclist_decode (arclist_data);
   int offset = arclist.x;
   int num_endpoints =  arclist.y;
@@ -46,8 +45,8 @@ glyphy_sdf (vec2 p, sampler2D atlas_tex, vec4 atlas_info, vec4 atlas_pos, int gl
     vec3 arc = glyphy_arc_decode (glyphy_texture1D_func (atlas_tex, atlas_info, atlas_pos, i + offset));
     vec2 p0 = arc_prev.rg;
     arc_prev = arc;
-    float d = arc.b;
     vec2 p1 = arc.rg;
+    float d = arc.b;
 
     if (glyphy_isinf (d)) continue;
 
