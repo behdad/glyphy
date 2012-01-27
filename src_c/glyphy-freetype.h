@@ -98,7 +98,7 @@ glyphy_freetype(outline_decompose) (const FT_Outline         *outline,
     0, /* delta */
   };
 
-  return FT_Outline_Decompose (const_cast <FT_Outline *> (outline), &outline_funcs, acc);
+  return FT_Outline_Decompose ((FT_Outline *) outline, &outline_funcs, acc);
 }
 
 

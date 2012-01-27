@@ -39,7 +39,7 @@
 
 static int step_timer;
 static int num_frames;
-static bool animate = false;
+static int animate = 0;
 
 void
 glut_reshape_func (int width, int height)
