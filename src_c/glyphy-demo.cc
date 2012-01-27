@@ -16,19 +16,19 @@
  * Google Author(s): Behdad Esfahbod, Maysum Panju, Wojciech Baranowski
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <glyphy.h>
 
 #include "glyphy-geometry.hh"
 #include "glyphy-arcs-bezier.hh"
 
-#include <assert.h>
+#include "glyphy-demo-glut.h"
+#include "glyphy-demo-shaders.h"
 
-#include <GL/glew.h>
-#if defined(__APPLE__)
-    #include <Glut/glut.h>
-#else
-    #include <GL/glut.h>
-#endif
+#include <assert.h>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -50,7 +50,6 @@ using namespace GLyphy::Geometry;
 using namespace GLyphy::ArcsBezier;
 
 
-typedef Arc arc_t;
 
 static void
 die (const char *msg)
@@ -59,164 +58,6 @@ die (const char *msg)
   exit (1);
 }
 
-GLuint
-compile_shader (GLenum type, GLsizei count, const GLchar** sources)
-{
-  GLuint shader;
-  GLint compiled;
-
-  if (!(shader = glCreateShader(type)))
-    return shader;
-
-  glShaderSource (shader, count, sources, 0);
-  glCompileShader (shader);
-
-  glGetShaderiv (shader, GL_COMPILE_STATUS, &compiled);
-  if (!compiled) {
-    GLint info_len = 0;
-    fprintf (stderr, "Shader failed to compile\n");
-    glGetShaderiv (shader, GL_INFO_LOG_LENGTH, &info_len);
-
-    if (info_len > 0) {
-      char *info_log = (char*) malloc (info_len);
-      glGetShaderInfoLog (shader, info_len, NULL, info_log);
-
-      fprintf (stderr, "%s\n", info_log);
-      free (info_log);
-    }
-
-    abort ();
-  }
-
-  return shader;
-}
-
-GLuint
-link_program (GLuint vshader, GLuint fshader)
-{
-  GLuint program;
-  GLint linked;
-
-  program = glCreateProgram();
-  glAttachShader(program, vshader);
-  glAttachShader(program, fshader);
-  glLinkProgram(program);
-
-  glGetProgramiv (program, GL_LINK_STATUS, &linked);
-  if (!linked) {
-    GLint info_len = 0;
-    fprintf (stderr, "Program failed to link\n");
-    glGetProgramiv (program, GL_INFO_LOG_LENGTH, &info_len);
-
-    if (info_len > 0) {
-      char *info_log = (char*) malloc (info_len);
-      glGetProgramInfoLog (program, info_len, NULL, info_log);
-
-      fprintf (stderr, "%s\n", info_log);
-      free (info_log);
-    }
-
-    abort ();
-  }
-
-  return program;
-}
-
-#define STRINGIZE1(Src) #Src
-#define STRINGIZE(Src) STRINGIZE1(Src)
-#define ARRAY_LEN(Array) (sizeof (Array) / sizeof (*Array))
-
-#define GLSL_VERSION_STRING "#version 120\n"
-
-GLuint
-create_program (void)
-{
-  GLuint vshader, fshader, program;
-  const GLchar *vshader_sources[] = {GLSL_VERSION_STRING,
-				     STRINGIZE
-  (
-    uniform mat4 u_matViewProjection;
-    attribute vec4 a_position;
-    attribute vec2 a_glyph;
-    varying vec4 v_glyph;
-
-    int mod (const int a, const int b) { return a - (a / b) * b; }
-    int div (const int a, const int b) { return a / b; }
-
-    vec4 glyph_decode (vec2 v)
-    {
-      ivec2 g = ivec2 (int(v.x), int(v.y));
-      return vec4 (mod (g.x, 2), mod (g.y, 2), div (g.x, 2), div(g.y, 2));
-    }
-
-    void main()
-    {
-      gl_Position = u_matViewProjection * a_position;
-      v_glyph = glyph_decode (a_glyph);
-    }
-  )};
-  vshader = compile_shader (GL_VERTEX_SHADER, ARRAY_LEN (vshader_sources), vshader_sources);
-  const GLchar *fshader_sources[] = {GLSL_VERSION_STRING,
-				     STRINGIZE
-  (
-    uniform sampler2D u_tex;
-    uniform ivec3 u_texSize;
-    varying vec4 v_glyph;
-
-    int mod (const int a, const int b) { return a - (a / b) * b; }
-    int div (const int a, const int b) { return a / b; }
-    vec4 tex_1D (ivec2 offset, int i)
-    {
-      vec2 orig = offset;
-      return texture2D (u_tex, vec2 ((orig.x + mod (i, u_texSize.z) + .5) / float (u_texSize.x),
-				   (orig.y + div (i, u_texSize.z) + .5) / float (u_texSize.y)));
-    }
-  ),
-  glyphy_common_shader_source (),
-  glyphy_sdf_shader_source (),
-  STRINGIZE
-  (
-
-    void main()
-    {
-      gl_FragColor = glyphy_fragment_color(v_glyph.xy, v_glyph);
-    }
-  )};
-  fshader = compile_shader (GL_FRAGMENT_SHADER, ARRAY_LEN (fshader_sources), fshader_sources);
-
-  program = link_program (vshader, fshader);
-  return program;
-}
-
-
-static int step_timer;
-static int num_frames;
-static bool animate = false;
-
-void display( void )
-{
-//  int viewport[4];
-//  glGetIntegerv (GL_VIEWPORT, viewport);
-//  GLuint width  = viewport[2];
-//  GLuint height = viewport[3];
-
-  double theta = M_PI / 360.0 * step_timer / 3.;
-  GLfloat mat[] = { +cos(theta), +sin(theta), 0., 0.,
-		    -sin(theta), +cos(theta), 0., 0.,
-			     0.,          0., 1., 0.,
-			     0.,          0., 0., 1., };
-
-  glClearColor (0, 0, 0, 1);
-  glClear (GL_COLOR_BUFFER_BIT);
-
-  GLuint program;
-  glGetIntegerv (GL_CURRENT_PROGRAM, (GLint *) &program);
-  glUniformMatrix4fv (glGetUniformLocation (program, "u_matViewProjection"), 1, GL_FALSE, mat);
-
-  glDrawArrays (GL_TRIANGLE_FAN, 0, 4);
-
-  glutSwapBuffers ();
-}
 
 
 template <typename OutlineSink>
@@ -277,7 +118,7 @@ class FreeTypeOutlineSource
 void
 ft_outline_to_arcs (FT_Outline *outline,
 		    double tolerance,
-		    std::vector<arc_t> &arcs,
+		    std::vector<Arc> &arcs,
 		    double &error)
 {
   ArcAccumulator acc(arcs);
@@ -291,7 +132,7 @@ ft_outline_to_arcs (FT_Outline *outline,
 
 namespace GLyphy {
 extern int
-arcs_to_texture (std::vector<arc_t> &arcs,
+arcs_to_texture (std::vector<Arc> &arcs,
 		 double min_font_size,
 		 int width, int *height,
 		 void **buffer);
@@ -303,7 +144,7 @@ ft_outline_to_texture (FT_Outline *outline, unsigned int upem, int width,
 {
   int res = 0;
   double tolerance = upem * TOLERANCE; // in font design units
-  std::vector<arc_t> arcs;
+  std::vector<Arc> arcs;
   double error;
   ft_outline_to_arcs (outline, tolerance, arcs, error);
   res = GLyphy::arcs_to_texture(arcs, MIN_FONT_SIZE, width, height, buffer);
@@ -384,73 +225,6 @@ create_texture (const char *font_path, const char UTF8)
   return texture;
 }
 
-void
-reshape (int width, int height)
-{
-  glViewport (0, 0, width, height);
-  glMatrixMode (GL_PROJECTION);
-  glLoadIdentity ();
-  glOrtho (0, width, 0, height, -1, 1);
-  glMatrixMode (GL_MODELVIEW);
-  glutPostRedisplay ();
-}
-
-static void
-timed_step (int ms)
-{
-  if (animate) {
-    glutTimerFunc (ms, timed_step, ms);
-    num_frames++;
-    step_timer++;
-    glutPostRedisplay ();
-  }
-}
-
-static void
-idle_step (void)
-{
-  if (animate) {
-    glutIdleFunc (idle_step);
-    num_frames++;
-    step_timer++;
-    glutPostRedisplay ();
-  }
-}
-
-static void
-print_fps (int ms)
-{
-  if (animate) {
-    glutTimerFunc (ms, print_fps, ms);
-    printf ("%gfps\n", num_frames / 5.);
-    num_frames = 0;
-  }
-}
-
-void
-start_animation (void)
-{
-  num_frames = 0;
-  //glutTimerFunc (40, timed_step, 40);
-  glutIdleFunc (idle_step);
-  glutTimerFunc (5000, print_fps, 5000);
-}
-
-void keyboard( unsigned char key, int x, int y )
-{
-  switch (key) {
-    case '\033':
-    case 'q':
-      exit (0);
-      break;
-
-    case '\040':
-      animate = !animate;
-      if (animate)
-        start_animation ();
-      break;
-  }
-}
 
 int
 main (int argc, char** argv)
@@ -466,18 +240,7 @@ main (int argc, char** argv)
   else
     die ("Usage: grid PATH_TO_FONT_FILE CHARACTER_TO_DRAW ANIMATE?");
 
-  glutInit (&argc, argv);
-  glutInitWindowSize (712, 712);
-  glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-  glutCreateWindow("GLyphy");
-  glutReshapeFunc (reshape);
-  glutDisplayFunc (display);
-  glutKeyboardFunc (keyboard);
-
-  glewInit ();
-  if (!glewIsSupported ("GL_VERSION_2_0"))
-    die ("OpenGL 2.0 not supported");
-
+  glut_init (&argc, argv);
 
   GLuint program = create_program ();
   glUseProgram (program);
@@ -504,10 +267,7 @@ main (int argc, char** argv)
   glEnableVertexAttribArray (a_pos_loc);
   glEnableVertexAttribArray (a_glyph_loc);
 
-  if (animate)
-    start_animation ();
-
-  glutMainLoop ();
+  glut_main ();
 
   return 0;
 }
