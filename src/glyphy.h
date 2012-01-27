@@ -38,8 +38,7 @@ extern "C" {
 
 
 typedef struct {
-  double x;
-  double y;
+  glyphy_point_t p;
   double d;
 } glyphy_arc_endpoint_t;
 

@@ -56,13 +56,13 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
   for (unsigned int i = 0; i < num_endpoints; i++) {
     const glyphy_arc_endpoint_t &endpoint = endpoints[i];
     if (endpoint.d == INFINITY) {
-      p0 = Point (endpoint.x, endpoint.y);
+      p0 = endpoint.p;
       continue;
     }
-    Point p1 (endpoint.x, endpoint.y);
-    Arc arc (p0, p1, endpoint.d);
+    Arc arc (p0, endpoint.p, endpoint.d);
+    p0 = endpoint.p;
+
     arcs.push_back (arc);
-    p0 = p1;
   }
   std::vector<Arc> near_arcs;
 
@@ -175,14 +175,14 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
 			    near_endpoints,
 			    inside_glyph);
 
-#define ARC_ENCODE(x, y, d) \
-	arc_encode ((x - extents.min_x) / glyph_width, \
-		    (y - extents.min_y) / glyph_height, \
-		    (d))
+#define ARC_ENCODE(E) \
+	arc_encode ((E.p.x - extents.min_x) / glyph_width, \
+		    (E.p.y - extents.min_y) / glyph_height, \
+		    (E.d))
 
       for (unsigned i = 0; i < near_endpoints.size (); i++) {
         glyphy_arc_endpoint_t &endpoint = near_endpoints[i];
-	tex_data.push_back (ARC_ENCODE (endpoint.x, endpoint.y, endpoint.d));
+	tex_data.push_back (ARC_ENCODE (endpoint));
       }
 
       unsigned int current_endpoints = tex_data.size () - offset;

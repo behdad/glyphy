@@ -53,7 +53,7 @@ glyphy_arc_accumulator_init (glyphy_arc_accumulator_t *acc,
 static void
 accumulate (glyphy_arc_accumulator_t *acc, const Point &p, double d)
 {
-  glyphy_arc_endpoint_t endpoint = {p.x, p.y, d};
+  glyphy_arc_endpoint_t endpoint = {p, d};
   acc->success = acc->success && acc->callback (&endpoint, acc->user_data);
   if (acc->success) {
     acc->num_endpoints++;
@@ -146,11 +146,12 @@ glyphy_arc_list_extents (const glyphy_arc_endpoint_t *endpoints,
   for (unsigned int i = 0; i < num_endpoints; i++) {
     const glyphy_arc_endpoint_t &endpoint = endpoints[i];
     if (endpoint.d == INFINITY) {
-      p0 = Point (endpoint.x, endpoint.y);
+      p0 = endpoint.p;
       continue;
     }
-    Point p1 (endpoint.x, endpoint.y);
-    Arc arc (p0, p1, endpoint.d);
+    Arc arc (p0, endpoint.p, endpoint.d);
+    p0 = endpoint.p;
+
     glyphy_extents_t arc_extents;
     arc.extents (arc_extents);
     if (first) {
@@ -163,6 +164,6 @@ glyphy_arc_list_extents (const glyphy_arc_endpoint_t *endpoints,
       extents->max_y = std::max (extents->max_y, arc_extents.max_y);
     }
   }
-  if (first)
-    assert (false);
+
+  return !first;
 }
