@@ -54,7 +54,6 @@ glyphy(sdf) (vec2 p, int glyph_layout GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
   int i;
   float min_dist = GLYPHY_INFINITY;
   float min_extended_dist = GLYPHY_INFINITY;
-  float min_point_dist = GLYPHY_INFINITY;
 
   glyphy(arc_t) closest_arc;
 
@@ -65,11 +64,7 @@ glyphy(sdf) (vec2 p, int glyph_layout GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
     endpoint = glyphy(arc_endpoint_decode) (GLYPHY_SDF_TEXTURE1D (arc_list.offset + i));
     glyphy(arc_t) a = glyphy(arc_t) (endpoint_prev.p, endpoint.p, endpoint.d);
     endpoint_prev = endpoint;
-
     if (glyphy(isinf) (a.d)) continue;
-
-    // for highlighting points
-    min_point_dist = min (min_point_dist, distance (p, a.p1));
 
     // unsigned distance
     float d2 = glyphy(tan2atan) (a.d);
