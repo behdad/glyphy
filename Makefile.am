@@ -25,6 +25,6 @@ MAINTAINERCLEANFILES = \
 SUBDIRS = src demo
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = glyphy-@PACKAGE_VERSION@.pc
+pkgconfig_DATA = glyphy.pc
 
 -include $(top_srcdir)/git.mk
