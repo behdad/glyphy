@@ -49,23 +49,18 @@ die (const char *msg)
 
 
 glyphy_bool_t
-ft_outline_to_texture (FT_Outline *outline, unsigned int upem, void *buffer,
+ft_outline_to_texture (const glyphy_arc_endpoint_t *endpoints,
+		       unsigned int num_endpoints,
+		       double faraway,
+		       void *buffer,
 		       unsigned int *output_len)
 {
-  double tolerance = upem * TOLERANCE; // in font design units
-  std::vector<glyphy_arc_endpoint_t> endpoints;
-  double error;
-
-  if (!ft_outline_to_arcs (outline, tolerance, endpoints, &error))
-    return false;
-
   glyphy_rgba_t rgba[10000];
   double avg_fetch_achieved;
   unsigned int glyph_layout;
   glyphy_extents_t extents;
-  double faraway = double (upem) / MIN_FONT_SIZE;
 
-  if (!glyphy_arc_list_encode_rgba (&endpoints[0], endpoints.size (),
+  if (!glyphy_arc_list_encode_rgba (endpoints, num_endpoints,
 				    &rgba[0], ARRAY_LEN (rgba),
 				    faraway,
 				    4,
@@ -75,9 +70,6 @@ ft_outline_to_texture (FT_Outline *outline, unsigned int upem, void *buffer,
 				    &extents))
     return false;
 
-  printf ("Used %d arc endpoints; Approx. err %g; Tolerance %g; Percentage %g. %s\n",
-	  (int) endpoints.size (), error, tolerance, round (100 * error / tolerance),
-	  error <= tolerance ? "PASS" : "FAIL");
   printf ("Average %g texture accesses\n", avg_fetch_achieved);
 
   memcpy (buffer, &rgba[0], *output_len * sizeof (rgba[0]));
@@ -85,27 +77,42 @@ ft_outline_to_texture (FT_Outline *outline, unsigned int upem, void *buffer,
   return true;
 }
 
-int
+void
 ft_face_to_texture (FT_Face face, FT_ULong unicode, void *buffer,
 		    unsigned int *output_len)
 {
-  unsigned int upem = face->units_per_EM;
   unsigned int glyph_index = FT_Get_Char_Index (face, unicode);
 
-  if (FT_Load_Glyph (face,
-		     glyph_index,
-		     FT_LOAD_NO_BITMAP |
-		     FT_LOAD_NO_HINTING |
-		     FT_LOAD_NO_AUTOHINT |
-		     FT_LOAD_NO_SCALE |
-		     FT_LOAD_LINEAR_DESIGN |
-		     FT_LOAD_IGNORE_TRANSFORM))
+  if (FT_Err_Ok != FT_Load_Glyph (face,
+				  glyph_index,
+				  FT_LOAD_NO_BITMAP |
+				  FT_LOAD_NO_HINTING |
+				  FT_LOAD_NO_AUTOHINT |
+				  FT_LOAD_NO_SCALE |
+				  FT_LOAD_LINEAR_DESIGN |
+				  FT_LOAD_IGNORE_TRANSFORM))
     die ("Failed loading FreeType glyph");
 
   if (face->glyph->format != FT_GLYPH_FORMAT_OUTLINE)
     die ("FreeType loaded glyph format is not outline");
 
-  return ft_outline_to_texture (&face->glyph->outline, upem, buffer, output_len);
+  double tolerance = face->units_per_EM * TOLERANCE; /* in font design units */
+  double faraway = double (face->units_per_EM) / MIN_FONT_SIZE;
+  std::vector<glyphy_arc_endpoint_t> endpoints;
+  double error;
+
+  if (!ft_outline_to_arcs (&face->glyph->outline, tolerance, endpoints, &error))
+    die ("Failed converting glyph outline to arcs");
+
+  printf ("Used %u arc endpoints; Approx. err %g; Tolerance %g; Percentage %g. %s\n",
+	  endpoints.size (), error, tolerance, round (100 * error / tolerance),
+	  error <= tolerance ? "PASS" : "FAIL");
+
+  ft_outline_to_texture (&endpoints[0],
+			 endpoints.size (),
+			 faraway,
+			 buffer,
+			 output_len);
 }
 
 
