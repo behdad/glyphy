@@ -22,6 +22,7 @@ libglyphy_la_SOURCES = \
 	glyphy-geometry.hh \
 	glyphy-rgba.cc \
 	glyphy-rgba.hh \
+	glyphy-shaders.c \
 	$(GLYPHY_PUBLICHEADERS) \
 	$(GLYPHY_SHADERHEADERS) \
 	$(NULL)
@@ -45,45 +46,10 @@ pkgdata_DATA = \
 	$(NULL)
 
 
-
 EXTRA_DIST += stringize
 %-glsl.h: %.glsl stringize
 	$(AM_V_GEN) ./stringize "static const char *`echo "$<" | sed 's@.*/@@;s/[-.]/_/g'`" < "$<" > "$@.tmp" && \
 	mv "$@.tmp" "$@" || ($(RM) "$@.tmp"; false)
 
-
-
-if HAVE_FREETYPE2
-if HAVE_GL
-if HAVE_GLEW
-if HAVE_GLUT
-
-noinst_PROGRAMS = glyphy-demo
-
-glyphy_demo_CPPFLAGS = \
-	$(FREETYPE2_CFLAGS) \
-	$(GL_CFLAGS) \
-	$(GLEW_CFLAGS) \
-	$(GLUT_CFLAGS) \
-	$(NULL)
-glyphy_demo_LDADD = \
-	libglyphy.la \
-	-lm \
-	$(FREETYPE2_LIBS) \
-	$(GL_LIBS) \
-	$(GLEW_LIBS) \
-	$(GLUT_LIBS) \
-	$(NULL)
-glyphy_demo_SOURCES = \
-	glyphy-demo.cc \
-	glyphy-demo-gl.h \
-	glyphy-demo-glut.h \
-	glyphy-demo-shaders.h \
-	$(NULL)
-
-endif
-endif
-endif
-endif
 
 -include $(top_srcdir)/git.mk

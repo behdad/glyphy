@@ -80,9 +80,10 @@ AC_DEFINE_DIR([GLYPHY_SHADERDIR], [glyphy_datadir], [Directory containing shader
 AC_DEFINE_DIR([PKGDATADIR], [$pkgdatadir], [Define to the directory containing package data.])
 
 AC_CONFIG_FILES([
+glyphy.pc
 Makefile
 src/Makefile
-glyphy.pc
+demo/Makefile
 ])
 
 AC_OUTPUT
