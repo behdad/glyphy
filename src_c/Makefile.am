@@ -54,17 +54,6 @@ EXTRA_DIST += stringize
 
 
 
-check_PROGRAMS = \
-	test-geometry \
-	$(NULL)
-TESTS = \
-	test-geometry \
-	$(NULL)
-
-test_geometry_SOURCES = test-geometry.cc glyphy.cc
-
-
-
 if HAVE_FREETYPE2
 if HAVE_GL
 if HAVE_GLEW
