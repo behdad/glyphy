@@ -87,15 +87,15 @@ glyphy(sdf) (vec2 p, int glyph_layout GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
       } else if (dist == min_dist && side == 0) {
 	// If this new distance is the same as the current minimum, compare extended distances.
 	// Take the sign from the arc with larger extended distance.
-	float new_extended_dist = glyphy(arc_extended_dist) (p, a);
-	float old_extended_dist = glyphy(arc_extended_dist) (p, closest_arc);
+	float new_ext_dist = glyphy(arc_extended_dist) (p, a);
+	float old_ext_dist = glyphy(arc_extended_dist) (p, closest_arc);
 
-	float extended_dist = abs (new_extended_dist) <= abs (old_extended_dist) ?
-			      old_extended_dist : new_extended_dist;
+	float ext_dist = abs (new_ext_dist) <= abs (old_ext_dist) ?
+			 old_ext_dist : new_ext_dist;
 
 	/* For emboldening and stuff: */
-	// min_dist = abs (extended_dist);
-	side = sign (extended_dist);
+	// min_dist = abs (ext_dist);
+	side = sign (ext_dist);
       }
     }
   }
