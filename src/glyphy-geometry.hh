@@ -215,7 +215,7 @@ struct Arc {
 
   inline Bezier approximate_bezier (double *error) const;
 
-  inline bool sector_contains_point (const Point &p) const;
+  inline bool wedge_contains_point (const Point &p) const;
   inline double distance_to_point (const Point &p) const;
   inline double squared_distance_to_point (const Point &p) const;
   inline double signed_squared_distance_to_point (const Point &p) const;
@@ -525,7 +525,7 @@ inline double Segment::distance_to_arc (const Arc &a) const {
   Point on_line = (Line (p0, p1)).nearest_part_to_point(a.center());
   double other_distance = fabs((a.center () - on_line).len () - a.radius ());
 
-  if (a.sector_contains_point (on_line) && contains_in_span (on_line))
+  if (a.wedge_contains_point (on_line) && contains_in_span (on_line))
     min_distance = min_distance < other_distance ? min_distance : other_distance ;
 
   return min_distance;
@@ -660,7 +660,7 @@ inline const SignedVector Arc::operator- (const Point &p) const {
     Segment arc_segment (p0, p1);
     return arc_segment - p;
   }
-  if (sector_contains_point (p)){
+  if (wedge_contains_point (p)){
     Vector difference = (center () - p).normalized () * fabs (p.distance_to_point (center ()) - radius ());
 
     return SignedVector  (difference, ((p - center ()).len () < radius ()) ^ (d < 0));
@@ -676,11 +676,11 @@ inline const SignedVector Arc::operator- (const Point &p) const {
   if (normal.len() == 0)
     return SignedVector (Vector (0, 0), true);    /************************************ Check sign of this S.D. *************/
 
-  return SignedVector ( Line (normal.dx, normal.dy, normal * Vector ((d0 < d1 ? p0 : p1))) - p, !other_arc.sector_contains_point(p));
+  return SignedVector ( Line (normal.dx, normal.dy, normal * Vector ((d0 < d1 ? p0 : p1))) - p, !other_arc.wedge_contains_point(p));
 
 
   return SignedVector ((d0 < d1 ? Line (normal.dx, normal.dy, normal * Vector (p0)) - p :
-                                         Line (normal.dx, normal.dy, normal * Vector (p1)) - p ), !other_arc.sector_contains_point(p));
+                                         Line (normal.dx, normal.dy, normal * Vector (p1)) - p ), !other_arc.wedge_contains_point(p));
                                          /******************************* Looks correct. *********/
 }
 
@@ -717,7 +717,7 @@ inline Bezier Arc::approximate_bezier (double *error) const {
 }
 
 
-inline bool Arc::sector_contains_point (const Point &p) const {
+inline bool Arc::wedge_contains_point (const Point &p) const {
 
   Point u = (Point) (p0 - center ());
   Point v =  (Point) (p1 - center ());
@@ -747,7 +747,7 @@ inline double Arc::distance_to_point (const Point &p) const {
 
   SignedVector difference = *this - p;
 
-  if (sector_contains_point (p) && fabs(d) > 0)
+  if (wedge_contains_point (p) && fabs(d) > 0)
     return fabs (p.distance_to_point (center ()) - radius ()) * (difference.negative ? -1 : 1);
   double d1 = p.squared_distance_to_point (p0);
   double d2 = p.squared_distance_to_point (p1);
@@ -763,7 +763,7 @@ inline double Arc::squared_distance_to_point (const Point &p) const {
 
   SignedVector difference = *this - p;
 
-  if (sector_contains_point (p) && fabs(d) > 0) {
+  if (wedge_contains_point (p) && fabs(d) > 0) {
     double answer = p.distance_to_point (center ()) - radius ();
     return answer * answer;
   }
@@ -781,7 +781,7 @@ inline double Arc::signed_squared_distance_to_point (const Point &p) const {
 
   SignedVector difference = *this - p;
 
-  if (sector_contains_point (p) && fabs(d) > 0) {
+  if (wedge_contains_point (p) && fabs(d) > 0) {
     double answer = p.distance_to_point (center ()) - radius ();
     return answer * answer * (difference.negative ? -1 : 1);
   }
@@ -800,7 +800,7 @@ inline double Arc::max_distance_to_point (const Point &p) const {
 
   SignedVector difference = *this - p;
 
-  if (sector_contains_point (p) && fabs(d) > 0)
+  if (wedge_contains_point (p) && fabs(d) > 0)
     return fabs (p.distance_to_point (center ()) - radius ()) * (difference.negative ? -1 : 1);
   double d1 = p.distance_to_point (p0);
   double d2 = p.distance_to_point (p1);
@@ -813,7 +813,7 @@ inline Point Arc::nearest_part_to_point (const Point &p) const {
     return arc_segment.nearest_part_to_point (p);
   }
 
-  if (sector_contains_point (p) && fabs(d) > 0)
+  if (wedge_contains_point (p) && fabs(d) > 0)
     return p + ( (1 - radius () / (p - center ()).len ()) * (center () - p));
 
   double d1 = p.squared_distance_to_point (p0);
@@ -823,28 +823,28 @@ inline Point Arc::nearest_part_to_point (const Point &p) const {
 
 inline Point Arc::leftmost (void) const {
   Point answer (center ().x - radius (), center ().y);
-  if (sector_contains_point (answer))
+  if (wedge_contains_point (answer))
     return answer;
   return (p0.x < p1.x ? p0 : p1);
 }
 
 inline Point Arc::rightmost (void) const {
   Point answer (center ().x + radius (), center ().y);
-  if (sector_contains_point (answer))
+  if (wedge_contains_point (answer))
     return answer;
   return (p0.x > p1.x ? p0 : p1);
 }
 
 inline Point Arc::lowest (void) const {
   Point answer (center ().x, center ().y - radius ());
-  if (sector_contains_point (answer))
+  if (wedge_contains_point (answer))
     return answer;
   return (p0.y < p1.y ? p0 : p1);
 }
 
 inline Point Arc::highest (void) const {
   Point answer (center ().x, center ().y + radius ());
-  if (sector_contains_point (answer))
+  if (wedge_contains_point (answer))
     return answer;
   return (p0.y > p1.y ? p0 : p1);
 }
