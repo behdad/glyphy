@@ -23,33 +23,33 @@ libglyphy_la_SOURCES = \
 	glyphy-rgba.cc \
 	glyphy-rgba.hh \
 	glyphy-shaders.c \
-	$(GLYPHY_PUBLICHEADERS) \
-	$(GLYPHY_SHADERHEADERS) \
+	$(PUBLICHEADERS) \
+	$(SHADERHEADERS) \
 	$(NULL)
-GLYPHY_PUBLICHEADERS = \
+PUBLICHEADERS = \
 	glyphy.h \
 	glyphy-arc.h \
 	glyphy-freetype.h \
 	$(NULL)
-GLYPHY_PUBLICSHADERS = \
+SHADERS = \
 	glyphy-common.glsl \
 	glyphy-sdf.glsl \
 	$(NULL)
-GLYPHY_SHADERHEADERS = $(patsubst %.glsl,%-glsl.h, $(GLYPHY_PUBLICSHADERS))
-BUILT_SOURCES += $(GLYPHY_SHADERHEADERS)
-EXTRA_DIST += $(GLYPHY_PUBLICSHADERS)
+SHADERHEADERS = $(patsubst %.glsl,%-glsl.h, $(SHADERS))
+BUILT_SOURCES += $(SHADERHEADERS)
+EXTRA_DIST += $(SHADERS)
 
 pkginclude_HEADERS = \
-	$(GLYPHY_PUBLICHEADERS) \
+	$(PUBLICHEADERS) \
 	$(NULL)
 pkgdata_DATA = \
-	$(GLYPHY_PUBLICSHADERS) \
+	$(SHADERS) \
 	$(NULL)
-
 
 EXTRA_DIST += stringize
 %-glsl.h: %.glsl stringize
-	$(AM_V_GEN) ./stringize "static const char *`echo "$<" | sed 's@.*/@@;s/[-.]/_/g'`" < "$<" > "$@.tmp" && \
+	$(AM_V_GEN) ./stringize "static const char *`echo "$<" | \
+	sed 's@.*/@@;s/[-.]/_/g'`" < "$<" > "$@.tmp" && \
 	mv "$@.tmp" "$@" || ($(RM) "$@.tmp"; false)
 
 

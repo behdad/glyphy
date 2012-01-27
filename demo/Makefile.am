@@ -33,7 +33,21 @@ glyphy_demo_SOURCES = \
 	glyphy-demo-gl.h \
 	glyphy-demo-glut.h \
 	glyphy-demo-shaders.h \
+	$(SHADERHEADERS) \
 	$(NULL)
+SHADERS = \
+	glyphy-demo-atlas.glsl \
+	glyphy-demo-fshader.glsl \
+	glyphy-demo-vshader.glsl \
+	$(NULL)
+SHADERHEADERS = $(patsubst %.glsl,%-glsl.h, $(SHADERS))
+BUILT_SOURCES += $(SHADERHEADERS)
+EXTRA_DIST += $(SHADERS)
+
+%-glsl.h: %.glsl $(top_srcdir)/src/stringize
+	$(AM_V_GEN) $(top_srcdir)/src/stringize "static const char *`echo "$<" | \
+	sed 's@.*/@@;s/[-.]/_/g'`" < "$<" > "$@.tmp" && \
+	mv "$@.tmp" "$@" || ($(RM) "$@.tmp"; false)
 
 endif
 endif

@@ -25,6 +25,9 @@
 
 #include "glyphy-demo-gl.h"
 
+#include "glyphy-demo-atlas-glsl.h"
+#include "glyphy-demo-vshader-glsl.h"
+#include "glyphy-demo-fshader-glsl.h"
 
 
 #define STRINGIZE1(Src) #Src
@@ -38,55 +41,13 @@ create_program (void)
 {
   GLuint vshader, fshader, program;
   const GLchar *vshader_sources[] = {GLSL_VERSION_STRING,
-				     STRINGIZE
-  (
-    uniform mat4 u_matViewProjection;
-    attribute vec4 a_position;
-    attribute vec2 a_glyph;
-    varying vec4 v_glyph;
-
-    int mod (const int a, const int b) { return a - (a / b) * b; }
-    int div (const int a, const int b) { return a / b; }
-
-    vec4 glyph_decode (vec2 v)
-    {
-      ivec2 g = ivec2 (int(v.x), int(v.y));
-      return vec4 (mod (g.x, 2), mod (g.y, 2), div (g.x, 2), div(g.y, 2));
-    }
-
-    void main()
-    {
-      gl_Position = u_matViewProjection * a_position;
-      v_glyph = glyph_decode (a_glyph);
-    }
-  )};
+				     glyphy_demo_vshader_glsl};
   vshader = compile_shader (GL_VERTEX_SHADER, ARRAY_LEN (vshader_sources), vshader_sources);
   const GLchar *fshader_sources[] = {GLSL_VERSION_STRING,
-				     STRINGIZE
-  (
-    uniform sampler2D u_tex;
-    uniform ivec3 u_texSize;
-    varying vec4 v_glyph;
-
-    int mod (const int a, const int b) { return a - (a / b) * b; }
-    int div (const int a, const int b) { return a / b; }
-    vec4 tex_1D (ivec2 offset, int i)
-    {
-      vec2 orig = offset;
-      return texture2D (u_tex, vec2 ((orig.x + mod (i, u_texSize.z) + .5) / float (u_texSize.x),
-				   (orig.y + div (i, u_texSize.z) + .5) / float (u_texSize.y)));
-    }
-  ),
-  glyphy_common_shader_source (),
-  glyphy_sdf_shader_source (),
-  STRINGIZE
-  (
-
-    void main()
-    {
-      gl_FragColor = glyphy_fragment_color(v_glyph.xy, v_glyph);
-    }
-  )};
+				     glyphy_demo_atlas_glsl,
+				     glyphy_common_shader_source (),
+				     glyphy_sdf_shader_source (),
+				     glyphy_demo_fshader_glsl};
   fshader = compile_shader (GL_FRAGMENT_SHADER, ARRAY_LEN (fshader_sources), fshader_sources);
 
   program = link_program (vshader, fshader);
