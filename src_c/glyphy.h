@@ -130,12 +130,12 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
 			     unsigned int                 num_endpoints,
 			     glyphy_rgba_t               *rgba,
 			     unsigned int                 rgba_size,
-			     double                       far_away,
+			     double                       faraway,
 			     double                       avg_fetch_desired,
 			     double                      *avg_fetch_achieved,
 			     unsigned int                *output_len,
 			     unsigned int                *glyph_layout, /* 16bit only will be used */
-			     glyphy_extents_t            *extents);
+			     glyphy_extents_t            *extents /* may be NULL */);
 
 
 

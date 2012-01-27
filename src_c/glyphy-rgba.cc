@@ -23,6 +23,7 @@
 #include <glyphy.h>
 
 #include "glyphy-geometry.hh"
+#include "glyphy-rgba.hh"
 
 #include <string.h>
 #include <stdio.h>
@@ -36,42 +37,40 @@
 #define GRID_H GRID_SIZE
 
 using namespace GLyphy::Geometry;
-
-glyphy_bool_t
-glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
-			     unsigned int                 num_endpoints,
-			     glyphy_rgba_t               *rgba,
-			     unsigned int                 rgba_size,
-			     double                       far_away,
-			     double                       avg_fetch_desired,
-			     double                      *avg_fetch_achieved,
-			     unsigned int                *output_len,
-			     unsigned int                *glyph_layout, /* 16bit only will be used */
-			     glyphy_extents_t            *extents)
-{
-
-
-
-  return false;
-}
+using namespace GLyphy::RGBA;
 
 
 /* Given a cell, fills the vector closest_arcs with arcs that may be closest to some point in the cell.
  * Uses idea that all close arcs to cell must be ~close to center of cell.
  */
 static void
-closest_arcs_to_cell (Point p0, Point p1, /* corners */
+closest_arcs_to_cell (Point c0, Point c1, /* corners */
 		      double grid_size,
-		      double min_font_size,
-		      const std::vector<Arc> &arcs,
-		      std::vector<Arc> &near_arcs,
+		      double faraway,
+		      const glyphy_arc_endpoint_t *endpoints,
+		      unsigned int num_endpoints,
+		      std::vector<glyphy_arc_endpoint_t> near_endpoints,
 		      bool &inside_glyph)
 {
+  std::vector<Arc> arcs;
+  Point p0 (0, 0);
+  for (unsigned int i = 0; i < num_endpoints; i++) {
+    if (endpoints->d == INFINITY) {
+      p0 = Point (endpoints->x, endpoints->y);
+      continue;
+    }
+    Point p1 (endpoints->x, endpoints->y);
+    Arc arc (p0, p1, endpoints->d);
+    arcs.push_back (arc);
+  }
+  std::vector<Arc> near_arcs;
+
+
   inside_glyph = false;
   Arc current_arc = arcs[0];
 
   // Find distance between cell center and its closest arc.
-  Point c = p0.midpoint (p1);
+  Point c = c0.midpoint (c1);
 
   SignedVector to_arc_min = current_arc - c;
   double min_distance = INFINITY;
@@ -105,112 +104,65 @@ closest_arcs_to_cell (Point p0, Point p1, /* corners */
 
   // If d is the distance from the center of the square to the nearest arc, then
   // all nearest arcs to the square must be at most [d + half_diagonal] from the center.
-  double half_diagonal = (c - p0).len ();
-  double faraway = grid_size / min_font_size;
+  double half_diagonal = (c - c0).len ();
   double radius_squared = pow (min_distance + half_diagonal + faraway, 2);
   if (min_distance - half_diagonal <= faraway)
     for (unsigned int i = 0; i < arcs.size (); i++) {
       if (arcs[i].squared_distance_to_point (c) <= radius_squared)
         near_arcs.push_back (arcs[i]);
     }
-}
 
 
 
-/* Bit packing */
+  Point p1 = Point (0, 0);
+  for (unsigned i = 0; i < near_arcs.size (); i++)
+  {
+    Arc arc = near_arcs[i];
 
-#define UPPER_BITS(v,bits,total_bits) ((v) >> ((total_bits) - (bits)))
-#define LOWER_BITS(v,bits,total_bits) ((v) & ((1 << (bits)) - 1))
-#define MIDDLE_BITS(v,bits,upper_bound,total_bits) (UPPER_BITS (LOWER_BITS (v, upper_bound, total_bits), bits, upper_bound))
+    if (i == 0 || p1 != arc.p0) {
+      glyphy_arc_endpoint_t endpoint = {arc.p0.x, arc.p0.y, INFINITY};
+      near_endpoints.push_back (endpoint);
+    }
 
-const glyphy_rgba_t
-static arc_encode (double x, double y, double d)
-{
-  glyphy_rgba_t v;
-
-  // lets do 10 bits for d, and 11 for x and y each 
-  unsigned int ix, iy, id;
-  ix = lround (x * 4095);
-  assert (ix < 4096);
-  iy = lround (y * 4095);
-  assert (iy < 4096);
-#define MAX_D .54 // TODO (0.25?)
-  if (isinf (d))
-    id = 0;
-  else {
-    assert (fabs (d) < MAX_D);
-
-    id = lround (d * 127. / MAX_D + 128);
-
+    glyphy_arc_endpoint_t endpoint = {arc.p1.x, arc.p1.y, arc.d};
+    near_endpoints.push_back (endpoint);
+    p1 = arc.p1;
   }
-  assert (id < 256);
-
-  v.r = id;
-  v.g = LOWER_BITS (ix, 8, 12);
-  v.b = LOWER_BITS (iy, 8, 12);
-  v.a = ((ix >> 8) << 4) | (iy >> 8);
-  return v;
 }
 
 
-glyphy_rgba_t
-static arclist_encode (unsigned int offset, unsigned int num_points, bool is_inside)
+glyphy_bool_t
+glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
+			     unsigned int                 num_endpoints,
+			     glyphy_rgba_t               *rgba,
+			     unsigned int                 rgba_size,
+			     double                       faraway,
+			     double                       avg_fetch_desired,
+			     double                      *avg_fetch_achieved,
+			     unsigned int                *output_len,
+			     unsigned int                *glyph_layout, /* 16bit only will be used */
+			     glyphy_extents_t            *pextents /* may be NULL */)
 {
-  glyphy_rgba_t v;
-  v.r = UPPER_BITS (offset, 8, 24);
-  v.g = MIDDLE_BITS (offset, 8, 16, 24);
-  v.b = LOWER_BITS (offset, 8, 24);
-  v.a = LOWER_BITS (num_points, 8, 8);
-  if (is_inside && !num_points)
-    v.a = 255;
-  return v;
-}
+  glyphy_extents_t extents;
 
-#if 0
-struct atlas_t {
-  GLint tex;
-  std::hash_map<unsigned int, unsigned int, 
+  glyphy_arc_list_extents (endpoints, num_endpoints, &extents);
+  if (pextents)
+    *pextents = extents;
 
-};
-#endif
-
-static int
-arcs_to_texture (std::vector<Arc> &arcs,
-		 double min_font_size,
-		 int width, int *height,
-		 void **buffer)
-{
-  int grid_min_x =  65535;
-  int grid_max_x = -65535;
-  int grid_min_y =  65335;
-  int grid_max_y = -65535;
-  int glyph_width, glyph_height;
-
-  for (unsigned int i = 0; i < arcs.size (); i++) {
-    grid_min_x = std::min (grid_min_x, (int) floor (arcs[i].leftmost ().x));
-    grid_max_x = std::max (grid_max_x, (int) ceil (arcs[i].rightmost ().x));
-    grid_min_y = std::min (grid_min_y, (int) floor (arcs[i].lowest ().y));
-    grid_max_y = std::max (grid_max_y, (int) ceil (arcs[i].highest ().y));
-  }
-
-  glyph_width = grid_max_x - grid_min_x;
-  glyph_height = grid_max_y - grid_min_y;
+  double glyph_width = extents.max_x - extents.min_x;
+  double glyph_height = extents.max_y - extents.min_y;
 
   /* XXX */
   glyph_width = glyph_height = std::max (glyph_width, glyph_height);
 
-
-  // Make a 2d grid for arc/cell information.
   std::vector<glyphy_rgba_t> tex_data;
-
-  // near_arcs: Vector of arcs near points in this single grid cell
-  std::vector<Arc> near_arcs;
+  std::vector<glyphy_arc_endpoint_t> near_arcs;
 
   double min_dimension = std::min(glyph_width, glyph_height);
   unsigned int header_length = GRID_W * GRID_H;
   unsigned int offset = header_length;
   tex_data.resize (header_length);
-  Point origin = Point (grid_min_x, grid_min_y);
+  Point origin = Point (extents.min_x, extents.min_y);
   unsigned int saved_bytes = 0;
   unsigned int total_arcs = 0;
 
@@ -222,31 +174,26 @@ arcs_to_texture (std::vector<Arc> &arcs,
       near_arcs.clear ();
 
       bool inside_glyph;
-      closest_arcs_to_cell (cp0, cp1, min_dimension, min_font_size, arcs, near_arcs, inside_glyph); 
+      closest_arcs_to_cell (cp0, cp1, min_dimension, faraway,
+			    endpoints, num_endpoints,
+			    near_arcs,
+			    inside_glyph);
 
-#define ARC_ENCODE(p, d) \
-	arc_encode (((p).x - grid_min_x) / glyph_width, \
-		    ((p).y - grid_min_y) / glyph_height, \
+#define ARC_ENCODE(x, y, d) \
+	arc_encode ((x - extents.min_x) / glyph_width, \
+		    (y - extents.min_y) / glyph_height, \
 		    (d))
 
-
-      Point p1 = Point (0, 0);
-      for (unsigned i = 0; i < near_arcs.size (); i++)
-      {
-        Arc arc = near_arcs[i];
-
-	if (i == 0 || p1 != arc.p0)
-	  tex_data.push_back (ARC_ENCODE (arc.p0, INFINITY));
-
-	tex_data.push_back (ARC_ENCODE (arc.p1, arc.d));
-	p1 = arc.p1;
+      for (unsigned i = 0; i < near_arcs.size (); i++) {
+        glyphy_arc_endpoint_t &endpoint = near_arcs[i];
+	tex_data.push_back (ARC_ENCODE (endpoint.x, endpoint.y, endpoint.d));
       }
 
-      unsigned int num_endpoints = tex_data.size () - offset;
+      unsigned int current_endpoints = tex_data.size () - offset;
 
       /* See if we can fulfill this cell by using already-encoded arcs */
       const glyphy_rgba_t *needle = &tex_data[offset];
-      unsigned int needle_len = num_endpoints;
+      unsigned int needle_len = current_endpoints;
       const glyphy_rgba_t *haystack = &tex_data[header_length];
       unsigned int haystack_len = offset - header_length;
 
@@ -271,10 +218,10 @@ arcs_to_texture (std::vector<Arc> &arcs,
 	saved_bytes += needle_len * sizeof (*needle);
       }
 
-      tex_data[row * GRID_W + col] = arclist_encode (offset, num_endpoints, inside_glyph);
+      tex_data[row * GRID_W + col] = arclist_encode (offset, current_endpoints, inside_glyph);
       offset = tex_data.size ();
 
-      total_arcs += num_endpoints;
+      total_arcs += current_endpoints;
 
       printf ("%2ld%c ", near_arcs.size (), found ? '.' : 'o');
       if (col == GRID_W - 1)
@@ -283,14 +230,16 @@ arcs_to_texture (std::vector<Arc> &arcs,
 
   printf ("Grid size %dx%d; Used %'ld bytes, saved %'d bytes\n",
 	  GRID_W, GRID_H, tex_data.size () * sizeof (tex_data[0]), saved_bytes);
-  printf ("Average %g texture accesses\n", 1 + double (total_arcs) / (GRID_W * GRID_H));
 
-  unsigned int tex_len = tex_data.size ();
-  unsigned int tex_w = width;
-  unsigned int tex_h = (tex_len + tex_w - 1) / tex_w;
-  tex_data.resize (tex_w * tex_h);
-  *height = tex_h;
-  *buffer = new char[tex_data.size() * sizeof(tex_data[0])];
-  memcpy(*buffer, &tex_data[0], tex_data.size() * sizeof(tex_data[0]));
-  return 0;
+  *avg_fetch_achieved = 1 + double (total_arcs) / (GRID_W * GRID_H);
+  printf ("Average %g texture accesses\n", *avg_fetch_achieved);
+
+  if (tex_data.size () > rgba_size)
+    return false;
+
+  memcpy(rgba, &tex_data[0], tex_data.size () * sizeof(tex_data[0]));
+  *output_len = tex_data.size ();
+
+  *glyph_layout = 0; /* TODO */
+  return true;
 }
