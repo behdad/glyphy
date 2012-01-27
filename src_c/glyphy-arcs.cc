@@ -128,3 +128,32 @@ glyphy_arc_accumulator_arc_to (glyphy_arc_accumulator_t *acc,
 {
   arc (acc, Arc (acc->current_point, p1, d));
 }
+
+
+
+/*
+ * Outline extents from arc list
+ */
+
+
+glyphy_bool_t
+glyphy_arc_list_extents (const glyphy_arc_endpoint_t *endpoints,
+			 unsigned int                 num_endpoints,
+			 glyphy_extents_t            *extents)
+{
+  Point p0 (0, 0);
+  for (unsigned int i = 0; i < num_endpoints; i++) {
+    if (endpoints->d == INFINITY) {
+      p0 = Point (endpoints->x, endpoints->y);
+      continue;
+    }
+    Point p1 (endpoints->x, endpoints->y);
+    Arc arc (p0, p1, endpoints->d);
+    glyphy_extents_t arc_extents;
+    arc.extents (arc_extents);
+    extents->min_x = std::min (extents->min_x, arc_extents.min_x);
+    extents->max_x = std::max (extents->max_x, arc_extents.max_x);
+    extents->min_y = std::min (extents->min_y, arc_extents.min_y);
+    extents->max_y = std::max (extents->max_y, arc_extents.max_y);
+  }
+}

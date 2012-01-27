@@ -19,9 +19,11 @@
 #ifndef GLYPHY_GEOMETRY_HH
 #define GLYPHY_GEOMETRY_HH
 
-#include <glyphy-arc.h>
+#include <glyphy.h>
 
 #include <math.h>
+
+#include <algorithm>
 
 namespace GLyphy {
 namespace Geometry {
@@ -224,6 +226,7 @@ struct Arc {
   inline Point rightmost (void) const;
   inline Point highest (void) const;
   inline Point lowest (void) const;
+  inline void extents (glyphy_extents_t &extents) const;
 
   Point p0, p1;
   double d; /* Depth */
@@ -844,6 +847,19 @@ inline Point Arc::highest (void) const {
   if (sector_contains_point (answer))
     return answer;
   return (p0.y > p1.y ? p0 : p1);
+}
+
+inline void Arc::extents (glyphy_extents_t &extents) const {
+  /* TODO make this faster? */
+  Point p[4] = {leftmost (), rightmost (), lowest (), highest ()};
+  extents.min_x = extents.max_x = p[0].x;
+  extents.min_y = extents.max_y = p[0].y;
+  for (unsigned int i = 1; i < 4; i++) {
+    extents.min_x = std::min (extents.min_x, p[i].x);
+    extents.max_x = std::max (extents.max_x, p[i].x);
+    extents.min_y = std::min (extents.min_y, p[i].y);
+    extents.max_y = std::max (extents.max_y, p[i].y);
+  }
 }
 
 
