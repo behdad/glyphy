@@ -2,7 +2,6 @@ NULL =
 
 EXTRA_DIST = \
 	autogen.sh \
-	autogen_no_autoheader.sh \
 	ac_define_dir.m4 \
 	$(NULL)
 
