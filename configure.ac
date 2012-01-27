@@ -5,8 +5,8 @@ AC_INIT([glyphy],
         [glyphy],
         [http://code.google.com/p/glyphy/])
 
-AC_CONFIG_SRCDIR([include/glyphy/geometry.hh])
-AC_CONFIG_HEADERS([include/glyphy/config.h])
+AC_CONFIG_SRCDIR([glyphy.pc.in])
+AC_CONFIG_HEADERS([config.h])
 
 AM_INIT_AUTOMAKE([1.11.1 gnu dist-bzip2 no-dist-gzip -Wall])
 AM_SILENT_RULES([yes])
@@ -81,11 +81,8 @@ AC_DEFINE_DIR([PKGDATADIR], [$pkgdatadir], [Define to the directory containing p
 
 AC_CONFIG_FILES([
 Makefile
-include/Makefile
 src/Makefile
-src_c/Makefile
-demo/Makefile
-glyphy-${PACKAGE_VERSION}.pc
+glyphy.pc
 ])
 
 AC_OUTPUT
