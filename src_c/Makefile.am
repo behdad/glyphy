@@ -60,7 +60,7 @@ TESTS = \
 	test-geometry \
 	$(NULL)
 
-test_geometry_SOURCES = test-geometry.cc glyphy.cc bezier-arc-approximation.hh
+test_geometry_SOURCES = test-geometry.cc glyphy.cc
 
 
 

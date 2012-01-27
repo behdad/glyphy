@@ -22,9 +22,6 @@
 
 #include <glyphy.h>
 
-#include "glyphy-geometry.hh"
-#include "glyphy-arcs-bezier.hh"
-
 #include "glyphy-demo-glut.h"
 #include "glyphy-demo-shaders.h"
 
@@ -33,6 +30,8 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_OUTLINE_H
+
+#include <vector>
 
 
 #if 1
@@ -46,10 +45,6 @@
 #endif
 
 
-using namespace GLyphy::Geometry;
-using namespace GLyphy::ArcsBezier;
-
-
 
 static void
 die (const char *msg)
@@ -60,103 +55,114 @@ die (const char *msg)
 
 
 
-template <typename OutlineSink>
-class FreeTypeOutlineSource
+static FT_Error ft_err (glyphy_arc_accumulator_t *acc)
 {
-  public:
-
-  static bool decompose_outline (FT_Outline *outline, OutlineSink &d)
-  {
-    static const FT_Outline_Funcs outline_funcs = {
-        (FT_Outline_MoveToFunc) move_to,
-        (FT_Outline_LineToFunc) line_to,
-        (FT_Outline_ConicToFunc) conic_to,
-        (FT_Outline_CubicToFunc) cubic_to,
-        0, /* shift */
-        0, /* delta */
-    };
-
-    return !FT_Outline_Decompose (const_cast <FT_Outline *> (outline), &outline_funcs, &d);
-  }
-
-  static const Point point (FT_Vector *to)
-  {
-    return Point (to->x, to->y);
-  }
-
-  static FT_Error err (bool success)
-  {
-    return success ? FT_Err_Ok : FT_Err_Out_Of_Memory;
-  }
-
-  static int
-  move_to (FT_Vector *to, OutlineSink *d)
-  {
-    return err (d->move_to (point (to)));
-  }
-
-  static int
-  line_to (FT_Vector *to, OutlineSink *d)
-  {
-    return err (d->line_to (point (to)));
-  }
-
-  static int
-  conic_to (FT_Vector *control, FT_Vector *to, OutlineSink *d)
-  {
-    return err (d->conic_to (point (control), point (to)));
-  }
-
-  static int
-  cubic_to (FT_Vector *control1, FT_Vector *control2,
-	    FT_Vector *to, OutlineSink *d)
-  {
-    return err (d->cubic_to (point (control1), point (control2), point (to)));
-  }
-};
-
-void
-ft_outline_to_arcs (FT_Outline *outline,
-		    double tolerance,
-		    std::vector<Arc> &arcs,
-		    double &error)
-{
-  ArcAccumulator acc(arcs);
-  ArcApproximatorOutlineSinkDefault outline_arc_approximator (acc.callback,
-							      static_cast<void *> (&acc),
-							      tolerance);
-  FreeTypeOutlineSource<ArcApproximatorOutlineSinkDefault>::decompose_outline (outline,
-									       outline_arc_approximator);
-  error = outline_arc_approximator.error;
+  return acc->success ? FT_Err_Ok : FT_Err_Out_Of_Memory;
 }
 
-namespace GLyphy {
-extern int
-arcs_to_texture (std::vector<Arc> &arcs,
-		 double min_font_size,
-		 int width, int *height,
-		 void **buffer);
+static const glyphy_point_t ft_point (FT_Vector *to)
+{
+  glyphy_point_t p = {to->x, to->y};
+  return p;
 }
 
-int
-ft_outline_to_texture (FT_Outline *outline, unsigned int upem, int width,
-		       int *height, void **buffer)
+static int
+ft_move_to (FT_Vector *to,
+	    glyphy_arc_accumulator_t *acc)
 {
-  int res = 0;
+  glyphy_arc_accumulator_move_to (acc, ft_point (to));
+  return ft_err (acc);
+}
+
+static int
+ft_line_to (FT_Vector *to,
+	    glyphy_arc_accumulator_t *acc)
+{
+  glyphy_arc_accumulator_line_to (acc, ft_point (to));
+  return ft_err (acc);
+}
+
+static int
+ft_conic_to (FT_Vector *control, FT_Vector *to,
+	     glyphy_arc_accumulator_t *acc)
+{
+  glyphy_arc_accumulator_conic_to (acc, ft_point (control), ft_point (to));
+  return ft_err (acc);
+}
+
+static int
+ft_cubic_to (FT_Vector *control1, FT_Vector *control2, FT_Vector *to,
+	     glyphy_arc_accumulator_t *acc)
+{
+  glyphy_arc_accumulator_cubic_to (acc, ft_point (control1), ft_point (control2), ft_point (to));
+  return ft_err (acc);
+}
+
+
+static glyphy_bool_t
+accumulate_endpoint (glyphy_arc_endpoint_t              *endpoint,
+		     std::vector<glyphy_arc_endpoint_t> *endpoints)
+{
+  endpoints->push_back (*endpoint);
+  return true;
+}
+
+
+
+glyphy_bool_t
+ft_outline_to_texture (FT_Outline *outline, unsigned int upem, void *buffer,
+		       unsigned int *output_len)
+{
   double tolerance = upem * TOLERANCE; // in font design units
-  std::vector<Arc> arcs;
-  double error;
-  ft_outline_to_arcs (outline, tolerance, arcs, error);
-  res = GLyphy::arcs_to_texture(arcs, MIN_FONT_SIZE, width, height, buffer);
-  printf ("Used %d arcs; Approx. err %g; Tolerance %g; Percentage %g. %s\n",
-	  (int) arcs.size (), error, tolerance, round (100 * error / tolerance),
-	  error <= tolerance ? "PASS" : "FAIL");
-  return res;
+  std::vector<glyphy_arc_endpoint_t> endpoints;
+
+  glyphy_arc_accumulator_t acc;
+  glyphy_arc_accumulator_init (&acc, tolerance,
+			       (glyphy_arc_endpoint_accumulator_callback_t) accumulate_endpoint,
+			       &endpoints);
+
+
+  static const FT_Outline_Funcs outline_funcs = {
+    (FT_Outline_MoveToFunc) ft_move_to,
+    (FT_Outline_LineToFunc) ft_line_to,
+    (FT_Outline_ConicToFunc) ft_conic_to,
+    (FT_Outline_CubicToFunc) ft_cubic_to,
+    0, /* shift */
+    0, /* delta */
+  };
+  /* TODO handle err */
+  FT_Outline_Decompose (const_cast <FT_Outline *> (outline), &outline_funcs, &acc);
+
+  glyphy_rgba_t rgba[10000];
+  double avg_fetch_achieved;
+  unsigned int glyph_layout;
+  glyphy_extents_t extents;
+  double faraway = double (upem) / MIN_FONT_SIZE;
+
+  if (!glyphy_arc_list_encode_rgba (&endpoints[0], endpoints.size (),
+				    &rgba[0], ARRAY_LEN (rgba),
+				    faraway,
+				    4,
+				    &avg_fetch_achieved,
+				    output_len,
+				    &glyph_layout,
+				    &extents))
+    return false;
+
+  printf ("Average %g texture accesses\n", avg_fetch_achieved);
+
+  printf ("Used %d arc endpoints; Approx. err %g; Tolerance %g; Percentage %g. %s\n",
+	  (int) endpoints.size (), acc.max_error, tolerance, round (100 * acc.max_error / tolerance),
+	  acc.max_error <= tolerance ? "PASS" : "FAIL");
+
+  memcpy (buffer, &rgba[0], *output_len * sizeof (rgba[0]));
+
+  return true;
 }
 
 int
-ft_face_to_texture (FT_Face face, FT_ULong unicode, int width, int *height,
-		    void **buffer)
+ft_face_to_texture (FT_Face face, FT_ULong unicode, void *buffer,
+		    unsigned int *output_len)
 {
   unsigned int upem = face->units_per_EM;
   unsigned int glyph_index = FT_Get_Char_Index (face, unicode);
@@ -174,7 +180,7 @@ ft_face_to_texture (FT_Face face, FT_ULong unicode, int width, int *height,
   if (face->glyph->format != FT_GLYPH_FORMAT_OUTLINE)
     die ("FreeType loaded glyph format is not outline");
 
-  return ft_outline_to_texture (&face->glyph->outline, upem, width, height, buffer);
+  return ft_outline_to_texture (&face->glyph->outline, upem, buffer, output_len);
 }
 
 
@@ -200,10 +206,13 @@ create_texture (const char *font_path, const char UTF8)
   FT_Init_FreeType (&library);
   FT_New_Face (library, font_path, 0, &face);
 
-  int tex_w = SUB_TEX_W, tex_h;
-  void *buffer;
+  char buffer[50000];
+  unsigned int output_len;
 
-  ft_face_to_texture (face, UTF8, tex_w, &tex_h, &buffer);
+  ft_face_to_texture (face, UTF8, buffer, &output_len);
+
+  int tex_w = SUB_TEX_W;
+  int tex_h = (output_len + tex_w - 1) / tex_w;
 
   GLuint texture;
   glGenTextures (1, &texture);
@@ -214,7 +223,6 @@ create_texture (const char *font_path, const char UTF8)
   /* Upload*/
   gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, TEX_W, TEX_H, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
   gl(TexSubImage2D) (GL_TEXTURE_2D, 0, 0, 0, tex_w, tex_h, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
-  free(buffer);
 
   GLuint program;
   glGetIntegerv (GL_CURRENT_PROGRAM, (GLint *) &program);
@@ -229,8 +237,8 @@ create_texture (const char *font_path, const char UTF8)
 int
 main (int argc, char** argv)
 {
-  char *font_path;
-  char utf8;
+  char *font_path = NULL;
+  char utf8 = 0;
   if (argc >= 3) {
      font_path = argv[1];
      utf8 = argv[2][0];

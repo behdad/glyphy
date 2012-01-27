@@ -40,9 +40,8 @@ typedef struct {
 
 typedef struct glyphy_arc_accumulator_t glyphy_arc_accumulator_t;
 
-typedef glyphy_bool_t (*glyphy_arc_endpoint_accumulator_callback_t) (glyphy_arc_accumulator_t *accumulator,
-								     glyphy_arc_endpoint_t    *endpoint,
-								     void                     *user_data);
+typedef glyphy_bool_t (*glyphy_arc_endpoint_accumulator_callback_t) (glyphy_arc_endpoint_t *endpoint,
+								     void                  *user_data);
 
 /* TODO Make this a refcounted opaque type?  Or add destroy_notify? */
 typedef struct glyphy_arc_accumulator_t {

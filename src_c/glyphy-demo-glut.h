@@ -31,7 +31,9 @@
     #include <GL/glut.h>
 #endif
 
+#include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 
 
 

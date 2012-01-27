@@ -49,19 +49,21 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
 		      double faraway,
 		      const glyphy_arc_endpoint_t *endpoints,
 		      unsigned int num_endpoints,
-		      std::vector<glyphy_arc_endpoint_t> near_endpoints,
+		      std::vector<glyphy_arc_endpoint_t> &near_endpoints,
 		      bool &inside_glyph)
 {
   std::vector<Arc> arcs;
   Point p0 (0, 0);
   for (unsigned int i = 0; i < num_endpoints; i++) {
-    if (endpoints->d == INFINITY) {
-      p0 = Point (endpoints->x, endpoints->y);
+    const glyphy_arc_endpoint_t &endpoint = endpoints[i];
+    if (endpoint.d == INFINITY) {
+      p0 = Point (endpoint.x, endpoint.y);
       continue;
     }
-    Point p1 (endpoints->x, endpoints->y);
-    Arc arc (p0, p1, endpoints->d);
+    Point p1 (endpoint.x, endpoint.y);
+    Arc arc (p0, p1, endpoint.d);
     arcs.push_back (arc);
+    p0 = p1;
   }
   std::vector<Arc> near_arcs;
 
@@ -83,7 +85,7 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
 
     // If two arcs are equally close to this point, take the sign from the one whose extension is farther away.
     // (Extend arcs using tangent lines from endpoints; this is done using the SignedVector operation "-".)
-    if (fabs (fabs (current_distance) - fabs(min_distance)) < 1e-6) {
+    if (fabs (fabs (current_distance) - fabs (min_distance)) < 1e-6) {
       SignedVector to_arc_current = current_arc - c;
       if (to_arc_min.len () < to_arc_current.len ()) {
         min_distance = fabs (current_distance) * (to_arc_current.negative ? -1 : 1);
@@ -112,8 +114,6 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
         near_arcs.push_back (arcs[i]);
     }
 
-
-
   Point p1 = Point (0, 0);
   for (unsigned i = 0; i < near_arcs.size (); i++)
   {
@@ -122,6 +122,7 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
     if (i == 0 || p1 != arc.p0) {
       glyphy_arc_endpoint_t endpoint = {arc.p0.x, arc.p0.y, INFINITY};
       near_endpoints.push_back (endpoint);
+      p1 = arc.p0;
     }
 
     glyphy_arc_endpoint_t endpoint = {arc.p1.x, arc.p1.y, arc.d};
@@ -156,7 +157,7 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
   glyph_width = glyph_height = std::max (glyph_width, glyph_height);
 
   std::vector<glyphy_rgba_t> tex_data;
-  std::vector<glyphy_arc_endpoint_t> near_arcs;
+  std::vector<glyphy_arc_endpoint_t> near_endpoints;
 
   double min_dimension = std::min(glyph_width, glyph_height);
   unsigned int header_length = GRID_W * GRID_H;
@@ -171,12 +172,12 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
     {
       Point cp0 = origin + Vector ((col + 0.) * glyph_width / GRID_W, (row + 0.) * glyph_height / GRID_H);
       Point cp1 = origin + Vector ((col + 1.) * glyph_width / GRID_W, (row + 1.) * glyph_height / GRID_H);
-      near_arcs.clear ();
+      near_endpoints.clear ();
 
       bool inside_glyph;
       closest_arcs_to_cell (cp0, cp1, min_dimension, faraway,
 			    endpoints, num_endpoints,
-			    near_arcs,
+			    near_endpoints,
 			    inside_glyph);
 
 #define ARC_ENCODE(x, y, d) \
@@ -184,8 +185,8 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
 		    (y - extents.min_y) / glyph_height, \
 		    (d))
 
-      for (unsigned i = 0; i < near_arcs.size (); i++) {
-        glyphy_arc_endpoint_t &endpoint = near_arcs[i];
+      for (unsigned i = 0; i < near_endpoints.size (); i++) {
+        glyphy_arc_endpoint_t &endpoint = near_endpoints[i];
 	tex_data.push_back (ARC_ENCODE (endpoint.x, endpoint.y, endpoint.d));
       }
 
@@ -223,7 +224,7 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
 
       total_arcs += current_endpoints;
 
-      printf ("%2ld%c ", near_arcs.size (), found ? '.' : 'o');
+      printf ("%2ld%c ", near_endpoints.size (), found ? '.' : 'o');
       if (col == GRID_W - 1)
         printf ("\n");
     }
@@ -231,8 +232,8 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
   printf ("Grid size %dx%d; Used %'ld bytes, saved %'d bytes\n",
 	  GRID_W, GRID_H, tex_data.size () * sizeof (tex_data[0]), saved_bytes);
 
-  *avg_fetch_achieved = 1 + double (total_arcs) / (GRID_W * GRID_H);
-  printf ("Average %g texture accesses\n", *avg_fetch_achieved);
+  if (avg_fetch_achieved)
+    *avg_fetch_achieved = 1 + double (total_arcs) / (GRID_W * GRID_H);
 
   if (tex_data.size () > rgba_size)
     return false;

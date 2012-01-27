@@ -54,7 +54,7 @@ static void
 accumulate (glyphy_arc_accumulator_t *acc, const Point &p, double d)
 {
   glyphy_arc_endpoint_t endpoint = {p.x, p.y, d};
-  acc->success = acc->success && acc->callback (acc, &endpoint, acc->user_data);
+  acc->success = acc->success && acc->callback (&endpoint, acc->user_data);
   if (acc->success) {
     acc->num_endpoints++;
     acc->current_point = p;
@@ -142,18 +142,27 @@ glyphy_arc_list_extents (const glyphy_arc_endpoint_t *endpoints,
 			 glyphy_extents_t            *extents)
 {
   Point p0 (0, 0);
+  bool first = true;
   for (unsigned int i = 0; i < num_endpoints; i++) {
-    if (endpoints->d == INFINITY) {
-      p0 = Point (endpoints->x, endpoints->y);
+    const glyphy_arc_endpoint_t &endpoint = endpoints[i];
+    if (endpoint.d == INFINITY) {
+      p0 = Point (endpoint.x, endpoint.y);
       continue;
     }
-    Point p1 (endpoints->x, endpoints->y);
-    Arc arc (p0, p1, endpoints->d);
+    Point p1 (endpoint.x, endpoint.y);
+    Arc arc (p0, p1, endpoint.d);
     glyphy_extents_t arc_extents;
     arc.extents (arc_extents);
-    extents->min_x = std::min (extents->min_x, arc_extents.min_x);
-    extents->max_x = std::max (extents->max_x, arc_extents.max_x);
-    extents->min_y = std::min (extents->min_y, arc_extents.min_y);
-    extents->max_y = std::max (extents->max_y, arc_extents.max_y);
+    if (first) {
+      *extents = arc_extents;
+      first = false;
+    } else {
+      extents->min_x = std::min (extents->min_x, arc_extents.min_x);
+      extents->max_x = std::max (extents->max_x, arc_extents.max_x);
+      extents->min_y = std::min (extents->min_y, arc_extents.min_y);
+      extents->max_y = std::max (extents->max_y, arc_extents.max_y);
+    }
   }
+  if (first)
+    assert (false);
 }
