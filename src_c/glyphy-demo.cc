@@ -22,16 +22,9 @@
 
 #include <glyphy.h>
 
+#include "glyphy-demo-freetype.h"
 #include "glyphy-demo-glut.h"
 #include "glyphy-demo-shaders.h"
-
-#include <assert.h>
-
-#include <ft2build.h>
-#include FT_FREETYPE_H
-#include FT_OUTLINE_H
-
-#include <vector>
 
 
 #if 1
@@ -55,83 +48,16 @@ die (const char *msg)
 
 
 
-static FT_Error ft_err (glyphy_arc_accumulator_t *acc)
-{
-  return acc->success ? FT_Err_Ok : FT_Err_Out_Of_Memory;
-}
-
-static const glyphy_point_t ft_point (FT_Vector *to)
-{
-  glyphy_point_t p = {to->x, to->y};
-  return p;
-}
-
-static int
-ft_move_to (FT_Vector *to,
-	    glyphy_arc_accumulator_t *acc)
-{
-  glyphy_arc_accumulator_move_to (acc, ft_point (to));
-  return ft_err (acc);
-}
-
-static int
-ft_line_to (FT_Vector *to,
-	    glyphy_arc_accumulator_t *acc)
-{
-  glyphy_arc_accumulator_line_to (acc, ft_point (to));
-  return ft_err (acc);
-}
-
-static int
-ft_conic_to (FT_Vector *control, FT_Vector *to,
-	     glyphy_arc_accumulator_t *acc)
-{
-  glyphy_arc_accumulator_conic_to (acc, ft_point (control), ft_point (to));
-  return ft_err (acc);
-}
-
-static int
-ft_cubic_to (FT_Vector *control1, FT_Vector *control2, FT_Vector *to,
-	     glyphy_arc_accumulator_t *acc)
-{
-  glyphy_arc_accumulator_cubic_to (acc, ft_point (control1), ft_point (control2), ft_point (to));
-  return ft_err (acc);
-}
-
-
-static glyphy_bool_t
-accumulate_endpoint (glyphy_arc_endpoint_t              *endpoint,
-		     std::vector<glyphy_arc_endpoint_t> *endpoints)
-{
-  endpoints->push_back (*endpoint);
-  return true;
-}
-
-
-
 glyphy_bool_t
 ft_outline_to_texture (FT_Outline *outline, unsigned int upem, void *buffer,
 		       unsigned int *output_len)
 {
   double tolerance = upem * TOLERANCE; // in font design units
   std::vector<glyphy_arc_endpoint_t> endpoints;
+  double error;
 
-  glyphy_arc_accumulator_t acc;
-  glyphy_arc_accumulator_init (&acc, tolerance,
-			       (glyphy_arc_endpoint_accumulator_callback_t) accumulate_endpoint,
-			       &endpoints);
-
-
-  static const FT_Outline_Funcs outline_funcs = {
-    (FT_Outline_MoveToFunc) ft_move_to,
-    (FT_Outline_LineToFunc) ft_line_to,
-    (FT_Outline_ConicToFunc) ft_conic_to,
-    (FT_Outline_CubicToFunc) ft_cubic_to,
-    0, /* shift */
-    0, /* delta */
-  };
-  /* TODO handle err */
-  FT_Outline_Decompose (const_cast <FT_Outline *> (outline), &outline_funcs, &acc);
+  if (!ft_outline_to_arcs (outline, tolerance, endpoints, &error))
+    return false;
 
   glyphy_rgba_t rgba[10000];
   double avg_fetch_achieved;
@@ -149,11 +75,10 @@ ft_outline_to_texture (FT_Outline *outline, unsigned int upem, void *buffer,
 				    &extents))
     return false;
 
-  printf ("Average %g texture accesses\n", avg_fetch_achieved);
-
   printf ("Used %d arc endpoints; Approx. err %g; Tolerance %g; Percentage %g. %s\n",
-	  (int) endpoints.size (), acc.max_error, tolerance, round (100 * acc.max_error / tolerance),
-	  acc.max_error <= tolerance ? "PASS" : "FAIL");
+	  (int) endpoints.size (), error, tolerance, round (100 * error / tolerance),
+	  error <= tolerance ? "PASS" : "FAIL");
+  printf ("Average %g texture accesses\n", avg_fetch_achieved);
 
   memcpy (buffer, &rgba[0], *output_len * sizeof (rgba[0]));
 
