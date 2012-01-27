@@ -31,7 +31,7 @@ vec4 /*<*/glyphy_fragment_color/*>*/ (vec2 p, vec4 v_glyph)
   ivec3 arclist = /*<*/glyphy_arclist_decode/*>*/ (tex_1D (glyph_offset, p_cell_y * 16 /*GRID_W*/ + p_cell_x));
   int offset = arclist.x;
   int num_endpoints =  arclist.y;
-  int side = arclist.z == 1 ? -1 : +1;
+  int side = arclist.z;
 
   int i;
   float min_dist = 1.5;
@@ -62,7 +62,7 @@ vec4 /*<*/glyphy_fragment_color/*>*/ (vec2 p, vec4 v_glyph)
     min_point_dist = min (min_point_dist, distance (p, p1));
 
     // unsigned distance
-    float d2 = tan2atan (d);
+    float d2 = /*<*/glyphy_tan2atan/*>*/ (d);
     if (dot (p - p0, (p1 - p0) * mat2(1,  d2, -d2, 1)) >= 0 &&
 	dot (p - p1, (p1 - p0) * mat2(1, -d2,  d2, 1)) <= 0)
     {
@@ -95,8 +95,6 @@ vec4 /*<*/glyphy_fragment_color/*>*/ (vec2 p, vec4 v_glyph)
       }
     }
   }
-
-
 
   if (side == 0)
   {
