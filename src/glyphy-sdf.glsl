@@ -17,13 +17,13 @@
  */
 
 float
-/*<*/glyphy_sdf/*>*/ (vec2 p, ivec2 glyph_offset)
+glyphy_sdf (vec2 p, int glyph_layout, sampler2D atlas_tex, vec4 atlas_info)
 {
   int p_cell_x = int (clamp (p.x, 0., 1.-1e-5) * 16 /*GRID_W*/);
   int p_cell_y = int (clamp (p.y, 0., 1.-1e-5) * 16 /*GRID_H*/);
 
-  vec4 arclist_data = tex_1D (glyph_offset, p_cell_y * 16 /*GRID_W*/ + p_cell_x);
-  ivec3 arclist = /*<*/glyphy_arclist_decode/*>*/ (arclist_data);
+  vec4 arclist_data = glyphy_texture1D_func (atlas_tex, atlas_info, p_cell_y * 16 /*GRID_W*/ + p_cell_x);
+  ivec3 arclist = glyphy_arclist_decode (arclist_data);
   int offset = arclist.x;
   int num_endpoints =  arclist.y;
   int side = arclist.z;
@@ -39,10 +39,10 @@ float
     float d;
   } closest_arc;
 
-  vec3 arc_prev = /*<*/glyphy_arc_decode/*>*/ (tex_1D (glyph_offset, offset));
+  vec3 arc_prev = glyphy_arc_decode (glyphy_texture1D_func (atlas_tex, atlas_info, offset));
   for (i = 1; i < num_endpoints; i++)
   {
-    vec3 arc = /*<*/glyphy_arc_decode/*>*/ (tex_1D (glyph_offset, i + offset));
+    vec3 arc = glyphy_arc_decode (glyphy_texture1D_func (atlas_tex, atlas_info, i + offset));
     vec2 p0 = arc_prev.rg;
     arc_prev = arc;
     float d = arc.b;
@@ -54,11 +54,11 @@ float
     min_point_dist = min (min_point_dist, distance (p, p1));
 
     // unsigned distance
-    float d2 = /*<*/glyphy_tan2atan/*>*/ (d);
+    float d2 = glyphy_tan2atan (d);
     if (dot (p - p0, (p1 - p0) * mat2(1,  d2, -d2, 1)) >= 0 &&
 	dot (p - p1, (p1 - p0) * mat2(1, -d2,  d2, 1)) <= 0)
     {
-      vec2 c = /*<*/glyphy_arc_center/*>*/ (p0, p1, d);
+      vec2 c = glyphy_arc_center (p0, p1, d);
       float signed_dist = (distance (p, c) - distance (p0, c));
       float dist = abs (signed_dist);
       if (dist <= min_dist) {
@@ -76,8 +76,8 @@ float
       } else if (dist == min_dist && side == 0) {
 	// If this new distance is the same as the current minimum, compare extended distances.
 	// Take the sign from the arc with larger extended distance.
-	float new_extended_dist = /*<*/glyphy_arc_extended_dist/*>*/ (p, p0, p1, d);
-	float old_extended_dist = /*<*/glyphy_arc_extended_dist/*>*/ (p, closest_arc.p0, closest_arc.p1, closest_arc.d);
+	float new_extended_dist = glyphy_arc_extended_dist (p, p0, p1, d);
+	float old_extended_dist = glyphy_arc_extended_dist (p, closest_arc.p0, closest_arc.p1, closest_arc.d);
 
 	float extended_dist = abs (new_extended_dist) <= abs (old_extended_dist) ?
 			      old_extended_dist : new_extended_dist;
@@ -91,7 +91,7 @@ float
   if (side == 0)
   {
     // Technically speaking this should not happen, but it does.  So fix it.
-    float extended_dist = /*<*/glyphy_arc_extended_dist/*>*/ (p, closest_arc.p0, closest_arc.p1, closest_arc.d);
+    float extended_dist = glyphy_arc_extended_dist (p, closest_arc.p0, closest_arc.p1, closest_arc.d);
     side = extended_dist < 0 ? -1 : +1;
   }
 

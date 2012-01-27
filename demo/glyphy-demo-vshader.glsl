@@ -1,6 +1,8 @@
 uniform mat4 u_matViewProjection;
+
 attribute vec4 a_position;
 attribute vec2 a_glyph;
+
 varying vec4 v_glyph;
 
 int mod (const int a, const int b) { return a - (a / b) * b; }
