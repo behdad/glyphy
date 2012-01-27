@@ -124,15 +124,17 @@ typedef struct {
 } glyphy_rgba_t;
 
 
+/* TODO make this callback-based also? */
 glyphy_bool_t
 glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
 			     unsigned int                 num_endpoints,
 			     glyphy_rgba_t               *rgba,
 			     unsigned int                 rgba_size,
 			     double                       far_away,
-			     unsigned int                 avg_fetch_desired,
+			     double                       avg_fetch_desired,
+			     double                      *avg_fetch_achieved,
 			     unsigned int                *output_len,
-			     unsigned int                *glyph_layout, /* 16bit only */
+			     unsigned int                *glyph_layout, /* 16bit only will be used */
 			     glyphy_extents_t            *extents);
 
 

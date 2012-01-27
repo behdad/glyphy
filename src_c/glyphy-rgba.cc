@@ -22,49 +22,56 @@
 
 #include <glyphy.h>
 
+#include "glyphy-geometry.hh"
+
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
 #include <assert.h>
 
-#include "glyphy-arcs-bezier.hh"
-
-using namespace std;
-
-namespace GLyphy {
-
-using namespace ArcsBezier;
-
-
-typedef Vector vector_t;
-typedef Point point_t;
-typedef Line line_t;
-typedef Arc arc_t;
-typedef Segment segment_t;
-typedef Circle circle_t;
-typedef Bezier bezier_t;
-
+#include <vector>
 
 #define GRID_SIZE 16
 #define GRID_W GRID_SIZE
 #define GRID_H GRID_SIZE
 
+using namespace GLyphy::Geometry;
+
+glyphy_bool_t
+glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
+			     unsigned int                 num_endpoints,
+			     glyphy_rgba_t               *rgba,
+			     unsigned int                 rgba_size,
+			     double                       far_away,
+			     double                       avg_fetch_desired,
+			     double                      *avg_fetch_achieved,
+			     unsigned int                *output_len,
+			     unsigned int                *glyph_layout, /* 16bit only will be used */
+			     glyphy_extents_t            *extents)
+{
+
+
+
+  return false;
+}
+
+
 /* Given a cell, fills the vector closest_arcs with arcs that may be closest to some point in the cell.
  * Uses idea that all close arcs to cell must be ~close to center of cell.
  */
-void
-closest_arcs_to_cell (point_t p0, point_t p1, /* corners */
+static void
+closest_arcs_to_cell (Point p0, Point p1, /* corners */
 		      double grid_size,
 		      double min_font_size,
-		      const vector<arc_t> &arcs,
-		      vector<arc_t> &near_arcs,
+		      const std::vector<Arc> &arcs,
+		      std::vector<Arc> &near_arcs,
 		      bool &inside_glyph)
 {
   inside_glyph = false;
-  arc_t current_arc = arcs[0];
+  Arc current_arc = arcs[0];
 
   // Find distance between cell center and its closest arc.
-  point_t c = p0.midpoint (p1);
+  Point c = p0.midpoint (p1);
 
   SignedVector to_arc_min = current_arc - c;
   double min_distance = INFINITY;
@@ -117,7 +124,7 @@ closest_arcs_to_cell (point_t p0, point_t p1, /* corners */
 #define MIDDLE_BITS(v,bits,upper_bound,total_bits) (UPPER_BITS (LOWER_BITS (v, upper_bound, total_bits), bits, upper_bound))
 
 const glyphy_rgba_t
-arc_encode (double x, double y, double d)
+static arc_encode (double x, double y, double d)
 {
   glyphy_rgba_t v;
 
@@ -147,7 +154,7 @@ arc_encode (double x, double y, double d)
 
 
 glyphy_rgba_t
-arclist_encode (unsigned int offset, unsigned int num_points, bool is_inside)
+static arclist_encode (unsigned int offset, unsigned int num_points, bool is_inside)
 {
   glyphy_rgba_t v;
   v.r = UPPER_BITS (offset, 8, 24);
@@ -167,12 +174,8 @@ struct atlas_t {
 };
 #endif
 
-#define IS_INSIDE_NO     0
-#define IS_INSIDE_YES    1
-#define IS_INSIDE_UNSURE 2
-
-int
-arcs_to_texture (std::vector<arc_t> &arcs,
+static int
+arcs_to_texture (std::vector<Arc> &arcs,
 		 double min_font_size,
 		 int width, int *height,
 		 void **buffer)
@@ -198,24 +201,24 @@ arcs_to_texture (std::vector<arc_t> &arcs,
 
 
   // Make a 2d grid for arc/cell information.
-  vector<glyphy_rgba_t> tex_data;
+  std::vector<glyphy_rgba_t> tex_data;
 
   // near_arcs: Vector of arcs near points in this single grid cell
-  vector<arc_t> near_arcs;
+  std::vector<Arc> near_arcs;
 
   double min_dimension = std::min(glyph_width, glyph_height);
   unsigned int header_length = GRID_W * GRID_H;
   unsigned int offset = header_length;
   tex_data.resize (header_length);
-  point_t origin = point_t (grid_min_x, grid_min_y);
+  Point origin = Point (grid_min_x, grid_min_y);
   unsigned int saved_bytes = 0;
   unsigned int total_arcs = 0;
 
   for (int row = 0; row < GRID_H; row++)
     for (int col = 0; col < GRID_W; col++)
     {
-      point_t cp0 = origin + vector_t ((col + 0.) * glyph_width / GRID_W, (row + 0.) * glyph_height / GRID_H);
-      point_t cp1 = origin + vector_t ((col + 1.) * glyph_width / GRID_W, (row + 1.) * glyph_height / GRID_H);
+      Point cp0 = origin + Vector ((col + 0.) * glyph_width / GRID_W, (row + 0.) * glyph_height / GRID_H);
+      Point cp1 = origin + Vector ((col + 1.) * glyph_width / GRID_W, (row + 1.) * glyph_height / GRID_H);
       near_arcs.clear ();
 
       bool inside_glyph;
@@ -227,10 +230,10 @@ arcs_to_texture (std::vector<arc_t> &arcs,
 		    (d))
 
 
-      point_t p1 = point_t (0, 0);
+      Point p1 = Point (0, 0);
       for (unsigned i = 0; i < near_arcs.size (); i++)
       {
-        arc_t arc = near_arcs[i];
+        Arc arc = near_arcs[i];
 
 	if (i == 0 || p1 != arc.p0)
 	  tex_data.push_back (ARC_ENCODE (arc.p0, INFINITY));
@@ -291,22 +294,3 @@ arcs_to_texture (std::vector<arc_t> &arcs,
   memcpy(*buffer, &tex_data[0], tex_data.size() * sizeof(tex_data[0]));
   return 0;
 }
-
-} /* namespace GLyphy */
-
-
-/*
- * Shader source code
- */
-
-/* TODO path separator */
-#define SHADER_PATH(File) PKGDATADIR "/" File
-
-#include "glyphy-common-glsl.h"
-#include "glyphy-sdf-glsl.h"
-
-const char * glyphy_common_shader_source (void) { return glyphy_common_glsl; }
-const char * glyphy_sdf_shader_source (void) { return glyphy_sdf_glsl; }
-
-const char * glyphy_common_shader_source_path (void) {  return SHADER_PATH ("glyphy-common.glsl"); }
-const char * glyphy_sdf_shader_source_path (void) {  return SHADER_PATH ("glyphy-sdf.glsl"); }
