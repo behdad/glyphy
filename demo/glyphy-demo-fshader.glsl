@@ -6,8 +6,8 @@ varying vec4 v_glyph;
 void main()
 {
   vec2 p = v_glyph.xy;
-  int glyph_layout = 0;//unused for now
-  vec4 atlas_pos = vec4 (v_glyph.zw, 0, 0);
+  int glyph_layout = mod (int (v_glyph.z), 256) * 256 + mod (int (v_glyph.w), 256);
+  vec4 atlas_pos = vec4 (int (v_glyph.z) / 256, int (v_glyph.w) / 256, 0, 0) * 4;
 
   /* isotropic antialiasing */
   float m = length (vec2 (float (dFdx (p)),

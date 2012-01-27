@@ -26,6 +26,8 @@
 #include "glyphy-demo-glut.h"
 #include "glyphy-demo-shaders.h"
 
+#include <assert.h>
+
 #include <vector>
 
 
@@ -172,6 +174,24 @@ create_texture (const char *font_path, unsigned int unicode)
   return texture;
 }
 
+unsigned int
+glyph_encode (unsigned int atlas_x,  /* 9 bits, should be multiple of 4 */
+	      unsigned int atlas_y,  /* 9 bits, should be multiple of 4 */
+	      unsigned int corner_x, /* 1 bit */
+	      unsigned int corner_y, /* 1 bit */
+	      unsigned int glyph_layout /* 16 bits */)
+{
+  assert (0 == (atlas_x & ~0x1FC));
+  assert (0 == (atlas_y & ~0x1FC));
+  assert (0 == (corner_x & ~1));
+  assert (0 == (corner_y & ~1));
+  assert (0 == (glyph_layout & ~0xFFFF));
+
+  unsigned int x = (((atlas_x << 6) | (glyph_layout >> 8))   << 1) | corner_x;
+  unsigned int y = (((atlas_y << 6) | (glyph_layout & 0xFF)) << 1) | corner_y;
+
+  return (x << 16) | y;
+}
 
 int
 main (int argc, char** argv)
@@ -197,20 +217,36 @@ main (int argc, char** argv)
   struct glyph_attrib_t {
     GLfloat x;
     GLfloat y;
-    GLfloat g;
-    GLfloat h;
+
+    GLfloat g16hi;
+    GLfloat g16lo;
   };
-  const glyph_attrib_t w_vertices[] = {{-1, -1, 0, 0},
-				       {+1, -1, 1, 0},
-				       {+1, +1, 1, 1},
-				       {-1, +1, 0, 1}};
+  glyph_attrib_t w_vertices[10];
+  unsigned int num_vertices = 0;
+  unsigned int glyph_layout = 0x1010;
+
+#define ENCODE_CORNER(_x, _y, _cx, _cy, _glyph_layout) \
+  do { \
+    unsigned int i = num_vertices; \
+    unsigned int encoded = glyph_encode (0, 0, _cx, _cy, _glyph_layout); \
+    w_vertices[i].x = _x; \
+    w_vertices[i].y = _y; \
+    w_vertices[i].g16hi = encoded >> 16; \
+    w_vertices[i].g16lo = encoded & 0xFFFF; \
+    num_vertices++; \
+  } while (0)
+
+  ENCODE_CORNER (-1, -1, 0, 0, glyph_layout);
+  ENCODE_CORNER (+1, -1, 1, 0, glyph_layout);
+  ENCODE_CORNER (+1, +1, 1, 1, glyph_layout);
+  ENCODE_CORNER (-1, +1, 0, 1, glyph_layout);
 
   GLuint a_pos_loc = glGetAttribLocation (program, "a_position");
   GLuint a_glyph_loc = glGetAttribLocation (program, "a_glyph");
   glVertexAttribPointer (a_pos_loc, 2, GL_FLOAT, GL_FALSE, sizeof (glyph_attrib_t),
 			 (const char *) w_vertices + offsetof (glyph_attrib_t, x));
   glVertexAttribPointer (a_glyph_loc, 2, GL_FLOAT, GL_FALSE, sizeof (glyph_attrib_t),
-			 (const char *) w_vertices + offsetof (glyph_attrib_t, g));
+			 (const char *) w_vertices + offsetof (glyph_attrib_t, g16hi));
   glEnableVertexAttribArray (a_pos_loc);
   glEnableVertexAttribArray (a_glyph_loc);
 
