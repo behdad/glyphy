@@ -210,7 +210,7 @@ arcs_to_texture (std::vector<arc_t> &arcs,
   tex_data.resize (header_length);
   point_t origin = point_t (grid_min_x, grid_min_y);
   unsigned int saved_bytes = 0;
-  unsigned int total_arcs;
+  unsigned int total_arcs = 0;
 
   for (int row = 0; row < GRID_H; row++)
     for (int col = 0; col < GRID_W; col++)
