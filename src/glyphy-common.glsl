@@ -16,61 +16,77 @@
  * Google Author(s): Behdad Esfahbod, Maysum Panju
  */
 
+#define GLYPHY_PASTE_ARGS(prefix, name) prefix ## name
+#define GLYPHY_PASTE(prefix, name) GLYPHY_PASTE_ARGS (prefix, name)
+
+#ifndef GLYPHY_PREFIX
+#define GLYPHY_PREFIX glyphy_
+#endif
+
+#ifndef glyphy
+#define glyphy(name) GLYPHY_PASTE (GLYPHY_PREFIX, name)
+#endif
+
+
+#ifndef GLYPHY_INFINITY
 #define GLYPHY_INFINITY 1e9
+#endif
+#ifndef GLYPHY_EPSILON
 #define GLYPHY_EPSILON  1e-5
+#endif
 
 bool
-glyphy_isinf (float v)
+glyphy(isinf) (float v)
 {
   return abs (v) > GLYPHY_INFINITY / 2.;
 }
 
 bool
-glyphy_iszero (float v)
+glyphy(iszero) (float v)
 {
   return abs (v) < GLYPHY_EPSILON * 2.;
 }
 
 vec2
-glyphy_perpendicular (const vec2 v)
+glyphy(perpendicular) (const vec2 v)
 {
   return vec2 (-v.y, v.x);
 }
 
 int
-glyphy_float_to_byte (const float v)
+glyphy(float_to_byte) (const float v)
 {
   return int (v * (256 - GLYPHY_EPSILON));
 }
 
 ivec4
-glyphy_vec4_to_bytes (const vec4 v)
+glyphy(vec4_to_bytes) (const vec4 v)
 {
   return ivec4 (v * (256 - GLYPHY_EPSILON));
 }
 
 ivec2
-glyphy_float_to_two_nimbles (const float v)
+glyphy(float_to_two_nimbles) (const float v)
 {
-  int f = glyphy_float_to_byte (v);
+  int f = glyphy(float_to_byte) (v);
   return ivec2 (f / 16, mod (f, 16));
 }
 
 /* returns tan (2 * atan (d)) */
 float
-glyphy_tan2atan (float d)
+glyphy(tan2atan) (float d)
 {
   return 2 * d / (1 - d * d);
 }
 
 vec3
-glyphy_arc_decode (const vec4 v)
+glyphy(arc_decode) (const vec4 v)
 {
   /* Note that this never returns d == 0.  For straight lines,
    * a d value of .0039215686 is returned.  In fact, the d has
    * that bias for all values.
    */
-  vec2 p = (vec2 (glyphy_float_to_two_nimbles (v.a)) + v.gb) / 16;
+  vec2 p = (vec2 (glyphy(float_to_two_nimbles) (v.a)) + v.gb) / 16;
   float d = v.r;
   if (d == 0)
     d = GLYPHY_INFINITY;
@@ -81,17 +97,17 @@ glyphy_arc_decode (const vec4 v)
 }
 
 vec2
-glyphy_arc_center (const vec2 p0, const vec2 p1, float d)
+glyphy(arc_center) (const vec2 p0, const vec2 p1, float d)
 {
   return mix (p0, p1, .5) +
-	 glyphy_perpendicular (p1 - p0) / (2 * glyphy_tan2atan (d));
+	 glyphy(perpendicular) (p1 - p0) / (2 * glyphy(tan2atan) (d));
 }
 
 float
-glyphy_arc_extended_dist (const vec2 p, const vec2 p0, const vec2 p1, float d)
+glyphy(arc_extended_dist) (const vec2 p, const vec2 p0, const vec2 p1, float d)
 {
   vec2 m = mix (p0, p1, .5);
-  float d2 = glyphy_tan2atan (d);
+  float d2 = glyphy(tan2atan) (d);
   if (dot (p - m, p1 - m) < 0)
     return dot (p - p0, normalize ((p1 - p0) * mat2(+d2, -1, +1, +d2)));
   else
@@ -105,9 +121,9 @@ glyphy_arc_extended_dist (const vec2 p, const vec2 p0, const vec2 p1, float d)
  *    or outside (+1).  Otherwise we're unsure (0).
  */
 ivec3
-glyphy_arclist_decode (const vec4 v)
+glyphy(arclist_decode) (const vec4 v)
 {
-  ivec4 iv = glyphy_vec4_to_bytes (v) * ivec4 (65536, 256, 1, 1);
+  ivec4 iv = glyphy(vec4_to_bytes) (v) * ivec4 (65536, 256, 1, 1);
   int offset = iv.r + iv.g + iv.b;
   int num_endpoints = iv.a;
   int side = 0; /* unsure */

@@ -16,8 +16,7 @@
  * Google Author(s): Behdad Esfahbod, Maysum Panju
  */
 
-#ifndef GLYPHY_FREETYPE_H
-#define GLYPHY_FREETYPE_H
+/* Intentionally doesn't have include guards */
 
 #include "glyphy.h"
 
@@ -31,7 +30,9 @@
 #define GLYPHY_FREETYPE_PREFIX glyphy_freetype_
 #endif
 
+#ifndef glyphy_freetype
 #define glyphy_freetype(name) GLYPHY_PASTE (GLYPHY_FREETYPE_PREFIX, name)
+#endif
 
 
 
@@ -100,7 +101,3 @@ glyphy_freetype(outline_decompose) (const FT_Outline         *outline,
 
   return FT_Outline_Decompose ((FT_Outline *) outline, &outline_funcs, acc);
 }
-
-
-
-#endif /* GLYPHY_FREETYPE_H */
