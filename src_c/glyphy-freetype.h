@@ -86,8 +86,8 @@ glyphy_freetype(cubic_to) (FT_Vector *control1, FT_Vector *control2, FT_Vector *
 }
 
 static FT_Error
-glyphy_freetype(outline_decompose) (const FT_Outline *outline,
-				    glyphy_arc_accumulator_t acc)
+glyphy_freetype(outline_decompose) (const FT_Outline         *outline,
+				    glyphy_arc_accumulator_t *acc)
 {
   static const FT_Outline_Funcs outline_funcs = {
     (FT_Outline_MoveToFunc) glyphy_freetype(move_to),
@@ -98,7 +98,7 @@ glyphy_freetype(outline_decompose) (const FT_Outline *outline,
     0, /* delta */
   };
 
-  return FT_Outline_Decompose (const_cast <FT_Outline *> (outline), &outline_funcs, &acc);
+  return FT_Outline_Decompose (const_cast <FT_Outline *> (outline), &outline_funcs, acc);
 }
 
 
