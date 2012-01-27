@@ -15,7 +15,6 @@ libglyphy_la_LDFLAGS = \
 	-version-info @glyphy_libversion@ \
 	$(NULL)
 libglyphy_la_SOURCES = \
-	glyphy.cc \
 	glyphy-arc.cc \
 	glyphy-arc-bezier.hh \
 	glyphy-arcs.cc \
