@@ -16,14 +16,14 @@
  * Google Author(s): Behdad Esfahbod, Maysum Panju
  */
 
+#ifndef GLYPHY_ARC_BEZIER_HH
+#define GLYPHY_ARC_BEZIER_HH
+
 #include <glyphy-geometry.hh>
 
 #include <assert.h>
 
 #include <algorithm>
-
-#ifndef GLYPHY_ARC_BEZIER_HH
-#define GLYPHY_ARC_BEZIER_HH
 
 namespace GLyphy {
 namespace ArcBezier {

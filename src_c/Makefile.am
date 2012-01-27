@@ -26,6 +26,7 @@ libglyphy_la_SOURCES = \
 	$(NULL)
 GLYPHY_PUBLICHEADERS = \
 	glyphy.h \
+	glyphy-arc.h \
 	$(NULL)
 GLYPHY_PUBLICSHADERS = \
 	glyphy-common.glsl \

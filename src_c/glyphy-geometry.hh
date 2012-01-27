@@ -16,12 +16,12 @@
  * Google Author(s): Behdad Esfahbod, Maysum Panju
  */
 
-#include <glyphy.h>
-
-#include <math.h>
-
 #ifndef GLYPHY_GEOMETRY_HH
 #define GLYPHY_GEOMETRY_HH
+
+#include <glyphy-arc.h>
+
+#include <math.h>
 
 namespace GLyphy {
 namespace Geometry {

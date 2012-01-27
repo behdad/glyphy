@@ -16,6 +16,9 @@
  * Google Author(s): Behdad Esfahbod, Maysum Panju
  */
 
+#ifndef GLYPHY_ARCS_BEZIER_HH
+#define GLYPHY_ARCS_BEZIER_HH
+
 #include "glyphy-geometry.hh"
 #include "glyphy-arc-bezier.hh"
 
@@ -23,9 +26,6 @@
 
 #include <algorithm>
 #include <vector>
-
-#ifndef GLYPHY_ARCS_BEZIER_HH
-#define GLYPHY_ARCS_BEZIER_HH
 
 namespace GLyphy {
 namespace ArcsBezier {
