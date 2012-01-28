@@ -170,7 +170,7 @@ create_texture (const char *font_path,
 
   GLuint program;
   glGetIntegerv (GL_CURRENT_PROGRAM, (GLint *) &program);
-  glUniform4f (glGetUniformLocation(program, "u_atlas_info"), TEX_W, TEX_H, SUB_TEX_W, 0);
+  glUniform3f (glGetUniformLocation(program, "u_atlas_info"), TEX_W, TEX_H, SUB_TEX_W);
   glUniform1i (glGetUniformLocation(program, "u_atlas_tex"), 0);
   glActiveTexture (GL_TEXTURE0);
 

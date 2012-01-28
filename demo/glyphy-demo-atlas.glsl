@@ -1,5 +1,9 @@
-#define GLYPHY_TEXTURE1D_EXTRA_DECLS , sampler2D _tex, vec4 _atlas_info, vec4 _atlas_pos
+uniform sampler2D u_atlas_tex;
+uniform vec3 u_atlas_info;
+
+#define GLYPHY_TEXTURE1D_EXTRA_DECLS , sampler2D _tex, vec3 _atlas_info, vec2 _atlas_pos
 #define GLYPHY_TEXTURE1D_EXTRA_ARGS , _tex, _atlas_info, _atlas_pos
+#define GLYPHY_DEMO_EXTRA_ARGS , u_atlas_tex, u_atlas_info, f_atlas_pos
 
 vec4
 glyphy_texture1D_func (int offset GLYPHY_TEXTURE1D_EXTRA_DECLS)

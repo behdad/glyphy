@@ -1,6 +1,3 @@
-uniform sampler2D u_atlas_tex;
-uniform vec4 u_atlas_info;
-
 varying vec4 v_glyph;
 
 vec3 glyph_decode_f (vec4 v)
@@ -15,7 +12,7 @@ void main()
 {
   vec2 p = v_glyph.xy;
   vec3 decoded = glyph_decode_f (v_glyph);
-  vec4 atlas_pos = vec4 (decoded.xy, 0, 0);
+  vec2 f_atlas_pos = decoded.xy;
   int glyph_layout = int (decoded.z);
 
   /* isotropic antialiasing */
@@ -23,25 +20,25 @@ void main()
   vec2 dpdy = dFdy (p);
   float m = max (length (dpdx), length (dpdy));
 
-  float sdist = glyphy_sdf (p, glyph_layout, u_atlas_tex, u_atlas_info, atlas_pos);
-  float udist = abs (sdist);
-
   vec4 color = vec4 (0,0,0,1);
 
+  float sdist = glyphy_sdf (p, glyph_layout GLYPHY_DEMO_EXTRA_ARGS);
+  // Color the inside of the glyph a light red
+  color += vec4 (.5,0,0,0) * smoothstep (m, -m, sdist);
+
+  float udist = abs (sdist);
   // Color the outline red
   color += vec4 (1,0,0,0) * smoothstep (2 * m, 0, udist);
   // Color the distance field in green
   color += vec4 (0,1,0,0) * ((1 + sin (sdist / m))) * sin (pow (udist, .8) * 3.14159265358979) * .5;
-  // Color the inside of the glyph a light red
-  color += vec4 (.5,0,0,0) * smoothstep (m, -m, sdist);
 
-/*
+  float pdist = glyphy_point_dist (p, glyph_layout GLYPHY_DEMO_EXTRA_ARGS);
   // Color points green
-  color = mix (vec4 (0,1,0,1), color, smoothstep (2 * m, 3 * m, min_point_dist));
+  color = mix (vec4 (0,1,0,1), color, smoothstep (2 * m, 3 * m, pdist));
 
+  glyphy(arc_list_t) arc_list = glyphy(arc_list) (p, glyph_layout GLYPHY_DEMO_EXTRA_ARGS);
   // Color the number of endpoints per cell blue
-  color += vec4 (0,0,1,0) * num_endpoints * 16./255.;
-*/
+  color += vec4 (0,0,1,0) * arc_list.num_endpoints * 16./255.;
 
 //  color = vec4 (1,1,1,1) * smoothstep (-m, m, sdist);
   gl_FragColor = color;
