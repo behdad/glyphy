@@ -49,7 +49,7 @@ void main()
 
     glyphy_arc_list_t arc_list = glyphy_arc_list (p, glyph_layout GLYPHY_DEMO_EXTRA_ARGS);
     // Color the number of endpoints per cell blue
-    color += vec4 (0,0,1,0) * arc_list.num_endpoints * 16./255.;
+    color += vec4 (0,0,1,0) * arc_list.num_endpoints * 32./255.;
   }
 
   gl_FragColor = color;
