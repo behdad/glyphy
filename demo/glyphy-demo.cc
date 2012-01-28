@@ -65,7 +65,8 @@ static void
 glyphy_freetype_glyph_encode (FT_Face face, unsigned int glyph_index,
 			      double tolerance_per_em,
 			      void *buffer, unsigned int buffer_size,
-			      unsigned int *output_size)
+			      unsigned int *output_size,
+			      unsigned int *glyph_layout)
 {
   if (FT_Err_Ok != FT_Load_Glyph (face,
 				  glyph_index,
@@ -99,7 +100,6 @@ glyphy_freetype_glyph_encode (FT_Face face, unsigned int glyph_index,
 	  acc.max_error <= acc.tolerance ? "PASS" : "FAIL");
 
   double avg_fetch_achieved;
-  unsigned int glyph_layout;
   glyphy_extents_t extents;
 
   if (!glyphy_arc_list_encode_rgba (&endpoints[0], endpoints.size (),
@@ -109,7 +109,7 @@ glyphy_freetype_glyph_encode (FT_Face face, unsigned int glyph_index,
 				    4,
 				    &avg_fetch_achieved,
 				    output_size,
-				    &glyph_layout,
+				    glyph_layout,
 				    &extents))
     die ("Failed encoding arcs");
 
@@ -134,7 +134,9 @@ glyphy_freetype_glyph_encode (FT_Face face, unsigned int glyph_index,
 	  gl##name
 
 static GLint
-create_texture (const char *font_path, unsigned int unicode)
+create_texture (const char *font_path,
+		unsigned int unicode,
+		unsigned int *glyph_layout)
 {
   FT_Face face;
   FT_Library library;
@@ -148,7 +150,8 @@ create_texture (const char *font_path, unsigned int unicode)
 			        FT_Get_Char_Index (face, unicode),
 				TOLERANCE,
 			        buffer, sizeof (buffer),
-			        &output_size);
+			        &output_size,
+				glyph_layout);
 
   printf ("Used %'u bytes\n", output_size);
 
@@ -212,7 +215,8 @@ main (int argc, char** argv)
   GLuint program = create_program ();
   glUseProgram (program);
 
-  GLuint texture = create_texture (font_path, utf8);
+  unsigned int glyph_layout;
+  GLuint texture = create_texture (font_path, utf8, &glyph_layout);
 
   struct glyph_attrib_t {
     GLfloat x;
@@ -223,7 +227,6 @@ main (int argc, char** argv)
   };
   glyph_attrib_t w_vertices[10];
   unsigned int num_vertices = 0;
-  unsigned int glyph_layout = 0x1010;
 
 #define ENCODE_CORNER(_x, _y, _cx, _cy, _glyph_layout) \
   do { \
