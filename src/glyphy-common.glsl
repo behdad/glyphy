@@ -138,6 +138,13 @@ glyphy(arc_wedge_contains) (const glyphy(arc_t) a, const vec2 p)
 }
 
 float
+glyphy(arc_wedge_signed_dist) (const glyphy(arc_t) a, const vec2 p)
+{
+  vec2 c = glyphy(arc_center) (a);
+  return distance (p, c) - distance (a.p0, c);
+}
+
+float
 glyphy(arc_extended_dist) (const glyphy(arc_t) a, const vec2 p)
 {
   vec2 m = mix (a.p0, a.p1, .5);
