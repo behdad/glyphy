@@ -65,26 +65,26 @@ glyphy(sdf) (vec2 p, int glyph_layout GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
     endpoint_prev = endpoint;
     if (glyphy(isinf) (a.d)) continue;
 
-    // unsigned distance
     if (glyphy(arc_wedge_contains) (a, p))
     {
-      float signed_dist = glyphy(arc_wedge_signed_dist) (a, p);
-      float dist = abs (signed_dist);
-      if (dist <= min_dist) {
-	min_dist = dist;
-	side = sign (a.d) * (signed_dist >= 0 ? -1 : +1);
+      float sdist = glyphy(arc_wedge_signed_dist) (a, p);
+      float udist = abs (sdist);
+      if (udist <= min_dist) {
+	min_dist = udist;
+	side = sdist >= 0 ? -1 : +1;
       }
     } else {
-      float dist = min (distance (p, a.p0), distance (p, a.p1));
-      if (dist < min_dist) {
-	min_dist = dist;
+      float udist = min (distance (p, a.p0), distance (p, a.p1));
+      if (udist < min_dist) {
+	min_dist = udist;
 	side = 0; /* unsure */
-	closest_arc = glyphy(arc_t) (a.p0, a.p1, a.d);
-      } else if (dist == min_dist && side == 0) {
-	// If this new distance is the same as the current minimum, compare extended distances.
-	// Take the sign from the arc with larger extended distance.
-	float new_ext_dist = glyphy(arc_extended_dist) (a, p);
+	closest_arc = a;
+      } else if (udist == min_dist && side == 0) {
+	/* If this new distance is the same as the current minimum,
+	 * compare extended distances.  Take the sign from the arc
+	 * with larger extended distance. */
 	float old_ext_dist = glyphy(arc_extended_dist) (closest_arc, p);
+	float new_ext_dist = glyphy(arc_extended_dist) (a, p);
 
 	float ext_dist = abs (new_ext_dist) <= abs (old_ext_dist) ?
 			 old_ext_dist : new_ext_dist;

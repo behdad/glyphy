@@ -141,7 +141,7 @@ float
 glyphy(arc_wedge_signed_dist) (const glyphy(arc_t) a, const vec2 p)
 {
   vec2 c = glyphy(arc_center) (a);
-  return distance (p, c) - distance (a.p0, c);
+  return sign (a.d) * (distance (p, c) - distance (a.p0, c));
 }
 
 float
