@@ -127,6 +127,7 @@ set_uniform (const char *name, double *p, double value)
   *p = value;
   glUniform1f (glGetUniformLocation (program, name), value);
   printf ("Setting %s to %g\n", name, value);
+  glutPostRedisplay ();
 }
 #define SET_UNIFORM(name, value) set_uniform (#name, &name, value)
 
