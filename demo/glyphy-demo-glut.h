@@ -94,6 +94,22 @@ start_animation (void)
 }
 
 static void
+set_uniform (const char *name, double *p, double value)
+{
+  GLuint program;
+  glGetIntegerv (GL_CURRENT_PROGRAM, (GLint *) &program);
+  *p = value;
+  glUniform1f (glGetUniformLocation (program, name), value);
+  printf ("Setting %s to %g\n", name, value);
+}
+#define SET_UNIFORM(name, value) set_uniform (#name, &name, value)
+
+/* Uniforms */
+static double u_crispiness;
+static double u_gamma;
+static double u_debug;
+
+static void
 glut_keyboard_func (unsigned char key, int x, int y)
 {
   switch (key) {
@@ -102,10 +118,28 @@ glut_keyboard_func (unsigned char key, int x, int y)
       exit (0);
       break;
 
-    case '\040':
+    case ' ':
       animate = !animate;
       if (animate)
         start_animation ();
+      break;
+
+    case 'd':
+      SET_UNIFORM (u_debug, 1 - u_debug);
+      break;
+
+    case 'a':
+      SET_UNIFORM (u_crispiness, u_crispiness / .9);
+      break;
+    case 'z':
+      SET_UNIFORM (u_crispiness, u_crispiness * .9);
+      break;
+
+    case 'g':
+      SET_UNIFORM (u_gamma, u_gamma / .9);
+      break;
+    case 'b':
+      SET_UNIFORM (u_gamma, u_gamma * .9);
       break;
   }
 }
@@ -157,6 +191,10 @@ glut_main (void)
 {
   if (animate)
     start_animation ();
+
+  SET_UNIFORM (u_crispiness, 1);
+  SET_UNIFORM (u_gamma, 2.2);
+  SET_UNIFORM (u_debug, 0);
 
   glutMainLoop ();
 }
