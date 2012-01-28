@@ -44,10 +44,9 @@
 float
 glyphy(sdf) (vec2 p, int glyph_layout GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 {
-  ivec2 grid_size = glyphy(glyph_layout_decode) (glyph_layout);
-  ivec2 p_cell = ivec2 (clamp (p, vec2 (0,0), vec2(1,1) * (1.-GLYPHY_EPSILON)) * vec2 (grid_size));
+  int cell_offset = glyphy(arc_list_offset) (p, glyph_layout);
 
-  vec4 arc_list_data = GLYPHY_SDF_TEXTURE1D (p_cell.y * grid_size.x + p_cell.x);
+  vec4 arc_list_data = GLYPHY_SDF_TEXTURE1D (cell_offset);
   glyphy(arc_list_t) arc_list = glyphy(arc_list_decode) (arc_list_data);
   float side = arc_list.side;
 

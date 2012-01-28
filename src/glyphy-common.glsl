@@ -162,6 +162,14 @@ glyphy(glyph_layout_decode) (int glyph_layout)
   return ivec2 (mod (glyph_layout, 256), glyph_layout / 256);
 }
 
+int
+glyphy(arc_list_offset) (const vec2 p, int glyph_layout)
+{
+  ivec2 grid_size = glyphy(glyph_layout_decode) (glyph_layout);
+  ivec2 cell = ivec2 (clamp (p, vec2 (0,0), vec2(1,1) * (1.-GLYPHY_EPSILON)) * vec2 (grid_size));
+  return cell.y * grid_size.x + cell.x;
+}
+
 glyphy(arc_list_t)
 glyphy(arc_list_decode) (const vec4 v)
 {
