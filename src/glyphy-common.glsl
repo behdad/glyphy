@@ -130,7 +130,7 @@ glyphy(arc_center) (glyphy(arc_t) a)
 }
 
 float
-glyphy(arc_extended_dist) (const vec2 p, const glyphy(arc_t) a)
+glyphy(arc_extended_dist) (const glyphy(arc_t) a, const vec2 p)
 {
   vec2 m = mix (a.p0, a.p1, .5);
   float d2 = glyphy(tan2atan) (a.d);
