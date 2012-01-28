@@ -155,6 +155,13 @@ glyphy(arc_extended_dist) (const glyphy(arc_t) a, const vec2 p)
     return dot (p - a.p1, normalize ((a.p1 - a.p0) * mat2(-d2, -1, +1, -d2)));
 }
 
+/* Returns grid width,height */
+ivec2
+glyphy(glyph_layout_decode) (int glyph_layout)
+{
+  return ivec2 (mod (glyph_layout, 256), glyph_layout / 256);
+}
+
 glyphy(arc_list_t)
 glyphy(arc_list_decode) (const vec4 v)
 {

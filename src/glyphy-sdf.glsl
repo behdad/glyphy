@@ -44,7 +44,7 @@
 float
 glyphy(sdf) (vec2 p, int glyph_layout GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 {
-  ivec2 grid_size = ivec2 (mod (glyph_layout, 256), glyph_layout / 256); // width, height
+  ivec2 grid_size = glyphy(glyph_layout_decode) (glyph_layout);
   ivec2 p_cell = ivec2 (clamp (p, vec2 (0,0), vec2(1,1) * (1.-GLYPHY_EPSILON)) * vec2 (grid_size));
 
   vec4 arc_list_data = GLYPHY_SDF_TEXTURE1D (p_cell.y * grid_size.x + p_cell.x);
