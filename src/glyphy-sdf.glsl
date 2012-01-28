@@ -49,8 +49,10 @@ glyphy(sdf) (vec2 p, int glyph_layout GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
   glyphy(arc_list_t) arc_list = glyphy(arc_list_decode) (arc_list_data);
 
   float side = arc_list.side;
-
   float min_dist = GLYPHY_INFINITY;
+
+  if (arc_list.num_endpoints == 0)
+    return min_dist * side;
 
   glyphy(arc_t) closest_arc;
 
