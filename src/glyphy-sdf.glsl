@@ -66,9 +66,7 @@ glyphy(sdf) (vec2 p, int glyph_layout GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
     if (glyphy(isinf) (a.d)) continue;
 
     // unsigned distance
-    float d2 = glyphy(tan2atan) (a.d);
-    if (dot (p - a.p0, (a.p1 - a.p0) * mat2(1,  d2, -d2, 1)) >= 0 &&
-	dot (p - a.p1, (a.p1 - a.p0) * mat2(1, -d2,  d2, 1)) <= 0)
+    if (glyphy(arc_wedge_contains) (a, p))
     {
       vec2 c = glyphy(arc_center) (a);
       float signed_dist = (distance (p, c) - distance (a.p0, c));

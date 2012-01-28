@@ -129,6 +129,14 @@ glyphy(arc_center) (glyphy(arc_t) a)
 	 glyphy(perpendicular) (a.p1 - a.p0) / (2 * glyphy(tan2atan) (a.d));
 }
 
+bool
+glyphy(arc_wedge_contains) (const glyphy(arc_t) a, const vec2 p)
+{
+  float d2 = glyphy(tan2atan) (a.d);
+  return dot (p - a.p0, (a.p1 - a.p0) * mat2(1,  d2, -d2, 1)) >= 0 &&
+	 dot (p - a.p1, (a.p1 - a.p0) * mat2(1, -d2,  d2, 1)) <= 0;
+}
+
 float
 glyphy(arc_extended_dist) (const glyphy(arc_t) a, const vec2 p)
 {
