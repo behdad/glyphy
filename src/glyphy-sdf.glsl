@@ -45,19 +45,18 @@ float
 glyphy(sdf) (vec2 p, int glyph_layout GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 {
   int cell_offset = glyphy(arc_list_offset) (p, glyph_layout);
-
   vec4 arc_list_data = GLYPHY_SDF_TEXTURE1D (cell_offset);
   glyphy(arc_list_t) arc_list = glyphy(arc_list_decode) (arc_list_data);
+
   float side = arc_list.side;
 
-  int i;
   float min_dist = GLYPHY_INFINITY;
 
   glyphy(arc_t) closest_arc;
 
   glyphy(arc_endpoint_t) endpoint_prev, endpoint;
   endpoint_prev = glyphy(arc_endpoint_decode) (GLYPHY_SDF_TEXTURE1D (arc_list.offset));
-  for (i = 1; i < arc_list.num_endpoints; i++)
+  for (int i = 1; i < arc_list.num_endpoints; i++)
   {
     endpoint = glyphy(arc_endpoint_decode) (GLYPHY_SDF_TEXTURE1D (arc_list.offset + i));
     glyphy(arc_t) a = glyphy(arc_t) (endpoint_prev.p, endpoint.p, endpoint.d);
