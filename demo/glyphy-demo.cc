@@ -39,7 +39,7 @@
 #else
 // Small font size profile
 #define MIN_FONT_SIZE 20
-#define TOLERANCE 5e-3
+#define TOLERANCE 1e-3
 #endif
 
 
