@@ -68,7 +68,7 @@ glyphy(sdf) (vec2 p, int glyph_layout GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
     if (glyphy(arc_wedge_contains) (a, p))
     {
       float sdist = glyphy(arc_wedge_signed_dist) (a, p);
-      float udist = abs (sdist);
+      float udist = abs (sdist) - GLYPHY_EPSILON;
       if (udist <= min_dist) {
 	min_dist = udist;
 	side = sdist >= 0 ? -1 : +1;
@@ -79,7 +79,7 @@ glyphy(sdf) (vec2 p, int glyph_layout GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 	min_dist = udist;
 	side = 0; /* unsure */
 	closest_arc = a;
-      } else if (udist == min_dist && side == 0) {
+      } else if (side == 0 && udist == min_dist) {
 	/* If this new distance is the same as the current minimum,
 	 * compare extended distances.  Take the sign from the arc
 	 * with larger extended distance. */
