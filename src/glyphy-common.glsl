@@ -36,10 +36,6 @@ struct glyphy_arc_endpoint_t {
   float d;
 };
 
-/* Return value is:
- * z: If num_endpoints is zero, this specifies whether we are inside (-1)
- *    or outside (+1).  Otherwise we're unsure (0).
- */
 struct glyphy_arc_list_t {
   /* Offset to the arc-endpoints from the beginning of the glyph blob */
   int offset;
