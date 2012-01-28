@@ -22,24 +22,26 @@ void main()
 
   vec4 color = vec4 (0,0,0,1);
 
-  float sdist = glyphy_sdf (p, glyph_layout GLYPHY_DEMO_EXTRA_ARGS);
+  float gsdist = glyphy_sdf (p, glyph_layout GLYPHY_DEMO_EXTRA_ARGS);
+  float sdist = gsdist / m;
   // Color the inside of the glyph a light red
-  color += vec4 (.5,0,0,0) * smoothstep (m, -m, sdist);
+  color += vec4 (.5,0,0,0) * smoothstep (1, -1, sdist);
 
   float udist = abs (sdist);
+  float gudist = abs (gsdist);
   // Color the outline red
-  color += vec4 (1,0,0,0) * smoothstep (2 * m, 0, udist);
+  color += vec4 (1,0,0,0) * smoothstep (2, 0, udist);
   // Color the distance field in green
-  color += vec4 (0,1,0,0) * ((1 + sin (sdist / m))) * sin (pow (udist, .8) * 3.14159265358979) * .5;
+  color += vec4 (0,1,0,0) * ((1 + sin (sdist))) * sin (pow (gudist, .8) * 3.14159265358979) * .5;
 
-  float pdist = glyphy_point_dist (p, glyph_layout GLYPHY_DEMO_EXTRA_ARGS);
+  float pdist = glyphy_point_dist (p, glyph_layout GLYPHY_DEMO_EXTRA_ARGS) / m;
   // Color points green
-  color = mix (vec4 (0,1,0,1), color, smoothstep (2 * m, 3 * m, pdist));
+  color = mix (vec4 (0,1,0,1), color, smoothstep (2, 3, pdist));
 
   glyphy(arc_list_t) arc_list = glyphy(arc_list) (p, glyph_layout GLYPHY_DEMO_EXTRA_ARGS);
   // Color the number of endpoints per cell blue
   color += vec4 (0,0,1,0) * arc_list.num_endpoints * 16./255.;
 
-//  color = vec4 (1,1,1,1) * smoothstep (-m, m, sdist);
+//  color = vec4 (1,1,1,1) * smoothstep (-1, 1, sdist);
   gl_FragColor = color;
 }
