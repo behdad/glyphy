@@ -43,13 +43,20 @@ struct glyphy_arc_endpoint_t {
 };
 
 struct glyphy_arc_list_t {
-  /* Offset to the arc-endpoints from the beginning of the glyph blob */
-  int offset;
-  /* Number of endpoints in the list (may be zero) */
+  /* Number of endpoints in the list.
+   * Will be zero if we're far away inside or outside, in which case side is set.
+   * Will be -1 if this arc-list encodes a single line, in which case line_* are set. */
   int num_endpoints;
+
   /* If num_endpoints is zero, this specifies whether we are inside (-1)
    * or outside (+1).  Otherwise we're unsure (0). */
   int side;
+  /* Offset to the arc-endpoints from the beginning of the glyph blob */
+  int offset;
+
+  /* A single line is all we care about.  It's right here. */
+  float line_angle;
+  float line_distance; /* From .5,.5 */
 };
 
 bool
@@ -164,14 +171,21 @@ glyphy_arc_list_offset (const vec2 p, int glyph_layout)
 glyphy_arc_list_t
 glyphy_arc_list_decode (const vec4 v)
 {
+  glyphy_arc_list_t l;
   ivec4 iv = glyphy_vec4_to_bytes (v);
-  int offset = (iv.r * 256) + iv.g;
-  int num_endpoints = iv.a;
-  int side = 0; /* unsure */
-  if (num_endpoints == 255) {
-    num_endpoints = 0;
-    side = -1;
-  } else if (num_endpoints == 0)
-    side = +1;
-  return glyphy_arc_list_t (offset, num_endpoints, side);
+  l.side = 0; /* unsure */
+  if (iv.r == 0) { /* arc-list encoded */
+    l.offset = (iv.g * 256) + iv.b;
+    l.num_endpoints = iv.a;
+    if (l.num_endpoints == 255) {
+      l.num_endpoints = 0;
+      l.side = -1;
+    } else if (l.num_endpoints == 0)
+      l.side = +1;
+  } else { /* single line encoded */
+    l.num_endpoints = -1;
+    l.line_distance = (((iv.r - 128) * 256 + iv.g) - 0x4000) / float (0x2000);
+    l.line_angle = -((iv.b * 256 + iv.a) - 0x8000) / float (0x8000) * 3.14159265358979;
+  }
+  return l;
 }

@@ -65,12 +65,39 @@ static inline glyphy_rgba_t
 arc_list_encode (unsigned int offset, unsigned int num_points, bool is_inside)
 {
   glyphy_rgba_t v;
-  v.r = UPPER_BITS (offset, 8, 16);
-  v.g = LOWER_BITS (offset, 8, 16);
-  v.b = 0; // unused
+  v.b = 0; // unused for arc-list encoding
+  v.g = UPPER_BITS (offset, 8, 16);
+  v.b = LOWER_BITS (offset, 8, 16);
   v.a = LOWER_BITS (num_points, 8, 8);
   if (is_inside && !num_points)
     v.a = 255;
+  return v;
+}
+
+static inline glyphy_rgba_t
+line_encode (const Geometry::Line &line)
+{
+  Geometry::Line l = line.normalized ();
+  double angle = l.n.angle ();
+  double distance = l.c;
+
+  int ia = -angle / M_PI * 0x8000;
+  if (ia == 0x8000) ia--;
+  unsigned int ua = ia + 0x8000;
+  assert (0 == (ua & ~0xFFFF));
+
+  int id = distance * 0x2000;
+  unsigned int ud = id + 0x4000;
+  assert (0 == (ud & ~0x7FFF));
+
+  /* Marker for line-encoded */
+  ud |= 0x8000;
+
+  glyphy_rgba_t v;
+  v.r = ud >> 8;
+  v.g = ud & 0xFF;
+  v.b = ua >> 8;
+  v.a = ua & 0xFF;
   return v;
 }
 

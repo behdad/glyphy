@@ -53,12 +53,19 @@ glyphy_sdf (vec2 p, int glyph_layout GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 {
   glyphy_arc_list_t arc_list = glyphy_arc_list (p, glyph_layout  GLYPHY_SDF_TEXTURE1D_EXTRA_ARGS);
 
+  /* Short-circuits */
+  if (arc_list.num_endpoints == 0) {
+    /* far-away cell */
+    return GLYPHY_INFINITY * arc_list.side;
+  } if (arc_list.num_endpoints == -1) {
+    /* single-line */
+    float angle = arc_list.line_angle;
+    vec2 n = vec2 (cos (angle), sin (angle));
+    return dot (p - vec2(.5,.5), n) - arc_list.line_distance;
+  }
+
   float side = arc_list.side;
   float min_dist = GLYPHY_INFINITY;
-
-  if (arc_list.num_endpoints == 0)
-    return min_dist * side;
-
   glyphy_arc_t closest_arc;
 
   glyphy_arc_endpoint_t endpoint_prev, endpoint;

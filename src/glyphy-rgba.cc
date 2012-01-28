@@ -188,6 +188,15 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
 			    near_endpoints,
 			    inside_glyph);
 
+      if (near_endpoints.size () == 2 && near_endpoints[1].d == 0) {
+        Point c (extents.min_x + glyph_width / 2, extents.min_y + glyph_width / 2);
+        Line line (near_endpoints[0].p, near_endpoints[1].p);
+	line.c -= line.n * Vector (c);
+	line.c /= glyph_width;
+	tex_data[row * grid_w + col] = line_encode (line);
+	continue;
+      }
+
 #define ARC_ENCODE(E) \
 	arc_encode ((E.p.x - extents.min_x) / glyph_width, \
 		    (E.p.y - extents.min_y) / glyph_height, \
