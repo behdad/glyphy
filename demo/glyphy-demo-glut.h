@@ -39,6 +39,7 @@
 
 static int num_frames = 0;
 static int animate = 0;
+static long fps_start_time = 0;
 static long last_time = 0;
 static double phase = 0;
 
@@ -92,8 +93,10 @@ print_fps (int ms)
 {
   if (animate) {
     glutTimerFunc (ms, print_fps, ms);
-    printf ("%gfps\n", num_frames / 5.);
+    long t = current_time ();
+    printf ("%gfps\n", num_frames * 1000. / (t - fps_start_time));
     num_frames = 0;
+    fps_start_time = t;
   } else
     has_fps_timer = false;
 }
@@ -102,6 +105,7 @@ static void
 start_animation (void)
 {
   num_frames = 0;
+  fps_start_time = current_time ();
   //glutTimerFunc (1000/60, timed_step, 1000/60);
   glutIdleFunc (idle_step);
   if (!has_fps_timer) {
