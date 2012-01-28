@@ -28,11 +28,17 @@
 struct glyphy_arc_t {
   vec2  p0;
   vec2  p1;
+  /* Arc depth.  Never will be zero.  Even for straight lines it will
+   * be a very small non-zero value. */
   float d;
 };
 
 struct glyphy_arc_endpoint_t {
+  /* Second arc endpoint */
   vec2  p;
+  /* Infinity if this endpoint does not form an arc with the previous
+   * endpoint.  Ie. a "move_to".  Test with glyphy_isinf().
+   * Arc depth otherwise.  */
   float d;
 };
 
