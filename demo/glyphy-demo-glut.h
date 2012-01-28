@@ -87,6 +87,8 @@ idle_step (void)
   }
 }
 
+static bool has_fps_timer = false;
+
 static void
 print_fps (int ms)
 {
@@ -95,6 +97,7 @@ print_fps (int ms)
     printf ("%gfps\n", num_frames / 5.);
     num_frames = 0;
   }
+  has_fps_timer = false;
 }
 
 static void
@@ -103,7 +106,10 @@ start_animation (void)
   num_frames = 0;
   //glutTimerFunc (40, timed_step, 40);
   glutIdleFunc (idle_step);
-  glutTimerFunc (5000, print_fps, 5000);
+  if (!has_fps_timer) {
+    has_fps_timer = true;
+    glutTimerFunc (5000, print_fps, 5000);
+  }
 }
 
 static void
