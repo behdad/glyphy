@@ -35,11 +35,26 @@
 #include <stdio.h>
 #include <math.h>
 
+#include <sys/time.h>
+#include <sys/timeb.h>
+#include <sched.h>
 
 
-static int step_timer;
-static int num_frames;
+static int num_frames = 0;
 static int animate = 0;
+static long start_time;
+
+
+/* return current time (in milli-seconds) */
+static long
+current_time (void)
+{
+   struct timeval tv;
+   struct timezone tz;
+   (void) gettimeofday(&tv, &tz);
+   return (long) tv.tv_sec * 1000 + (long) tv.tv_usec / 1000;
+}
+
 
 void
 glut_reshape_func (int width, int height)
@@ -58,7 +73,6 @@ timed_step (int ms)
   if (animate) {
     glutTimerFunc (ms, timed_step, ms);
     num_frames++;
-    step_timer++;
     glutPostRedisplay ();
   }
 }
@@ -69,7 +83,6 @@ idle_step (void)
   if (animate) {
     glutIdleFunc (idle_step);
     num_frames++;
-    step_timer++;
     glutPostRedisplay ();
   }
 }
@@ -91,6 +104,15 @@ start_animation (void)
   //glutTimerFunc (40, timed_step, 40);
   glutIdleFunc (idle_step);
   glutTimerFunc (5000, print_fps, 5000);
+}
+
+static void
+toggle_animation (void)
+{
+  start_time = current_time () - start_time;
+  animate = !animate;
+  if (animate)
+    start_animation ();
 }
 
 static void
@@ -119,9 +141,7 @@ glut_keyboard_func (unsigned char key, int x, int y)
       break;
 
     case ' ':
-      animate = !animate;
-      if (animate)
-        start_animation ();
+      toggle_animation ();
       break;
 
     case 'd':
@@ -152,7 +172,7 @@ glut_display_func (void)
 //  GLuint width  = viewport[2];
 //  GLuint height = viewport[3];
 
-  double theta = M_PI / 360.0 * step_timer / 3.;
+  double theta = M_PI / 360.0 * (double) (current_time () - start_time) * .05;
   GLfloat mat[] = { +cos(theta), +sin(theta), 0., 0.,
 		    -sin(theta), +cos(theta), 0., 0.,
 			     0.,          0., 1., 0.,
@@ -189,6 +209,7 @@ glut_init (int *argc, char **argv)
 static void
 glut_main (void)
 {
+  start_time = current_time ();
   if (animate)
     start_animation ();
 
