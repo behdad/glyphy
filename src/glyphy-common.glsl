@@ -24,7 +24,7 @@
 #endif
 
 #ifndef glyphy
-#define glyphy(name) GLYPHY_PASTE (GLYPHY_PREFIX, name)
+#define glyphy(name) name
 #endif
 
 

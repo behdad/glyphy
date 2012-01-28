@@ -126,7 +126,7 @@ glyphy(point_dist) (vec2 p, int glyph_layout GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
   for (int i = 1; i < arc_list.num_endpoints; i++)
   {
     endpoint = glyphy(arc_endpoint_decode) (GLYPHY_SDF_TEXTURE1D (arc_list.offset + i));
-    if (glyphy_isinf (endpoint.d)) continue;
+    if (glyphy(isinf) (endpoint.d)) continue;
     min_dist = min (min_dist, distance (p, endpoint.p));
   }
   return min_dist;
