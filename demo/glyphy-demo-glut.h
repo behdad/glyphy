@@ -34,10 +34,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-
 #include <sys/time.h>
-#include <sys/timeb.h>
-#include <sched.h>
 
 
 static int num_frames = 0;
@@ -45,7 +42,7 @@ static int animate = 0;
 static long start_time;
 
 
-/* return current time (in milli-seconds) */
+/* return current time in milli-seconds */
 static long
 current_time (void)
 {
@@ -104,7 +101,7 @@ static void
 start_animation (void)
 {
   num_frames = 0;
-  //glutTimerFunc (40, timed_step, 40);
+  //glutTimerFunc (1000/60, timed_step, 1000/60);
   glutIdleFunc (idle_step);
   if (!has_fps_timer) {
     has_fps_timer = true;
@@ -215,7 +212,6 @@ glut_init (int *argc, char **argv)
 static void
 glut_main (void)
 {
-  start_time = current_time ();
   if (animate)
     start_animation ();
 
@@ -223,6 +219,7 @@ glut_main (void)
   SET_UNIFORM (u_gamma, 2.2);
   SET_UNIFORM (u_debug, 0);
 
+  start_time = current_time ();
   glutMainLoop ();
 }
 
