@@ -174,7 +174,7 @@ glyphy(arc_list_t)
 glyphy(arc_list_decode) (const vec4 v)
 {
   ivec4 iv = glyphy(vec4_to_bytes) (v);
-  int offset = ((iv.r * 256) + iv.g) * 256 + iv.b;
+  int offset = (iv.r * 256) + iv.g;
   int num_endpoints = iv.a;
   int side = 0; /* unsure */
   if (num_endpoints == 255) {

@@ -62,12 +62,12 @@ arc_encode (double x, double y, double d)
 }
 
 static inline glyphy_rgba_t
-arclist_encode (unsigned int offset, unsigned int num_points, bool is_inside)
+arc_list_encode (unsigned int offset, unsigned int num_points, bool is_inside)
 {
   glyphy_rgba_t v;
-  v.r = UPPER_BITS (offset, 8, 24);
-  v.g = MIDDLE_BITS (offset, 8, 16, 24);
-  v.b = LOWER_BITS (offset, 8, 24);
+  v.r = UPPER_BITS (offset, 8, 16);
+  v.g = LOWER_BITS (offset, 8, 16);
+  v.b = 0; // unused
   v.a = LOWER_BITS (num_points, 8, 8);
   if (is_inside && !num_points)
     v.a = 255;

@@ -226,7 +226,7 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
 	offset = haystack - &tex_data[0];
       }
 
-      tex_data[row * grid_w + col] = arclist_encode (offset, current_endpoints, inside_glyph);
+      tex_data[row * grid_w + col] = arc_list_encode (offset, current_endpoints, inside_glyph);
       offset = tex_data.size ();
 
       total_arcs += current_endpoints;
