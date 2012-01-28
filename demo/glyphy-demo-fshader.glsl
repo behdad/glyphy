@@ -47,7 +47,7 @@ void main()
     // Color points green
     color = mix (vec4 (0,1,0,1), color, smoothstep (2, 3, pdist));
 
-    glyphy(arc_list_t) arc_list = glyphy(arc_list) (p, glyph_layout GLYPHY_DEMO_EXTRA_ARGS);
+    glyphy_arc_list_t arc_list = glyphy_arc_list (p, glyph_layout GLYPHY_DEMO_EXTRA_ARGS);
     // Color the number of endpoints per cell blue
     color += vec4 (0,0,1,0) * arc_list.num_endpoints * 16./255.;
   }
