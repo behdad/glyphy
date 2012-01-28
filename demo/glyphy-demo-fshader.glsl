@@ -1,4 +1,4 @@
-uniform float u_crispiness;
+uniform float u_contrast;
 uniform float u_gamma;
 uniform bool  u_debug;
 
@@ -27,7 +27,7 @@ void main()
   vec4 color = vec4 (0,0,0,1);
 
   float gsdist = glyphy_sdf (p, glyph_layout GLYPHY_DEMO_EXTRA_ARGS);
-  float sdist = gsdist / m * u_crispiness;
+  float sdist = gsdist / m * u_contrast;
 
   if (!u_debug) {
     color = vec4 (1,1,1,1) * smoothstep (-1, 1, sdist);

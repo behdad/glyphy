@@ -136,7 +136,7 @@ set_uniform (const char *name, double *p, double value)
 #define SET_UNIFORM(name, value) set_uniform (#name, &name, value)
 
 /* Uniforms */
-static double u_crispiness;
+static double u_contrast;
 static double u_gamma;
 static double u_debug;
 
@@ -158,10 +158,10 @@ glut_keyboard_func (unsigned char key, int x, int y)
       break;
 
     case 'a':
-      SET_UNIFORM (u_crispiness, u_crispiness / .9);
+      SET_UNIFORM (u_contrast, u_contrast / .9);
       break;
     case 'z':
-      SET_UNIFORM (u_crispiness, u_crispiness * .9);
+      SET_UNIFORM (u_contrast, u_contrast * .9);
       break;
 
     case 'g':
@@ -231,7 +231,7 @@ glut_main (void)
   if (animate)
     start_animation ();
 
-  SET_UNIFORM (u_crispiness, 1);
+  SET_UNIFORM (u_contrast, 1);
   SET_UNIFORM (u_gamma, 2.2);
   SET_UNIFORM (u_debug, 0);
 
