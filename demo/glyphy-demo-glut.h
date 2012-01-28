@@ -39,7 +39,8 @@
 
 static int num_frames = 0;
 static int animate = 0;
-static long start_time;
+static long last_time = 0;
+static double phase = 0;
 
 
 /* return current time in milli-seconds */
@@ -93,8 +94,8 @@ print_fps (int ms)
     glutTimerFunc (ms, print_fps, ms);
     printf ("%gfps\n", num_frames / 5.);
     num_frames = 0;
-  }
-  has_fps_timer = false;
+  } else
+    has_fps_timer = false;
 }
 
 static void
@@ -112,7 +113,7 @@ start_animation (void)
 static void
 toggle_animation (void)
 {
-  start_time = current_time () - start_time;
+  last_time = 0;
   animate = !animate;
   if (animate)
     start_animation ();
@@ -175,7 +176,17 @@ glut_display_func (void)
 //  GLuint width  = viewport[2];
 //  GLuint height = viewport[3];
 
-  double theta = M_PI / 360.0 * (double) (current_time () - start_time) * .05;
+  double elapsed_time;
+  long t = current_time ();
+  if (animate) {
+    if (last_time == 0)
+      last_time = t;
+    elapsed_time = t - last_time;
+    last_time = t;
+  }
+  phase += elapsed_time;
+
+  double theta = M_PI / 360.0 * phase * .05;
   GLfloat mat[] = { +cos(theta), +sin(theta), 0., 0.,
 		    -sin(theta), +cos(theta), 0., 0.,
 			     0.,          0., 1., 0.,
@@ -219,7 +230,6 @@ glut_main (void)
   SET_UNIFORM (u_gamma, 2.2);
   SET_UNIFORM (u_debug, 0);
 
-  start_time = current_time ();
   glutMainLoop ();
 }
 
