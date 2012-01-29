@@ -46,7 +46,7 @@ typedef glyphy_bool_t (*glyphy_arc_endpoint_accumulator_callback_t) (glyphy_arc_
 								     void                  *user_data);
 
 /* TODO Make this a refcounted opaque type?  Or add destroy_notify? */
-typedef struct glyphy_arc_accumulator_t {
+typedef struct {
   glyphy_point_t current_point;
   unsigned int   num_endpoints;
 
