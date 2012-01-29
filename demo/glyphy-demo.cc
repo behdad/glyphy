@@ -205,9 +205,10 @@ glyph_encode (unsigned int atlas_x,  /* 9 bits, should be multiple of 4 */
 }
 
 struct glyph_vertex_t {
+  /* Position */
   GLfloat x;
   GLfloat y;
-
+  /* Glyph info */
   GLfloat g16hi;
   GLfloat g16lo;
 };
@@ -288,14 +289,10 @@ main (int argc, char** argv)
   add_glyph (-100, 100, glyph_index, 350, &glyph_cache, &atlas, face, &vertices);
 //  add_glyph (350, 450, FT_Get_Char_Index (face, 'x'), 150, &glyph_cache, &atlas, face, &vertices);
 
-  GLuint a_pos_loc = glGetAttribLocation (program, "a_position");
-  GLuint a_glyph_loc = glGetAttribLocation (program, "a_glyph");
-  glVertexAttribPointer (a_pos_loc, 2, GL_FLOAT, GL_FALSE, sizeof (glyph_vertex_t),
-			 (const char *) &vertices[0] + offsetof (glyph_vertex_t, x));
-  glVertexAttribPointer (a_glyph_loc, 2, GL_FLOAT, GL_FALSE, sizeof (glyph_vertex_t),
-			 (const char *) &vertices[0] + offsetof (glyph_vertex_t, g16hi));
-  glEnableVertexAttribArray (a_pos_loc);
-  glEnableVertexAttribArray (a_glyph_loc);
+  GLuint a_glyph_vertex_loc = glGetAttribLocation (program, "a_glyph_vertex");
+  glVertexAttribPointer (a_glyph_vertex_loc, 4, GL_FLOAT, GL_FALSE, sizeof (glyph_vertex_t),
+			 (const char *) &vertices[0]);
+  glEnableVertexAttribArray (a_glyph_vertex_loc);
 
   glUseProgram (program);
   atlas_use (&atlas, program);

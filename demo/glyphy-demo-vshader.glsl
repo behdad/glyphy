@@ -1,7 +1,6 @@
 uniform mat4 u_matViewProjection;
 
-attribute vec4 a_position;
-attribute vec2 a_glyph;
+attribute vec4 a_glyph_vertex;
 
 varying vec4 v_glyph;
 
@@ -13,6 +12,6 @@ vec4 glyph_decode_v (vec2 v)
 
 void main()
 {
-  gl_Position = u_matViewProjection * a_position;
-  v_glyph = glyph_decode_v (a_glyph);
+  gl_Position = u_matViewProjection * vec4 (a_glyph_vertex.xy, 0, 1);
+  v_glyph = glyph_decode_v (a_glyph_vertex.zw);
 }
