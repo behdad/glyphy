@@ -30,7 +30,7 @@
 #include <assert.h>
 
 #include <vector>
-#include <hash_map>
+#include <ext/hash_map>
 
 using namespace std;
 using namespace __gnu_cxx; /* This is ridiculous */
