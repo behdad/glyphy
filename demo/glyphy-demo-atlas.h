@@ -71,7 +71,8 @@ atlas_init (atlas_t *at,
 static void
 atlas_use (atlas_t *at, GLuint program)
 {
-  glUniform3f (glGetUniformLocation (program, "u_atlas_info"), at->tex_w, at->tex_h, at->item_w);
+  glUniform4i (glGetUniformLocation (program, "u_atlas_info"),
+	       at->tex_w, at->tex_h, at->item_w, at->item_h_q);
   glUniform1i (glGetUniformLocation (program, "u_atlas_tex"), at->tex_unit - GL_TEXTURE0);
 }
 
@@ -114,8 +115,8 @@ atlas_alloc (atlas_t *at,
 		       data + w * (h - 1));
   }
 
-  *px = x;
-  *py = y;
+  *px = x / at->item_w;
+  *py = y / at->item_h_q;
   return;
 }
 

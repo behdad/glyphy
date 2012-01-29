@@ -167,8 +167,7 @@ upload_glyph (atlas_t *atlas,
 
   printf ("Used %'lu bytes\n", output_len * sizeof (glyphy_rgba_t));
 
-  atlas_alloc (atlas, buffer, output_len,
-	       &glyph_info->atlas_x, &glyph_info->atlas_y);
+  atlas_alloc (atlas, buffer, output_len, &glyph_info->atlas_x, &glyph_info->atlas_y);
 }
 
 static void
@@ -186,20 +185,20 @@ get_glyph_info (glyph_cache_t *glyph_cache,
 }
 
 unsigned int
-glyph_encode (unsigned int atlas_x,  /* 9 bits, should be multiple of 4 */
-	      unsigned int atlas_y,  /* 9 bits, should be multiple of 4 */
+glyph_encode (unsigned int atlas_x,  /* 7 bits */
+	      unsigned int atlas_y,  /* 7 bits */
 	      unsigned int corner_x, /* 1 bit */
 	      unsigned int corner_y, /* 1 bit */
 	      unsigned int glyph_layout /* 16 bits */)
 {
-  assert (0 == (atlas_x & ~0x1FC));
-  assert (0 == (atlas_y & ~0x1FC));
+  assert (0 == (atlas_x & ~0x7F));
+  assert (0 == (atlas_y & ~0x7F));
   assert (0 == (corner_x & ~1));
   assert (0 == (corner_y & ~1));
   assert (0 == (glyph_layout & ~0xFFFF));
 
-  unsigned int x = (((atlas_x << 6) | (glyph_layout >> 8))   << 1) | corner_x;
-  unsigned int y = (((atlas_y << 6) | (glyph_layout & 0xFF)) << 1) | corner_y;
+  unsigned int x = (((atlas_x << 8) | (glyph_layout >> 8))   << 1) | corner_x;
+  unsigned int y = (((atlas_y << 8) | (glyph_layout & 0xFF)) << 1) | corner_y;
 
   return (x << 16) | y;
 }
