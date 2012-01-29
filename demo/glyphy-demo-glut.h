@@ -172,10 +172,10 @@ glut_keyboard_func (unsigned char key, int x, int y)
 static void
 glut_display_func (void)
 {
-//  int viewport[4];
-//  glGetIntegerv (GL_VIEWPORT, viewport);
-//  GLuint width  = viewport[2];
-//  GLuint height = viewport[3];
+  int viewport[4];
+  glGetIntegerv (GL_VIEWPORT, viewport);
+  GLuint width  = viewport[2];
+  GLuint height = viewport[3];
 
   double elapsed_time;
   long t = current_time ();
@@ -188,12 +188,12 @@ glut_display_func (void)
   phase += elapsed_time;
 
   double theta = M_PI / 360.0 * phase * .05;
-  GLfloat mat[] = { +cos(theta), +sin(theta), 0., 0.,
-		    -sin(theta), +cos(theta), 0., 0.,
-			     0.,          0., 1., 0.,
-			     0.,          0., 0., 1., };
+  GLfloat mat[] = { +cos(theta)*2/width, -sin(theta)*2/height, 0., 0.,
+		    -sin(theta)*2/width, -cos(theta)*2/height, 0., 0.,
+			     0.,          0., 0., 0.,
+			     -1,          1, 0., 1., };
 
-  glClearColor (0, 0, 0, 1);
+  glClearColor (1, 1, 1, 1);
   glClear (GL_COLOR_BUFFER_BIT);
 
   GLuint program;
@@ -209,7 +209,7 @@ static void
 glut_init (int *argc, char **argv)
 {
   glutInit (argc, argv);
-  glutInitWindowSize (712, 712);
+  glutInitWindowSize (700, 700);
   glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
   glutCreateWindow("GLyphy");
   glutReshapeFunc (glut_reshape_func);

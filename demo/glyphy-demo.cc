@@ -245,17 +245,10 @@ add_glyph (double x, double y, unsigned int glyph_index,
     vertices->push_back (v); \
   } while (0)
 
-#if 1
-  ENCODE_CORNER (-1, -1, 0, 0, gi);
-  ENCODE_CORNER (+1, -1, 1, 0, gi);
-  ENCODE_CORNER (+1, +1, 1, 1, gi);
-  ENCODE_CORNER (-1, +1, 0, 1, gi);
-#else
-  ENCODE_CORNER (x + gi.extents.min_x * font_size, y + gi.extents.min_y * font_size, 0, 0, gi);
-  ENCODE_CORNER (x + gi.extents.max_x * font_size, y + gi.extents.min_y * font_size, 1, 0, gi);
-  ENCODE_CORNER (x + gi.extents.max_x * font_size, y + gi.extents.max_y * font_size, 1, 1, gi);
-  ENCODE_CORNER (x + gi.extents.min_x * font_size, y + gi.extents.max_y * font_size, 0, 1, gi);
-#endif
+  ENCODE_CORNER (x + gi.extents.min_x * font_size, y - gi.extents.min_y * font_size, 0, 0, gi);
+  ENCODE_CORNER (x + gi.extents.max_x * font_size, y - gi.extents.min_y * font_size, 1, 0, gi);
+  ENCODE_CORNER (x + gi.extents.max_x * font_size, y - gi.extents.max_y * font_size, 1, 1, gi);
+  ENCODE_CORNER (x + gi.extents.min_x * font_size, y - gi.extents.max_y * font_size, 0, 1, gi);
 #undef ENCODE_CORNER
 }
 
@@ -292,7 +285,8 @@ main (int argc, char** argv)
 
   vector<glyph_vertex_t> vertices;
 
-  add_glyph (200, 200, glyph_index, 100, &glyph_cache, &atlas, face, &vertices);
+  add_glyph (350, 350, glyph_index, 150, &glyph_cache, &atlas, face, &vertices);
+//  add_glyph (350, 450, FT_Get_Char_Index (face, 'x'), 150, &glyph_cache, &atlas, face, &vertices);
 
   GLuint a_pos_loc = glGetAttribLocation (program, "a_position");
   GLuint a_glyph_loc = glGetAttribLocation (program, "a_glyph");
