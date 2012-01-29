@@ -228,27 +228,29 @@ glyph_vertex_encode (double x, double y,
 }
 
 static void
-add_glyph (double x, double y, unsigned int glyph_index,
+add_glyph (double                  x,
+	   double                  y,
 	   double                  font_size,
-	   glyph_cache_t          *glyph_cache,
-	   atlas_t                *atlas,
-	   FT_Face                 face,
+	   glyph_info_t           *gi,
 	   vector<glyph_vertex_t> *vertices)
 {
-  glyph_info_t gi;
-  get_glyph_info (glyph_cache, atlas, face, glyph_index, &gi);
+  glyph_vertex_t v;
 
-#define ENCODE_CORNER(_x, _y, _cx, _cy, gi) \
+#define ENCODE_CORNER(_cx, _cy) \
   do { \
-    glyph_vertex_t v; \
-    glyph_vertex_encode (_x, _y, _cx, _cy, &gi, &v); \
+    double _vx = x + font_size * ((1-_cx) * gi->extents.min_x + _cx * gi->extents.max_x); \
+    double _vy = y - font_size * ((1-_cy) * gi->extents.min_y + _cy * gi->extents.max_y); \
+    glyph_vertex_encode (_vx, _vy, _cx, _cy, gi, &v); \
     vertices->push_back (v); \
   } while (0)
 
-  ENCODE_CORNER (x + gi.extents.min_x * font_size, y - gi.extents.min_y * font_size, 0, 0, gi);
-  ENCODE_CORNER (x + gi.extents.max_x * font_size, y - gi.extents.min_y * font_size, 1, 0, gi);
-  ENCODE_CORNER (x + gi.extents.max_x * font_size, y - gi.extents.max_y * font_size, 1, 1, gi);
-  ENCODE_CORNER (x + gi.extents.min_x * font_size, y - gi.extents.max_y * font_size, 0, 1, gi);
+  ENCODE_CORNER (0, 0);
+  ENCODE_CORNER (1, 0);
+  ENCODE_CORNER (1, 1);
+
+  ENCODE_CORNER (1, 1);
+  ENCODE_CORNER (0, 1);
+  ENCODE_CORNER (0, 0);
 #undef ENCODE_CORNER
 }
 
@@ -268,31 +270,33 @@ main (int argc, char** argv)
 
   glut_init (&argc, argv);
 
-
-
   FT_Face face = open_ft_face (font_path, 0);
+  /* TODO handle error */
 
   GLuint program = create_program ();
+
+  GLuint a_glyph_vertex_loc = glGetAttribLocation (program, "a_glyph_vertex");
+  glEnableVertexAttribArray (a_glyph_vertex_loc);
 
   atlas_t atlas;
   atlas_init (&atlas, 512, 512, 32, 4);
 
   glyph_cache_t glyph_cache;
 
-  glyph_info_t gi;
-  unsigned int glyph_index = FT_Get_Char_Index (face, unicode);
-  get_glyph_info (&glyph_cache, &atlas, face, glyph_index, &gi);
-
   vector<glyph_vertex_t> vertices;
 
-  add_glyph (-100, 100, glyph_index, 350, &glyph_cache, &atlas, face, &vertices);
-//  add_glyph (350, 450, FT_Get_Char_Index (face, 'x'), 150, &glyph_cache, &atlas, face, &vertices);
+  unsigned int glyph_index;
+  glyph_info_t gi;
 
-  GLuint a_glyph_vertex_loc = glGetAttribLocation (program, "a_glyph_vertex");
-  glVertexAttribPointer (a_glyph_vertex_loc, 4, GL_FLOAT, GL_FALSE, sizeof (glyph_vertex_t),
-			 (const char *) &vertices[0]);
-  glEnableVertexAttribArray (a_glyph_vertex_loc);
+  glyph_index = FT_Get_Char_Index (face, unicode);
+  get_glyph_info (&glyph_cache, &atlas, face, glyph_index, &gi);
+  add_glyph (-200, 100, 300, &gi, &vertices);
 
+  glyph_index = FT_Get_Char_Index (face, 'x');
+  get_glyph_info (&glyph_cache, &atlas, face, glyph_index, &gi);
+  add_glyph (0, 100, 300, &gi, &vertices);
+
+  glVertexAttribPointer (a_glyph_vertex_loc, 4, GL_FLOAT, GL_FALSE, sizeof (glyph_vertex_t), (const char *) &vertices[0]);
   glUseProgram (program);
   atlas_use (&atlas, program);
   glut_main ();

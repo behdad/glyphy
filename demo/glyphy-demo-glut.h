@@ -200,7 +200,7 @@ glut_display_func (void)
   glGetIntegerv (GL_CURRENT_PROGRAM, (GLint *) &program);
   glUniformMatrix4fv (glGetUniformLocation (program, "u_matViewProjection"), 1, GL_FALSE, mat);
 
-  glDrawArrays (GL_TRIANGLE_FAN, 0, 4);
+  glDrawArrays (GL_TRIANGLES, 0, 12);
 
   glutSwapBuffers ();
 }
