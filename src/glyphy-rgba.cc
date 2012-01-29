@@ -164,6 +164,8 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
 
   /* XXX */
   glyph_width = glyph_height = std::max (glyph_width, glyph_height);
+  pextents->max_y = pextents->min_y + glyph_height;
+  pextents->max_x = pextents->min_x + glyph_width;
 
   std::vector<glyphy_rgba_t> tex_data;
   std::vector<glyphy_arc_endpoint_t> near_endpoints;

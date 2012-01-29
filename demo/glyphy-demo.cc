@@ -285,7 +285,7 @@ main (int argc, char** argv)
 
   vector<glyph_vertex_t> vertices;
 
-  add_glyph (350, 350, glyph_index, 150, &glyph_cache, &atlas, face, &vertices);
+  add_glyph (-100, 100, glyph_index, 350, &glyph_cache, &atlas, face, &vertices);
 //  add_glyph (350, 450, FT_Get_Char_Index (face, 'x'), 150, &glyph_cache, &atlas, face, &vertices);
 
   GLuint a_pos_loc = glGetAttribLocation (program, "a_position");

@@ -191,7 +191,7 @@ glut_display_func (void)
   GLfloat mat[] = { +cos(theta)*2/width, -sin(theta)*2/height, 0., 0.,
 		    -sin(theta)*2/width, -cos(theta)*2/height, 0., 0.,
 			     0.,          0., 0., 0.,
-			     -1,          1, 0., 1., };
+			     0.,          0., 0., 1., };
 
   glClearColor (1, 1, 1, 1);
   glClear (GL_COLOR_BUFFER_BIT);
