@@ -25,6 +25,7 @@
 
 #include "glyphy-demo-glut.h"
 #include "glyphy-demo-shaders.h"
+#include "glyphy-demo-atlas.h"
 
 #include <assert.h>
 
@@ -62,11 +63,12 @@ accumulate_endpoint (glyphy_arc_endpoint_t              *endpoint,
 }
 
 static void
-glyphy_freetype_glyph_encode (FT_Face face, unsigned int glyph_index,
-			      double tolerance_per_em,
-			      void *buffer, unsigned int buffer_size,
-			      unsigned int *output_size,
-			      unsigned int *glyph_layout)
+encode_ft_glyph (FT_Face face, unsigned int glyph_index,
+		 double tolerance_per_em,
+		 glyphy_rgba_t *buffer, unsigned int buffer_len,
+		 unsigned int *output_len,
+		 unsigned int *glyph_layout,
+		 glyphy_extents_t *extents)
 {
   if (FT_Err_Ok != FT_Load_Glyph (face,
 				  glyph_index,
@@ -81,8 +83,9 @@ glyphy_freetype_glyph_encode (FT_Face face, unsigned int glyph_index,
   if (face->glyph->format != FT_GLYPH_FORMAT_OUTLINE)
     die ("FreeType loaded glyph format is not outline");
 
-  double tolerance = face->units_per_EM * tolerance_per_em; /* in font design units */
-  double faraway = double (face->units_per_EM) / MIN_FONT_SIZE;
+  unsigned int upem = face->units_per_EM;
+  double tolerance = upem * tolerance_per_em; /* in font design units */
+  double faraway = double (upem) / MIN_FONT_SIZE;
   std::vector<glyphy_arc_endpoint_t> endpoints;
 
   glyphy_arc_accumulator_t acc;
@@ -100,84 +103,66 @@ glyphy_freetype_glyph_encode (FT_Face face, unsigned int glyph_index,
 	  acc.max_error <= acc.tolerance ? "PASS" : "FAIL");
 
   double avg_fetch_achieved;
-  glyphy_extents_t extents;
 
   if (!glyphy_arc_list_encode_rgba (&endpoints[0], endpoints.size (),
-				    (glyphy_rgba_t *) buffer,
-				    buffer_size / sizeof (glyphy_rgba_t),
+				    buffer,
+				    buffer_len,
 				    faraway,
 				    4,
 				    &avg_fetch_achieved,
-				    output_size,
+				    output_len,
 				    glyph_layout,
-				    &extents))
+				    extents))
     die ("Failed encoding arcs");
 
-  *output_size *= sizeof (glyphy_rgba_t);
+  extents->min_x /= upem;
+  extents->min_y /= upem;
+  extents->max_x /= upem;
+  extents->max_y /= upem;
 
   printf ("Average %g texture accesses\n", avg_fetch_achieved);
 }
 
-
-
-
-#define TEX_W 512
-#define TEX_H 512
-#define SUB_TEX_W 64
-
-#define gl(name) \
-	for (GLint __ee, __ii = 0; \
-	     __ii < 1; \
-	     (__ii++, \
-	      (__ee = glGetError()) && \
-	      (fprintf (stderr, "gl" #name " failed with error %04X on line %d", __ee, __LINE__), abort (), 0))) \
-	  gl##name
-
-static GLint
-create_texture (const char *font_path,
-		unsigned int unicode,
-		unsigned int *glyph_layout)
+static FT_Face
+open_ft_face (const char   *font_path,
+	      unsigned int  face_index)
 {
+  static FT_Library library;
+  if (!library)
+    FT_Init_FreeType (&library);
   FT_Face face;
-  FT_Library library;
-  FT_Init_FreeType (&library);
-  FT_New_Face (library, font_path, 0, &face);
+  FT_New_Face (library, font_path, face_index, &face);
+  return face;
+}
 
-  char buffer[50000];
-  unsigned int output_size;
+typedef struct {
+  glyphy_extents_t extents;
+  unsigned int glyph_layout;
+  unsigned int atlas_x;
+  unsigned int atlas_y;
+} glyph_info_t;
 
-  glyphy_freetype_glyph_encode (face,
-			        FT_Get_Char_Index (face, unicode),
-				TOLERANCE,
-			        buffer, sizeof (buffer),
-			        &output_size,
-				glyph_layout);
+static void
+upload_glyph (atlas_t *atlas,
+	      FT_Face face,
+	      unsigned int glyph_index,
+	      glyph_info_t *glyph_info)
+{
+  glyphy_rgba_t buffer[10000];
+  unsigned int output_len;
 
-  printf ("Used %'u bytes\n", output_size);
+  encode_ft_glyph (face,
+		   glyph_index,
+		   TOLERANCE,
+		   buffer, ARRAY_LEN (buffer),
+		   &output_len,
+		   &glyph_info->glyph_layout,
+		   &glyph_info->extents);
 
-  int tex_w = SUB_TEX_W;
-  int tex_h = (output_size + sizeof (glyphy_rgba_t) * (tex_w - 1)) / sizeof (glyphy_rgba_t) / tex_w;
+  printf ("Used %'lu bytes\n", output_len * sizeof (glyphy_rgba_t));
 
-  GLuint texture;
-  glGenTextures (1, &texture);
-  glBindTexture (GL_TEXTURE_2D, texture);
-  glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-  /* Upload*/
-  gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, TEX_W, TEX_H, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-  gl(TexSubImage2D) (GL_TEXTURE_2D, 0, 0, 0, tex_w, tex_h, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
-
-  GLuint tex_unit;
-  glGetIntegerv (GL_ACTIVE_TEXTURE, (GLint *) &tex_unit);
-  GLuint program;
-  glGetIntegerv (GL_CURRENT_PROGRAM, (GLint *) &program);
-
-  glUniform3f (glGetUniformLocation(program, "u_atlas_info"), TEX_W, TEX_H, SUB_TEX_W);
-  glUniform1i (glGetUniformLocation(program, "u_atlas_tex"), tex_unit);
-  glActiveTexture (GL_TEXTURE0);
-
-  return texture;
+  atlas_alloc (atlas, buffer, output_len,
+	       &glyph_info->atlas_x, &glyph_info->atlas_y);
 }
 
 unsigned int
@@ -203,10 +188,10 @@ int
 main (int argc, char** argv)
 {
   char *font_path = NULL;
-  char utf8 = 0;
+  unsigned int unicode = 0;
   if (argc >= 3) {
      font_path = argv[1];
-     utf8 = argv[2][0];
+     unicode = argv[2][0];
      if (argc >= 4)
        animate = atoi (argv[3]);
   }
@@ -215,11 +200,15 @@ main (int argc, char** argv)
 
   glut_init (&argc, argv);
 
-  GLuint program = create_program ();
-  glUseProgram (program);
+  FT_Face face = open_ft_face (font_path, 0);
 
-  unsigned int glyph_layout;
-  GLuint texture = create_texture (font_path, utf8, &glyph_layout);
+  GLuint program = create_program ();
+
+  atlas_t atlas;
+  atlas_init (&atlas, 512, 512, 32, 4);
+
+  glyph_info_t gi;
+  upload_glyph (&atlas, face, FT_Get_Char_Index (face, unicode), &gi);
 
   struct glyph_attrib_t {
     GLfloat x;
@@ -231,10 +220,10 @@ main (int argc, char** argv)
   glyph_attrib_t w_vertices[10];
   unsigned int num_vertices = 0;
 
-#define ENCODE_CORNER(_x, _y, _cx, _cy, _glyph_layout) \
+#define ENCODE_CORNER(_x, _y, _cx, _cy, gi) \
   do { \
     unsigned int i = num_vertices; \
-    unsigned int encoded = glyph_encode (0, 0, _cx, _cy, _glyph_layout); \
+    unsigned int encoded = glyph_encode (gi.atlas_x, gi.atlas_y, _cx, _cy, gi.glyph_layout); \
     w_vertices[i].x = _x; \
     w_vertices[i].y = _y; \
     w_vertices[i].g16hi = encoded >> 16; \
@@ -242,10 +231,10 @@ main (int argc, char** argv)
     num_vertices++; \
   } while (0)
 
-  ENCODE_CORNER (-1, -1, 0, 0, glyph_layout);
-  ENCODE_CORNER (+1, -1, 1, 0, glyph_layout);
-  ENCODE_CORNER (+1, +1, 1, 1, glyph_layout);
-  ENCODE_CORNER (-1, +1, 0, 1, glyph_layout);
+  ENCODE_CORNER (-1, -1, 0, 0, gi);
+  ENCODE_CORNER (+1, -1, 1, 0, gi);
+  ENCODE_CORNER (+1, +1, 1, 1, gi);
+  ENCODE_CORNER (-1, +1, 0, 1, gi);
 
   GLuint a_pos_loc = glGetAttribLocation (program, "a_position");
   GLuint a_glyph_loc = glGetAttribLocation (program, "a_glyph");
@@ -256,6 +245,8 @@ main (int argc, char** argv)
   glEnableVertexAttribArray (a_pos_loc);
   glEnableVertexAttribArray (a_glyph_loc);
 
+  glUseProgram (program);
+  atlas_use (&atlas, program);
   glut_main ();
 
   return 0;
