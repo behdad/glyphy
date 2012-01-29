@@ -168,10 +168,13 @@ create_texture (const char *font_path,
   gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, TEX_W, TEX_H, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
   gl(TexSubImage2D) (GL_TEXTURE_2D, 0, 0, 0, tex_w, tex_h, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
 
+  GLuint tex_unit;
+  glGetIntegerv (GL_ACTIVE_TEXTURE, (GLint *) &tex_unit);
   GLuint program;
   glGetIntegerv (GL_CURRENT_PROGRAM, (GLint *) &program);
+
   glUniform3f (glGetUniformLocation(program, "u_atlas_info"), TEX_W, TEX_H, SUB_TEX_W);
-  glUniform1i (glGetUniformLocation(program, "u_atlas_tex"), 0);
+  glUniform1i (glGetUniformLocation(program, "u_atlas_tex"), tex_unit);
   glActiveTexture (GL_TEXTURE0);
 
   return texture;
