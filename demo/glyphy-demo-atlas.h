@@ -72,7 +72,7 @@ static void
 atlas_use (atlas_t *at, GLuint program)
 {
   glUniform3f (glGetUniformLocation (program, "u_atlas_info"), at->tex_w, at->tex_h, at->item_w);
-  glUniform1i (glGetUniformLocation (program, "u_atlas_tex"), at->tex_unit);
+  glUniform1i (glGetUniformLocation (program, "u_atlas_tex"), at->tex_unit - GL_TEXTURE0);
 }
 
 static void
