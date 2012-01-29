@@ -227,6 +227,38 @@ glyph_vertex_encode (double x, double y,
   v->g16lo = encoded & 0xFFFF;
 }
 
+static void
+add_glyph (double x, double y, unsigned int glyph_index,
+	   double                  font_size,
+	   glyph_cache_t          *glyph_cache,
+	   atlas_t                *atlas,
+	   FT_Face                 face,
+	   vector<glyph_vertex_t> *vertices)
+{
+  glyph_info_t gi;
+  get_glyph_info (glyph_cache, atlas, face, glyph_index, &gi);
+
+#define ENCODE_CORNER(_x, _y, _cx, _cy, gi) \
+  do { \
+    glyph_vertex_t v; \
+    glyph_vertex_encode (_x, _y, _cx, _cy, &gi, &v); \
+    vertices->push_back (v); \
+  } while (0)
+
+#if 1
+  ENCODE_CORNER (-1, -1, 0, 0, gi);
+  ENCODE_CORNER (+1, -1, 1, 0, gi);
+  ENCODE_CORNER (+1, +1, 1, 1, gi);
+  ENCODE_CORNER (-1, +1, 0, 1, gi);
+#else
+  ENCODE_CORNER (x + gi.extents.min_x * font_size, y + gi.extents.min_y * font_size, 0, 0, gi);
+  ENCODE_CORNER (x + gi.extents.max_x * font_size, y + gi.extents.min_y * font_size, 1, 0, gi);
+  ENCODE_CORNER (x + gi.extents.max_x * font_size, y + gi.extents.max_y * font_size, 1, 1, gi);
+  ENCODE_CORNER (x + gi.extents.min_x * font_size, y + gi.extents.max_y * font_size, 0, 1, gi);
+#endif
+#undef ENCODE_CORNER
+}
+
 int
 main (int argc, char** argv)
 {
@@ -258,24 +290,16 @@ main (int argc, char** argv)
   unsigned int glyph_index = FT_Get_Char_Index (face, unicode);
   get_glyph_info (&glyph_cache, &atlas, face, glyph_index, &gi);
 
-  glyph_vertex_t w_vertices[10];
-  unsigned int num_vertices = 0;
+  vector<glyph_vertex_t> vertices;
 
-#define ENCODE_CORNER(_x, _y, _cx, _cy, gi) \
-  glyph_vertex_encode (_x, _y, _cx, _cy, &gi, &w_vertices[num_vertices]); \
-  num_vertices++;
-
-  ENCODE_CORNER (-1, -1, 0, 0, gi);
-  ENCODE_CORNER (+1, -1, 1, 0, gi);
-  ENCODE_CORNER (+1, +1, 1, 1, gi);
-  ENCODE_CORNER (-1, +1, 0, 1, gi);
+  add_glyph (200, 200, glyph_index, 100, &glyph_cache, &atlas, face, &vertices);
 
   GLuint a_pos_loc = glGetAttribLocation (program, "a_position");
   GLuint a_glyph_loc = glGetAttribLocation (program, "a_glyph");
   glVertexAttribPointer (a_pos_loc, 2, GL_FLOAT, GL_FALSE, sizeof (glyph_vertex_t),
-			 (const char *) w_vertices + offsetof (glyph_vertex_t, x));
+			 (const char *) &vertices[0] + offsetof (glyph_vertex_t, x));
   glVertexAttribPointer (a_glyph_loc, 2, GL_FLOAT, GL_FALSE, sizeof (glyph_vertex_t),
-			 (const char *) w_vertices + offsetof (glyph_vertex_t, g16hi));
+			 (const char *) &vertices[0] + offsetof (glyph_vertex_t, g16hi));
   glEnableVertexAttribArray (a_pos_loc);
   glEnableVertexAttribArray (a_glyph_loc);
 

@@ -59,10 +59,7 @@ void
 glut_reshape_func (int width, int height)
 {
   glViewport (0, 0, width, height);
-  glMatrixMode (GL_PROJECTION);
-  glLoadIdentity ();
   glOrtho (0, width, 0, height, -1, 1);
-  glMatrixMode (GL_MODELVIEW);
   glutPostRedisplay ();
 }
 
