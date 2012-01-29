@@ -59,7 +59,6 @@ void
 glut_reshape_func (int width, int height)
 {
   glViewport (0, 0, width, height);
-  glOrtho (0, width, 0, height, -1, 1);
   glutPostRedisplay ();
 }
 
