@@ -25,15 +25,13 @@
 
 #include "glyphy-demo-glut.h"
 #include "glyphy-demo-shaders.h"
-#include "glyphy-demo-atlas.h"
+#include "glyphy-demo-font.h"
 
 #include <assert.h>
 
 #include <vector>
-#include <ext/hash_map>
 
 using namespace std;
-using namespace __gnu_cxx; /* This is ridiculous */
 
 
 
@@ -139,15 +137,6 @@ open_ft_face (const char   *font_path,
   return face;
 }
 
-typedef struct {
-  glyphy_extents_t extents;
-  unsigned int glyph_layout;
-  unsigned int atlas_x;
-  unsigned int atlas_y;
-} glyph_info_t;
-
-typedef hash_map<unsigned int, glyph_info_t> glyph_cache_t;
-
 static void
 upload_glyph (atlas_t *atlas,
 	      FT_Face face,
@@ -182,76 +171,6 @@ get_glyph_info (glyph_cache_t *glyph_cache,
     (*glyph_cache)[glyph_index] = *glyph_info;
   } else
     *glyph_info = (*glyph_cache)[glyph_index];
-}
-
-unsigned int
-glyph_encode (unsigned int atlas_x,  /* 7 bits */
-	      unsigned int atlas_y,  /* 7 bits */
-	      unsigned int corner_x, /* 1 bit */
-	      unsigned int corner_y, /* 1 bit */
-	      unsigned int glyph_layout /* 16 bits */)
-{
-  assert (0 == (atlas_x & ~0x7F));
-  assert (0 == (atlas_y & ~0x7F));
-  assert (0 == (corner_x & ~1));
-  assert (0 == (corner_y & ~1));
-  assert (0 == (glyph_layout & ~0xFFFF));
-
-  unsigned int x = (((atlas_x << 8) | (glyph_layout >> 8))   << 1) | corner_x;
-  unsigned int y = (((atlas_y << 8) | (glyph_layout & 0xFF)) << 1) | corner_y;
-
-  return (x << 16) | y;
-}
-
-struct glyph_vertex_t {
-  /* Position */
-  GLfloat x;
-  GLfloat y;
-  /* Glyph info */
-  GLfloat g16hi;
-  GLfloat g16lo;
-};
-
-static void
-glyph_vertex_encode (double x, double y,
-		     unsigned int corner_x, unsigned int corner_y,
-		     const glyph_info_t *gi,
-		     glyph_vertex_t *v)
-{
-  unsigned int encoded = glyph_encode (gi->atlas_x, gi->atlas_y,
-				       corner_x, corner_y,
-				       gi->glyph_layout);
-  v->x = x;
-  v->y = y;
-  v->g16hi = encoded >> 16;
-  v->g16lo = encoded & 0xFFFF;
-}
-
-static void
-add_glyph (double                  x,
-	   double                  y,
-	   double                  font_size,
-	   glyph_info_t           *gi,
-	   vector<glyph_vertex_t> *vertices)
-{
-  glyph_vertex_t v;
-
-#define ENCODE_CORNER(_cx, _cy) \
-  do { \
-    double _vx = x + font_size * ((1-_cx) * gi->extents.min_x + _cx * gi->extents.max_x); \
-    double _vy = y - font_size * ((1-_cy) * gi->extents.min_y + _cy * gi->extents.max_y); \
-    glyph_vertex_encode (_vx, _vy, _cx, _cy, gi, &v); \
-    vertices->push_back (v); \
-  } while (0)
-
-  ENCODE_CORNER (0, 0);
-  ENCODE_CORNER (1, 0);
-  ENCODE_CORNER (1, 1);
-
-  ENCODE_CORNER (1, 1);
-  ENCODE_CORNER (0, 1);
-  ENCODE_CORNER (0, 0);
-#undef ENCODE_CORNER
 }
 
 int
@@ -290,11 +209,11 @@ main (int argc, char** argv)
 
   glyph_index = FT_Get_Char_Index (face, unicode);
   get_glyph_info (&glyph_cache, &atlas, face, glyph_index, &gi);
-  add_glyph (-200, 100, 300, &gi, &vertices);
+  add_glyph_vertices (-200, 100, 300, &gi, &vertices);
 
   glyph_index = FT_Get_Char_Index (face, 'x');
   get_glyph_info (&glyph_cache, &atlas, face, glyph_index, &gi);
-  add_glyph (0, 100, 300, &gi, &vertices);
+  add_glyph_vertices (0, 100, 300, &gi, &vertices);
 
   glVertexAttribPointer (a_glyph_vertex_loc, 4, GL_FLOAT, GL_FALSE, sizeof (glyph_vertex_t), (const char *) &vertices[0]);
   glUseProgram (program);

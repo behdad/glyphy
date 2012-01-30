@@ -31,6 +31,7 @@ glyphy_demo_LDADD = \
 glyphy_demo_SOURCES = \
 	glyphy-demo.cc \
 	glyphy-demo-atlas.h \
+	glyphy-demo-font.h \
 	glyphy-demo-gl.h \
 	glyphy-demo-glut.h \
 	glyphy-demo-shaders.h \

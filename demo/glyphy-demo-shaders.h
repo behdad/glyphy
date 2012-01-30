@@ -24,10 +24,86 @@
 #endif
 
 #include "glyphy-demo-gl.h"
+#include "glyphy-demo-font.h"
 
 #include "glyphy-demo-atlas-glsl.h"
 #include "glyphy-demo-vshader-glsl.h"
 #include "glyphy-demo-fshader-glsl.h"
+
+#include <assert.h>
+
+
+unsigned int
+glyph_encode (unsigned int atlas_x,  /* 7 bits */
+	      unsigned int atlas_y,  /* 7 bits */
+	      unsigned int corner_x, /* 1 bit */
+	      unsigned int corner_y, /* 1 bit */
+	      unsigned int glyph_layout /* 16 bits */)
+{
+  assert (0 == (atlas_x & ~0x7F));
+  assert (0 == (atlas_y & ~0x7F));
+  assert (0 == (corner_x & ~1));
+  assert (0 == (corner_y & ~1));
+  assert (0 == (glyph_layout & ~0xFFFF));
+
+  unsigned int x = (((atlas_x << 8) | (glyph_layout >> 8))   << 1) | corner_x;
+  unsigned int y = (((atlas_y << 8) | (glyph_layout & 0xFF)) << 1) | corner_y;
+
+  return (x << 16) | y;
+}
+
+struct glyph_vertex_t {
+  /* Position */
+  GLfloat x;
+  GLfloat y;
+  /* Glyph info */
+  GLfloat g16hi;
+  GLfloat g16lo;
+};
+
+static void
+glyph_vertex_encode (double x, double y,
+		     unsigned int corner_x, unsigned int corner_y,
+		     const glyph_info_t *gi,
+		     glyph_vertex_t *v)
+{
+  unsigned int encoded = glyph_encode (gi->atlas_x, gi->atlas_y,
+				       corner_x, corner_y,
+				       gi->glyph_layout);
+  v->x = x;
+  v->y = y;
+  v->g16hi = encoded >> 16;
+  v->g16lo = encoded & 0xFFFF;
+}
+
+static void
+add_glyph_vertices (double                  x,
+		    double                  y,
+		    double                  font_size,
+		    glyph_info_t           *gi,
+		    vector<glyph_vertex_t> *vertices)
+{
+  glyph_vertex_t v;
+
+#define ENCODE_CORNER(_cx, _cy) \
+  do { \
+    double _vx = x + font_size * ((1-_cx) * gi->extents.min_x + _cx * gi->extents.max_x); \
+    double _vy = y - font_size * ((1-_cy) * gi->extents.min_y + _cy * gi->extents.max_y); \
+    glyph_vertex_encode (_vx, _vy, _cx, _cy, gi, &v); \
+    vertices->push_back (v); \
+  } while (0)
+
+  ENCODE_CORNER (0, 0);
+  ENCODE_CORNER (1, 0);
+  ENCODE_CORNER (1, 1);
+
+  ENCODE_CORNER (1, 1);
+  ENCODE_CORNER (0, 1);
+  ENCODE_CORNER (0, 0);
+#undef ENCODE_CORNER
+}
+
+
 
 
 #define STRINGIZE1(Src) #Src
