@@ -46,6 +46,10 @@ static long last_time = 0;
 static double phase = 0;
 
 
+#define WINDOW_SIZE 700
+
+
+
 /* return current time in milli-seconds */
 static long
 current_time (void)
@@ -151,6 +155,10 @@ glut_keyboard_func (unsigned char key, int x, int y)
       toggle_animation ();
       break;
 
+    case 'f':
+      glutFullScreen ();
+      break;
+
     case 'd':
       SET_UNIFORM (u_debug, 1 - u_debug);
       break;
@@ -217,9 +225,9 @@ static void
 glut_init (int *argc, char **argv)
 {
   glutInit (argc, argv);
-  glutInitWindowSize (700, 700);
+  glutInitWindowSize (WINDOW_SIZE, WINDOW_SIZE);
   glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-  glutCreateWindow("GLyphy");
+  glutCreateWindow("GLyphy Demo");
   glutReshapeFunc (glut_reshape_func);
   glutDisplayFunc (glut_display_func);
   glutKeyboardFunc (glut_keyboard_func);
