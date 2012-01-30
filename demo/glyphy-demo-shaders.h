@@ -77,8 +77,7 @@ glyph_vertex_encode (double x, double y,
 }
 
 static void
-add_glyph_vertices (double                  x,
-		    double                  y,
+add_glyph_vertices (const glyphy_point_t   &p,
 		    double                  font_size,
 		    glyph_info_t           *gi,
 		    vector<glyph_vertex_t> *vertices)
@@ -87,8 +86,8 @@ add_glyph_vertices (double                  x,
 
 #define ENCODE_CORNER(_cx, _cy) \
   do { \
-    double _vx = x + font_size * ((1-_cx) * gi->extents.min_x + _cx * gi->extents.max_x); \
-    double _vy = y - font_size * ((1-_cy) * gi->extents.min_y + _cy * gi->extents.max_y); \
+    double _vx = p.x + font_size * ((1-_cx) * gi->extents.min_x + _cx * gi->extents.max_x); \
+    double _vy = p.y - font_size * ((1-_cy) * gi->extents.min_y + _cy * gi->extents.max_y); \
     glyph_vertex_encode (_vx, _vy, _cx, _cy, gi, &v); \
     vertices->push_back (v); \
   } while (0)
@@ -105,10 +104,6 @@ add_glyph_vertices (double                  x,
 
 
 
-
-#define STRINGIZE1(Src) #Src
-#define STRINGIZE(Src) STRINGIZE1(Src)
-#define ARRAY_LEN(Array) (sizeof (Array) / sizeof (*Array))
 
 #define GLSL_VERSION_STRING "#version 120\n"
 

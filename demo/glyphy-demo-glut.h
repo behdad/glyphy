@@ -23,6 +23,8 @@
 #include <config.h>
 #endif
 
+#include "glyphy-demo-shaders.h"
+
 #include <GL/glew.h>
 
 #if defined(__APPLE__)
@@ -169,6 +171,9 @@ glut_keyboard_func (unsigned char key, int x, int y)
   }
 }
 
+
+vector<glyph_vertex_t> vertices;
+
 static void
 glut_display_func (void)
 {
@@ -177,7 +182,7 @@ glut_display_func (void)
   GLuint width  = viewport[2];
   GLuint height = viewport[3];
 
-  double elapsed_time;
+  double elapsed_time = 0;
   long t = current_time ();
   if (animate) {
     if (last_time == 0)
@@ -200,7 +205,10 @@ glut_display_func (void)
   glGetIntegerv (GL_CURRENT_PROGRAM, (GLint *) &program);
   glUniformMatrix4fv (glGetUniformLocation (program, "u_matViewProjection"), 1, GL_FALSE, mat);
 
-  glDrawArrays (GL_TRIANGLES, 0, 12);
+  GLuint a_glyph_vertex_loc = glGetAttribLocation (program, "a_glyph_vertex");
+  glEnableVertexAttribArray (a_glyph_vertex_loc);
+  glVertexAttribPointer (a_glyph_vertex_loc, 4, GL_FLOAT, GL_FALSE, sizeof (glyph_vertex_t), (const char *) &vertices[0]);
+  glDrawArrays (GL_TRIANGLES, 0, vertices.size ());
 
   glutSwapBuffers ();
 }
