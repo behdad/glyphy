@@ -105,12 +105,20 @@ main (int argc, char** argv)
 
   glyphy_demo_font_t *font = glyphy_demo_font_create (face, &atlas);
 
-#define FONT_SIZE 300
+#define FONT_SIZE 100
+
+  glyphy_point_t top_left = {-200, -200};
 
   vertices.clear ();
-  glyphy_point_t cursor = {-200, 100};
+  glyphy_point_t cursor = top_left;
+  cursor.y += FONT_SIZE /* * font->ascent */;
   for (const char *p = text; *p; p++) {
     unsigned int unicode = *p;
+    if (unicode == '\n') {
+      cursor.y += FONT_SIZE;
+      cursor.x = top_left.x;
+      continue;
+    }
     unsigned int glyph_index = FT_Get_Char_Index (face, unicode);
     glyph_info_t gi;
     glyphy_demo_font_lookup_glyph (font, glyph_index, &gi);
