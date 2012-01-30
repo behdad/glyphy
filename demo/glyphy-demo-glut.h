@@ -23,9 +23,8 @@
 #include <config.h>
 #endif
 
-#include "glyphy-demo-shaders.h"
-
-#include <GL/glew.h>
+#include "demo-shader.h"
+#include "demo-state.h"
 
 #if defined(__APPLE__)
     #include <Glut/glut.h>
@@ -128,19 +127,13 @@ toggle_animation (void)
 static void
 set_uniform (const char *name, double *p, double value)
 {
-  GLuint program;
-  glGetIntegerv (GL_CURRENT_PROGRAM, (GLint *) &program);
   *p = value;
-  glUniform1f (glGetUniformLocation (program, name), value);
+  glUniform1f (glGetUniformLocation (st.program, name), value);
   printf ("Setting %s to %g\n", name, value);
   glutPostRedisplay ();
 }
-#define SET_UNIFORM(name, value) set_uniform (#name, &name, value)
+#define SET_UNIFORM(name, value) set_uniform (#name, &st.name, value)
 
-/* Uniforms */
-static double u_contrast;
-static double u_gamma;
-static double u_debug;
 
 static void
 glut_keyboard_func (unsigned char key, int x, int y)
@@ -160,27 +153,25 @@ glut_keyboard_func (unsigned char key, int x, int y)
       break;
 
     case 'd':
-      SET_UNIFORM (u_debug, 1 - u_debug);
+      SET_UNIFORM (u_debug, 1 - st.u_debug);
       break;
 
     case 'a':
-      SET_UNIFORM (u_contrast, u_contrast / .9);
+      SET_UNIFORM (u_contrast, st.u_contrast / .9);
       break;
     case 'z':
-      SET_UNIFORM (u_contrast, u_contrast * .9);
+      SET_UNIFORM (u_contrast, st.u_contrast * .9);
       break;
 
     case 'g':
-      SET_UNIFORM (u_gamma, u_gamma / .9);
+      SET_UNIFORM (u_gamma, st.u_gamma / .9);
       break;
     case 'b':
-      SET_UNIFORM (u_gamma, u_gamma * .9);
+      SET_UNIFORM (u_gamma, st.u_gamma * .9);
       break;
   }
 }
 
-
-vector<glyph_vertex_t> vertices;
 
 static void
 glut_display_func (void)
@@ -209,14 +200,12 @@ glut_display_func (void)
   glClearColor (1, 1, 1, 1);
   glClear (GL_COLOR_BUFFER_BIT);
 
-  GLuint program;
-  glGetIntegerv (GL_CURRENT_PROGRAM, (GLint *) &program);
-  glUniformMatrix4fv (glGetUniformLocation (program, "u_matViewProjection"), 1, GL_FALSE, mat);
+  glUniformMatrix4fv (glGetUniformLocation (st.program, "u_matViewProjection"), 1, GL_FALSE, mat);
 
-  GLuint a_glyph_vertex_loc = glGetAttribLocation (program, "a_glyph_vertex");
+  GLuint a_glyph_vertex_loc = glGetAttribLocation (st.program, "a_glyph_vertex");
   glEnableVertexAttribArray (a_glyph_vertex_loc);
-  glVertexAttribPointer (a_glyph_vertex_loc, 4, GL_FLOAT, GL_FALSE, sizeof (glyph_vertex_t), (const char *) &vertices[0]);
-  glDrawArrays (GL_TRIANGLES, 0, vertices.size ());
+  glVertexAttribPointer (a_glyph_vertex_loc, 4, GL_FLOAT, GL_FALSE, sizeof (glyph_vertex_t), (const char *) &st.vertices[0]);
+  glDrawArrays (GL_TRIANGLES, 0, st.vertices.size ());
 
   glutSwapBuffers ();
 }
@@ -240,12 +229,9 @@ glut_init (int *argc, char **argv)
 static void
 glut_main (void)
 {
-  if (animate)
-    start_animation ();
-
-  SET_UNIFORM (u_contrast, 1);
-  SET_UNIFORM (u_gamma, 2.2);
   SET_UNIFORM (u_debug, 0);
+  SET_UNIFORM (u_contrast, 1.0);
+  SET_UNIFORM (u_gamma, 2.2);
 
   glutMainLoop ();
 }

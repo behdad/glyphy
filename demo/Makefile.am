@@ -29,18 +29,22 @@ glyphy_demo_LDADD = \
 	$(GLUT_LIBS) \
 	$(NULL)
 glyphy_demo_SOURCES = \
+	demo-atlas.h \
+	demo-atlas.cc \
+	demo-font.h \
+	demo-font.cc \
+	demo-shader.h \
+	demo-shader.cc \
+	demo-state.h \
+	demo-state.cc \
 	glyphy-demo.cc \
-	glyphy-demo-atlas.h \
-	glyphy-demo-font.h \
-	glyphy-demo-gl.h \
 	glyphy-demo-glut.h \
-	glyphy-demo-shaders.h \
 	$(SHADERHEADERS) \
 	$(NULL)
 SHADERS = \
-	glyphy-demo-atlas.glsl \
-	glyphy-demo-fshader.glsl \
-	glyphy-demo-vshader.glsl \
+	demo-atlas.glsl \
+	demo-fshader.glsl \
+	demo-vshader.glsl \
 	$(NULL)
 SHADERHEADERS = $(patsubst %.glsl,%-glsl.h, $(SHADERS))
 BUILT_SOURCES += $(SHADERHEADERS)

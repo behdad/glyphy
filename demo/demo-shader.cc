@@ -13,27 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * Google Author(s): Behdad Esfahbod, Maysum Panju
+ * Google Author(s): Behdad Esfahbod
  */
-
-#ifndef GLYPHY_DEMO_SHADERS_H
-#define GLYPHY_DEMO_SHADERS_H
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
 
-#include "glyphy-demo-gl.h"
-#include "glyphy-demo-font.h"
+#include "demo-shader.h"
 
-#include "glyphy-demo-atlas-glsl.h"
-#include "glyphy-demo-vshader-glsl.h"
-#include "glyphy-demo-fshader-glsl.h"
-
-#include <assert.h>
+#include "demo-atlas-glsl.h"
+#include "demo-vshader-glsl.h"
+#include "demo-fshader-glsl.h"
 
 
-unsigned int
+static unsigned int
 glyph_encode (unsigned int atlas_x,  /* 7 bits */
 	      unsigned int atlas_y,  /* 7 bits */
 	      unsigned int corner_x, /* 1 bit */
@@ -52,15 +46,6 @@ glyph_encode (unsigned int atlas_x,  /* 7 bits */
   return (x << 16) | y;
 }
 
-struct glyph_vertex_t {
-  /* Position */
-  GLfloat x;
-  GLfloat y;
-  /* Glyph info */
-  GLfloat g16hi;
-  GLfloat g16lo;
-};
-
 static void
 glyph_vertex_encode (double x, double y,
 		     unsigned int corner_x, unsigned int corner_y,
@@ -76,11 +61,11 @@ glyph_vertex_encode (double x, double y,
   v->g16lo = encoded & 0xFFFF;
 }
 
-static void
-add_glyph_vertices (const glyphy_point_t   &p,
-		    double                  font_size,
-		    glyph_info_t           *gi,
-		    vector<glyph_vertex_t> *vertices)
+void
+demo_shader_add_glyph_vertices (const glyphy_point_t        &p,
+				double                       font_size,
+				glyph_info_t                *gi,
+				std::vector<glyph_vertex_t> *vertices)
 {
   glyph_vertex_t v;
 
@@ -105,26 +90,90 @@ add_glyph_vertices (const glyphy_point_t   &p,
 
 
 
+static GLuint
+compile_shader (GLenum         type,
+		GLsizei        count,
+		const GLchar** sources)
+{
+  GLuint shader;
+  GLint compiled;
+
+  if (!(shader = glCreateShader (type)))
+    return shader;
+
+  glShaderSource (shader, count, sources, 0);
+  glCompileShader (shader);
+
+  glGetShaderiv (shader, GL_COMPILE_STATUS, &compiled);
+  if (!compiled) {
+    GLint info_len = 0;
+    fprintf (stderr, "Shader failed to compile\n");
+    glGetShaderiv (shader, GL_INFO_LOG_LENGTH, &info_len);
+
+    if (info_len > 0) {
+      char *info_log = (char*) malloc (info_len);
+      glGetShaderInfoLog (shader, info_len, NULL, info_log);
+
+      fprintf (stderr, "%s\n", info_log);
+      free (info_log);
+    }
+
+    abort ();
+  }
+
+  return shader;
+}
+
+static GLuint
+link_program (GLuint vshader,
+	      GLuint fshader)
+{
+  GLuint program;
+  GLint linked;
+
+  program = glCreateProgram ();
+  glAttachShader (program, vshader);
+  glAttachShader (program, fshader);
+  glLinkProgram (program);
+  glDeleteShader (vshader);
+  glDeleteShader (fshader);
+
+  glGetProgramiv (program, GL_LINK_STATUS, &linked);
+  if (!linked) {
+    GLint info_len = 0;
+    fprintf (stderr, "Program failed to link\n");
+    glGetProgramiv (program, GL_INFO_LOG_LENGTH, &info_len);
+
+    if (info_len > 0) {
+      char *info_log = (char*) malloc (info_len);
+      glGetProgramInfoLog (program, info_len, NULL, info_log);
+
+      fprintf (stderr, "%s\n", info_log);
+      free (info_log);
+    }
+
+    abort ();
+  }
+
+  return program;
+}
+
 #define GLSL_VERSION_STRING "#version 120\n"
 
 GLuint
-create_program (void)
+demo_shader_create_program (void)
 {
   GLuint vshader, fshader, program;
   const GLchar *vshader_sources[] = {GLSL_VERSION_STRING,
-				     glyphy_demo_vshader_glsl};
+				     demo_vshader_glsl};
   vshader = compile_shader (GL_VERTEX_SHADER, ARRAY_LEN (vshader_sources), vshader_sources);
   const GLchar *fshader_sources[] = {GLSL_VERSION_STRING,
-				     glyphy_demo_atlas_glsl,
+				     demo_atlas_glsl,
 				     glyphy_common_shader_source (),
 				     glyphy_sdf_shader_source (),
-				     glyphy_demo_fshader_glsl};
+				     demo_fshader_glsl};
   fshader = compile_shader (GL_FRAGMENT_SHADER, ARRAY_LEN (fshader_sources), fshader_sources);
 
   program = link_program (vshader, fshader);
   return program;
 }
-
-
-
-#endif /* GLYPHY_DEMO_SHADERS_H */

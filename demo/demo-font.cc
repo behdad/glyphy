@@ -13,51 +13,61 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * Google Author(s): Behdad Esfahbod, Maysum Panju
+ * Google Author(s): Behdad Esfahbod
  */
-
-#ifndef GLYPHY_DEMO_FONT_H
-#define GLYPHY_DEMO_FONT_H
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
 
-#include <glyphy-freetype.h>
+#include "demo-font.h"
 
-#include "glyphy-demo-atlas.h"
+#include <glyphy-freetype.h>
 
 #include <ext/hash_map>
 
 using namespace __gnu_cxx; /* This is ridiculous */
 
 
-typedef struct {
-  glyphy_extents_t extents;
-  double           advance;
-  unsigned int     glyph_layout;
-  unsigned int     atlas_x;
-  unsigned int     atlas_y;
-} glyph_info_t;
-
 typedef hash_map<unsigned int, glyph_info_t> glyph_cache_t;
 
+struct demo_font_t {
+  unsigned int   refcount;
 
-typedef struct {
   FT_Face        face;
   glyph_cache_t *glyph_cache;
-  atlas_t       *atlas;
-} glyphy_demo_font_t;
+  demo_atlas_t  *atlas;
+};
 
-glyphy_demo_font_t *
-glyphy_demo_font_create (FT_Face   face,
-			 atlas_t  *atlas)
+demo_font_t *
+demo_font_create (FT_Face       face,
+		  demo_atlas_t *atlas)
 {
-  glyphy_demo_font_t *font = (glyphy_demo_font_t *) malloc (sizeof (glyphy_demo_font_t));
+  demo_font_t *font = (demo_font_t *) malloc (sizeof (demo_font_t));
+  font->refcount = 1;
+
   font->face = face;
   font->glyph_cache = new glyph_cache_t ();
-  font->atlas = atlas;
+  font->atlas = demo_atlas_reference (atlas);
   return font;
+}
+
+demo_font_t *
+demo_font_reference (demo_font_t *font)
+{
+  if (font) font->refcount++;
+  return font;
+}
+
+void
+demo_font_destroy (demo_font_t *font)
+{
+  if (!font || --font->refcount)
+    return;
+
+  demo_atlas_destroy (font->atlas);
+  delete font->glyph_cache;
+  free (font);
 }
 
 
@@ -136,9 +146,9 @@ encode_ft_glyph (FT_Face           face,
 }
 
 static void
-_glyphy_demo_font_upload_glyph (glyphy_demo_font_t *font,
-				unsigned int glyph_index,
-				glyph_info_t *glyph_info)
+_demo_font_upload_glyph (demo_font_t *font,
+			 unsigned int glyph_index,
+			 glyph_info_t *glyph_info)
 {
   glyphy_rgba_t buffer[4096];
   unsigned int output_len;
@@ -154,20 +164,18 @@ _glyphy_demo_font_upload_glyph (glyphy_demo_font_t *font,
 
   printf ("Used %'lu bytes\n", output_len * sizeof (glyphy_rgba_t));
 
-  atlas_alloc (font->atlas, buffer, output_len,
-	       &glyph_info->atlas_x, &glyph_info->atlas_y);
+  demo_atlas_alloc (font->atlas, buffer, output_len,
+		    &glyph_info->atlas_x, &glyph_info->atlas_y);
 }
 
 void
-glyphy_demo_font_lookup_glyph (glyphy_demo_font_t *font,
-			       unsigned int glyph_index,
-			       glyph_info_t *glyph_info)
+demo_font_lookup_glyph (demo_font_t  *font,
+			unsigned int  glyph_index,
+			glyph_info_t *glyph_info)
 {
   if (font->glyph_cache->find (glyph_index) == font->glyph_cache->end ()) {
-    _glyphy_demo_font_upload_glyph (font, glyph_index, glyph_info);
+    _demo_font_upload_glyph (font, glyph_index, glyph_info);
     (*font->glyph_cache)[glyph_index] = *glyph_info;
   } else
     *glyph_info = (*font->glyph_cache)[glyph_index];
 }
-
-#endif /* GLYPHY_DEMO_FONT_H */

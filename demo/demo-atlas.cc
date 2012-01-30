@@ -13,20 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * Google Author(s): Behdad Esfahbod, Maysum Panju
+ * Google Author(s): Behdad Esfahbod
  */
-
-#ifndef GLYPHY_DEMO_ATLAS_H
-#define GLYPHY_DEMO_ATLAS_H
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
 
-#include "glyphy-demo-gl.h"
+#include "demo-atlas.h"
 
 
-typedef struct {
+struct demo_atlas_t {
+  unsigned int refcount;
+
   GLuint tex_unit;
   GLuint tex_name;
   GLuint tex_w;
@@ -35,22 +34,18 @@ typedef struct {
   GLuint item_h_q; /* height quantum */
   GLuint cursor_x;
   GLuint cursor_y;
-} atlas_t;
+};
 
-static inline void
-atlas_bind (atlas_t *at)
-{
-  glActiveTexture (at->tex_unit);
-  glBindTexture (GL_TEXTURE_2D, at->tex_name);
-}
 
-static void
-atlas_init (atlas_t *at,
-	    unsigned int w,
-	    unsigned int h,
-	    unsigned int item_w,
-	    unsigned int item_h_quantum)
+demo_atlas_t *
+demo_atlas_create (unsigned int w,
+		   unsigned int h,
+		   unsigned int item_w,
+		   unsigned int item_h_quantum)
 {
+  demo_atlas_t *at = (demo_atlas_t *) malloc (sizeof (demo_atlas_t));
+  at->refcount = 1;
+
   glGetIntegerv (GL_ACTIVE_TEXTURE, (GLint *) &at->tex_unit);
   glGenTextures (1, &at->tex_name);
   at->tex_w = w;
@@ -60,28 +55,57 @@ atlas_init (atlas_t *at,
   at->cursor_x = 0;
   at->cursor_y = 0;
 
-  atlas_bind (at);
+  demo_atlas_bind_texture (at);
 
   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
   gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA, at->tex_w, at->tex_h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+
+  return at;
 }
 
-static void
-atlas_use (atlas_t *at, GLuint program)
+demo_atlas_t *
+demo_atlas_reference (demo_atlas_t *at)
 {
+  if (at) at->refcount++;
+  return at;
+}
+
+void
+demo_atlas_destroy (demo_atlas_t *at)
+{
+  if (!at || --at->refcount)
+    return;
+
+  glDeleteTextures (1, &at->tex_name);
+  free (at);
+}
+
+void
+demo_atlas_bind_texture (demo_atlas_t *at)
+{
+  glActiveTexture (at->tex_unit);
+  glBindTexture (GL_TEXTURE_2D, at->tex_name);
+}
+
+void
+demo_atlas_set_uniforms (demo_atlas_t *at)
+{
+  GLuint program;
+  glGetIntegerv (GL_CURRENT_PROGRAM, (GLint *) &program);
+
   glUniform4i (glGetUniformLocation (program, "u_atlas_info"),
 	       at->tex_w, at->tex_h, at->item_w, at->item_h_q);
   glUniform1i (glGetUniformLocation (program, "u_atlas_tex"), at->tex_unit - GL_TEXTURE0);
 }
 
-static void
-atlas_alloc (atlas_t *at,
-	     glyphy_rgba_t *data,
-	     unsigned int len,
-	     unsigned int *px,
-	     unsigned int *py)
+void
+demo_atlas_alloc (demo_atlas_t  *at,
+		  glyphy_rgba_t *data,
+		  unsigned int   len,
+		  unsigned int  *px,
+		  unsigned int  *py)
 {
   GLuint w, h, x, y;
 
@@ -100,12 +124,10 @@ atlas_alloc (atlas_t *at,
     x = at->cursor_x;
     y = at->cursor_y;
     at->cursor_y += (h + at->item_h_q - 1) & ~(at->item_h_q - 1);
-  } else {
-    fprintf (stderr, "Ran out of atlas memory\n");
-    abort ();
-  }
+  } else
+    die ("Ran out of atlas memory");
 
-  atlas_bind (at);
+  demo_atlas_bind_texture (at);
   if (w * h == len)
     gl(TexSubImage2D) (GL_TEXTURE_2D, 0, x, y, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data);
   else {
@@ -117,7 +139,4 @@ atlas_alloc (atlas_t *at,
 
   *px = x / at->item_w;
   *py = y / at->item_h_q;
-  return;
 }
-
-#endif /* GLYPHY_DEMO_ATLAS_H */

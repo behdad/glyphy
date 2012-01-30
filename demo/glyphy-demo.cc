@@ -20,47 +20,13 @@
 #include <config.h>
 #endif
 
-#include <glyphy.h>
-
-#include <assert.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-
-#include <vector>
-
-using namespace std;
-
-
-#define STRINGIZE1(Src) #Src
-#define STRINGIZE(Src) STRINGIZE1(Src)
-#define ARRAY_LEN(Array) (sizeof (Array) / sizeof (*Array))
-
-
-#if 1
-// Large font size profile
-#define MIN_FONT_SIZE 64
-#define TOLERANCE 5e-4
-#else
-// Small font size profile
-#define MIN_FONT_SIZE 20
-#define TOLERANCE 1e-3
-#endif
-
-
-
-static void
-die (const char *msg)
-{
-  fprintf (stderr, "%s\n", msg);
-  exit (1);
-}
+#include "demo-common.h"
+#include "demo-font.h"
+#include "demo-shader.h"
 
 #include "glyphy-demo-glut.h"
-#include "glyphy-demo-shaders.h"
-#include "glyphy-demo-font.h"
 
-
+demo_state_t st;
 
 
 static FT_Face
@@ -83,33 +49,25 @@ main (int argc, char** argv)
   const char *font_path = NULL;
   const char *text = NULL;
 
-  if (argc >= 3) {
-     font_path = argv[1];
-     text = argv[2];
-     if (argc >= 4)
-       animate = atoi (argv[3]);
-  }
-  else {
-    fprintf (stderr, "Usage: %s FONT_FILE TEXT ANIMATE?\n", argv[0]);
+  if (argc != 3) {
+    fprintf (stderr, "Usage: %s FONT_FILE TEXT\n", argv[0]);
     exit (1);
   }
+   font_path = argv[1];
+   text = argv[2];
 
   glut_init (&argc, argv);
 
-  GLuint program = create_program ();
-
-  atlas_t atlas;
-  atlas_init (&atlas, 512, 512, 32, 4);
-
+  st.program = demo_shader_create_program ();
+  st.atlas = demo_atlas_create (512, 512, 32, 4);
   FT_Face face = open_ft_face (font_path, 0);
-
-  glyphy_demo_font_t *font = glyphy_demo_font_create (face, &atlas);
+  demo_font_t *font = demo_font_create (face, st.atlas);
 
 #define FONT_SIZE 100
 
   glyphy_point_t top_left = {-200, -200};
 
-  vertices.clear ();
+  st.vertices.clear ();
   glyphy_point_t cursor = top_left;
   cursor.y += FONT_SIZE /* * font->ascent */;
   for (const char *p = text; *p; p++) {
@@ -121,14 +79,18 @@ main (int argc, char** argv)
     }
     unsigned int glyph_index = FT_Get_Char_Index (face, unicode);
     glyph_info_t gi;
-    glyphy_demo_font_lookup_glyph (font, glyph_index, &gi);
-    add_glyph_vertices (cursor, FONT_SIZE, &gi, &vertices);
+    demo_font_lookup_glyph (font, glyph_index, &gi);
+    demo_shader_add_glyph_vertices (cursor, FONT_SIZE, &gi, &st.vertices);
     cursor.x += FONT_SIZE * gi.advance;
   }
 
-  glUseProgram (program);
-  atlas_use (&atlas, program);
+  glUseProgram (st.program);
+  demo_atlas_set_uniforms (st.atlas);
   glut_main ();
+
+  demo_font_destroy (font);
+  demo_atlas_destroy (st.atlas);
+  glDeleteProgram (st.program);
 
   return 0;
 }
