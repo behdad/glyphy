@@ -53,10 +53,8 @@ static void
 accumulate (glyphy_arc_accumulator_t *acc, const Point &p, double d)
 {
   glyphy_arc_endpoint_t endpoint = {p, d};
-  if (Point (acc->current_point) == p) {
-    printf ("XXX degenerate arc\n");
+  if (Point (acc->current_point) == p)
     return;
-  }
   acc->success = acc->success && acc->callback (&endpoint, acc->user_data);
   if (acc->success) {
     acc->num_endpoints++;
