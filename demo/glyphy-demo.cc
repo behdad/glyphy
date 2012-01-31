@@ -58,8 +58,7 @@ main (int argc, char** argv)
 
   glut_init (&argc, argv);
 
-  st.program = demo_shader_create_program ();
-  st.atlas = demo_atlas_create (512, 512, 32, 4);
+  demo_state_init (&st);
   FT_Face face = open_ft_face (font_path, 0);
   demo_font_t *font = demo_font_create (face, st.atlas);
 
@@ -67,7 +66,7 @@ main (int argc, char** argv)
 
   glyphy_point_t top_left = {-200, -200};
 
-  st.vertices.clear ();
+  st.vertices->clear ();
   glyphy_point_t cursor = top_left;
   cursor.y += FONT_SIZE /* * font->ascent */;
   for (const char *p = text; *p; p++) {
@@ -80,17 +79,15 @@ main (int argc, char** argv)
     unsigned int glyph_index = FT_Get_Char_Index (face, unicode);
     glyph_info_t gi;
     demo_font_lookup_glyph (font, glyph_index, &gi);
-    demo_shader_add_glyph_vertices (cursor, FONT_SIZE, &gi, &st.vertices);
+    demo_shader_add_glyph_vertices (cursor, FONT_SIZE, &gi, st.vertices);
     cursor.x += FONT_SIZE * gi.advance;
   }
 
-  glUseProgram (st.program);
-  demo_atlas_set_uniforms (st.atlas);
-  glut_main ();
+  demo_state_setup (&st);
+  glutMainLoop ();
 
   demo_font_destroy (font);
-  demo_atlas_destroy (st.atlas);
-  glDeleteProgram (st.program);
+  demo_state_fini (&st);
 
   return 0;
 }

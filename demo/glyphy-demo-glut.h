@@ -60,13 +60,6 @@ current_time (void)
 }
 
 
-void
-glut_reshape_func (int width, int height)
-{
-  glViewport (0, 0, width, height);
-  glutPostRedisplay ();
-}
-
 static void
 timed_step (int ms)
 {
@@ -124,6 +117,13 @@ toggle_animation (void)
     start_animation ();
 }
 
+void
+reshape_func (int width, int height)
+{
+  glViewport (0, 0, width, height);
+  glutPostRedisplay ();
+}
+
 static void
 set_uniform (const char *name, double *p, double value)
 {
@@ -136,7 +136,7 @@ set_uniform (const char *name, double *p, double value)
 
 
 static void
-glut_keyboard_func (unsigned char key, int x, int y)
+keyboard_func (unsigned char key, int x, int y)
 {
   switch (key) {
     case '\033':
@@ -174,7 +174,7 @@ glut_keyboard_func (unsigned char key, int x, int y)
 
 
 static void
-glut_display_func (void)
+display_func (void)
 {
   int viewport[4];
   glGetIntegerv (GL_VIEWPORT, viewport);
@@ -202,10 +202,7 @@ glut_display_func (void)
 
   glUniformMatrix4fv (glGetUniformLocation (st.program, "u_matViewProjection"), 1, GL_FALSE, mat);
 
-  GLuint a_glyph_vertex_loc = glGetAttribLocation (st.program, "a_glyph_vertex");
-  glEnableVertexAttribArray (a_glyph_vertex_loc);
-  glVertexAttribPointer (a_glyph_vertex_loc, 4, GL_FLOAT, GL_FALSE, sizeof (glyph_vertex_t), (const char *) &st.vertices[0]);
-  glDrawArrays (GL_TRIANGLES, 0, st.vertices.size ());
+  demo_state_draw (&st);
 
   glutSwapBuffers ();
 }
@@ -217,23 +214,13 @@ glut_init (int *argc, char **argv)
   glutInitWindowSize (WINDOW_SIZE, WINDOW_SIZE);
   glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
   glutCreateWindow("GLyphy Demo");
-  glutReshapeFunc (glut_reshape_func);
-  glutDisplayFunc (glut_display_func);
-  glutKeyboardFunc (glut_keyboard_func);
+  glutReshapeFunc (reshape_func);
+  glutDisplayFunc (display_func);
+  glutKeyboardFunc (keyboard_func);
 
   glewInit ();
 //  if (!glewIsSupported ("GL_VERSION_2_0"))
 //    abort ();// die ("OpenGL 2.0 not supported");
-}
-
-static void
-glut_main (void)
-{
-  SET_UNIFORM (u_debug, 0);
-  SET_UNIFORM (u_contrast, 1.0);
-  SET_UNIFORM (u_gamma, 2.2);
-
-  glutMainLoop ();
 }
 
 

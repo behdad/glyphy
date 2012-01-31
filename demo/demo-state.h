@@ -36,10 +36,24 @@ typedef struct {
   double u_gamma;
 
   /* Attributes */
-  std::vector<glyph_vertex_t> vertices;
+  std::vector<glyph_vertex_t> *vertices;
 
 } demo_state_t;
 
+void
+demo_state_init (demo_state_t *st);
+
+void
+demo_state_fini (demo_state_t *st);
+
+
+void
+demo_state_setup (demo_state_t *st);
+
+void
+demo_state_draw (demo_state_t *st);
+
 extern demo_state_t st;
+
 
 #endif /* DEMO_STATE_H */
