@@ -136,6 +136,7 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
     Arc arc (p0, endpoint.p, endpoint.d);
     p0 = endpoint.p;
 
+    assert (arc.p0 != arc.p1);
     arcs.push_back (arc);
   }
   std::vector<Arc> near_arcs;
@@ -179,10 +180,9 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
   double half_diagonal = (c - c0).len ();
   double radius_squared = pow (min_distance + half_diagonal, 2);
   if (min_distance - half_diagonal <= faraway)
-    for (unsigned int i = 0; i < arcs.size (); i++) {
+    for (unsigned int i = 0; i < arcs.size (); i++)
       if (arcs[i].squared_distance_to_point (c) <= radius_squared)
         near_arcs.push_back (arcs[i]);
-    }
 
   Point p1 = Point (0, 0);
   for (unsigned i = 0; i < near_arcs.size (); i++)
