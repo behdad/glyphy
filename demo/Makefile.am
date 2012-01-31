@@ -40,7 +40,6 @@ glyphy_demo_SOURCES = \
 	demo-state.h \
 	demo-state.cc \
 	glyphy-demo.cc \
-	glyphy-demo-glut.h \
 	$(SHADERHEADERS) \
 	$(NULL)
 SHADERS = \
