@@ -43,6 +43,7 @@ open_ft_face (const char   *font_path,
 
 demo_state_t st;
 demo_buffer_t *buffer;
+double scale = 1.0;
 
 
 
@@ -59,7 +60,6 @@ set_uniform (const char *name, double *p, double value)
   *p = value;
   glUniform1f (glGetUniformLocation (st.program, name), value);
   printf ("Setting %s to %g\n", name, value);
-  glutPostRedisplay ();
 }
 #define SET_UNIFORM(name, value) set_uniform (#name, &st.name, value)
 
@@ -98,7 +98,19 @@ keyboard_func (unsigned char key, int x, int y)
     case 'b':
       SET_UNIFORM (u_gamma, st.u_gamma * .9);
       break;
+
+    case '=':
+      scale /= .9;
+      break;
+    case '-':
+      scale *= .9;
+      break;
+
+    default:
+      return;
   }
+
+  glutPostRedisplay ();
 }
 
 
@@ -114,16 +126,22 @@ display_func (void)
 
   glMatrixMode (GL_MODELVIEW);
   glLoadIdentity ();
+  // Screen coordinates
   glScaled (2. / width, -2. / height, 1);
+  // Global scale
+  glScaled (scale, scale, 1);
+  // Animation rotate
   glRotated (phase * .05, 0, 0, 1);
-
+  // Buffer best-fit
   glyphy_extents_t extents;
   demo_buffer_extents (buffer, &extents);
-  double scale = .9 * std::min (width / (extents.max_x - extents.min_x),
-				height / (extents.max_y - extents.min_y));
-  glScaled (scale, scale, 1);
+  double s = .9 * std::min (width / (extents.max_x - extents.min_x),
+			    height / (extents.max_y - extents.min_y));
+  glScaled (s, s, 1);
+  // Center buffer
   glTranslated (-(extents.max_x + extents.min_x) / 2.,
 		-(extents.max_y + extents.min_y) / 2., 1);
+
 
   GLfloat mat[16];
   glGetFloatv (GL_MODELVIEW_MATRIX, mat);
