@@ -217,6 +217,7 @@ struct Arc {
   inline double signed_squared_distance_to_point (const Point &p) const;
   inline double max_distance_to_point (const Point &p) const;
   inline Point nearest_part_to_point (const Point &p) const;
+  inline double extended_dist (const Point &p) const;
 
   inline Point leftmost (void) const;
   inline Point rightmost (void) const;
@@ -713,24 +714,13 @@ inline Bezier Arc::approximate_bezier (double *error) const {
 }
 
 
-inline bool Arc::wedge_contains_point (const Point &p) const {
-
-  Point u = (Point) (p0 - center ());
-  Point v =  (Point) (p1 - center ());
-  Point q =  (Point) (p - center ());
-  double determinant = (u.x * v.y) - (u.y * v.x);
-  /* Determinant should not be 0 (arc should not be degenerate..) */
-  if (determinant == 0) {
-    return ((v.x - u.x)*(q.y - u.y) - (v.y - u.y)*(q.x - u.x)) * d < 0;
-  }
-
-  /* Sector from p0 to p1 contains p <=> both values are positive
-     (i.e. p lies in the convex Cone(p0, p1).  */
-  double num1 = ((v.y * q.x) - (v.x * q.y)) * determinant;
-  double num2 = ((u.x * q.y) - (u.y * q.x)) * determinant;
-  if (fabs(d) <= 1)
-    return (num1 >= 0 && num2 >= 0);
-  return !(num1 >= 0 && num2 >= 0);
+inline bool Arc::wedge_contains_point (const Point &p) const
+{
+  double d2 = tan2atan (d);
+  Vector dp = p1 - p0;
+  Vector pp = dp.perpendicular ();
+  return (p - p0) * (dp - pp * d2) >= 0 &&
+	 (p - p1) * (dp + pp * d2) <= 0;
 }
 
 
@@ -815,6 +805,17 @@ inline Point Arc::nearest_part_to_point (const Point &p) const {
   double d1 = p.squared_distance_to_point (p0);
   double d2 = p.squared_distance_to_point (p1);
   return (d1 < d2 ? p0 : p1);
+}
+
+inline double Arc::extended_dist (const Point &p) const {
+  Point m = p0.lerp (.5, p1);
+  Vector dp = p1 - p0;
+  Vector pp = dp.perpendicular ();
+  float d2 = tan2atan (d);
+  if ((p - m) * (p1 - m) < 0)
+    return (p - p0) * (pp + dp * d2).normalized ();
+  else
+    return (p - p1) * (pp - dp * d2).normalized ();
 }
 
 inline Point Arc::leftmost (void) const {

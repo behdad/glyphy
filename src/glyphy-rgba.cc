@@ -63,14 +63,14 @@ arc_encode (double x, double y, double d)
 }
 
 static inline glyphy_rgba_t
-arc_list_encode (unsigned int offset, unsigned int num_points, bool is_inside)
+arc_list_encode (unsigned int offset, unsigned int num_points, int side)
 {
   glyphy_rgba_t v;
   v.b = 0; // unused for arc-list encoding
   v.g = UPPER_BITS (offset, 8, 16);
   v.b = LOWER_BITS (offset, 8, 16);
   v.a = LOWER_BITS (num_points, 8, 8);
-  if (is_inside && !num_points)
+  if (side < 0 && !num_points)
     v.a = 255;
   return v;
 }
@@ -123,7 +123,7 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
 		      const glyphy_arc_endpoint_t *endpoints,
 		      unsigned int num_endpoints,
 		      std::vector<glyphy_arc_endpoint_t> &near_endpoints,
-		      bool &inside_glyph)
+		      int *side)
 {
   std::vector<Arc> arcs;
   Point p0 (0, 0);
@@ -142,44 +142,61 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
   std::vector<Arc> near_arcs;
 
 
-  inside_glyph = false;
-  Arc current_arc = arcs[0];
+  Arc arc = arcs[0];
+  Arc closest_arc = arc;
 
   // Find distance between cell center and its closest arc.
   Point c = c0.midpoint (c1);
 
-  SignedVector to_arc_min = current_arc - c;
-  double min_distance = INFINITY;
+  SignedVector to_arc_min = arc - c;
+  double min_dist = INFINITY;
+  *side = 0;
 
   for (unsigned int k = 0; k < arcs.size (); k++) {
-    current_arc = arcs[k];
+    arc = arcs[k];
 
-    // We can't use squared distance, because sign is important.
-    double current_distance = current_arc.distance_to_point (c);
-
-    // If two arcs are equally close to this point, take the sign from the one whose extension is farther away.
-    // (Extend arcs using tangent lines from endpoints; this is done using the SignedVector operation "-".)
-    if (fabs (current_distance) == fabs (min_distance)) {
-      SignedVector to_arc_current = current_arc - c;
-      if (to_arc_min.len () < to_arc_current.len ()) {
-        min_distance = fabs (current_distance) * (to_arc_current.negative ? -1 : 1);
+    if (arc.wedge_contains_point (c)) {
+      double sdist = arc.distance_to_point (c);
+      double udist = abs (sdist) - 1e-9;
+      if (udist <= min_dist) {
+        min_dist = udist;
+	*side = sdist >= 0 ? -1 : +1;
       }
-    }
-    else
-      if (fabs (current_distance) < fabs (min_distance)) {
-      min_distance = current_distance;
-      to_arc_min = current_arc - c;
+    } else {
+      double udist = std::min ((arc.p0 - c).len (), (arc.p1 - c).len ());
+      if (udist < min_dist) {
+        min_dist = udist;
+	*side = 0; /* unsure */
+	closest_arc = arc;
+      } else if (*side == 0 && fabs (udist - min_dist) < 1) {
+	/* If this new distance is the same as the current minimum,
+	 * compare extended distances.  Take the sign from the arc
+	 * with larger extended distance. */
+	double old_ext_dist = closest_arc.extended_dist (c);
+	double new_ext_dist = arc.extended_dist (c);
+
+	double ext_dist = abs (new_ext_dist) <= abs (old_ext_dist) ?
+			  old_ext_dist : new_ext_dist;
+
+	/* For emboldening and stuff: */
+	// min_dist = abs (ext_dist);
+	*side = ext_dist >= 0 ? +1 : -1;
+      }
     }
   }
 
-  inside_glyph = (min_distance > 0);
+  if (*side == 0) {
+    // Technically speaking this should not happen, but it does.  So try to fix it.
+    double ext_dist = closest_arc.extended_dist (c);
+    *side = ext_dist >= 0 ? +1 : -1;
+  }
+
 
   // If d is the distance from the center of the square to the nearest arc, then
   // all nearest arcs to the square must be at most almost [d + half_diagonal] from the center.
-  min_distance =  fabs (min_distance);
   double half_diagonal = (c - c0).len ();
-  double radius_squared = pow (min_distance + half_diagonal, 2);
-  if (min_distance - half_diagonal <= faraway)
+  double radius_squared = pow (min_dist + half_diagonal, 2);
+  if (min_dist - half_diagonal <= faraway)
     for (unsigned int i = 0; i < arcs.size (); i++)
       if (arcs[i].squared_distance_to_point (c) <= radius_squared)
         near_arcs.push_back (arcs[i]);
@@ -259,11 +276,11 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
       Point cp1 = origin + Vector ((col + 1.) * glyph_width / grid_w, (row + 1.) * glyph_height / grid_h);
       near_endpoints.clear ();
 
-      bool inside_glyph;
+      int side;
       closest_arcs_to_cell (cp0, cp1, min_dimension, faraway,
 			    endpoints, num_endpoints,
 			    near_endpoints,
-			    inside_glyph);
+			    &side);
 
       if (near_endpoints.size () == 2 && near_endpoints[1].d == 0) {
         Point c (extents.min_x + glyph_width / 2, extents.min_y + glyph_width / 2);
@@ -312,7 +329,7 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
 	offset = haystack - &tex_data[0];
       }
 
-      tex_data[row * grid_w + col] = arc_list_encode (offset, current_endpoints, inside_glyph);
+      tex_data[row * grid_w + col] = arc_list_encode (offset, current_endpoints, side);
       offset = tex_data.size ();
 
       total_arcs += current_endpoints;
