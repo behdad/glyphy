@@ -32,7 +32,6 @@ using namespace GLyphy::Geometry;
 
 #define UPPER_BITS(v,bits,total_bits) ((v) >> ((total_bits) - (bits)))
 #define LOWER_BITS(v,bits,total_bits) ((v) & ((1 << (bits)) - 1))
-#define MIDDLE_BITS(v,bits,upper_bound,total_bits) (UPPER_BITS (LOWER_BITS (v, upper_bound, total_bits), bits, upper_bound))
 
 
 static inline glyphy_rgba_t
