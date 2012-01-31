@@ -610,14 +610,9 @@ inline Point Arc::highest (void) const {
 inline void Arc::extents (glyphy_extents_t &extents) const {
   /* TODO make this faster? */
   Point p[4] = {leftmost (), rightmost (), lowest (), highest ()};
-  extents.min_x = extents.max_x = p[0].x;
-  extents.min_y = extents.max_y = p[0].y;
-  for (unsigned int i = 1; i < 4; i++) {
-    extents.min_x = std::min (extents.min_x, p[i].x);
-    extents.max_x = std::max (extents.max_x, p[i].x);
-    extents.min_y = std::min (extents.min_y, p[i].y);
-    extents.max_y = std::max (extents.max_y, p[i].y);
-  }
+  glyphy_extents_clear (&extents);
+  for (unsigned int i = 0; i < 4; i++)
+    glyphy_extents_add (&extents, p[i]);
 }
 
 
