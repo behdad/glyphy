@@ -30,7 +30,6 @@ struct SignedVector;
 struct Point;
 struct Line;
 struct Segment;
-struct Quad;
 struct Circle;
 struct Arc;
 struct Bezier;
@@ -152,26 +151,6 @@ struct Segment {
   Point p1;
 };
 
-
-struct Quad {
-  inline Quad (const Point &p0_, const double w_, const double h_) :
-               p0 (p0_), w (w_), h (h_) {};
-
-  inline const SignedVector operator- (const Point &p) const; /* shortest vector from point to quad */
-  inline double distance_to_arc (const Arc &a) const; /* shortest distance from arc to quad */
-  inline double max_distance_to_arc (const Arc &a) const; /* longest distance from arc to quad */
-
-  inline const Segment top (void) const ;
-  inline const Segment left (void) const;
-  inline const Segment right (void) const;
-  inline const Segment bottom (void) const;
-
-  inline bool contains_point (const Point &p) const;
-
-  Point p0; /* top left corner */
-  double w; /* width  */
-  double h; /* height */
-};
 
 
 struct Circle {
@@ -543,82 +522,6 @@ inline Point Segment::nearest_part_to_point (const Point &p) const {
   return (d1 < d2 ? p0 : p1);
 }
 
-
-/* Quad */
-inline const Segment Quad::top (void) const {
-  return Segment (p0, Point (p0.x + w, p0.y));
-}
-
-inline const Segment Quad::left (void) const {
-  return Segment (p0, Point (p0.x, p0.y + h));
-}
-
-inline const Segment Quad::right (void) const {
-  return Segment (Point (p0.x + w, p0.y), Point (p0.x + w, p0.y + h));
-}
-
-inline const Segment Quad::bottom (void) const {
-  return Segment (Point (p0.x, p0.y + h), Point (p0.x + w, p0.y + h));
-}
-
-inline bool Quad::contains_point (const Point &p) const {
-  return ((p.x >= p0.x) &&
-          (p.x <= p0.x + w) &&
-          (p.y >= p0.y) &&
-          (p.y <= p0.y + h));
-}
-
-inline const SignedVector Quad::operator- (const Point &p) const {
-  /* shortest vector from point to quad. Return negative iff point within quad.? */
-
-  Vector current (0, 0);
-  Vector answer = top ().nearest_part_to_point (p) - p;
-
-  current = left ().nearest_part_to_point (p) - p;
-  if (current.len () < answer.len ()) {
-    answer = current;
-  }
-
-  current = right ().nearest_part_to_point (p) - p;
-  if (current.len () < answer.len ()) {
-    answer = current;
-  }
-
-  current = bottom ().nearest_part_to_point (p) - p;
-  if (current.len () < answer.len ()) {
-    answer = current;
-  }
-
-  return SignedVector (answer, contains_point (p) );
-}
-
-/**** Was originally SignedDistance, operator-. ***********/
-inline double Quad::distance_to_arc (const Arc &a) const {
-  /* shortest distance from arc to quad. Return 0 if arc intersects quad.. */
-  if (contains_point(a.p0))
-    return 0;
-
-  double min_distance = left().distance_to_arc (a);
-  double right_distance = right().distance_to_arc (a);
-  double top_distance = top().distance_to_arc (a);
-  double bottom_distance = bottom().distance_to_arc (a);
-
-  min_distance = min_distance < right_distance ? min_distance : right_distance;
-  min_distance = min_distance < top_distance ? min_distance : top_distance;
-  min_distance = min_distance < bottom_distance ? min_distance : bottom_distance;
-
-  return min_distance;
-
-}
-
-inline double Quad::max_distance_to_arc (const Arc &a) const {
-  double max_distance = left().max_distance_to_arc (a);
-  max_distance = max_distance > right().max_distance_to_arc (a) ? max_distance : right().max_distance_to_arc (a);
-  max_distance = max_distance > top().max_distance_to_arc (a) ? max_distance : top().max_distance_to_arc (a);
-  max_distance = max_distance > bottom().max_distance_to_arc (a) ? max_distance : bottom().max_distance_to_arc (a);
-
-  return max_distance;
-}
 
 
 /* Circle */
