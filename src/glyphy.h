@@ -34,11 +34,45 @@ typedef int glyphy_bool_t;
 
 
 typedef struct {
+  double x;
+  double y;
+} glyphy_point_t;
+
+
+
+/*
+ * Geometry extents
+ */
+
+typedef struct {
   double min_x;
   double min_y;
   double max_x;
   double max_y;
 } glyphy_extents_t;
+
+void
+glyphy_extents_clear (glyphy_extents_t *extents);
+
+glyphy_bool_t
+glyphy_extents_is_empty (const glyphy_extents_t *extents);
+
+void
+glyphy_extents_add (glyphy_extents_t *extents,
+		    glyphy_point_t    p);
+
+void
+glyphy_extents_extend (glyphy_extents_t       *extents,
+		       const glyphy_extents_t *other);
+
+glyphy_bool_t
+glyphy_extents_includes (const glyphy_extents_t *extents,
+			 glyphy_point_t          p);
+
+void
+glyphy_extents_scale (glyphy_extents_t *extents,
+		      double            x_scale,
+		      double            y_scale);
 
 
 
@@ -46,11 +80,6 @@ typedef struct {
  * Circular arcs
  */
 
-
-typedef struct {
-  double x;
-  double y;
-} glyphy_point_t;
 
 typedef struct {
   glyphy_point_t p0;
@@ -79,6 +108,10 @@ glyphy_arc_to_conventional (glyphy_arc_t    arc,
 
 glyphy_bool_t
 glyphy_arc_is_a_line (glyphy_arc_t arc);
+
+void
+glyphy_arc_extents (glyphy_arc_t      arc,
+		    glyphy_extents_t *extents);
 
 
 
@@ -174,12 +207,6 @@ void
 glyphy_arc_accumulator_arc_to (glyphy_arc_accumulator_t *accumulator,
 			       glyphy_point_t p1,
 			       double         d);
-
-
-
-/*
- * Outline extents from arc list
- */
 
 
 glyphy_bool_t
