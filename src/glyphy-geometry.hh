@@ -30,7 +30,6 @@ struct SignedVector;
 struct Point;
 struct Line;
 struct Segment;
-struct Circle;
 struct Arc;
 struct Bezier;
 
@@ -153,19 +152,6 @@ struct Segment {
 
 
 
-struct Circle {
-  inline Circle (const Point &c_, const double &r_) : c (c_), r (r_) {};
-  inline Circle (const Point &p0, const Point &p1, const Point &p2) :
-		 c ((p0.bisector (p1)) + (p2.bisector (p1))), r ((c - p0).len ()) {}
-
-  inline bool operator == (const Circle &c) const;
-  inline bool operator != (const Circle &c) const;
-  inline const SignedVector operator- (const Point &p) const; /* shortest vector from point to circle */
-
-  Point c;
-  double r;
-};
-
 struct Arc {
   inline Arc (const Point &p0_, const Point &p1_, const Point &pm, bool complement) :
 	      p0 (p0_), p1 (p1_),
@@ -173,9 +159,9 @@ struct Arc {
 		 tan (((p1_-pm).angle () - (p0_-pm).angle ()) / 2 - (complement ? 0 : M_PI_2))) {}
   inline Arc (const Point &p0_, const Point &p1_, const double &d_) :
 	      p0 (p0_), p1 (p1_), d (d_) {}
-  inline Arc (const Circle &c, const double &a0, const double &a1, bool complement) :
-	      p0 (c.c + Vector (cos(a0),sin(a0)) * c.r),
-	      p1 (c.c + Vector (cos(a1),sin(a1)) * c.r),
+  inline Arc (const Point &center, double radius, const double &a0, const double &a1, bool complement) :
+	      p0 (center + Vector (cos(a0),sin(a0)) * radius),
+	      p1 (center + Vector (cos(a1),sin(a1)) * radius),
 	      d (tan ((a1 - a0) / 4 - (complement ? 0 : M_PI_2))) {}
   inline Arc (const glyphy_arc_t &a) : p0 (a.p0), p1 (a.p1), d (a.d) {};
   inline operator glyphy_arc_t (void) const { glyphy_arc_t a = {p0, p1, d}; return a; }
@@ -186,7 +172,6 @@ struct Arc {
 
   inline double radius (void) const;
   inline Point center (void) const;
-  inline Circle circle (void) const;
 
   inline Bezier approximate_bezier (double *error) const;
 
@@ -217,7 +202,6 @@ struct Bezier {
   inline const Vector tangent (const double &t) const;
   inline const Vector d_tangent (const double &t) const;
   inline double curvature (const double &t) const;
-  inline const Circle osculating_circle (const double &t) const;
   inline const Pair<Bezier> split (const double &t) const;
   inline const Pair<Bezier> halve (void) const;
   inline const Bezier segment (const double &t0, const double &t1) const;
@@ -524,26 +508,6 @@ inline Point Segment::nearest_part_to_point (const Point &p) const {
 
 
 
-/* Circle */
-
-inline bool Circle::operator == (const Circle &c_) const {
-  return c == c_.c && r == c_.r;
-}
-inline bool Circle::operator != (const Circle &c) const {
-  return !(*this == c);
-}
-#if 0
-inline const SignedVector Circle::operator- (const Point &p) const {
-  /* shortest vector from point to circle */
-  double mag = (c - p);
-  return SignedVector (n.normalized () * mag, mag < 0);
-}
-inline const SignedVector operator- (const Point &p, const Circle &l) {
-  return -(l - p);
-}
-#endif
-
-
 /* Arc */
 
 inline bool Arc::operator == (const Arc &a) const {
@@ -598,11 +562,6 @@ inline double Arc::radius (void) const
 inline Point Arc::center (void) const
 {
   return (p0.midpoint (p1)) + (p1 - p0).perpendicular () / (2 * tan2atan (d));
-}
-
-inline Circle Arc::circle (void) const
-{
-  return Circle (center (), radius ());
 }
 
 
@@ -805,15 +764,6 @@ inline double Bezier::curvature (const double &t) const {
   double len = dpp.len ();
   double curvature = (dpp * ddp) / (len * len * len);
   return curvature;
-}
-
-inline const Circle Bezier::osculating_circle (const double &t) const {
-  Vector dpp = tangent (t).perpendicular ();
-  Vector ddp = d_tangent (t);
-  /* normal vector len squared */
-  double len = dpp.len ();
-  double curvature = (dpp * ddp) / (len * len * len);
-  return Circle (point (t) + dpp.normalized () / curvature, 1 / curvature);
 }
 
 inline const Pair<Bezier > Bezier::split (const double &t) const {

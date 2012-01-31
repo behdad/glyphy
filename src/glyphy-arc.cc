@@ -43,7 +43,7 @@ glyphy_arc_from_conventional (glyphy_point_t  center,
 			      glyphy_bool_t   negative,
 			      glyphy_arc_t   *arc)
 {
-  *arc = Arc (Circle (center, radius), angle0, angle1, negative);
+  *arc = Arc (center, radius, angle0, angle1, negative);
 };
 
 /* Convert to a conventional arc representation */
