@@ -148,10 +148,6 @@ encode_ft_glyph (FT_Face           face,
 				    extents))
     die ("Failed encoding arcs");
 
-  extents->min_x /= upem;
-  extents->min_y /= upem;
-  extents->max_x /= upem;
-  extents->max_y /= upem;
   glyphy_extents_scale (extents, 1. / upem, 1. / upem);
 
   *advance = face->glyph->metrics.horiAdvance / (double) upem;
