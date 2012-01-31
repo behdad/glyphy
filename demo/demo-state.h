@@ -49,7 +49,4 @@ void
 demo_state_setup (demo_state_t *st);
 
 
-extern demo_state_t st;
-
-
 #endif /* DEMO_STATE_H */

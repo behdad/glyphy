@@ -41,9 +41,10 @@ open_ft_face (const char   *font_path,
 }
 
 
-demo_state_t st;
-demo_buffer_t *buffer;
-double scale = 1.0;
+static demo_state_t st;
+static demo_buffer_t *buffer;
+static double scale = 1.0;
+static glyphy_point_t translate = {0, 0};
 
 
 
@@ -67,7 +68,8 @@ set_uniform (const char *name, double *p, double value)
 static void
 keyboard_func (unsigned char key, int x, int y)
 {
-  switch (key) {
+  switch (key)
+  {
     case '\033':
     case 'q':
       exit (0);
@@ -113,6 +115,33 @@ keyboard_func (unsigned char key, int x, int y)
   glutPostRedisplay ();
 }
 
+static void
+special_func (int key, int x, int y)
+{
+  switch (key)
+  {
+    case GLUT_KEY_UP:
+      translate.y -= .1;
+      break;
+
+    case GLUT_KEY_DOWN:
+      translate.y += .1;
+      break;
+
+    case GLUT_KEY_LEFT:
+      translate.x += .1;
+      break;
+
+    case GLUT_KEY_RIGHT:
+      translate.x -= .1;
+      break;
+
+    default:
+      return;
+  }
+
+  glutPostRedisplay ();
+}
 
 static void
 display_func (void)
@@ -126,12 +155,14 @@ display_func (void)
 
   glMatrixMode (GL_MODELVIEW);
   glLoadIdentity ();
-  // Screen coordinates
-  glScaled (2. / width, -2. / height, 1);
-  // Global scale
-  glScaled (scale, scale, 1);
   // Animation rotate
   glRotated (phase / 1000. * 360 / 10/*seconds*/, 0, 0, 1);
+  // Global translate
+  glTranslated (translate.x, translate.y, 0);
+  // Global scale
+  glScaled (scale, scale, 1);
+  // Screen coordinates
+  glScaled (2. / width, -2. / height, 1);
   // Buffer best-fit
   glyphy_extents_t extents;
   demo_buffer_extents (buffer, &extents);
@@ -140,7 +171,7 @@ display_func (void)
   glScaled (s, s, 1);
   // Center buffer
   glTranslated (-(extents.max_x + extents.min_x) / 2.,
-		-(extents.max_y + extents.min_y) / 2., 1);
+		-(extents.max_y + extents.min_y) / 2., 0);
 
 
   GLfloat mat[16];
@@ -167,6 +198,7 @@ main (int argc, char** argv)
   glutReshapeFunc (reshape_func);
   glutDisplayFunc (display_func);
   glutKeyboardFunc (keyboard_func);
+  glutSpecialFunc (special_func);
 
   glewInit ();
 //  if (!glewIsSupported ("GL_VERSION_2_0"))
