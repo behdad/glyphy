@@ -37,6 +37,11 @@ struct demo_font_t {
   FT_Face        face;
   glyph_cache_t *glyph_cache;
   demo_atlas_t  *atlas;
+
+  /* stats */
+  unsigned int num_glyphs;
+  double       sum_fetch;
+  unsigned int sum_bytes;
 };
 
 demo_font_t *
@@ -49,6 +54,11 @@ demo_font_create (FT_Face       face,
   font->face = face;
   font->glyph_cache = new glyph_cache_t ();
   font->atlas = demo_atlas_reference (atlas);
+
+  font->num_glyphs = 0;
+  font->sum_fetch  = 0;
+  font->sum_bytes  = 0;
+
   return font;
 }
 
@@ -93,7 +103,7 @@ accumulate_endpoint (glyphy_arc_endpoint_t         *endpoint,
 }
 
 static void
-encode_ft_glyph (FT_Face           face,
+encode_ft_glyph (demo_font_t      *font,
 		 unsigned int      glyph_index,
 		 double            tolerance_per_em,
 		 glyphy_rgba_t    *buffer,
@@ -103,6 +113,7 @@ encode_ft_glyph (FT_Face           face,
 		 glyphy_extents_t *extents,
 		 double           *advance)
 {
+  FT_Face face = font->face;
   if (FT_Err_Ok != FT_Load_Glyph (face,
 				  glyph_index,
 				  FT_LOAD_NO_BITMAP |
@@ -136,7 +147,7 @@ encode_ft_glyph (FT_Face           face,
 				    buffer,
 				    buffer_len,
 				    faraway,
-				    4,
+				    4, /* UNUSED */
 				    &avg_fetch_achieved,
 				    output_len,
 				    glyph_layout,
@@ -146,12 +157,16 @@ encode_ft_glyph (FT_Face           face,
   glyphy_extents_scale (extents, 1. / upem, 1. / upem);
   *advance = face->glyph->metrics.horiAdvance / (double) upem;
 
-  printf ("GLyph %u: %u arc-endpoints; Error usage %%%g; Avg tex fetch %g; Mem %ld bytes\n",
+  printf ("gid%3u: endpoints%3d; err%3g%%; tex fetch%4.1f; mem%4.1fkb\n",
 	  glyph_index,
 	  (unsigned int) acc.num_endpoints,
 	  round (100 * acc.max_error / acc.tolerance),
 	  avg_fetch_achieved,
-	  *output_len * sizeof (glyphy_rgba_t));
+	  (*output_len * sizeof (glyphy_rgba_t)) / 1024.);
+
+  font->num_glyphs++;
+  font->sum_fetch += avg_fetch_achieved;
+  font->sum_bytes += (*output_len * sizeof (glyphy_rgba_t));
 }
 
 static void
@@ -162,7 +177,7 @@ _demo_font_upload_glyph (demo_font_t *font,
   glyphy_rgba_t buffer[4096];
   unsigned int output_len;
 
-  encode_ft_glyph (font->face,
+  encode_ft_glyph (font,
 		   glyph_index,
 		   TOLERANCE,
 		   buffer, ARRAY_LEN (buffer),
@@ -185,4 +200,13 @@ demo_font_lookup_glyph (demo_font_t  *font,
     (*font->glyph_cache)[glyph_index] = *glyph_info;
   } else
     *glyph_info = (*font->glyph_cache)[glyph_index];
+}
+
+void
+demo_font_print_stats (demo_font_t *font)
+{
+  printf ("%3d glyphs; avg tex fetch%4.1f; avg %4.1fkb per glyph\n",
+	  font->num_glyphs,
+	  font->sum_fetch / font->num_glyphs,
+	  font->sum_bytes / 1024. / font->num_glyphs);
 }

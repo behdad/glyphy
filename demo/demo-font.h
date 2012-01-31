@@ -60,5 +60,8 @@ demo_font_lookup_glyph (demo_font_t  *font,
 			unsigned int  glyph_index,
 			glyph_info_t *glyph_info);
 
+void
+demo_font_print_stats (demo_font_t *font);
+
 
 #endif /* DEMO_FONT_H */
