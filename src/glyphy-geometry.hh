@@ -139,7 +139,6 @@ struct Segment {
   inline const SignedVector operator- (const Point &p) const; /* shortest vector from point to ***line*** */
   inline double distance_to_point (const Point &p) const; /* shortest distance from point to segment */
   inline double squared_distance_to_point (const Point &p) const; /* shortest distance squared from point to segment */
-  inline double signed_squared_distance_to_point (const Point &p) const; /* shortest distance squared from point to segment */
   inline bool contains_in_span (const Point &p) const; /* is p in the stripe formed by sliding this segment? */
   inline Point nearest_part_to_point (const Point &p) const;
   inline double distance_to_arc (const Arc &a) const;
@@ -178,7 +177,6 @@ struct Arc {
   inline bool wedge_contains_point (const Point &p) const;
   inline double distance_to_point (const Point &p) const;
   inline double squared_distance_to_point (const Point &p) const;
-  inline double signed_squared_distance_to_point (const Point &p) const;
   inline double max_distance_to_point (const Point &p) const;
   inline Point nearest_part_to_point (const Point &p) const;
   inline double extended_dist (const Point &p) const;
@@ -445,23 +443,6 @@ inline double Segment::distance_to_point (const Point &p) const {
 }
 
 
-#define SIGN(x) ((x > 0) - (x < 0))
-
-inline double Segment::signed_squared_distance_to_point (const Point &p) const {
-  if (p0 == p1)
-    return 0;
-
-  // Check if z is between p0 and p1.
-  Line temp (p0, p1);
-  double value = temp.c - temp.n * Vector (p);
-  if (contains_in_span (p))
-    return (value * value * SIGN(value)) / (temp.n * temp.n) ;
-
-  double dist_p_p0 = p.squared_distance_to_point (p0);
-  double dist_p_p1 = p.squared_distance_to_point (p1);
-  return (dist_p_p0 < dist_p_p1 ? dist_p_p0 : dist_p_p1) * SIGN(value);
-}
-
 inline double Segment::squared_distance_to_point (const Point &p) const {
   if (p0 == p1)
     return 0;
@@ -618,24 +599,6 @@ inline double Arc::squared_distance_to_point (const Point &p) const {
   double d1 = p.squared_distance_to_point (p0);
   double d2 = p.squared_distance_to_point (p1);
   return (d1 < d2 ? d1 : d2);
-}
-
-/* Distance will be to an endpoint whenever necessary. */
-inline double Arc::signed_squared_distance_to_point (const Point &p) const {
-  if (fabs(d) == 0) {
-    Segment arc_segment (p0, p1);
-    return arc_segment.signed_squared_distance_to_point (p);
-  }
-
-  SignedVector difference = *this - p;
-
-  if (wedge_contains_point (p) && fabs(d) > 0) {
-    double answer = p.distance_to_point (center ()) - radius ();
-    return answer * answer * (difference.negative ? -1 : 1);
-  }
-  double d1 = p.squared_distance_to_point (p0);
-  double d2 = p.squared_distance_to_point (p1);
-  return (d1 < d2 ? d1 : d2) * (difference.negative ? -1 : 1);
 }
 
 /* Distance may not always be positive, but will be to an endpoint whenever necessary. */
