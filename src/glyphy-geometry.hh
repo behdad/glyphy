@@ -480,8 +480,6 @@ inline const SignedVector Arc::operator- (const Point &p) const {
   double d0 = p.squared_distance_to_point (p0);
   double d1 = p.squared_distance_to_point (p1);
 
-//  if (fabs(d + 1) == 0)
-//    printf("d=-1!\t");
   Arc other_arc (p0, p1, (1.0 + d) / (1.0 - d));  /********************************* NOT Robust. But works? *****************/
   Vector normal = center () - (d0 < d1 ? p0 : p1) ;
 
@@ -489,11 +487,6 @@ inline const SignedVector Arc::operator- (const Point &p) const {
     return SignedVector (Vector (0, 0), true);    /************************************ Check sign of this S.D. *************/
 
   return SignedVector ( Line (normal.dx, normal.dy, normal * Vector ((d0 < d1 ? p0 : p1))) - p, !other_arc.wedge_contains_point(p));
-
-
-  return SignedVector ((d0 < d1 ? Line (normal.dx, normal.dy, normal * Vector (p0)) - p :
-                                         Line (normal.dx, normal.dy, normal * Vector (p1)) - p ), !other_arc.wedge_contains_point(p));
-                                         /******************************* Looks correct. *********/
 }
 
 inline const SignedVector operator- (const Point &p, const Arc &a) {
