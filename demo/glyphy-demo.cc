@@ -21,12 +21,15 @@
 #endif
 
 #include "demo-common.h"
+#include "demo-buffer.h"
 #include "demo-font.h"
 #include "demo-shader.h"
-
-#include "glyphy-demo-glut.h"
+#include "demo-state.h"
 
 demo_state_t st;
+demo_buffer_t *buffer;
+
+#include "glyphy-demo-glut.h"
 
 
 static FT_Face
@@ -65,23 +68,9 @@ main (int argc, char** argv)
 #define FONT_SIZE 100
 
   glyphy_point_t top_left = {-200, -200};
-
-  st.vertices->clear ();
-  glyphy_point_t cursor = top_left;
-  cursor.y += FONT_SIZE /* * font->ascent */;
-  for (const char *p = text; *p; p++) {
-    unsigned int unicode = *p;
-    if (unicode == '\n') {
-      cursor.y += FONT_SIZE;
-      cursor.x = top_left.x;
-      continue;
-    }
-    unsigned int glyph_index = FT_Get_Char_Index (face, unicode);
-    glyph_info_t gi;
-    demo_font_lookup_glyph (font, glyph_index, &gi);
-    demo_shader_add_glyph_vertices (cursor, FONT_SIZE, &gi, st.vertices);
-    cursor.x += FONT_SIZE * gi.advance;
-  }
+  buffer = demo_buffer_create ();
+  demo_buffer_move_to (buffer, top_left);
+  demo_buffer_add_text (buffer, text, font, FONT_SIZE, top_left);
 
   demo_state_setup (&st);
   glutMainLoop ();

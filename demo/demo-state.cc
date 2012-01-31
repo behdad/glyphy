@@ -31,14 +31,11 @@ demo_state_init (demo_state_t *st)
   st->u_debug = 0;
   st->u_contrast = 1.0;
   st->u_gamma = 2.2;
-
-  st->vertices = new std::vector<glyph_vertex_t>;
 }
 
 void
 demo_state_fini (demo_state_t *st)
 {
-  delete st->vertices;
   demo_atlas_destroy (st->atlas);
   glDeleteProgram (st->program);
 }
@@ -64,13 +61,4 @@ demo_state_setup (demo_state_t *st)
   SET_UNIFORM (u_debug, 0);
   SET_UNIFORM (u_contrast, 1.0);
   SET_UNIFORM (u_gamma, 2.2);
-}
-
-void
-demo_state_draw (demo_state_t *st)
-{
-  GLuint a_glyph_vertex_loc = glGetAttribLocation (st->program, "a_glyph_vertex");
-  glEnableVertexAttribArray (a_glyph_vertex_loc);
-  glVertexAttribPointer (a_glyph_vertex_loc, 4, GL_FLOAT, GL_FALSE, sizeof (glyph_vertex_t), (const char *) &(*st->vertices)[0]);
-  glDrawArrays (GL_TRIANGLES, 0, st->vertices->size ());
 }

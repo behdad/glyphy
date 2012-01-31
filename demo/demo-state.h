@@ -50,8 +50,6 @@ demo_state_fini (demo_state_t *st);
 void
 demo_state_setup (demo_state_t *st);
 
-void
-demo_state_draw (demo_state_t *st);
 
 extern demo_state_t st;
 

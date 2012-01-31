@@ -202,8 +202,7 @@ display_func (void)
 
   glUniformMatrix4fv (glGetUniformLocation (st.program, "u_matViewProjection"), 1, GL_FALSE, mat);
 
-  demo_state_draw (&st);
-
+  demo_buffer_draw (buffer, &st);
   glutSwapBuffers ();
 }
 

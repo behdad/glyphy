@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * Google Author(s): Behdad Esfahbod, Maysum Panju
+ * Google Author(s): Behdad Esfahbod
  */
 
 #ifndef DEMO_FONT_H
@@ -46,6 +46,13 @@ demo_font_reference (demo_font_t *font);
 
 void
 demo_font_destroy (demo_font_t *font);
+
+
+FT_Face
+demo_font_get_face (demo_font_t *font);
+
+demo_atlas_t *
+demo_font_get_atlas (demo_font_t *font);
 
 
 void

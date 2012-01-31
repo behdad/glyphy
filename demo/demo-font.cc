@@ -71,6 +71,19 @@ demo_font_destroy (demo_font_t *font)
 }
 
 
+FT_Face
+demo_font_get_face (demo_font_t *font)
+{
+  return font->face;
+}
+
+demo_atlas_t *
+demo_font_get_atlas (demo_font_t *font)
+{
+  return font->atlas;
+}
+
+
 static glyphy_bool_t
 accumulate_endpoint (glyphy_arc_endpoint_t         *endpoint,
 		     vector<glyphy_arc_endpoint_t> *endpoints)
