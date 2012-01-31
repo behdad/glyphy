@@ -36,6 +36,8 @@ main()
   float sdist = gsdist / m * u_contrast;
 
   if (!u_debug) {
+    if (sdist > 1)
+      discard;
     color = vec4 (1,1,1,1) * smoothstep (-1, 1, sdist);
     color = pow (color, vec4 (1,1,1,1) * u_gamma);
   } else {
