@@ -39,7 +39,9 @@ glyphy_demo_SOURCES = \
 	demo-shader.cc \
 	demo-state.h \
 	demo-state.cc \
+	glyphy-demo.h \
 	glyphy-demo.cc \
+	glyphy-demo-animation.cc \
 	$(SHADERHEADERS) \
 	$(NULL)
 SHADERS = \
