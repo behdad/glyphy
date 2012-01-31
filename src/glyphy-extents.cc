@@ -20,10 +20,7 @@
 #include <config.h>
 #endif
 
-#include <glyphy.h>
-
-#include <math.h>
-#include <algorithm>
+#include "glyphy-common.hh"
 
 
 void

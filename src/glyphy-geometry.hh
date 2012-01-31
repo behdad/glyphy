@@ -19,11 +19,7 @@
 #ifndef GLYPHY_GEOMETRY_HH
 #define GLYPHY_GEOMETRY_HH
 
-#include <glyphy.h>
-
-#include <math.h>
-
-#include <algorithm>
+#include "glyphy-common.hh"
 
 namespace GLyphy {
 namespace Geometry {

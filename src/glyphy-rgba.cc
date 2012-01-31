@@ -20,15 +20,8 @@
 #include <config.h>
 #endif
 
-#include <glyphy.h>
-
+#include "glyphy-common.hh"
 #include "glyphy-geometry.hh"
-
-#include <string.h>
-#include <math.h>
-#include <assert.h>
-
-#include <vector>
 
 #define GRID_SIZE 16
 #define GRID_W GRID_SIZE

@@ -13,27 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * Google Author(s): Behdad Esfahbod, Maysum Panju, Wojciech Baranowski
+ * Google Author(s): Behdad Esfahbod, Maysum Panju
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#ifndef GLYPHY_COMMON_HH
+#define GLYPHY_COMMON_HH
 
 #include <glyphy.h>
 
-/*
- * Shader source code
- */
+#include <math.h>
+#include <string.h>
+#include <assert.h>
+#include <stdio.h>
+#include <vector>
+#include <algorithm>
 
-/* TODO path separator */
-#define SHADER_PATH(File) PKGDATADIR "/" File
 
-#include "glyphy-common-glsl.h"
-#include "glyphy-sdf-glsl.h"
-
-const char * glyphy_common_shader_source (void) { return glyphy_common_glsl; }
-const char * glyphy_sdf_shader_source (void) { return glyphy_sdf_glsl; }
-
-const char * glyphy_common_shader_source_path (void) {  return SHADER_PATH ("glyphy-common.glsl"); }
-const char * glyphy_sdf_shader_source_path (void) {  return SHADER_PATH ("glyphy-sdf.glsl"); }
+#endif /* GLYPHY_COMMON_HH */

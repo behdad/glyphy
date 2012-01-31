@@ -20,8 +20,7 @@
 #include <config.h>
 #endif
 
-#include <glyphy.h>
-
+#include "glyphy-common.hh"
 #include "glyphy-geometry.hh"
 #include "glyphy-arc-bezier.hh"
 

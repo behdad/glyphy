@@ -19,11 +19,8 @@
 #ifndef GLYPHY_ARC_BEZIER_HH
 #define GLYPHY_ARC_BEZIER_HH
 
-#include <glyphy-geometry.hh>
-
-#include <assert.h>
-
-#include <algorithm>
+#include "glyphy-common.hh"
+#include "glyphy-geometry.hh"
 
 namespace GLyphy {
 namespace ArcBezier {
