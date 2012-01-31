@@ -32,6 +32,9 @@
 #include <math.h>
 #include <assert.h>
 
+#include <algorithm>
+#include <vector>
+
 
 #define STRINGIZE1(Src) #Src
 #define STRINGIZE(Src) STRINGIZE1(Src)

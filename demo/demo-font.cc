@@ -43,7 +43,7 @@ demo_font_t *
 demo_font_create (FT_Face       face,
 		  demo_atlas_t *atlas)
 {
-  demo_font_t *font = (demo_font_t *) malloc (sizeof (demo_font_t));
+  demo_font_t *font = (demo_font_t *) calloc (1, sizeof (demo_font_t));
   font->refcount = 1;
 
   font->face = face;
@@ -152,6 +152,7 @@ encode_ft_glyph (FT_Face           face,
   extents->min_y /= upem;
   extents->max_x /= upem;
   extents->max_y /= upem;
+  glyphy_extents_scale (extents, 1. / upem, 1. / upem);
 
   *advance = face->glyph->metrics.horiAdvance / (double) upem;
 

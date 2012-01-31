@@ -117,6 +117,14 @@ display_func (void)
   glScaled (2. / width, -2. / height, 1);
   glRotated (phase * .05, 0, 0, 1);
 
+  glyphy_extents_t extents;
+  demo_buffer_extents (buffer, &extents);
+  double scale = .9 * std::min (width / (extents.max_x - extents.min_x),
+				height / (extents.max_y - extents.min_y));
+  glScaled (scale, scale, 1);
+  glTranslated (-(extents.max_x + extents.min_x) / 2.,
+		-(extents.max_y + extents.min_y) / 2., 1);
+
   GLfloat mat[16];
   glGetFloatv (GL_MODELVIEW_MATRIX, mat);
   glUniformMatrix4fv (glGetUniformLocation (st.program, "u_matViewProjection"), 1, GL_FALSE, mat);
@@ -157,12 +165,10 @@ main (int argc, char** argv)
   FT_Face face = open_ft_face (font_path, 0);
   demo_font_t *font = demo_font_create (face, st.atlas);
 
-#define FONT_SIZE 100
-
-  glyphy_point_t top_left = {-200, -200};
+  glyphy_point_t top_left = {0, 0};
   buffer = demo_buffer_create ();
   demo_buffer_move_to (buffer, top_left);
-  demo_buffer_add_text (buffer, text, font, FONT_SIZE, top_left);
+  demo_buffer_add_text (buffer, text, font, 1, top_left);
 
   demo_state_setup (&st);
   glutMainLoop ();

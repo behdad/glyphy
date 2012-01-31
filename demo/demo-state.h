@@ -23,8 +23,6 @@
 #include "demo-atlas.h"
 #include "demo-shader.h"
 
-#include <vector>
-
 
 typedef struct {
   GLuint program;

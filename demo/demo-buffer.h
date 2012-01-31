@@ -39,6 +39,10 @@ void
 demo_buffer_clear (demo_buffer_t *buffer);
 
 void
+demo_buffer_extents (demo_buffer_t    *buffer,
+		     glyphy_extents_t *extents);
+
+void
 demo_buffer_move_to (demo_buffer_t  *buffer,
 		     glyphy_point_t  p);
 

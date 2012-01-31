@@ -22,8 +22,6 @@
 #include "demo-common.h"
 #include "demo-font.h"
 
-#include <vector>
-
 
 struct glyph_vertex_t {
   /* Position */
@@ -38,7 +36,8 @@ void
 demo_shader_add_glyph_vertices (const glyphy_point_t        &p,
 				double                       font_size,
 				glyph_info_t                *gi,
-				std::vector<glyph_vertex_t> *vertices);
+				std::vector<glyph_vertex_t> *vertices,
+				glyphy_extents_t            *extents);
 
 
 GLuint

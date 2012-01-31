@@ -27,15 +27,18 @@ struct demo_buffer_t {
 
   glyphy_point_t cursor;
   std::vector<glyph_vertex_t> *vertices;
+  glyphy_extents_t extents;
 };
 
 demo_buffer_t *
 demo_buffer_create (void)
 {
-  demo_buffer_t *buffer = (demo_buffer_t *) malloc (sizeof (demo_buffer_t));
+  demo_buffer_t *buffer = (demo_buffer_t *) calloc (1, sizeof (demo_buffer_t));
   buffer->refcount = 1;
 
   buffer->vertices = new std::vector<glyph_vertex_t>;
+
+  demo_buffer_clear (buffer);
 
   return buffer;
 }
@@ -62,6 +65,14 @@ void
 demo_buffer_clear (demo_buffer_t *buffer)
 {
   buffer->vertices->clear ();
+  glyphy_extents_clear (&buffer->extents);
+}
+
+void
+demo_buffer_extents (demo_buffer_t    *buffer,
+		     glyphy_extents_t *extents)
+{
+  *extents = buffer->extents;
 }
 
 void
@@ -97,8 +108,10 @@ demo_buffer_add_text (demo_buffer_t  *buffer,
     }
     unsigned int glyph_index = FT_Get_Char_Index (face, unicode);
     glyph_info_t gi;
+    glyphy_extents_t extents;
     demo_font_lookup_glyph (font, glyph_index, &gi);
-    demo_shader_add_glyph_vertices (buffer->cursor, font_size, &gi, buffer->vertices);
+    demo_shader_add_glyph_vertices (buffer->cursor, font_size, &gi, buffer->vertices, &extents);
+    glyphy_extents_extend (&buffer->extents, &extents);
     buffer->cursor.x += font_size * gi.advance;
   }
 }
