@@ -176,10 +176,6 @@ struct Arc {
   inline double squared_distance_to_point (const Point &p) const;
   inline double extended_dist (const Point &p) const;
 
-  inline Point leftmost (void) const;
-  inline Point rightmost (void) const;
-  inline Point highest (void) const;
-  inline Point lowest (void) const;
   inline void extents (glyphy_extents_t &extents) const;
 
   Point p0, p1;
@@ -572,40 +568,20 @@ inline double Arc::extended_dist (const Point &p) const {
     return (p - p1) * (pp - dp * d2).normalized ();
 }
 
-inline Point Arc::leftmost (void) const {
-  Point answer (center ().x - radius (), center ().y);
-  if (wedge_contains_point (answer))
-    return answer;
-  return (p0.x < p1.x ? p0 : p1);
-}
-
-inline Point Arc::rightmost (void) const {
-  Point answer (center ().x + radius (), center ().y);
-  if (wedge_contains_point (answer))
-    return answer;
-  return (p0.x > p1.x ? p0 : p1);
-}
-
-inline Point Arc::lowest (void) const {
-  Point answer (center ().x, center ().y - radius ());
-  if (wedge_contains_point (answer))
-    return answer;
-  return (p0.y < p1.y ? p0 : p1);
-}
-
-inline Point Arc::highest (void) const {
-  Point answer (center ().x, center ().y + radius ());
-  if (wedge_contains_point (answer))
-    return answer;
-  return (p0.y > p1.y ? p0 : p1);
-}
-
 inline void Arc::extents (glyphy_extents_t &extents) const {
   /* TODO make this faster? */
-  Point p[4] = {leftmost (), rightmost (), lowest (), highest ()};
   glyphy_extents_clear (&extents);
+  glyphy_extents_add (&extents, p0);
+  glyphy_extents_add (&extents, p1);
+  Point c = center ();
+  double r = radius ();
+  Point p[4] = {c + r * Vector (-1,  0),
+		c + r * Vector (+1,  0),
+		c + r * Vector ( 0, -1),
+		c + r * Vector ( 0, +1)};
   for (unsigned int i = 0; i < 4; i++)
-    glyphy_extents_add (&extents, p[i]);
+    if (wedge_contains_point (p[i]))
+      glyphy_extents_add (&extents, p[i]);
 }
 
 
