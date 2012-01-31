@@ -129,14 +129,9 @@ encode_ft_glyph (FT_Face           face,
   if (FT_Err_Ok != glyphy_freetype(outline_decompose) (&face->glyph->outline, &acc))
     die ("Failed converting glyph outline to arcs");
 
-  printf ("Used %u arc endpoints; Approx. err %g; Tolerance %g; Percentage %g. %s\n",
-	  (unsigned int) acc.num_endpoints,
-	  acc.max_error, tolerance,
-	  round (100 * acc.max_error / acc.tolerance),
-	  acc.max_error <= acc.tolerance ? "PASS" : "FAIL");
+  assert (acc.max_error <= acc.tolerance);
 
   double avg_fetch_achieved;
-
   if (!glyphy_arc_list_encode_rgba (&endpoints[0], endpoints.size (),
 				    buffer,
 				    buffer_len,
@@ -149,10 +144,14 @@ encode_ft_glyph (FT_Face           face,
     die ("Failed encoding arcs");
 
   glyphy_extents_scale (extents, 1. / upem, 1. / upem);
-
   *advance = face->glyph->metrics.horiAdvance / (double) upem;
 
-  printf ("Average %g texture accesses\n", avg_fetch_achieved);
+  printf ("GLyph %u: %u arc-endpoints; Error usage %g; Avg tex fetch %g; Mem %ld bytes\n",
+	  glyph_index,
+	  (unsigned int) acc.num_endpoints,
+	  round (100 * acc.max_error / acc.tolerance),
+	  avg_fetch_achieved,
+	  *output_len * sizeof (glyphy_rgba_t));
 }
 
 static void
@@ -171,8 +170,6 @@ _demo_font_upload_glyph (demo_font_t *font,
 		   &glyph_info->glyph_layout,
 		   &glyph_info->extents,
 		   &glyph_info->advance);
-
-  printf ("Used %'lu bytes\n", output_len * sizeof (glyphy_rgba_t));
 
   demo_atlas_alloc (font->atlas, buffer, output_len,
 		    &glyph_info->atlas_x, &glyph_info->atlas_y);
