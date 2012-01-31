@@ -157,6 +157,7 @@ encode_ft_glyph (demo_font_t      *font,
   glyphy_extents_scale (extents, 1. / upem, 1. / upem);
   *advance = face->glyph->metrics.horiAdvance / (double) upem;
 
+  if (0)
   printf ("gid%3u: endpoints%3d; err%3g%%; tex fetch%4.1f; mem%4.1fkb\n",
 	  glyph_index,
 	  (unsigned int) acc.num_endpoints,
