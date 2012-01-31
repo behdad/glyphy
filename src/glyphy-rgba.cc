@@ -247,6 +247,12 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
     return true;
   }
 
+  /* Add antialiasing padding */
+  extents.min_x -= faraway;
+  extents.min_y -= faraway;
+  extents.max_x += faraway;
+  extents.max_y += faraway;
+
   double glyph_width = extents.max_x - extents.min_x;
   double glyph_height = extents.max_y - extents.min_y;
 
