@@ -366,10 +366,6 @@ inline const Point Line::operator+ (const Line &l) const {
 		       (n.dx * l.c - c * l.n.dx) / det);
 }
 inline const SignedVector Line::operator- (const Point &p) const {
-  /* shortest vector from point to line */
-//  if (n.len() < 1e-3)
-//    printf("n is %g.\n", n.len());
-
   double mag = -(n * Vector (p) - c) / n.len ();
   return SignedVector (n.normalized () * mag, mag < 0); /******************************************************************************************* FIX. *************************************/
 }
