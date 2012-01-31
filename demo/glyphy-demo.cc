@@ -155,14 +155,14 @@ display_func (void)
 
   glMatrixMode (GL_MODELVIEW);
   glLoadIdentity ();
-  // Animation rotate
-  glRotated (phase / 1000. * 360 / 10/*seconds*/, 0, 0, 1);
   // Global translate
   glTranslated (translate.x, translate.y, 0);
-  // Global scale
-  glScaled (scale, scale, 1);
   // Screen coordinates
   glScaled (2. / width, -2. / height, 1);
+  // Global scale
+  glScaled (scale, scale, 1);
+  // Animation rotate
+  glRotated (phase / 1000. * 360 / 10/*seconds*/, 0, 0, 1);
   // Buffer best-fit
   glyphy_extents_t extents;
   demo_buffer_extents (buffer, &extents);
