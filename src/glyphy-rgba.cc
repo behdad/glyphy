@@ -151,10 +151,21 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
 			     glyphy_extents_t            *pextents /* may be NULL */)
 {
   glyphy_extents_t extents;
+  glyphy_extents_clear (&extents);
 
   glyphy_arc_list_extents (endpoints, num_endpoints, &extents);
   if (pextents)
     *pextents = extents;
+
+  if (glyphy_extents_is_empty (&extents)) {
+    if (!rgba_size)
+      return false;
+    *rgba = arc_list_encode (0, 0, false);
+    *avg_fetch_achieved = 1;
+    *output_len = 1;
+    *glyph_layout = glyph_layout_encode (1, 1);
+    return true;
+  }
 
   double glyph_width = extents.max_x - extents.min_x;
   double glyph_height = extents.max_y - extents.min_y;
