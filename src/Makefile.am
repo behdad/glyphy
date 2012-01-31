@@ -28,7 +28,6 @@ libglyphy_la_SOURCES = \
 	$(NULL)
 PUBLICHEADERS = \
 	glyphy.h \
-	glyphy-arc.h \
 	glyphy-freetype.h \
 	$(NULL)
 SHADERS = \
