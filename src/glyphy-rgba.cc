@@ -154,10 +154,10 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
   glyphy_extents_clear (&extents);
 
   glyphy_arc_list_extents (endpoints, num_endpoints, &extents);
-  if (pextents)
-    *pextents = extents;
 
   if (glyphy_extents_is_empty (&extents)) {
+    if (pextents)
+      *pextents = extents;
     if (!rgba_size)
       return false;
     *rgba = arc_list_encode (0, 0, false);
@@ -175,8 +175,8 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
 
   /* XXX */
   glyph_width = glyph_height = std::max (glyph_width, glyph_height);
-  pextents->max_y = pextents->min_y + glyph_height;
-  pextents->max_x = pextents->min_x + glyph_width;
+  extents.max_y = extents.min_y + glyph_height;
+  extents.max_x = extents.min_x + glyph_width;
 
   std::vector<glyphy_rgba_t> tex_data;
   std::vector<glyphy_arc_endpoint_t> near_endpoints;
@@ -256,6 +256,9 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
 
   if (avg_fetch_achieved)
     *avg_fetch_achieved = 1 + double (total_arcs) / (grid_w * grid_h);
+
+  if (pextents)
+    *pextents = extents;
 
   if (tex_data.size () > rgba_size)
     return false;
