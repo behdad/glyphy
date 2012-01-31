@@ -150,7 +150,6 @@ class ArcBezierErrorApproximatorSampling
     assert (b.p0 == a.p0);
     assert (b.p3 == a.p1);
 
-    Circle c = a.circle ();
     double e = 0;
     for (double t = step; t < 1; t += step)
       e = std::max (e, a.distance_to_point (b.point (t)));
