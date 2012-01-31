@@ -174,7 +174,6 @@ struct Arc {
   inline bool wedge_contains_point (const Point &p) const;
   inline double distance_to_point (const Point &p) const;
   inline double squared_distance_to_point (const Point &p) const;
-  inline double max_distance_to_point (const Point &p) const;
   inline double extended_dist (const Point &p) const;
 
   inline Point leftmost (void) const;
@@ -567,23 +566,6 @@ inline double Arc::squared_distance_to_point (const Point &p) const {
   double d1 = p.squared_distance_to_point (p0);
   double d2 = p.squared_distance_to_point (p1);
   return (d1 < d2 ? d1 : d2);
-}
-
-/* Distance may not always be positive, but will be to an endpoint whenever necessary. */
-inline double Arc::max_distance_to_point (const Point &p) const {
-  if (fabs(d) == 0) {
-    double d0 = p0.distance_to_point(p);
-    double d1 = p1.distance_to_point(p);
-    return d0 > d1 ? d0 : d1;
-  }
-
-  SignedVector difference = *this - p;
-
-  if (wedge_contains_point (p) && fabs(d) > 0)
-    return fabs (p.distance_to_point (center ()) - radius ()) * (difference.negative ? -1 : 1);
-  double d1 = p.distance_to_point (p0);
-  double d2 = p.distance_to_point (p1);
-  return (d1 < d2 ? d1 : d2) * (difference.negative ? -1 : 1);
 }
 
 inline double Arc::extended_dist (const Point &p) const {
