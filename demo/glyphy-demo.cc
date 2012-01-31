@@ -112,16 +112,17 @@ display_func (void)
 
   double phase = glyphy_demo_animation_get_phase ();
 
-  double theta = M_PI / 360.0 * phase * .05;
-  GLfloat mat[] = { +cos(theta)*2/width, -sin(theta)*2/height, 0., 0.,
-		    -sin(theta)*2/width, -cos(theta)*2/height, 0., 0.,
-			     0.,          0., 0., 0.,
-			     0.,          0., 0., 1., };
+  glMatrixMode (GL_MODELVIEW);
+  glLoadIdentity ();
+  glScaled (2. / width, -2. / height, 1);
+  glRotated (phase * .05, 0, 0, 1);
+
+  GLfloat mat[16];
+  glGetFloatv (GL_MODELVIEW_MATRIX, mat);
+  glUniformMatrix4fv (glGetUniformLocation (st.program, "u_matViewProjection"), 1, GL_FALSE, mat);
 
   glClearColor (1, 1, 1, 1);
   glClear (GL_COLOR_BUFFER_BIT);
-
-  glUniformMatrix4fv (glGetUniformLocation (st.program, "u_matViewProjection"), 1, GL_FALSE, mat);
 
   demo_buffer_draw (buffer, &st);
   glutSwapBuffers ();
