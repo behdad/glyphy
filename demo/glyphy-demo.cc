@@ -131,7 +131,7 @@ display_func (void)
   // Global scale
   glScaled (scale, scale, 1);
   // Animation rotate
-  glRotated (phase * .05, 0, 0, 1);
+  glRotated (phase / 1000. * 360 / 10/*seconds*/, 0, 0, 1);
   // Buffer best-fit
   glyphy_extents_t extents;
   demo_buffer_extents (buffer, &extents);

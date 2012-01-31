@@ -28,7 +28,7 @@ static int num_frames = 0;
 static int animate = 0;
 static long fps_start_time = 0;
 static long last_time = 0;
-static double phase = 0;
+static int phase = 0;
 static bool has_fps_timer = false;
 
 
@@ -49,6 +49,7 @@ timed_step (int ms)
   if (animate) {
     glutTimerFunc (ms, timed_step, ms);
     num_frames++;
+    phase++;
     glutPostRedisplay ();
   }
 }
@@ -59,6 +60,7 @@ idle_step (void)
   if (animate) {
     glutIdleFunc (idle_step);
     num_frames++;
+    phase++;
     glutPostRedisplay ();
   }
 }
@@ -103,12 +105,5 @@ glyphy_demo_animation_get_phase (void)
 {
   double elapsed_time = 0;
   long t = current_time ();
-  if (animate) {
-    if (last_time == 0)
-      last_time = t;
-    elapsed_time = t - last_time;
-    last_time = t;
-  }
-  phase += elapsed_time;
-  return phase;
+  return phase * 1000  / 60.;
 }

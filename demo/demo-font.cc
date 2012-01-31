@@ -146,7 +146,7 @@ encode_ft_glyph (FT_Face           face,
   glyphy_extents_scale (extents, 1. / upem, 1. / upem);
   *advance = face->glyph->metrics.horiAdvance / (double) upem;
 
-  printf ("GLyph %u: %u arc-endpoints; Error usage %g; Avg tex fetch %g; Mem %ld bytes\n",
+  printf ("GLyph %u: %u arc-endpoints; Error usage %%%g; Avg tex fetch %g; Mem %ld bytes\n",
 	  glyph_index,
 	  (unsigned int) acc.num_endpoints,
 	  round (100 * acc.max_error / acc.tolerance),
