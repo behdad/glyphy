@@ -28,8 +28,6 @@
 struct glyphy_arc_t {
   vec2  p0;
   vec2  p1;
-  /* Arc depth.  Never will be zero.  Even for straight lines it will
-   * be a very small non-zero value. */
   float d;
 };
 
@@ -62,13 +60,13 @@ struct glyphy_arc_list_t {
 bool
 glyphy_isinf (float v)
 {
-  return abs (v) > GLYPHY_INFINITY / 2.;
+  return abs (v) == GLYPHY_INFINITY;
 }
 
 bool
 glyphy_iszero (float v)
 {
-  return abs (v) < GLYPHY_EPSILON * 2.;
+  return abs (v) <= GLYPHY_EPSILON * 2.;
 }
 
 vec2
@@ -106,16 +104,13 @@ glyphy_tan2atan (float d)
 glyphy_arc_endpoint_t
 glyphy_arc_endpoint_decode (const vec4 v)
 {
-  /* Note that this never returns d == 0.  For straight lines,
-   * a d value of .0039215686 is returned.  In fact, the d has
-   * that bias for all values.
-   */
   vec2 p = (vec2 (glyphy_float_to_two_nimbles (v.a)) + v.gb) / 16;
   float d = v.r;
   if (d == 0)
     d = GLYPHY_INFINITY;
+  else
 #define GLYPHY_MAX_D .5
-    d = GLYPHY_MAX_D * (2 * d - 1);
+    d = (glyphy_float_to_byte (d) - 128) * GLYPHY_MAX_D / 127.;
 #undef GLYPHY_MAX_D
   return glyphy_arc_endpoint_t (p, d);
 }
@@ -138,13 +133,16 @@ glyphy_arc_wedge_contains (const glyphy_arc_t a, const vec2 p)
 float
 glyphy_arc_wedge_signed_dist (const glyphy_arc_t a, const vec2 p)
 {
+  if (a.d == 0)
+    return dot (p - a.p0, normalize (glyphy_perpendicular (a.p1 - a.p0)));
   vec2 c = glyphy_arc_center (a);
-  return sign (a.d) * (distance (p, c) - distance (a.p0, c));
+  return sign (a.d) * (distance (a.p0, c) - distance (p, c));
 }
 
 float
 glyphy_arc_extended_dist (const glyphy_arc_t a, const vec2 p)
 {
+  /* Note: this doesn't handle points inside the wedge. */
   vec2 m = mix (a.p0, a.p1, .5);
   float d2 = glyphy_tan2atan (a.d);
   if (dot (p - m, a.p1 - m) < 0)

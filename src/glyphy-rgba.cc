@@ -35,7 +35,7 @@ using namespace GLyphy::Geometry;
 
 
 static inline glyphy_rgba_t
-arc_encode (double x, double y, double d)
+arc_endpoint_encode (double x, double y, double d)
 {
   glyphy_rgba_t v;
 
@@ -45,12 +45,13 @@ arc_encode (double x, double y, double d)
   assert (ix < 4096);
   iy = lround (y * 4095);
   assert (iy < 4096);
-#define GLYPHY_MAX_D .5
   if (isinf (d))
     id = 0;
   else {
-    assert (fabs (d) < GLYPHY_MAX_D);
-    id = lround (d * 127. / GLYPHY_MAX_D + 128);
+#define GLYPHY_MAX_D .5
+    assert (fabs (d) <= GLYPHY_MAX_D);
+    id = 128 + lround (d * 127. / GLYPHY_MAX_D);
+#undef GLYPHY_MAX_D
   }
   assert (id < 256);
 
@@ -296,15 +297,15 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
 	continue;
       }
 
-#define ARC_ENCODE(E) \
-	arc_encode ((E.p.x - extents.min_x) / glyph_width, \
-		    (E.p.y - extents.min_y) / glyph_height, \
-		    (E.d))
-
+#define ARC_ENDPOINT_ENCODE(E) \
+	arc_endpoint_encode ((E.p.x - extents.min_x) / glyph_width, \
+			     (E.p.y - extents.min_y) / glyph_height, \
+			     (E.d))
       for (unsigned i = 0; i < near_endpoints.size (); i++) {
         glyphy_arc_endpoint_t &endpoint = near_endpoints[i];
-	tex_data.push_back (ARC_ENCODE (endpoint));
+	tex_data.push_back (ARC_ENDPOINT_ENCODE (endpoint));
       }
+#undef ARC_ENDPOINT_ENCODE
 
       unsigned int current_endpoints = tex_data.size () - offset;
 

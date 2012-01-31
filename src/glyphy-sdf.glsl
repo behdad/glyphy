@@ -83,7 +83,7 @@ glyphy_sdf (vec2 p, int glyph_layout GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
       float udist = abs (sdist) - GLYPHY_EPSILON;
       if (udist <= min_dist) {
 	min_dist = udist;
-	side = sdist >= 0 ? -1 : +1;
+	side = sdist <= 0 ? -1 : +1;
       }
     } else {
       float udist = min (distance (p, a.p0), distance (p, a.p1));

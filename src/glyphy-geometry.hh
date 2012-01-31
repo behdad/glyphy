@@ -521,14 +521,14 @@ inline bool Arc::wedge_contains_point (const Point &p) const
 
 /* Distance may not always be positive, but will be to an endpoint whenever necessary. */
 inline double Arc::distance_to_point (const Point &p) const {
-  if (fabs(d) == 0) {
+  if (fabs(d) < 1e-5) {
     Segment arc_segment (p0, p1);
     return arc_segment.distance_to_point (p);
   }
 
   SignedVector difference = *this - p;
 
-  if (wedge_contains_point (p) && fabs(d) > 0)
+  if (wedge_contains_point (p) && fabs(d) > 1e-5)
     return fabs (p.distance_to_point (center ()) - radius ()) * (difference.negative ? -1 : 1);
   double d1 = p.squared_distance_to_point (p0);
   double d2 = p.squared_distance_to_point (p1);
@@ -537,14 +537,14 @@ inline double Arc::distance_to_point (const Point &p) const {
 
 /* Distance will be to an endpoint whenever necessary. */
 inline double Arc::squared_distance_to_point (const Point &p) const {
-  if (fabs(d) == 0) {
+  if (fabs(d) < 1e-5) {
     Segment arc_segment (p0, p1);
     return arc_segment.squared_distance_to_point (p);
   }
 
   SignedVector difference = *this - p;
 
-  if (wedge_contains_point (p) && fabs(d) > 0) {
+  if (wedge_contains_point (p) && fabs(d) > 1e-5) {
     double answer = p.distance_to_point (center ()) - radius ();
     return answer * answer;
   }
