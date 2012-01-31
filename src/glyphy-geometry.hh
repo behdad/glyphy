@@ -122,7 +122,6 @@ struct Line {
 
   inline const Point operator+ (const Line &l) const; /* line intersection! */
   inline const SignedVector operator- (const Point &p) const; /* shortest vector from point to line */
-  inline const Point nearest_part_to_point (const Point &p) const;
 
 
   inline const Line normalized (void) const;
@@ -140,8 +139,6 @@ struct Segment {
   inline double distance_to_point (const Point &p) const; /* shortest distance from point to segment */
   inline double squared_distance_to_point (const Point &p) const; /* shortest distance squared from point to segment */
   inline bool contains_in_span (const Point &p) const; /* is p in the stripe formed by sliding this segment? */
-  inline Point nearest_part_to_point (const Point &p) const;
-  inline double distance_to_arc (const Arc &a) const;
   inline double max_distance_to_arc (const Arc &a) const;
 
 
@@ -178,7 +175,6 @@ struct Arc {
   inline double distance_to_point (const Point &p) const;
   inline double squared_distance_to_point (const Point &p) const;
   inline double max_distance_to_point (const Point &p) const;
-  inline Point nearest_part_to_point (const Point &p) const;
   inline double extended_dist (const Point &p) const;
 
   inline Point leftmost (void) const;
@@ -395,10 +391,6 @@ inline const Vector Line::normal (void) const {
   return n;
 }
 
-inline const Point Line::nearest_part_to_point (const Point &p) const {
-  return p + (*this - p);
-}
-
 /* Segment */
 inline const SignedVector Segment::operator- (const Point &p) const {
   /* shortest vector from point to line */
@@ -458,33 +450,9 @@ inline double Segment::squared_distance_to_point (const Point &p) const {
 }
 
 
-inline double Segment::distance_to_arc (const Arc &a) const {
-
-  double min_distance = fabs(a.distance_to_point(p0)) ;
-  min_distance = min_distance <  fabs(a.distance_to_point(p1)) ? min_distance : fabs(a.distance_to_point(p1)) ;
-
-  Point on_line = (Line (p0, p1)).nearest_part_to_point(a.center());
-  double other_distance = fabs((a.center () - on_line).len () - a.radius ());
-
-  if (a.wedge_contains_point (on_line) && contains_in_span (on_line))
-    min_distance = min_distance < other_distance ? min_distance : other_distance ;
-
-  return min_distance;
-}
-
-
 inline double Segment::max_distance_to_arc (const Arc &a) const {
   double max_distance = fabs(a.distance_to_point(p0)) ;
   return  max_distance >  fabs(a.distance_to_point(p1)) ? max_distance : fabs(a.distance_to_point(p1)) ;
-}
-
-inline Point Segment::nearest_part_to_point (const Point &p) const {
-  if (contains_in_span (p))
-    return p - (*this - p);
-
-  double d1 = p.squared_distance_to_point (p0);
-  double d2 = p.squared_distance_to_point (p1);
-  return (d1 < d2 ? p0 : p1);
 }
 
 
@@ -616,20 +584,6 @@ inline double Arc::max_distance_to_point (const Point &p) const {
   double d1 = p.distance_to_point (p0);
   double d2 = p.distance_to_point (p1);
   return (d1 < d2 ? d1 : d2) * (difference.negative ? -1 : 1);
-}
-
-inline Point Arc::nearest_part_to_point (const Point &p) const {
-  if (fabs(d) == 0) {
-    Segment arc_segment (p0, p1);
-    return arc_segment.nearest_part_to_point (p);
-  }
-
-  if (wedge_contains_point (p) && fabs(d) > 0)
-    return p + ( (1 - radius () / (p - center ()).len ()) * (center () - p));
-
-  double d1 = p.squared_distance_to_point (p0);
-  double d2 = p.squared_distance_to_point (p1);
-  return (d1 < d2 ? p0 : p1);
 }
 
 inline double Arc::extended_dist (const Point &p) const {
