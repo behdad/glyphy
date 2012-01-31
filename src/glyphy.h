@@ -109,6 +109,7 @@ glyphy_arc_to_conventional (glyphy_arc_t    arc,
 glyphy_bool_t
 glyphy_arc_is_a_line (glyphy_arc_t arc);
 
+/* TBD */
 void
 glyphy_arc_extents (glyphy_arc_t      arc,
 		    glyphy_extents_t *extents);
@@ -255,12 +256,14 @@ typedef struct {
 } glyphy_vector_t;
 
 
+/* TBD */
 double
 glyphy_sdf_from_arc_list (const glyphy_arc_endpoint_t *endpoints,
 			  unsigned int                 num_endpoints,
 			  glyphy_point_t               p,
 			  glyphy_vector_t             *closest /* may be NULL */);
 
+/* TBD */
 double
 glyphy_sdf_from_rgba (const glyphy_rgba_t *rgba,
 		      unsigned int         glyph_layout,
