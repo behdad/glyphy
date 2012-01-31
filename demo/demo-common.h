@@ -42,7 +42,7 @@
 #define ARRAY_LEN(Array) (sizeof (Array) / sizeof (*Array))
 
 
-#if 1
+#if 0
 // Large font size profile
 #define MIN_FONT_SIZE 64
 #define TOLERANCE 5e-4
