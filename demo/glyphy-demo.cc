@@ -76,7 +76,8 @@ demo_state_setup (demo_state_t *st)
 static demo_state_t st[1];
 static demo_buffer_t *buffer;
 /* Viewer settings */
-static double scale = 1.0;
+static double content_scale;
+static double view_scale = 1.0;
 static glyphy_point_t translate = {0, 0};
 
 
@@ -143,12 +144,12 @@ keyboard_func (unsigned char key, int x, int y)
       break;
 
     case '=':
-      scale *= STEP;
-      printf ("Setting scale to %g\n", scale);
+      view_scale *= STEP;
+      printf ("Setting scale to %g; font size is %.1f now.\n", view_scale, view_scale * content_scale);
       break;
     case '-':
-      scale /= STEP;
-      printf ("Setting scale to %g\n", scale);
+      view_scale /= STEP;
+      printf ("Setting scale to %g; font size is %.2f now.\n", view_scale, view_scale * content_scale);
       break;
 
     default:
@@ -198,20 +199,20 @@ display_func (void)
 
   glMatrixMode (GL_MODELVIEW);
   glLoadIdentity ();
-  // Global translate
+  // Translate translate
   glTranslated (translate.x, translate.y, 0);
   // Screen coordinates
   glScaled (2. / width, -2. / height, 1);
-  // Global scale
-  glScaled (scale, scale, 1);
+  // View scale
+  glScaled (view_scale, view_scale, 1);
   // Animation rotate
   glRotated (phase / 1000. * 360 / 10/*seconds*/, 0, 0, 1);
   // Buffer best-fit
   glyphy_extents_t extents;
   demo_buffer_extents (buffer, &extents);
-  double s = .9 * std::min (width / (extents.max_x - extents.min_x),
-			    height / (extents.max_y - extents.min_y));
-  glScaled (s, s, 1);
+  content_scale = .9 * std::min (width / (extents.max_x - extents.min_x),
+				 height / (extents.max_y - extents.min_y));
+  glScaled (content_scale, content_scale, 1);
   // Center buffer
   glTranslated (-(extents.max_x + extents.min_x) / 2.,
 		-(extents.max_y + extents.min_y) / 2., 0);
