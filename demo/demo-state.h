@@ -33,9 +33,6 @@ typedef struct {
   double u_contrast;
   double u_gamma_adjust;
 
-  /* Attributes */
-  std::vector<glyph_vertex_t> *vertices;
-
 } demo_state_t;
 
 void
