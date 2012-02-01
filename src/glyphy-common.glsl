@@ -60,7 +60,7 @@ struct glyphy_arc_list_t {
 bool
 glyphy_isinf (float v)
 {
-  return abs (v) == GLYPHY_INFINITY;
+  return abs (v) >= GLYPHY_INFINITY * .5;
 }
 
 bool
