@@ -261,7 +261,7 @@ main (int argc, char** argv)
   glutInit (&argc, argv);
   glutInitWindowSize (700, 700);
   glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB);
-  glutCreateWindow("GLyphy Demo");
+  int window = glutCreateWindow ("GLyphy Demo");
   glutReshapeFunc (reshape_func);
   glutDisplayFunc (display_func);
   glutKeyboardFunc (keyboard_func);
@@ -305,6 +305,8 @@ main (int argc, char** argv)
   demo_buffer_destroy (buffer);
   demo_font_destroy (font);
   demo_state_fini (st);
+
+  glutDestroyWindow (window);
 
   return 0;
 }
