@@ -204,6 +204,9 @@ main (int argc, char** argv)
 //  if (!glewIsSupported ("GL_VERSION_2_0"))
 //    abort ();// die ("OpenGL 2.0 not supported");
 
+  glEnable (GL_BLEND);
+  glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
   if (argc != 3) {
     fprintf (stderr, "Usage: %s FONT_FILE TEXT\n", argv[0]);
     exit (1);

@@ -38,8 +38,9 @@ main()
   if (!u_debug) {
     if (sdist > 1)
       discard;
-    color = vec4 (1,1,1,1) * smoothstep (-1, 1, sdist);
-    color = pow (color, vec4 (1,1,1,1) * u_gamma);
+    float alpha = smoothstep (1, -1, sdist);
+    alpha = pow (alpha, u_gamma);
+    color = vec4 (color.rgb,color.a * alpha);
   } else {
     // Color the inside of the glyph a light red
     color += vec4 (.5,0,0,0) * smoothstep (1, -1, sdist);
