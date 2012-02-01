@@ -39,7 +39,7 @@ main()
     if (sdist > 1)
       discard;
     float alpha = smoothstep (1, -1, sdist);
-    alpha = pow (alpha, u_gamma);
+    alpha = pow (alpha, 1./u_gamma);
     color = vec4 (color.rgb,color.a * alpha);
   } else {
     color = vec4 (0,0,0,0);
