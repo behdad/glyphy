@@ -22,7 +22,8 @@
 #include <glyphy.h>
 #include <GL/glew.h>
 #if defined(__APPLE__)
-    #include <Glut/glut.h>
+#  include <Glut/glut.h>
+#  include <OpenGL/OpenGL.h>
 #else
     #include <GL/glut.h>
 #endif

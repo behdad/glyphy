@@ -79,7 +79,25 @@ static demo_buffer_t *buffer;
 static double content_scale;
 static double view_scale = 1.0;
 static glyphy_point_t translate = {0, 0};
+static GLint vsync = 0;
 
+
+void
+v_sync_set (glyphy_bool_t sync)
+{
+  vsync = sync ? 1 : 0;
+#if defined(__APPLE__)
+  CGLSetParameter(CGLGetCurrentContext(), kCGLCPSwapInterval, &sync);
+#else
+#if 0
+  /* TODO figure out right macro feature test for these */
+  if (glewIsSupported ("WGL_EXT_swap_control"))
+    wglSwapIntervalEXT (vsync);
+  else if (glewIsSupported ("GLX_SGI_swap_control"))
+    glXSwapIntervalSGI (vsync);
+#endif
+#endif
+}
 
 
 static FT_Face
@@ -150,6 +168,11 @@ keyboard_func (unsigned char key, int x, int y)
     case '-':
       view_scale /= STEP;
       printf ("Setting scale to %g; font size is %.2f now.\n", view_scale, view_scale * content_scale);
+      break;
+
+    case 'v':
+      v_sync_set (1 - vsync);
+      printf ("Setting vsync %s.\n", vsync ? "on" : "off");
       break;
 
     default:
@@ -273,6 +296,8 @@ main (int argc, char** argv)
   demo_buffer_move_to (buffer, top_left);
   demo_buffer_add_text (buffer, text, font, 1, top_left);
   demo_font_print_stats (font);
+
+  v_sync_set (1);
 
   demo_state_setup (st);
   glutMainLoop ();
