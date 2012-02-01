@@ -103,7 +103,5 @@ glyphy_demo_animation_toggle (void)
 double
 glyphy_demo_animation_get_phase (void)
 {
-  double elapsed_time = 0;
-  long t = current_time ();
   return phase * 1000  / 60.;
 }
