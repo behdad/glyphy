@@ -21,7 +21,7 @@
 
 #include "demo-common.h"
 #include "demo-font.h"
-#include "demo-state.h"
+#include "demo-shader.h"
 
 typedef struct demo_buffer_t demo_buffer_t;
 
@@ -58,8 +58,7 @@ demo_buffer_add_text (demo_buffer_t  *buffer,
 		      glyphy_point_t  top_left);
 
 void
-demo_buffer_draw (demo_buffer_t *buffer,
-		  demo_state_t  *st);
+demo_buffer_draw (demo_buffer_t *buffer);
 
 
 #endif /* DEMO_BUFFER_H */

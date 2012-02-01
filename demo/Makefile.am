@@ -37,8 +37,6 @@ glyphy_demo_SOURCES = \
 	demo-font.cc \
 	demo-shader.h \
 	demo-shader.cc \
-	demo-state.h \
-	demo-state.cc \
 	glyphy-demo.h \
 	glyphy-demo.cc \
 	glyphy-demo-animation.cc \

@@ -23,7 +23,62 @@
 #include "glyphy-demo.h"
 #include "demo-buffer.h"
 #include "demo-font.h"
-#include "demo-state.h"
+
+
+typedef struct {
+  GLuint program;
+  demo_atlas_t *atlas;
+
+  /* Uniforms */
+  double u_debug;
+  double u_contrast;
+  double u_gamma_adjust;
+
+} demo_state_t;
+
+static void
+demo_state_init (demo_state_t *st)
+{
+  st->program = demo_shader_create_program ();
+  st->atlas = demo_atlas_create (512, 512, 32, 4);
+
+  st->u_debug = 0;
+  st->u_contrast = 1.0;
+  st->u_gamma_adjust = 1.0;
+}
+
+static void
+demo_state_fini (demo_state_t *st)
+{
+  demo_atlas_destroy (st->atlas);
+  glDeleteProgram (st->program);
+}
+
+static void
+set_uniform (GLuint program, const char *name, double *p, double value)
+{
+  *p = value;
+  glUniform1f (glGetUniformLocation (program, name), value);
+  printf ("Setting %s to %g\n", name, value);
+}
+#define SET_UNIFORM(name, value) set_uniform (st->program, #name, &st->name, value)
+
+static void
+demo_state_setup (demo_state_t *st)
+{
+  glUseProgram (st->program);
+  demo_atlas_set_uniforms (st->atlas);
+  SET_UNIFORM (u_debug, st->u_debug);
+  SET_UNIFORM (u_contrast, st->u_contrast);
+  SET_UNIFORM (u_gamma_adjust, st->u_gamma_adjust);
+}
+
+static demo_state_t st[1];
+static demo_buffer_t *buffer;
+/* Viewer settings */
+static double scale = 1.0;
+static glyphy_point_t translate = {0, 0};
+
 
 
 static FT_Face
@@ -41,12 +96,6 @@ open_ft_face (const char   *font_path,
 }
 
 
-static demo_state_t st;
-static demo_buffer_t *buffer;
-static double scale = 1.0;
-static glyphy_point_t translate = {0, 0};
-
-
 
 void
 reshape_func (int width, int height)
@@ -54,15 +103,6 @@ reshape_func (int width, int height)
   glViewport (0, 0, width, height);
   glutPostRedisplay ();
 }
-
-static void
-set_uniform (const char *name, double *p, double value)
-{
-  *p = value;
-  glUniform1f (glGetUniformLocation (st.program, name), value);
-  printf ("Setting %s to %g\n", name, value);
-}
-#define SET_UNIFORM(name, value) set_uniform (#name, &st.name, value)
 
 
 static void
@@ -84,21 +124,21 @@ keyboard_func (unsigned char key, int x, int y)
       break;
 
     case 'd':
-      SET_UNIFORM (u_debug, 1 - st.u_debug);
+      SET_UNIFORM (u_debug, 1 - st->u_debug);
       break;
 
     case 'a':
-      SET_UNIFORM (u_contrast, st.u_contrast / .9);
+      SET_UNIFORM (u_contrast, st->u_contrast / .9);
       break;
     case 'z':
-      SET_UNIFORM (u_contrast, st.u_contrast * .9);
+      SET_UNIFORM (u_contrast, st->u_contrast * .9);
       break;
 
     case 'g':
-      SET_UNIFORM (u_gamma_adjust, st.u_gamma_adjust / .9);
+      SET_UNIFORM (u_gamma_adjust, st->u_gamma_adjust / .9);
       break;
     case 'b':
-      SET_UNIFORM (u_gamma_adjust, st.u_gamma_adjust * .9);
+      SET_UNIFORM (u_gamma_adjust, st->u_gamma_adjust * .9);
       break;
 
     case '=':
@@ -176,12 +216,12 @@ display_func (void)
 
   GLfloat mat[16];
   glGetFloatv (GL_MODELVIEW_MATRIX, mat);
-  glUniformMatrix4fv (glGetUniformLocation (st.program, "u_matViewProjection"), 1, GL_FALSE, mat);
+  glUniformMatrix4fv (glGetUniformLocation (st->program, "u_matViewProjection"), 1, GL_FALSE, mat);
 
   glClearColor (1, 1, 1, 1);
   glClear (GL_COLOR_BUFFER_BIT);
 
-  demo_buffer_draw (buffer, &st);
+  demo_buffer_draw (buffer);
   glutSwapBuffers ();
 }
 
@@ -220,9 +260,9 @@ main (int argc, char** argv)
    font_path = argv[1];
    text = argv[2];
 
-  demo_state_init (&st);
+  demo_state_init (st);
   FT_Face face = open_ft_face (font_path, 0);
-  demo_font_t *font = demo_font_create (face, st.atlas);
+  demo_font_t *font = demo_font_create (face, st->atlas);
 
   glyphy_point_t top_left = {0, 0};
   buffer = demo_buffer_create ();
@@ -230,12 +270,12 @@ main (int argc, char** argv)
   demo_buffer_add_text (buffer, text, font, 1, top_left);
   demo_font_print_stats (font);
 
-  demo_state_setup (&st);
+  demo_state_setup (st);
   glutMainLoop ();
 
   demo_buffer_destroy (buffer);
   demo_font_destroy (font);
-  demo_state_fini (&st);
+  demo_state_fini (st);
 
   return 0;
 }
