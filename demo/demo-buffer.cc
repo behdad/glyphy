@@ -99,8 +99,29 @@ demo_buffer_add_text (demo_buffer_t  *buffer,
   FT_Face face = demo_font_get_face (font);
   buffer->cursor = top_left;
   buffer->cursor.y += font_size /* * font->ascent */;
-  for (const char *p = utf8; *p; p++) {
-    unsigned int unicode = *p;
+  unsigned int unicode;
+  for (const unsigned char *p = (const unsigned char *) utf8; *p; p++) {
+    if (*p < 128) {
+      unicode = *p;
+    } else {
+      unsigned int j;
+      if (*p < 0xE0) {
+	unicode = *p & ~0xE0;
+	j = 1;
+      } else if (*p < 0xF0) {
+	unicode = *p & ~0xF0;
+	j = 2;
+      } else {
+	unicode = *p & ~0xF8;
+	j = 3;
+	continue;
+      }
+      p++;
+      for (; j && *p; j--, p++)
+	unicode = (unicode << 6) | (*p & ~0xC0);
+      p--;
+    }
+
     if (unicode == '\n') {
       buffer->cursor.y += font_size;
       buffer->cursor.x = top_left.x;
