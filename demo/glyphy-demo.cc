@@ -105,6 +105,7 @@ reshape_func (int width, int height)
 }
 
 
+#define STEP 1.05
 static void
 keyboard_func (unsigned char key, int x, int y)
 {
@@ -128,24 +129,26 @@ keyboard_func (unsigned char key, int x, int y)
       break;
 
     case 'a':
-      SET_UNIFORM (u_contrast, st->u_contrast / .9);
+      SET_UNIFORM (u_contrast, st->u_contrast * STEP);
       break;
     case 'z':
-      SET_UNIFORM (u_contrast, st->u_contrast * .9);
+      SET_UNIFORM (u_contrast, st->u_contrast / STEP);
       break;
 
     case 'g':
-      SET_UNIFORM (u_gamma_adjust, st->u_gamma_adjust / .9);
+      SET_UNIFORM (u_gamma_adjust, st->u_gamma_adjust * STEP);
       break;
     case 'b':
-      SET_UNIFORM (u_gamma_adjust, st->u_gamma_adjust * .9);
+      SET_UNIFORM (u_gamma_adjust, st->u_gamma_adjust / STEP);
       break;
 
     case '=':
-      scale /= .9;
+      scale *= STEP;
+      printf ("Setting scale to %g\n", scale);
       break;
     case '-':
-      scale *= .9;
+      scale /= STEP;
+      printf ("Setting scale to %g\n", scale);
       break;
 
     default:
