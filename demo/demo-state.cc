@@ -30,7 +30,7 @@ demo_state_init (demo_state_t *st)
 
   st->u_debug = 0;
   st->u_contrast = 1.0;
-  st->u_gamma = 2.2;
+  st->u_gamma = 1.0;
 }
 
 void
@@ -58,7 +58,7 @@ demo_state_setup (demo_state_t *st)
 {
   glUseProgram (st->program);
   demo_atlas_set_uniforms (st->atlas);
-  SET_UNIFORM (u_debug, 0);
-  SET_UNIFORM (u_contrast, 1.0);
-  SET_UNIFORM (u_gamma, 2.2);
+  SET_UNIFORM (u_debug, st->u_debug);
+  SET_UNIFORM (u_contrast, st->u_contrast);
+  SET_UNIFORM (u_gamma, st->u_gamma);
 }
