@@ -95,10 +95,10 @@ keyboard_func (unsigned char key, int x, int y)
       break;
 
     case 'g':
-      SET_UNIFORM (u_gamma, st.u_gamma / .9);
+      SET_UNIFORM (u_gamma_adjust, st.u_gamma_adjust / .9);
       break;
     case 'b':
-      SET_UNIFORM (u_gamma, st.u_gamma * .9);
+      SET_UNIFORM (u_gamma_adjust, st.u_gamma_adjust * .9);
       break;
 
     case '=':
@@ -193,7 +193,7 @@ main (int argc, char** argv)
 
   glutInit (&argc, argv);
   glutInitWindowSize (700, 700);
-  glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+  glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB);
   glutCreateWindow("GLyphy Demo");
   glutReshapeFunc (reshape_func);
   glutDisplayFunc (display_func);
@@ -202,7 +202,13 @@ main (int argc, char** argv)
 
   glewInit ();
 //  if (!glewIsSupported ("GL_VERSION_2_0"))
-//    abort ();// die ("OpenGL 2.0 not supported");
+//    die ("OpenGL 2.0 not supported");
+
+  if (!glewIsSupported ("GL_ARB_framebuffer_sRGB") &&
+      !glewIsSupported ("GL_EXT_framebuffer_sRGB"))
+    printf ("No sRGB framebuffer extension found; feel free to play with gamma adjustment\n");
+  else
+    glEnable (GL_FRAMEBUFFER_SRGB);
 
   glEnable (GL_BLEND);
   glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

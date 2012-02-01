@@ -1,5 +1,5 @@
 uniform float u_contrast;
-uniform float u_gamma;
+uniform float u_gamma_adjust;
 uniform bool  u_debug;
 
 varying vec4 v_glyph;
@@ -39,7 +39,8 @@ main()
     if (sdist > 1)
       discard;
     float alpha = smoothstep (1, -1, sdist);
-    alpha = pow (alpha, 1./u_gamma);
+    if (u_gamma_adjust != 1)
+      alpha = pow (alpha, 1./u_gamma_adjust);
     color = vec4 (color.rgb,color.a * alpha);
   } else {
     color = vec4 (0,0,0,0);

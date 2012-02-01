@@ -30,7 +30,7 @@ demo_state_init (demo_state_t *st)
 
   st->u_debug = 0;
   st->u_contrast = 1.0;
-  st->u_gamma = 1.0;
+  st->u_gamma_adjust = 1.0;
 }
 
 void
@@ -60,5 +60,5 @@ demo_state_setup (demo_state_t *st)
   demo_atlas_set_uniforms (st->atlas);
   SET_UNIFORM (u_debug, st->u_debug);
   SET_UNIFORM (u_contrast, st->u_contrast);
-  SET_UNIFORM (u_gamma, st->u_gamma);
+  SET_UNIFORM (u_gamma_adjust, st->u_gamma_adjust);
 }

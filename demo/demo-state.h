@@ -31,7 +31,7 @@ typedef struct {
   /* Uniforms */
   double u_debug;
   double u_contrast;
-  double u_gamma;
+  double u_gamma_adjust;
 
   /* Attributes */
   std::vector<glyph_vertex_t> *vertices;
