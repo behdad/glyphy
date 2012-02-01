@@ -61,5 +61,6 @@ endif
 endif
 endif
 
+EXTRA_DIST += TEXT
 
 -include $(top_srcdir)/git.mk
