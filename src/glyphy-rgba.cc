@@ -205,10 +205,10 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
 
 
 glyphy_bool_t
-glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
+glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
 			     unsigned int                 num_endpoints,
-			     glyphy_rgba_t               *rgba,
-			     unsigned int                 rgba_size,
+			     glyphy_rgba_t               *blob,
+			     unsigned int                 blob_size,
 			     double                       faraway,
 			     double                       avg_fetch_desired,
 			     double                      *avg_fetch_achieved,
@@ -224,9 +224,9 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
 
   if (glyphy_extents_is_empty (&extents)) {
     *pextents = extents;
-    if (!rgba_size)
+    if (!blob_size)
       return false;
-    *rgba = arc_list_encode (0, 0, +1);
+    *blob = arc_list_encode (0, 0, +1);
     *avg_fetch_achieved = 1;
     *output_len = 1;
     *nominal_width = *nominal_height = 1;
@@ -339,10 +339,10 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
 
   *pextents = extents;
 
-  if (tex_data.size () > rgba_size)
+  if (tex_data.size () > blob_size)
     return false;
 
-  memcpy(rgba, &tex_data[0], tex_data.size () * sizeof(tex_data[0]));
+  memcpy (blob, &tex_data[0], tex_data.size () * sizeof(tex_data[0]));
   *output_len = tex_data.size ();
   *nominal_width = grid_w;
   *nominal_height = grid_h;

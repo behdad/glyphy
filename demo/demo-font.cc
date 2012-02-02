@@ -148,7 +148,7 @@ encode_ft_glyph (demo_font_t      *font,
   assert (glyphy_arc_accumulator_get_error (font->acc) <= tolerance);
 
   double avg_fetch_achieved;
-  if (!glyphy_arc_list_encode_rgba (&endpoints[0], endpoints.size (),
+  if (!glyphy_arc_list_encode_blob (&endpoints[0], endpoints.size (),
 				    buffer,
 				    buffer_len,
 				    faraway,

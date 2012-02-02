@@ -271,10 +271,10 @@ typedef struct {
 
 /* TODO make this callback-based also? */
 glyphy_bool_t
-glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
+glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
 			     unsigned int                 num_endpoints,
-			     glyphy_rgba_t               *rgba,
-			     unsigned int                 rgba_size,
+			     glyphy_rgba_t               *blob,
+			     unsigned int                 blob_size,
 			     double                       faraway,
 			     double                       avg_fetch_desired,
 			     double                      *avg_fetch_achieved,
@@ -305,7 +305,7 @@ glyphy_sdf_from_arc_list (const glyphy_arc_endpoint_t *endpoints,
 
 /* TBD */
 double
-glyphy_sdf_from_rgba (const glyphy_rgba_t *rgba,
+glyphy_sdf_from_blob (const glyphy_rgba_t *blob,
 		      unsigned int         nominal_width,
 		      unsigned int         nominal_height,
 		      glyphy_point_t       p,
