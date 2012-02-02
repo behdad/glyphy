@@ -282,7 +282,7 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
 			     unsigned int                *output_len,
 			     unsigned int                *nominal_width,  /* 8bit */
 			     unsigned int                *nominal_height, /* 8bit */
-			     glyphy_extents_t            *extents /* may be NULL */);
+			     glyphy_extents_t            *extents);
 
 
 

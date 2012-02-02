@@ -29,6 +29,7 @@
 typedef struct {
   glyphy_extents_t extents;
   double           advance;
+  glyphy_bool_t    is_empty; /* has no outline; eg. space; don't draw it */
   unsigned int     nominal_w;
   unsigned int     nominal_h;
   unsigned int     atlas_x;

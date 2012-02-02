@@ -215,7 +215,7 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
 			     unsigned int                *output_len,
 			     unsigned int                *nominal_width,  /* 8bit */
 			     unsigned int                *nominal_height, /* 8bit */
-			     glyphy_extents_t            *pextents /* may be NULL */)
+			     glyphy_extents_t            *pextents)
 {
   glyphy_extents_t extents;
   glyphy_extents_clear (&extents);
@@ -223,11 +223,10 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
   glyphy_arc_list_extents (endpoints, num_endpoints, &extents);
 
   if (glyphy_extents_is_empty (&extents)) {
-    if (pextents)
-      *pextents = extents;
+    *pextents = extents;
     if (!rgba_size)
       return false;
-    *rgba = arc_list_encode (0, 0, false);
+    *rgba = arc_list_encode (0, 0, +1);
     *avg_fetch_achieved = 1;
     *output_len = 1;
     *nominal_width = *nominal_height = 1;
@@ -338,8 +337,7 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
   if (avg_fetch_achieved)
     *avg_fetch_achieved = 1 + double (total_arcs) / (grid_w * grid_h);
 
-  if (pextents)
-    *pextents = extents;
+  *pextents = extents;
 
   if (tex_data.size () > rgba_size)
     return false;

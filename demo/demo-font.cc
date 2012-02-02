@@ -194,8 +194,10 @@ _demo_font_upload_glyph (demo_font_t *font,
 		   &glyph_info->extents,
 		   &glyph_info->advance);
 
-  demo_atlas_alloc (font->atlas, buffer, output_len,
-		    &glyph_info->atlas_x, &glyph_info->atlas_y);
+  glyph_info->is_empty = glyphy_extents_is_empty (&glyph_info->extents);
+  if (!glyph_info->is_empty)
+    demo_atlas_alloc (font->atlas, buffer, output_len,
+		      &glyph_info->atlas_x, &glyph_info->atlas_y);
 }
 
 void

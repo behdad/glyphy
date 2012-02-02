@@ -70,6 +70,9 @@ demo_shader_add_glyph_vertices (const glyphy_point_t        &p,
 				std::vector<glyph_vertex_t> *vertices,
 				glyphy_extents_t            *extents)
 {
+  if (gi->is_empty)
+    return;
+
   glyph_vertex_t v[4];
 
 #define ENCODE_CORNER(_cx, _cy) \
