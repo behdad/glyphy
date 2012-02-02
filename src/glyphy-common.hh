@@ -28,5 +28,6 @@
 #include <vector>
 #include <algorithm>
 
+#define GLYPHY_MAX_D .5
 
 #endif /* GLYPHY_COMMON_HH */

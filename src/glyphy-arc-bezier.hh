@@ -251,25 +251,34 @@ template <class ArcBezierErrorApproximator>
 class ArcBezierApproximatorQuantized
 {
   public:
-  static const Arc approximate_bezier_with_quantized_arc (const Bezier &b,
-							  double max_d,
-							  unsigned int d_bits,
-							  double *error)
+  ArcBezierApproximatorQuantized (double _max_d = INFINITY, unsigned int _d_bits = 0) :
+    max_d (_max_d), d_bits (_d_bits) {};
+
+  protected:
+  double max_d;
+  unsigned int d_bits;
+
+  public:
+  const Arc approximate_bezier_with_arc (const Bezier &b, double *error) const
   {
     Arc a (b.p0, b.p3, b.point (.5), false);
     Arc orig_a = a;
+
     if (isnormal (max_d)) {
       assert (max_d >= 0);
       if (fabs (a.d) > max_d)
         a.d = a.d < 0 ? -max_d : max_d;
     }
     if (d_bits) {
-      assert (isnormal (max_d) && fabs (a.d) <= max_d);
+      assert (isnormal (max_d));
+      assert (fabs (a.d) <= max_d);
       int mult = (1 << (d_bits - 1)) - 1;
       int id = round (a.d / max_d * mult);
       assert (-mult <= id && id <= mult);
-      a.d = (double) id / mult;
+      a.d = id * max_d / mult;
+      assert (fabs (a.d) <= max_d);
     }
+
     /* Error introduced by arc quantization */
     double ed = fabs (a.d - orig_a.d) * (a.p1 - a.p0).len () * .5;
 

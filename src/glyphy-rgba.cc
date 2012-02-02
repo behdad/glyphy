@@ -46,10 +46,8 @@ arc_endpoint_encode (double x, double y, double d)
   if (isinf (d))
     id = 0;
   else {
-#define GLYPHY_MAX_D .5
     assert (fabs (d) <= GLYPHY_MAX_D);
-    id = 128 + lround (d * 127. / GLYPHY_MAX_D);
-#undef GLYPHY_MAX_D
+    id = 128 + lround (d * 127 / GLYPHY_MAX_D);
   }
   assert (id < 256);
 

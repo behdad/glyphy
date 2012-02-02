@@ -41,14 +41,13 @@ struct glyphy_arc_accumulator_t {
   double tolerance;
   double max_d;
   unsigned int d_bits;
+  glyphy_arc_endpoint_accumulator_callback_t  callback;
+  void                                       *user_data;
 
   glyphy_point_t current_point;
   unsigned int   num_endpoints;
   double max_error;
   glyphy_bool_t success;
-
-  glyphy_arc_endpoint_accumulator_callback_t  callback;
-  void                                       *user_data;
 };
 
 
@@ -59,6 +58,8 @@ glyphy_arc_accumulator_create (void)
   acc->refcount = 1;
 
   acc->tolerance = 5e-4;
+  acc->max_d = GLYPHY_MAX_D;
+  acc->d_bits = 8;
   acc->callback = NULL;
   acc->user_data = NULL;
 
@@ -202,8 +203,8 @@ bezier (glyphy_arc_accumulator_t *acc, const Bezier &b)
   double e;
 
   std::vector<Arc> arcs;
-  typedef ArcBezierApproximatorDefault _ArcBezierApproximator;
-  _ArcBezierApproximator appx;
+  typedef ArcBezierApproximatorQuantizedDefault _ArcBezierApproximator;
+  _ArcBezierApproximator appx (acc->max_d, acc->d_bits);
   ArcsBezierApproximatorSpringSystem<_ArcBezierApproximator>
     ::approximate_bezier_with_arcs (b, acc->tolerance, appx, arcs, &e);
 
