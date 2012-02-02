@@ -56,7 +56,7 @@
 #endif
 
 #define MIN_FONT_SIZE 16
-#define TOLERANCE 5e-4
+#define TOLERANCE (1./2048)
 
 
 #define gl(name) \
