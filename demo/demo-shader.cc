@@ -176,16 +176,24 @@ link_program (GLuint vshader,
   return program;
 }
 
-#define GLSL_VERSION_STRING "#version 120\n"
+#ifdef GL_ES_VERSION_2_0
+# define GLSL_HEADER_STRING \
+    "#version 100\n" \
+    "precision int highp\n" \
+    "precision float highp\n"
+#else
+# define GLSL_HEADER_STRING \
+    "#version 120\n"
+#endif
 
 GLuint
 demo_shader_create_program (void)
 {
   GLuint vshader, fshader, program;
-  const GLchar *vshader_sources[] = {GLSL_VERSION_STRING,
+  const GLchar *vshader_sources[] = {GLSL_HEADER_STRING,
 				     demo_vshader_glsl};
   vshader = compile_shader (GL_VERTEX_SHADER, ARRAY_LEN (vshader_sources), vshader_sources);
-  const GLchar *fshader_sources[] = {GLSL_VERSION_STRING,
+  const GLchar *fshader_sources[] = {GLSL_HEADER_STRING,
 				     demo_atlas_glsl,
 				     glyphy_common_shader_source (),
 				     glyphy_sdf_shader_source (),
