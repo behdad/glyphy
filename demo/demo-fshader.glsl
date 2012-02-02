@@ -57,7 +57,7 @@ main()
 
     float pdist = glyphy_point_dist (p, gi.nominal_size GLYPHY_DEMO_EXTRA_ARGS);
     // Color points green
-    color = mix (vec4 (0,1,0,.5), color, smoothstep (.005, .006, pdist));
+    color = mix (vec4 (0,1,0,.5), color, smoothstep (.05, .06, pdist));
 
     glyphy_arc_list_t arc_list = glyphy_arc_list (p, gi.nominal_size GLYPHY_DEMO_EXTRA_ARGS);
     // Color the number of endpoints per cell blue
