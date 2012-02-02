@@ -249,7 +249,7 @@ glyphy_arc_accumulator_arc_to (glyphy_arc_accumulator_t *acc,
 			       double         d);
 
 
-glyphy_bool_t
+void
 glyphy_arc_list_extents (const glyphy_arc_endpoint_t *endpoints,
 			 unsigned int                 num_endpoints,
 			 glyphy_extents_t            *extents);
