@@ -128,13 +128,13 @@ class ArcsBezierApproximatorSpringSystem
 };
 
 template <class ArcsBezierApproximator>
-class ArcApproximatorOutlineSink
+class ArcApproximatorOutline
 {
   public:
 
   typedef bool (*Callback) (const Arc &arc, void *closure);
 
-  ArcApproximatorOutlineSink (Callback callback_, void *closure_, double tolerance_)
+  ArcApproximatorOutline (Callback callback_, void *closure_, double tolerance_)
   : callback (callback_), closure (closure_), tolerance (tolerance_), error (0), p0 (0, 0) {}
 
   double tolerance;
@@ -198,7 +198,7 @@ class ArcApproximatorOutlineSink
 };
 
 typedef ArcsBezierApproximatorSpringSystem<ArcBezierApproximatorDefault> ArcsBezierApproximatorDefault;
-typedef ArcApproximatorOutlineSink<ArcsBezierApproximatorDefault> ArcApproximatorOutlineSinkDefault;
+typedef ArcApproximatorOutline<ArcsBezierApproximatorDefault> ArcApproximatorOutlineDefault;
 
 } /* namespace ArcsBezier */
 } /* namespace GLyphy */
