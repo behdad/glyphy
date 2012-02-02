@@ -34,20 +34,140 @@ using namespace GLyphy::ArcsBezier;
  */
 
 
+struct glyphy_arc_accumulator_t {
+  unsigned int refcount;
+
+
+  double tolerance;
+  double max_d;
+  unsigned int d_bits;
+
+  glyphy_point_t current_point;
+  unsigned int   num_endpoints;
+  double max_error;
+  glyphy_bool_t success;
+
+  glyphy_arc_endpoint_accumulator_callback_t  callback;
+  void                                       *user_data;
+};
+
+
+glyphy_arc_accumulator_t *
+glyphy_arc_accumulator_create (void)
+{
+  glyphy_arc_accumulator_t *acc = (glyphy_arc_accumulator_t *) calloc (1, sizeof (glyphy_arc_accumulator_t));
+  acc->refcount = 1;
+
+  acc->tolerance = 5e-4;
+  acc->callback = NULL;
+  acc->user_data = NULL;
+
+  glyphy_arc_accumulator_reset (acc);
+
+  return acc;
+}
+
 void
-glyphy_arc_accumulator_init (glyphy_arc_accumulator_t *acc,
-			     double                    tolerance,
-			     glyphy_arc_endpoint_accumulator_callback_t callback,
-			     void                     *user_data)
+glyphy_arc_accumulator_reset (glyphy_arc_accumulator_t *acc)
 {
   acc->current_point = Point (0, 0);
   acc->num_endpoints = 0;
-  acc->tolerance = tolerance;
   acc->max_error = 0;
   acc->success = true;
+}
+
+void
+glyphy_arc_accumulator_destroy (glyphy_arc_accumulator_t *acc)
+{
+  if (!acc || --acc->refcount)
+    return;
+
+  free (acc);
+}
+
+glyphy_arc_accumulator_t *
+glyphy_arc_accumulator_reference (glyphy_arc_accumulator_t *acc)
+{
+  if (acc)
+    acc->refcount++;
+  return acc;
+}
+
+
+/* Configure acc */
+
+void
+glyphy_arc_accumulator_set_tolerance (glyphy_arc_accumulator_t *acc,
+				      double                    tolerance)
+{
+  acc->tolerance = tolerance;
+}
+
+double
+glyphy_arc_accumulator_get_tolerance (glyphy_arc_accumulator_t *acc)
+{
+  return acc->tolerance;
+}
+
+void
+glyphy_arc_accumulator_set_callback (glyphy_arc_accumulator_t *acc,
+				     glyphy_arc_endpoint_accumulator_callback_t callback,
+				     void                     *user_data)
+{
   acc->callback = callback;
   acc->user_data = user_data;
 }
+
+void
+glyphy_arc_accumulator_get_callback (glyphy_arc_accumulator_t  *acc,
+				     glyphy_arc_endpoint_accumulator_callback_t *callback,
+				     void                     **user_data)
+{
+  *callback = acc->callback;
+  *user_data = acc->user_data;
+}
+
+void
+glyphy_arc_accumulator_set_d_metrics (glyphy_arc_accumulator_t *acc,
+				      double                    max_d,
+				      double                    d_bits)
+{
+  acc->max_d = max_d;
+  acc->d_bits = d_bits;
+}
+
+void
+glyphy_arc_accumulator_get_d_metrics (glyphy_arc_accumulator_t *acc,
+				      double                   *max_d,
+				      double                   *d_bits)
+{
+  *max_d = acc->max_d;
+  *d_bits = acc->d_bits;
+}
+
+
+/* Accumulation results */
+
+unsigned int
+glyphy_arc_accumulator_get_num_endpoints (glyphy_arc_accumulator_t *acc)
+{
+  return acc->num_endpoints;
+}
+
+double
+glyphy_arc_accumulator_get_error (glyphy_arc_accumulator_t *acc)
+{
+  return acc->max_error;
+}
+
+glyphy_bool_t
+glyphy_arc_accumulator_successful (glyphy_arc_accumulator_t *acc)
+{
+  return acc->success;
+}
+
+
+/* Accumulate */
 
 static void
 accumulate (glyphy_arc_accumulator_t *acc, const Point &p, double d)

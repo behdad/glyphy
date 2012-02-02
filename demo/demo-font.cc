@@ -37,6 +37,7 @@ struct demo_font_t {
   FT_Face        face;
   glyph_cache_t *glyph_cache;
   demo_atlas_t  *atlas;
+  glyphy_arc_accumulator_t *acc;
 
   /* stats */
   unsigned int num_glyphs;
@@ -54,6 +55,7 @@ demo_font_create (FT_Face       face,
   font->face = face;
   font->glyph_cache = new glyph_cache_t ();
   font->atlas = demo_atlas_reference (atlas);
+  font->acc = glyphy_arc_accumulator_create ();
 
   font->num_glyphs = 0;
   font->sum_fetch  = 0;
@@ -75,6 +77,7 @@ demo_font_destroy (demo_font_t *font)
   if (!font || --font->refcount)
     return;
 
+  glyphy_arc_accumulator_destroy (font->acc);
   demo_atlas_destroy (font->atlas);
   delete font->glyph_cache;
   free (font);
@@ -133,15 +136,16 @@ encode_ft_glyph (demo_font_t      *font,
   double faraway = double (upem) / MIN_FONT_SIZE;
   vector<glyphy_arc_endpoint_t> endpoints;
 
-  glyphy_arc_accumulator_t acc;
-  glyphy_arc_accumulator_init (&acc, tolerance,
-			       (glyphy_arc_endpoint_accumulator_callback_t) accumulate_endpoint,
-			       &endpoints);
+  glyphy_arc_accumulator_reset (font->acc);
+  glyphy_arc_accumulator_set_tolerance (font->acc, tolerance);
+  glyphy_arc_accumulator_set_callback (font->acc,
+				       (glyphy_arc_endpoint_accumulator_callback_t) accumulate_endpoint,
+				       &endpoints);
 
-  if (FT_Err_Ok != glyphy_freetype(outline_decompose) (&face->glyph->outline, &acc))
+  if (FT_Err_Ok != glyphy_freetype(outline_decompose) (&face->glyph->outline, font->acc))
     die ("Failed converting glyph outline to arcs");
 
-  assert (acc.max_error <= acc.tolerance);
+  assert (glyphy_arc_accumulator_get_error (font->acc) <= tolerance);
 
   double avg_fetch_achieved;
   if (!glyphy_arc_list_encode_rgba (&endpoints[0], endpoints.size (),
@@ -162,8 +166,8 @@ encode_ft_glyph (demo_font_t      *font,
   if (0)
   printf ("gid%3u: endpoints%3d; err%3g%%; tex fetch%4.1f; mem%4.1fkb\n",
 	  glyph_index,
-	  (unsigned int) acc.num_endpoints,
-	  round (100 * acc.max_error / acc.tolerance),
+	  (unsigned int) glyphy_arc_accumulator_get_num_endpoints (font->acc),
+	  round (100 * glyphy_arc_accumulator_get_error (font->acc) / tolerance),
 	  avg_fetch_achieved,
 	  (*output_len * sizeof (glyphy_rgba_t)) / 1024.);
 

@@ -38,7 +38,7 @@
 
 static FT_Error glyphy_freetype(err) (glyphy_arc_accumulator_t *acc)
 {
-  return acc->success ? FT_Err_Ok : FT_Err_Out_Of_Memory;
+  return glyphy_arc_accumulator_successful (acc) ? FT_Err_Ok : FT_Err_Out_Of_Memory;
 }
 
 static const glyphy_point_t glyphy_freetype(point) (FT_Vector *to)

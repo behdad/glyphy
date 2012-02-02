@@ -164,48 +164,88 @@ typedef struct {
 typedef glyphy_bool_t (*glyphy_arc_endpoint_accumulator_callback_t) (glyphy_arc_endpoint_t *endpoint,
 								     void                  *user_data);
 
-/* TODO Make this a refcounted opaque type?  Or add destroy_notify? */
-typedef struct {
-  glyphy_point_t current_point;
-  unsigned int   num_endpoints;
 
-  double tolerance;
-  double max_error;
+typedef struct glyphy_arc_accumulator_t glyphy_arc_accumulator_t;
 
-  glyphy_bool_t success;
+glyphy_arc_accumulator_t *
+glyphy_arc_accumulator_create (void);
 
-  glyphy_arc_endpoint_accumulator_callback_t  callback;
-  void                                       *user_data;
-} glyphy_arc_accumulator_t;
+void
+glyphy_arc_accumulator_destroy (glyphy_arc_accumulator_t *acc);
+
+glyphy_arc_accumulator_t *
+glyphy_arc_accumulator_reference (glyphy_arc_accumulator_t *acc);
 
 
 void
-glyphy_arc_accumulator_init (glyphy_arc_accumulator_t *accumulator,
-			     double                    tolerance,
-			     glyphy_arc_endpoint_accumulator_callback_t callback,
-			     void                     *user_data);
+glyphy_arc_accumulator_reset (glyphy_arc_accumulator_t *acc);
+
+
+/* Configure accumulator */
 
 void
-glyphy_arc_accumulator_move_to (glyphy_arc_accumulator_t *accumulator,
+glyphy_arc_accumulator_set_tolerance (glyphy_arc_accumulator_t *acc,
+				      double                    tolerance);
+
+double
+glyphy_arc_accumulator_get_tolerance (glyphy_arc_accumulator_t *acc);
+
+void
+glyphy_arc_accumulator_set_callback (glyphy_arc_accumulator_t *acc,
+				     glyphy_arc_endpoint_accumulator_callback_t callback,
+				     void                     *user_data);
+
+void
+glyphy_arc_accumulator_get_callback (glyphy_arc_accumulator_t  *acc,
+				     glyphy_arc_endpoint_accumulator_callback_t *callback,
+				     void                     **user_data);
+
+void
+glyphy_arc_accumulator_set_d_metrics (glyphy_arc_accumulator_t *acc,
+				      double                    max_d,
+				      double                    d_bits);
+
+void
+glyphy_arc_accumulator_get_d_metrics (glyphy_arc_accumulator_t *acc,
+				      double                   *max_d,
+				      double                   *d_bits);
+
+
+/* Accumulation results */
+
+unsigned int
+glyphy_arc_accumulator_get_num_endpoints (glyphy_arc_accumulator_t *acc);
+
+double
+glyphy_arc_accumulator_get_error (glyphy_arc_accumulator_t *acc);
+
+glyphy_bool_t
+glyphy_arc_accumulator_successful (glyphy_arc_accumulator_t *acc);
+
+
+/* Accumulate */
+
+void
+glyphy_arc_accumulator_move_to (glyphy_arc_accumulator_t *acc,
 				glyphy_point_t p0);
 
 void
-glyphy_arc_accumulator_line_to (glyphy_arc_accumulator_t *accumulator,
+glyphy_arc_accumulator_line_to (glyphy_arc_accumulator_t *acc,
 				glyphy_point_t p1);
 
 void
-glyphy_arc_accumulator_conic_to (glyphy_arc_accumulator_t *accumulator,
+glyphy_arc_accumulator_conic_to (glyphy_arc_accumulator_t *acc,
 				 glyphy_point_t p1,
 				 glyphy_point_t p2);
 
 void
-glyphy_arc_accumulator_cubic_to (glyphy_arc_accumulator_t *accumulator,
+glyphy_arc_accumulator_cubic_to (glyphy_arc_accumulator_t *acc,
 				 glyphy_point_t p1,
 				 glyphy_point_t p2,
 				 glyphy_point_t p3);
 
 void
-glyphy_arc_accumulator_arc_to (glyphy_arc_accumulator_t *accumulator,
+glyphy_arc_accumulator_arc_to (glyphy_arc_accumulator_t *acc,
 			       glyphy_point_t p1,
 			       double         d);
 
