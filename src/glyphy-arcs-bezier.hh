@@ -127,78 +127,7 @@ class ArcsBezierApproximatorSpringSystem
   }
 };
 
-template <class ArcsBezierApproximator>
-class ArcApproximatorOutline
-{
-  public:
-
-  typedef bool (*Callback) (const Arc &arc, void *closure);
-
-  ArcApproximatorOutline (Callback callback_, void *closure_, double tolerance_)
-  : callback (callback_), closure (closure_), tolerance (tolerance_), error (0), p0 (0, 0) {}
-
-  double tolerance;
-  double error;
-  Callback callback;
-  void *closure;
-  Point p0; /* current point */
-
-  bool
-  move_to (const Point &p)
-  {
-    p0 = p;
-    return true;
-  }
-
-  bool
-  line_to (const Point &p1)
-  {
-    bool ret = arc (Arc (p0, p1, 0));
-    p0 = p1;
-    return ret;
-  }
-
-  bool
-  conic_to (const Point &p1, const Point &p2)
-  {
-    return cubic_to (p0.lerp (2/3., p1),
-		     p2.lerp (2/3., p1),
-		     p2);
-  }
-
-  bool
-  cubic_to (const Point &p1, const Point &p2, const Point &p3)
-  {
-    bool ret = bezier (Bezier (p0, p1, p2, p3));
-    p0 = p3;
-    return ret;
-  }
-
-  bool
-  arc (const Arc &a)
-  {
-    return callback (a, closure);
-  }
-
-  bool
-  bezier (const Bezier &b)
-  {
-    double e;
-    std::vector<Arc> arcs;
-    ArcsBezierApproximator::approximate_bezier_with_arcs (b, tolerance, arcs, &e);
-    error = std::max (error, e);
-
-    bool ret;
-    for (unsigned int i = 0; i < arcs.size (); i++)
-      if (!(ret = arc (arcs[i])))
-        break;
-
-    return ret;
-  }
-};
-
 typedef ArcsBezierApproximatorSpringSystem<ArcBezierApproximatorDefault> ArcsBezierApproximatorDefault;
-typedef ArcApproximatorOutline<ArcsBezierApproximatorDefault> ArcApproximatorOutlineDefault;
 
 } /* namespace ArcsBezier */
 } /* namespace GLyphy */
