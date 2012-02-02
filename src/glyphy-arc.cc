@@ -72,6 +72,12 @@ glyphy_arc_is_a_line (glyphy_arc_t arc)
   return arc.d == 0;
 }
 
+void
+glyphy_arc_extents (glyphy_arc_t      arc,
+		    glyphy_extents_t *extents)
+{
+  Arc(arc).extents (*extents);
+}
 
 
 /*

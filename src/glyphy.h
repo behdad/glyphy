@@ -109,7 +109,6 @@ glyphy_arc_to_conventional (glyphy_arc_t    arc,
 glyphy_bool_t
 glyphy_arc_is_a_line (glyphy_arc_t arc);
 
-/* TBD */
 void
 glyphy_arc_extents (glyphy_arc_t      arc,
 		    glyphy_extents_t *extents);
