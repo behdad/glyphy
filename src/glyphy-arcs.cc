@@ -80,8 +80,13 @@ static void
 bezier (glyphy_arc_accumulator_t *acc, const Bezier &b)
 {
   double e;
+
   std::vector<Arc> arcs;
-  ArcsBezierApproximatorDefault::approximate_bezier_with_arcs (b, acc->tolerance, arcs, &e);
+  typedef ArcBezierApproximatorDefault _ArcBezierApproximator;
+  _ArcBezierApproximator appx;
+  ArcsBezierApproximatorSpringSystem<_ArcBezierApproximator>
+    ::approximate_bezier_with_arcs (b, acc->tolerance, appx, arcs, &e);
+
   acc->max_error = std::max (acc->max_error, e);
 
   for (unsigned int i = 0; i < arcs.size (); i++)

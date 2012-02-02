@@ -34,6 +34,7 @@ class ArcsBezierApproximatorSpringSystem
 {
   static inline void calc_arcs (const Bezier &b,
 				const std::vector<double> &t,
+				const ArcBezierApproximator &appx,
 				std::vector<double> &e,
 				std::vector<Arc > &arcs,
 				double &max_e, double &min_e)
@@ -46,7 +47,7 @@ class ArcsBezierApproximatorSpringSystem
     for (unsigned int i = 0; i < n; i++)
     {
       Bezier segment = b.segment (t[i], t[i + 1]);
-      arcs.push_back (ArcBezierApproximator::approximate_bezier_with_arc (segment, &e[i]));
+      arcs.push_back (appx.approximate_bezier_with_arc (segment, &e[i]));
 
       max_e = std::max (max_e, e[i]);
       min_e = std::min (min_e, e[i]);
@@ -54,6 +55,7 @@ class ArcsBezierApproximatorSpringSystem
   }
 
   static inline void jiggle (const Bezier &b,
+			     const ArcBezierApproximator &appx,
 			     std::vector<double> &t,
 			     std::vector<double> &e,
 			     std::vector<Arc > &arcs,
@@ -80,7 +82,7 @@ class ArcsBezierApproximatorSpringSystem
 	t[i + 1] = t[i] + l;
       }
 
-      calc_arcs (b, t, e, arcs, max_e, min_e);
+      calc_arcs (b, t, appx, e, arcs, max_e, min_e);
 
       //fprintf (stderr, "n %d jiggle %d max_e %g min_e %g\n", n, s, max_e, min_e);
 
@@ -94,6 +96,7 @@ class ArcsBezierApproximatorSpringSystem
   public:
   static void approximate_bezier_with_arcs (const Bezier &b,
 					    double tolerance,
+					    const ArcBezierApproximator &appx,
 					    std::vector<Arc> &arcs,
 					    double *perror,
 					    unsigned int max_segments = 100)
@@ -110,11 +113,11 @@ class ArcsBezierApproximatorSpringSystem
       for (unsigned int i = 0; i <= n; i++)
         t[i] = double (i) / n;
 
-      calc_arcs (b, t, e, arcs, max_e, min_e);
+      calc_arcs (b, t, appx, e, arcs, max_e, min_e);
 
       for (unsigned int i = 0; i < n; i++)
 	if (e[i] <= tolerance) {
-	  jiggle (b, t, e, arcs, max_e, min_e, tolerance, n_jiggle);
+	  jiggle (b, appx, t, e, arcs, max_e, min_e, tolerance, n_jiggle);
 	  break;
 	}
 
@@ -126,8 +129,6 @@ class ArcsBezierApproximatorSpringSystem
     //fprintf (stderr, "n_jiggle %d\n", n_jiggle);
   }
 };
-
-typedef ArcsBezierApproximatorSpringSystem<ArcBezierApproximatorDefault> ArcsBezierApproximatorDefault;
 
 } /* namespace ArcsBezier */
 } /* namespace GLyphy */
