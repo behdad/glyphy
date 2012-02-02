@@ -28,20 +28,22 @@
 
 
 static unsigned int
-glyph_encode (unsigned int atlas_x,  /* 7 bits */
-	      unsigned int atlas_y,  /* 7 bits */
-	      unsigned int corner_x, /* 1 bit */
-	      unsigned int corner_y, /* 1 bit */
-	      unsigned int glyph_layout /* 16 bits */)
+glyph_encode (unsigned int atlas_x ,  /* 7 bits */
+	      unsigned int atlas_y,   /* 7 bits */
+	      unsigned int corner_x,  /* 1 bit */
+	      unsigned int corner_y,  /* 1 bit */
+	      unsigned int nominal_w, /* 8 bits */
+	      unsigned int nominal_h  /* 8 bits */)
 {
   assert (0 == (atlas_x & ~0x7F));
   assert (0 == (atlas_y & ~0x7F));
   assert (0 == (corner_x & ~1));
   assert (0 == (corner_y & ~1));
-  assert (0 == (glyph_layout & ~0xFFFF));
+  assert (0 == (nominal_w & ~0xFF));
+  assert (0 == (nominal_h & ~0xFF));
 
-  unsigned int x = (((atlas_x << 8) | (glyph_layout >> 8))   << 1) | corner_x;
-  unsigned int y = (((atlas_y << 8) | (glyph_layout & 0xFF)) << 1) | corner_y;
+  unsigned int x = (((atlas_x << 8) | nominal_w) << 1) | corner_x;
+  unsigned int y = (((atlas_y << 8) | nominal_h) << 1) | corner_y;
 
   return (x << 16) | y;
 }
@@ -54,7 +56,7 @@ glyph_vertex_encode (double x, double y,
 {
   unsigned int encoded = glyph_encode (gi->atlas_x, gi->atlas_y,
 				       corner_x, corner_y,
-				       gi->glyph_layout);
+				       gi->nominal_w, gi->nominal_h);
   v->x = x;
   v->y = y;
   v->g16hi = encoded >> 16;
@@ -119,7 +121,8 @@ compile_shader (GLenum         type,
   glGetShaderiv (shader, GL_COMPILE_STATUS, &compiled);
   if (!compiled) {
     GLint info_len = 0;
-    fprintf (stderr, "Shader failed to compile\n");
+    fprintf (stderr, "%s shader failed to compile\n",
+	     type == GL_VERTEX_SHADER ? "Vertex" : "Fragment");
     glGetShaderiv (shader, GL_INFO_LOG_LENGTH, &info_len);
 
     if (info_len > 0) {

@@ -41,17 +41,17 @@
 #endif
 
 glyphy_arc_list_t
-glyphy_arc_list (vec2 p, int glyph_layout GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
+glyphy_arc_list (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 {
-  int cell_offset = glyphy_arc_list_offset (p, glyph_layout);
+  int cell_offset = glyphy_arc_list_offset (p, nominal_size);
   vec4 arc_list_data = GLYPHY_SDF_TEXTURE1D (cell_offset);
-  return glyphy_arc_list_decode (arc_list_data);
+  return glyphy_arc_list_decode (arc_list_data, nominal_size);
 }
 
 float
-glyphy_sdf (vec2 p, int glyph_layout GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
+glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 {
-  glyphy_arc_list_t arc_list = glyphy_arc_list (p, glyph_layout  GLYPHY_SDF_TEXTURE1D_EXTRA_ARGS);
+  glyphy_arc_list_t arc_list = glyphy_arc_list (p, nominal_size  GLYPHY_SDF_TEXTURE1D_EXTRA_ARGS);
 
   /* Short-circuits */
   if (arc_list.num_endpoints == 0) {
@@ -61,7 +61,7 @@ glyphy_sdf (vec2 p, int glyph_layout GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
     /* single-line */
     float angle = arc_list.line_angle;
     vec2 n = vec2 (cos (angle), sin (angle));
-    return dot (p - vec2(.5,.5), n) - arc_list.line_distance;
+    return dot (p - (nominal_size * .5), n) - arc_list.line_distance;
   }
 
   float side = arc_list.side;
@@ -69,10 +69,10 @@ glyphy_sdf (vec2 p, int glyph_layout GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
   glyphy_arc_t closest_arc;
 
   glyphy_arc_endpoint_t endpoint_prev, endpoint;
-  endpoint_prev = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset));
+  endpoint_prev = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset), nominal_size);
   for (int i = 1; i < arc_list.num_endpoints; i++)
   {
-    endpoint = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset + i));
+    endpoint = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset + i), nominal_size);
     glyphy_arc_t a = glyphy_arc_t (endpoint_prev.p, endpoint.p, endpoint.d);
     endpoint_prev = endpoint;
     if (glyphy_isinf (a.d)) continue;
@@ -118,9 +118,9 @@ glyphy_sdf (vec2 p, int glyph_layout GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 }
 
 float
-glyphy_point_dist (vec2 p, int glyph_layout GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
+glyphy_point_dist (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 {
-  glyphy_arc_list_t arc_list = glyphy_arc_list (p, glyph_layout  GLYPHY_SDF_TEXTURE1D_EXTRA_ARGS);
+  glyphy_arc_list_t arc_list = glyphy_arc_list (p, nominal_size  GLYPHY_SDF_TEXTURE1D_EXTRA_ARGS);
 
   float side = arc_list.side;
   float min_dist = GLYPHY_INFINITY;
@@ -129,10 +129,10 @@ glyphy_point_dist (vec2 p, int glyph_layout GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
     return min_dist;
 
   glyphy_arc_endpoint_t endpoint_prev, endpoint;
-  endpoint_prev = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset));
+  endpoint_prev = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset), nominal_size);
   for (int i = 1; i < arc_list.num_endpoints; i++)
   {
-    endpoint = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset + i));
+    endpoint = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset + i), nominal_size);
     if (glyphy_isinf (endpoint.d)) continue;
     min_dist = min (min_dist, distance (p, endpoint.p));
   }

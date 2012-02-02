@@ -102,23 +102,12 @@ line_encode (const Line &line)
   return v;
 }
 
-static unsigned int /* 16bits */
-glyph_layout_encode (unsigned int grid_w,
-		     unsigned int grid_h)
-{
-  assert (0 == (grid_w & ~0xFF));
-  assert (0 == (grid_h & ~0xFF));
-
-  return (grid_w << 8) | grid_h;
-}
-
 
 /* Given a cell, fills the vector closest_arcs with arcs that may be closest to some point in the cell.
  * Uses idea that all close arcs to cell must be ~close to center of cell.
  */
 static void
 closest_arcs_to_cell (Point c0, Point c1, /* corners */
-		      double grid_size,
 		      double faraway,
 		      const glyphy_arc_endpoint_t *endpoints,
 		      unsigned int num_endpoints,
@@ -228,7 +217,8 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
 			     double                       avg_fetch_desired,
 			     double                      *avg_fetch_achieved,
 			     unsigned int                *output_len,
-			     unsigned int                *glyph_layout, /* 16bit only will be used */
+			     unsigned int                *nominal_width,  /* 8bit */
+			     unsigned int                *nominal_height, /* 8bit */
 			     glyphy_extents_t            *pextents /* may be NULL */)
 {
   glyphy_extents_t extents;
@@ -244,7 +234,7 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
     *rgba = arc_list_encode (0, 0, false);
     *avg_fetch_achieved = 1;
     *output_len = 1;
-    *glyph_layout = glyph_layout_encode (1, 1);
+    *nominal_width = *nominal_height = 1;
     return true;
   }
 
@@ -256,19 +246,26 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
 
   double glyph_width = extents.max_x - extents.min_x;
   double glyph_height = extents.max_y - extents.min_y;
+  double unit = std::max (glyph_width, glyph_height);
 
   unsigned int grid_w = GRID_W;
   unsigned int grid_h = GRID_H;
 
-  /* XXX */
-  glyph_width = glyph_height = std::max (glyph_width, glyph_height);
-  extents.max_y = extents.min_y + glyph_height;
-  extents.max_x = extents.min_x + glyph_width;
+  if (glyph_width > glyph_height) {
+    while ((grid_h - 1) * unit / grid_w > glyph_height)
+      grid_h--;
+    glyph_height = grid_h * unit / grid_w;
+  } else {
+    while ((grid_w - 1) * unit / grid_h > glyph_width)
+      grid_w--;
+    glyph_width = grid_w * unit / grid_h;
+  }
+
+  double cell_unit = unit / std::max (grid_w, grid_h);
 
   std::vector<glyphy_rgba_t> tex_data;
   std::vector<glyphy_arc_endpoint_t> near_endpoints;
 
-  double min_dimension = std::min(glyph_width, glyph_height);
   unsigned int header_length = grid_w * grid_h;
   unsigned int offset = header_length;
   tex_data.resize (header_length);
@@ -278,21 +275,22 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
   for (int row = 0; row < grid_h; row++)
     for (int col = 0; col < grid_w; col++)
     {
-      Point cp0 = origin + Vector ((col + 0.) * glyph_width / grid_w, (row + 0.) * glyph_height / grid_h);
-      Point cp1 = origin + Vector ((col + 1.) * glyph_width / grid_w, (row + 1.) * glyph_height / grid_h);
+      Point cp0 = origin + Vector ((col + 0) * cell_unit, (row + 0) * cell_unit);
+      Point cp1 = origin + Vector ((col + 1) * cell_unit, (row + 1) * cell_unit);
       near_endpoints.clear ();
 
       int side;
-      closest_arcs_to_cell (cp0, cp1, min_dimension, faraway,
+      closest_arcs_to_cell (cp0, cp1,
+			    faraway,
 			    endpoints, num_endpoints,
 			    near_endpoints,
 			    &side);
 
       if (near_endpoints.size () == 2 && near_endpoints[1].d == 0) {
-        Point c (extents.min_x + glyph_width / 2, extents.min_y + glyph_width / 2);
+        Point c (extents.min_x + glyph_width * .5, extents.min_y + glyph_height * .5);
         Line line (near_endpoints[0].p, near_endpoints[1].p);
 	line.c -= line.n * Vector (c);
-	line.c /= glyph_width;
+	line.c /= unit;
 	tex_data[row * grid_w + col] = line_encode (line);
 	continue;
       }
@@ -352,7 +350,8 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
 
   memcpy(rgba, &tex_data[0], tex_data.size () * sizeof(tex_data[0]));
   *output_len = tex_data.size ();
-  *glyph_layout = glyph_layout_encode (grid_w, grid_h);
+  *nominal_width = grid_w;
+  *nominal_height = grid_h;
 
   return true;
 }

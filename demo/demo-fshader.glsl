@@ -5,7 +5,7 @@ uniform bool  u_debug;
 varying vec4 v_glyph;
 
 struct glyph_info_t {
-  int glyph_layout;
+  ivec2 nominal_size;
   ivec2 atlas_pos;
 };
 
@@ -13,8 +13,7 @@ glyph_info_t
 glyph_info_decode (vec4 v)
 {
   glyph_info_t gi;
-  ivec2 gl = ivec2 (mod (v_glyph.zw, 256));
-  gi.glyph_layout = gl.x * 256 + gl.y;
+  gi.nominal_size = ivec2 (mod (v.zw, 256));
   gi.atlas_pos = ivec2 (v_glyph.zw) / 256;
   return gi;
 }
@@ -32,7 +31,7 @@ main()
 
   vec4 color = vec4 (0,0,0,1);
 
-  float gsdist = glyphy_sdf (p, gi.glyph_layout GLYPHY_DEMO_EXTRA_ARGS);
+  float gsdist = glyphy_sdf (p, gi.nominal_size GLYPHY_DEMO_EXTRA_ARGS);
   float sdist = gsdist / m * u_contrast;
 
   if (!u_debug) {
@@ -56,11 +55,11 @@ main()
     if (!glyphy_isinf (udist))
       color += vec4 (0,.3,0,(1 + sin (sdist)) * abs(1 - gsdist * 3) / 3.);
 
-    float pdist = glyphy_point_dist (p, gi.glyph_layout GLYPHY_DEMO_EXTRA_ARGS);
+    float pdist = glyphy_point_dist (p, gi.nominal_size GLYPHY_DEMO_EXTRA_ARGS);
     // Color points green
     color = mix (vec4 (0,1,0,.5), color, smoothstep (.005, .006, pdist));
 
-    glyphy_arc_list_t arc_list = glyphy_arc_list (p, gi.glyph_layout GLYPHY_DEMO_EXTRA_ARGS);
+    glyphy_arc_list_t arc_list = glyphy_arc_list (p, gi.nominal_size GLYPHY_DEMO_EXTRA_ARGS);
     // Color the number of endpoints per cell blue
     color += vec4 (0,0,1,.1) * arc_list.num_endpoints * 32./255.;
   }

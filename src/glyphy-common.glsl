@@ -54,7 +54,7 @@ struct glyphy_arc_list_t {
 
   /* A single line is all we care about.  It's right here. */
   float line_angle;
-  float line_distance; /* From .5,.5 */
+  float line_distance; /* From nominal glyph center */
 };
 
 bool
@@ -102,7 +102,7 @@ glyphy_tan2atan (float d)
 }
 
 glyphy_arc_endpoint_t
-glyphy_arc_endpoint_decode (const vec4 v)
+glyphy_arc_endpoint_decode (const vec4 v, ivec2 nominal_size)
 {
   vec2 p = (vec2 (glyphy_float_to_two_nimbles (v.a)) + v.gb) / 16;
   float d = v.r;
@@ -112,7 +112,7 @@ glyphy_arc_endpoint_decode (const vec4 v)
 #define GLYPHY_MAX_D .5
     d = (glyphy_float_to_byte (d) - 128) * GLYPHY_MAX_D / 127.;
 #undef GLYPHY_MAX_D
-  return glyphy_arc_endpoint_t (p, d);
+  return glyphy_arc_endpoint_t (p * nominal_size, d);
 }
 
 vec2
@@ -151,23 +151,15 @@ glyphy_arc_extended_dist (const glyphy_arc_t a, const vec2 p)
     return dot (p - a.p1, normalize ((a.p1 - a.p0) * mat2(-d2, -1, +1, -d2)));
 }
 
-/* Returns grid width,height */
-ivec2
-glyphy_glyph_layout_decode (int glyph_layout)
-{
-  return ivec2 (mod (glyph_layout, 256), glyph_layout / 256);
-}
-
 int
-glyphy_arc_list_offset (const vec2 p, int glyph_layout)
+glyphy_arc_list_offset (const vec2 p, ivec2 nominal_size)
 {
-  ivec2 grid_size = glyphy_glyph_layout_decode (glyph_layout);
-  ivec2 cell = ivec2 (clamp (p, vec2 (0,0), vec2(1,1) * (1.-GLYPHY_EPSILON)) * vec2 (grid_size));
-  return cell.y * grid_size.x + cell.x;
+  ivec2 cell = ivec2 (clamp (floor (p), ivec2 (0,0), nominal_size - 1));
+  return cell.y * nominal_size.x + cell.x;
 }
 
 glyphy_arc_list_t
-glyphy_arc_list_decode (const vec4 v)
+glyphy_arc_list_decode (const vec4 v, ivec2 nominal_size)
 {
   glyphy_arc_list_t l;
   ivec4 iv = glyphy_vec4_to_bytes (v);
@@ -182,7 +174,8 @@ glyphy_arc_list_decode (const vec4 v)
       l.side = +1;
   } else { /* single line encoded */
     l.num_endpoints = -1;
-    l.line_distance = (((iv.r - 128) * 256 + iv.g) - 0x4000) / float (0x2000);
+    l.line_distance = (((iv.r - 128) * 256 + iv.g) - 0x4000) / float (0x2000)
+                    * max (nominal_size.x, nominal_size.y);
     l.line_angle = -((iv.b * 256 + iv.a) - 0x8000) / float (0x8000) * 3.14159265358979;
   }
   return l;

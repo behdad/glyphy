@@ -29,7 +29,8 @@
 typedef struct {
   glyphy_extents_t extents;
   double           advance;
-  unsigned int     glyph_layout;
+  unsigned int     nominal_w;
+  unsigned int     nominal_h;
   unsigned int     atlas_x;
   unsigned int     atlas_y;
 } glyph_info_t;

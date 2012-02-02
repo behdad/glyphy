@@ -240,7 +240,8 @@ glyphy_arc_list_encode_rgba (const glyphy_arc_endpoint_t *endpoints,
 			     double                       avg_fetch_desired,
 			     double                      *avg_fetch_achieved,
 			     unsigned int                *output_len,
-			     unsigned int                *glyph_layout, /* 16bit only will be used */
+			     unsigned int                *nominal_width,  /* 8bit */
+			     unsigned int                *nominal_height, /* 8bit */
 			     glyphy_extents_t            *extents /* may be NULL */);
 
 
@@ -266,7 +267,8 @@ glyphy_sdf_from_arc_list (const glyphy_arc_endpoint_t *endpoints,
 /* TBD */
 double
 glyphy_sdf_from_rgba (const glyphy_rgba_t *rgba,
-		      unsigned int         glyph_layout,
+		      unsigned int         nominal_width,
+		      unsigned int         nominal_height,
 		      glyphy_point_t       p,
 		      glyphy_vector_t     *closest /* may be NULL */);
 

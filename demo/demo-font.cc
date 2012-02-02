@@ -109,7 +109,8 @@ encode_ft_glyph (demo_font_t      *font,
 		 glyphy_rgba_t    *buffer,
 		 unsigned int      buffer_len,
 		 unsigned int     *output_len,
-		 unsigned int     *glyph_layout,
+		 unsigned int     *nominal_width,
+		 unsigned int     *nominal_height,
 		 glyphy_extents_t *extents,
 		 double           *advance)
 {
@@ -150,7 +151,8 @@ encode_ft_glyph (demo_font_t      *font,
 				    4, /* UNUSED */
 				    &avg_fetch_achieved,
 				    output_len,
-				    glyph_layout,
+				    nominal_width,
+				    nominal_height,
 				    extents))
     die ("Failed encoding arcs");
 
@@ -183,7 +185,8 @@ _demo_font_upload_glyph (demo_font_t *font,
 		   TOLERANCE,
 		   buffer, ARRAY_LEN (buffer),
 		   &output_len,
-		   &glyph_info->glyph_layout,
+		   &glyph_info->nominal_w,
+		   &glyph_info->nominal_h,
 		   &glyph_info->extents,
 		   &glyph_info->advance);
 
