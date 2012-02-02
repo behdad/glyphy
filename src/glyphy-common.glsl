@@ -18,11 +18,31 @@
 
 
 #ifndef GLYPHY_INFINITY
-#define GLYPHY_INFINITY 1e9
+#  define GLYPHY_INFINITY 1e9
 #endif
 #ifndef GLYPHY_EPSILON
-#define GLYPHY_EPSILON  1e-5
+#  define GLYPHY_EPSILON  1e-5
 #endif
+
+#ifndef GLYPHY_RGBA
+#  ifdef GLYPHY_BGRA
+#    define GLYPHY_RGBA(v) glyphy_bgra (v)
+#  else
+#    define GLYPHY_RGBA(v) glyphy_rgba (v)
+#  endif
+#endif
+
+vec4
+glyphy_rgba (vec4 v)
+{
+  return v.rgba;
+}
+
+vec4
+glyphy_bgra (vec4 v)
+{
+  return v.bgra;
+}
 
 
 struct glyphy_arc_t {
