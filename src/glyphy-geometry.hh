@@ -188,6 +188,7 @@ struct Bezier {
 		 p0 (p0_), p1 (p1_), p2 (p2_), p3 (p3_) {}
 
   inline const Point point (const double &t) const;
+  inline const Point midpoint (void) const;
   inline const Vector tangent (const double &t) const;
   inline const Vector d_tangent (const double &t) const;
   inline double curvature (const double &t) const;
@@ -590,6 +591,17 @@ inline const Point Bezier::point (const double &t) const {
   Point p012 = p01.lerp (t, p12);
   Point p123 = p12.lerp (t, p23);
   Point p0123 = p012.lerp (t, p123);
+  return p0123;
+}
+
+inline const Point Bezier::midpoint (void) const
+{
+  Point p01 = p0.midpoint (p1);
+  Point p12 = p1.midpoint (p2);
+  Point p23 = p2.midpoint (p3);
+  Point p012 = p01.midpoint (p12);
+  Point p123 = p12.midpoint (p23);
+  Point p0123 = p012.midpoint (p123);
   return p0123;
 }
 
