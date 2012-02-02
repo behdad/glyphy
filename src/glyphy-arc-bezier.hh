@@ -219,10 +219,7 @@ class ArcBezierApproximatorMidpointSimple
   public:
   static const Arc approximate_bezier_with_arc (const Bezier &b, double *error)
   {
-    Pair<Bezier > pair = b.halve ();
-    Point m = pair.second.p0;
-
-    Arc a (b.p0, b.p3, m, false);
+    Arc a (b.p0, b.p3, b.midpoint (), false);
 
     *error = ArcBezierErrorApproximator::approximate_bezier_arc_error (b, a);
 
@@ -250,9 +247,53 @@ class ArcBezierApproximatorMidpointTwoPart
   }
 };
 
+template <class ArcBezierErrorApproximator>
+class ArcBezierApproximatorQuantized
+{
+  public:
+  static const Arc approximate_bezier_with_quantized_arc (const Bezier &b,
+							  double max_d,
+							  unsigned int d_bits,
+							  double *error)
+  {
+    Arc a (b.p0, b.p3, b.point (.5), false);
+    Arc orig_a = a;
+    if (isnormal (max_d)) {
+      assert (max_d >= 0);
+      if (fabs (a.d) > max_d)
+        a.d = a.d < 0 ? -max_d : max_d;
+    }
+    if (d_bits) {
+      assert (isnormal (max_d) && fabs (a.d) <= max_d);
+      int mult = (1 << (d_bits - 1)) - 1;
+      int id = round (a.d / max_d * mult);
+      assert (-mult <= id && id <= mult);
+      a.d = (double) id / mult;
+    }
+    /* Error introduced by arc quantization */
+    double ed = fabs (a.d - orig_a.d) * (a.p1 - a.p0).len () * .5;
+
+    Arc t = ArcBezierApproximatorMidpointTwoPart<ArcBezierErrorApproximator>
+	    ::approximate_bezier_with_arc (b, error);
+
+    if (ed) {
+      *error += ed;
+
+      /* Try a simple one-arc approx which works with the quantized arc.
+       * May produce smaller error bound. */
+      double e = ArcBezierErrorApproximator::approximate_bezier_arc_error (b, a);
+      if (e < *error)
+        *error = e;
+    }
+
+    return a;
+  }
+};
+
 typedef MaxDeviationApproximatorExact MaxDeviationApproximatorDefault;
 typedef ArcBezierErrorApproximatorBehdad<MaxDeviationApproximatorDefault> ArcBezierErrorApproximatorDefault;
 typedef ArcBezierApproximatorMidpointTwoPart<ArcBezierErrorApproximatorDefault> ArcBezierApproximatorDefault;
+typedef ArcBezierApproximatorQuantized<ArcBezierErrorApproximatorDefault> ArcBezierApproximatorQuantizedDefault;
 
 } /* namespace ArcBezier */
 } /* namespace GLyphy */
