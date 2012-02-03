@@ -62,7 +62,7 @@ static inline glyphy_rgba_t
 arc_list_encode (unsigned int offset, unsigned int num_points, int side)
 {
   glyphy_rgba_t v;
-  v.b = 0; // unused for arc-list encoding
+  v.r = 0; // unused for arc-list encoding
   v.g = UPPER_BITS (offset, 8, 16);
   v.b = LOWER_BITS (offset, 8, 16);
   v.a = LOWER_BITS (num_points, 8, 8);
