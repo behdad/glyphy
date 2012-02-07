@@ -175,6 +175,19 @@ keyboard_func (unsigned char key, int x, int y)
       printf ("Setting vsync %s.\n", vsync ? "on" : "off");
       break;
 
+    case 'k': 
+      translate.y -= .1;
+      break;
+    case 'j':
+      translate.y += .1;
+      break;
+    case 'h':
+      translate.x += .1;
+      break;
+    case 'l':
+      translate.x -= .1;
+      break;
+
     default:
       return;
   }
@@ -190,15 +203,12 @@ special_func (int key, int x, int y)
     case GLUT_KEY_UP:
       translate.y -= .1;
       break;
-
     case GLUT_KEY_DOWN:
       translate.y += .1;
       break;
-
     case GLUT_KEY_LEFT:
       translate.x += .1;
       break;
-
     case GLUT_KEY_RIGHT:
       translate.x -= .1;
       break;
