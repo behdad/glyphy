@@ -31,6 +31,7 @@ typedef struct {
 
   /* Uniforms */
   double u_debug;
+  double u_smoothfunc;
   double u_contrast;
   double u_gamma_adjust;
 
@@ -42,7 +43,8 @@ demo_state_init (demo_state_t *st)
   st->program = demo_shader_create_program ();
   st->atlas = demo_atlas_create (512, 512, 32, 4);
 
-  st->u_debug = 0;
+  st->u_debug = false;
+  st->u_smoothfunc = 1;
   st->u_contrast = 1.0;
   st->u_gamma_adjust = 1.0;
 }
@@ -69,6 +71,7 @@ demo_state_setup (demo_state_t *st)
   glUseProgram (st->program);
   demo_atlas_set_uniforms (st->atlas);
   SET_UNIFORM (u_debug, st->u_debug);
+  SET_UNIFORM (u_smoothfunc, st->u_smoothfunc);
   SET_UNIFORM (u_contrast, st->u_contrast);
   SET_UNIFORM (u_gamma_adjust, st->u_gamma_adjust);
 }
@@ -145,6 +148,10 @@ keyboard_func (unsigned char key, int x, int y)
 
     case 'd':
       SET_UNIFORM (u_debug, 1 - st->u_debug);
+      break;
+
+    case 's':
+      SET_UNIFORM (u_smoothfunc, ((int) st->u_smoothfunc + 1) % 3);
       break;
 
     case 'a':
