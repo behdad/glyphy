@@ -19,10 +19,10 @@ libglyphy_la_SOURCES = \
 	glyphy-arc-bezier.hh \
 	glyphy-arcs.cc \
 	glyphy-arcs-bezier.hh \
+	glyphy-blob.cc \
 	glyphy-common.hh \
 	glyphy-extents.cc \
 	glyphy-geometry.hh \
-	glyphy-rgba.cc \
 	glyphy-sdf.cc \
 	glyphy-shaders.cc \
 	$(PUBLICHEADERS) \
