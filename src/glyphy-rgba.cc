@@ -124,58 +124,14 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
     assert (arc.p0 != arc.p1);
     arcs.push_back (arc);
   }
-  std::vector<Arc> near_arcs;
 
-
-  Arc arc = arcs[0];
-  Arc closest_arc = arc;
-
-  // Find distance between cell center and its closest arc.
+  // Find distance between cell center
   Point c = c0.midpoint (c1);
+  double min_dist = glyphy_sdf_from_arc_list (endpoints, num_endpoints, c, NULL);
 
-  SignedVector to_arc_min = arc - c;
-  double min_dist = INFINITY;
-  *side = 0;
-
-  for (unsigned int k = 0; k < arcs.size (); k++) {
-    arc = arcs[k];
-
-    if (arc.wedge_contains_point (c)) {
-      double sdist = arc.distance_to_point (c);
-      double udist = abs (sdist) - 1e-9;
-      if (udist <= min_dist) {
-        min_dist = udist;
-	*side = sdist >= 0 ? -1 : +1;
-      }
-    } else {
-      double udist = std::min ((arc.p0 - c).len (), (arc.p1 - c).len ());
-      if (udist < min_dist) {
-        min_dist = udist;
-	*side = 0; /* unsure */
-	closest_arc = arc;
-      } else if (*side == 0 && fabs (udist - min_dist) < 1) {
-	/* If this new distance is the same as the current minimum,
-	 * compare extended distances.  Take the sign from the arc
-	 * with larger extended distance. */
-	double old_ext_dist = closest_arc.extended_dist (c);
-	double new_ext_dist = arc.extended_dist (c);
-
-	double ext_dist = abs (new_ext_dist) <= abs (old_ext_dist) ?
-			  old_ext_dist : new_ext_dist;
-
-	/* For emboldening and stuff: */
-	// min_dist = abs (ext_dist);
-	*side = ext_dist >= 0 ? +1 : -1;
-      }
-    }
-  }
-
-  if (*side == 0) {
-    // Technically speaking this should not happen, but it does.  So try to fix it.
-    double ext_dist = closest_arc.extended_dist (c);
-    *side = ext_dist >= 0 ? +1 : -1;
-  }
-
+  *side = min_dist >= 0 ? +1 : -1;
+  min_dist = fabs (min_dist);
+  std::vector<Arc> near_arcs;
 
   // If d is the distance from the center of the square to the nearest arc, then
   // all nearest arcs to the square must be at most almost [d + half_diagonal] from the center.

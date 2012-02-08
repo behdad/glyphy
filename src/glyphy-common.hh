@@ -28,6 +28,13 @@
 #include <vector>
 #include <algorithm>
 
+#ifndef GLYPHY_INFINITY
+#  define GLYPHY_INFINITY 1e9
+#endif
+#ifndef GLYPHY_EPSILON
+#  define GLYPHY_EPSILON  1e-5
+#endif
+
 #define GLYPHY_MAX_D .5
 
 #undef  ARRAY_LENGTH

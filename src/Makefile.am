@@ -23,6 +23,7 @@ libglyphy_la_SOURCES = \
 	glyphy-extents.cc \
 	glyphy-geometry.hh \
 	glyphy-rgba.cc \
+	glyphy-sdf.cc \
 	glyphy-shaders.cc \
 	$(PUBLICHEADERS) \
 	$(SHADERHEADERS) \

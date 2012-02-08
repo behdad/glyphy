@@ -290,18 +290,11 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
  */
 
 
-typedef struct {
-  double dx;
-  double dy;
-} glyphy_vector_t;
-
-
-/* TBD */
 double
 glyphy_sdf_from_arc_list (const glyphy_arc_endpoint_t *endpoints,
 			  unsigned int                 num_endpoints,
 			  glyphy_point_t               p,
-			  glyphy_vector_t             *closest /* may be NULL */);
+			  glyphy_point_t              *closest_p /* may be NULL; TBD not implemented yet */);
 
 /* TBD */
 double
@@ -309,7 +302,7 @@ glyphy_sdf_from_blob (const glyphy_rgba_t *blob,
 		      unsigned int         nominal_width,
 		      unsigned int         nominal_height,
 		      glyphy_point_t       p,
-		      glyphy_vector_t     *closest /* may be NULL */);
+		      glyphy_point_t      *closest_p /* may be NULL; TBD not implemented yet */);
 
 
 
@@ -318,7 +311,7 @@ glyphy_sdf_from_blob (const glyphy_rgba_t *blob,
  */
 
 
-/* TODO make this enum-based */
+/* TODO make this enum-based? */
 
 const char *
 glyphy_common_shader_source (void);
