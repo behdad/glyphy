@@ -110,21 +110,6 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
 		      std::vector<glyphy_arc_endpoint_t> &near_endpoints,
 		      int *side)
 {
-  std::vector<Arc> arcs;
-  Point p0 (0, 0);
-  for (unsigned int i = 0; i < num_endpoints; i++) {
-    const glyphy_arc_endpoint_t &endpoint = endpoints[i];
-    if (endpoint.d == INFINITY) {
-      p0 = endpoint.p;
-      continue;
-    }
-    Arc arc (p0, endpoint.p, endpoint.d);
-    p0 = endpoint.p;
-
-    assert (arc.p0 != arc.p1);
-    arcs.push_back (arc);
-  }
-
   // Find distance between cell center
   Point c = c0.midpoint (c1);
   double min_dist = glyphy_sdf_from_arc_list (endpoints, num_endpoints, c, NULL);
@@ -137,10 +122,21 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
   // all nearest arcs to the square must be at most almost [d + half_diagonal] from the center.
   double half_diagonal = (c - c0).len ();
   double radius_squared = pow (min_dist + half_diagonal, 2);
-  if (min_dist - half_diagonal <= faraway)
-    for (unsigned int i = 0; i < arcs.size (); i++)
-      if (arcs[i].squared_distance_to_point (c) <= radius_squared)
-        near_arcs.push_back (arcs[i]);
+  if (min_dist - half_diagonal <= faraway) {
+    Point p0 (0, 0);
+    for (unsigned int i = 0; i < num_endpoints; i++) {
+      const glyphy_arc_endpoint_t &endpoint = endpoints[i];
+      if (endpoint.d == INFINITY) {
+	p0 = endpoint.p;
+	continue;
+      }
+      Arc arc (p0, endpoint.p, endpoint.d);
+      p0 = endpoint.p;
+
+      if (arc.squared_distance_to_point (c) <= radius_squared)
+        near_arcs.push_back (arc);
+    }
+  }
 
   Point p1 = Point (0, 0);
   for (unsigned i = 0; i < near_arcs.size (); i++)
