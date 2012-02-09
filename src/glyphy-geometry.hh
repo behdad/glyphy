@@ -682,12 +682,6 @@ inline const Pair<Bezier > Bezier::halve (void) const
 
 inline const Bezier Bezier::segment (const double &t0, const double &t1) const
 {
-  //TODO remove this?
-  if (fabs (t0 - t1) < 1e-6) {
-    Point p = point (t0);
-    return Bezier (p, p, p, p);
-  }
-
   Point p01 = p0.lerp (t0, p1);
   Point p12 = p1.lerp (t0, p2);
   Point p23 = p2.lerp (t0, p3);
