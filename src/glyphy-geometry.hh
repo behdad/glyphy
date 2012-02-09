@@ -77,6 +77,7 @@ struct Vector {
 
   inline bool operator == (const Vector &v) const;
   inline bool operator != (const Vector &v) const;
+  inline const Vector operator+ (void) const;
   inline const Vector operator- (void) const;
   inline Vector& operator+= (const Vector &v);
   inline Vector& operator-= (const Vector &v);
@@ -167,7 +168,8 @@ struct Arc {
   inline const SignedVector operator- (const Point &p) const; /* shortest vector from point to arc */
 
   inline double radius (void) const;
-  inline Point center (void) const;
+  inline const Point center (void) const;
+  inline const Pair<Vector> tangents (void) const;
 
   inline Bezier approximate_bezier (double *error) const;
 
@@ -271,6 +273,9 @@ inline bool Vector::operator == (const Vector &v) const {
 }
 inline bool Vector::operator != (const Vector &v) const {
   return !(*this == v);
+}
+inline const Vector Vector::operator+ (void) const {
+  return *this;
 }
 inline const Vector Vector::operator- (void) const {
   return Vector (-dx, -dy);
@@ -484,7 +489,7 @@ inline const SignedVector Arc::operator- (const Point &p) const {
   if (normal.len() == 0)
     return SignedVector (Vector (0, 0), true);    /************************************ Check sign of this S.D. *************/
 
-  return SignedVector ( Line (normal.dx, normal.dy, normal * Vector ((d0 < d1 ? p0 : p1))) - p, !other_arc.wedge_contains_point(p));
+  return SignedVector (Line (normal.dx, normal.dy, normal * Vector ((d0 < d1 ? p0 : p1))) - p, !other_arc.wedge_contains_point(p));
 }
 
 inline const SignedVector operator- (const Point &p, const Arc &a) {
@@ -498,18 +503,30 @@ inline double Arc::radius (void) const
   return fabs ((p1 - p0).len () / (2 * sin2atan (d)));
 }
 
-inline Point Arc::center (void) const
+inline const Point Arc::center (void) const
 {
   return (p0.midpoint (p1)) + (p1 - p0).perpendicular () / (2 * tan2atan (d));
 }
 
+inline const Pair<Vector> Arc::tangents (void) const
+{
+  Vector dp = p1 - p0;
+  Vector pp = -tan2atan (d) * dp.perpendicular ();
+  return Pair<Vector> (dp + pp, dp - pp);
+}
 
-inline Bezier Arc::approximate_bezier (double *error) const {
+
+
+inline Bezier Arc::approximate_bezier (double *error) const
+{
+  Vector dp = p1 - p0;
+  Vector pp = dp.perpendicular ();
+
   if (error)
-    *error = (p1 - p0).len () * pow (fabs (d), 5) / (54 * (1 + d*d));
+    *error = dp.len () * pow (fabs (d), 5) / (54 * (1 + d*d));
 
-  Point p0s = p0 + ((1 - d*d) / 3) * (p1 - p0) - (2 * d / 3) * (p1 - p0).perpendicular ();
-  Point p1s = p1 + ((1 - d*d) / 3) * (p0 - p1) - (2 * d / 3) * (p1 - p0).perpendicular ();
+  Point p0s = p0 + ((1 - d*d) / 3) * dp - (2 * d / 3) * pp;
+  Point p1s = p1 - ((1 - d*d) / 3) * dp - (2 * d / 3) * pp;
 
   return Bezier (p0, p0s, p1s, p1);
 }
@@ -517,11 +534,9 @@ inline Bezier Arc::approximate_bezier (double *error) const {
 
 inline bool Arc::wedge_contains_point (const Point &p) const
 {
-  double d2 = tan2atan (d);
-  Vector dp = p1 - p0;
-  Vector pp = dp.perpendicular ();
-  return (p - p0) * (dp - pp * d2) >= 0 &&
-	 (p - p1) * (dp + pp * d2) <= 0;
+  Pair<Vector> t = tangents ();
+  return (p - p0) * t.first  >= 0 &&
+	 (p - p1) * t.second <= 0;
 }
 
 
@@ -666,10 +681,12 @@ inline const Pair<Bezier > Bezier::halve (void) const
 
 inline const Bezier Bezier::segment (const double &t0, const double &t1) const
 {
+  //TODO remove this?
   if (fabs (t0 - t1) < 1e-6) {
     Point p = point (t0);
     return Bezier (p, p, p, p);
   }
+  //TODO make this more stable
   return split (t0).second.split ((t1 - t0) / (1 - t0)).first;
 }
 
