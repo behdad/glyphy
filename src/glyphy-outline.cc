@@ -25,6 +25,26 @@
 
 using namespace GLyphy::Geometry;
 
+
+void
+glyphy_outline_reverse (glyphy_arc_endpoint_t *endpoints,
+			unsigned int           num_endpoints)
+{
+  // Shift the d's first
+  double d0 = endpoints[0].d;
+  for (unsigned int i = 0; i < num_endpoints - 1; i++)
+    endpoints[i].d = -endpoints[i + 1].d;
+  endpoints[num_endpoints - 1].d = d0;
+
+  // Reverse
+  for (unsigned int i = 0, j = num_endpoints - 1; i < j; i++, j--) {
+    glyphy_arc_endpoint_t t = endpoints[i];
+    endpoints[i] = endpoints[j];
+    endpoints[j] = t;
+  }
+}
+
+
 static glyphy_bool_t
 winding (const glyphy_arc_endpoint_t *endpoints,
 	 unsigned int                 num_endpoints)
@@ -133,20 +153,7 @@ process_contour (glyphy_arc_endpoint_t       *endpoints,
       winding (endpoints, num_endpoints) ^
       even_odd (endpoints, num_endpoints, all_endpoints, all_num_endpoints))
   {
-    // Reverse the contour
-
-    // Shift the d's first
-    double d0 = endpoints[0].d;
-    for (unsigned int i = 0; i < num_endpoints - 1; i++)
-      endpoints[i].d = -endpoints[i + 1].d;
-    // Reverse
-    endpoints[num_endpoints - 1].d = d0;
-    for (unsigned int i = 0, j = num_endpoints - 1; i < j; i++, j--) {
-      glyphy_arc_endpoint_t t = endpoints[i];
-      endpoints[i] = endpoints[j];
-      endpoints[j] = t;
-    }
-
+    glyphy_outline_reverse (endpoints, num_endpoints);
     return true;
   }
 

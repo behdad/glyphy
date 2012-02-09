@@ -260,6 +260,10 @@ glyphy_arc_list_extents (const glyphy_arc_endpoint_t *endpoints,
  * Modify outlines for proper consumption
  */
 
+void
+glyphy_outline_reverse (glyphy_arc_endpoint_t *endpoints,
+			unsigned int           num_endpoints);
+
 /* Returns true if outline was modified */
 glyphy_bool_t
 glyphy_outline_winding_from_even_odd (glyphy_arc_endpoint_t *endpoints,
