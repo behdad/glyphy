@@ -191,10 +191,9 @@ move_to (glyphy_arc_accumulator_t *acc, const Point &p)
 }
 
 static void
-arc (glyphy_arc_accumulator_t *acc, const Arc &a)
+arc_to (glyphy_arc_accumulator_t *acc, const Point p1, double d)
 {
-  move_to (acc, a.p0);
-  accumulate (acc, a.p1, a.d);
+  accumulate (acc, p1, d);
 }
 
 static void
@@ -210,8 +209,9 @@ bezier (glyphy_arc_accumulator_t *acc, const Bezier &b)
 
   acc->max_error = std::max (acc->max_error, e);
 
+  move_to (acc, b.p0);
   for (unsigned int i = 0; i < arcs.size (); i++)
-    arc (acc, arcs[i]);
+    arc_to (acc, arcs[i].p1, arcs[i].d);
 }
 
 void
@@ -225,7 +225,7 @@ void
 glyphy_arc_accumulator_line_to (glyphy_arc_accumulator_t *acc,
 				glyphy_point_t p1)
 {
-  arc (acc, Arc (acc->current_point, p1, 0));
+  arc_to (acc, p1, 0);
 }
 
 void
@@ -253,7 +253,7 @@ glyphy_arc_accumulator_arc_to (glyphy_arc_accumulator_t *acc,
 			       glyphy_point_t p1,
 			       double         d)
 {
-  arc (acc, Arc (acc->current_point, p1, d));
+  arc_to (acc, p1, d);
 }
 
 
