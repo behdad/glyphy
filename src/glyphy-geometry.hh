@@ -48,9 +48,9 @@ struct Pair {
 };
 
 struct Point {
-  inline Point (double x_, double y_) : x (x_), y (y_) {};
+  inline Point (double x_, double y_) : x (x_), y (y_) {}
   inline explicit Point (const Vector &v);
-  inline Point (const glyphy_point_t &p) : x (p.x), y (p.y) {};
+  inline Point (const glyphy_point_t &p) : x (p.x), y (p.y) {}
   inline operator glyphy_point_t (void) const { glyphy_point_t p = {x, y}; return p; }
 
   inline bool operator == (const Point &p) const;
@@ -72,8 +72,8 @@ struct Point {
 };
 
 struct Vector {
-  inline Vector (double dx_, double dy_) : dx (dx_), dy (dy_) {};
-  inline explicit Vector (const Point &p) : dx (p.x), dy (p.y) {};
+  inline Vector (double dx_, double dy_) : dx (dx_), dy (dy_) {}
+  inline explicit Vector (const Point &p) : dx (p.x), dy (p.y) {}
 
   inline bool operator == (const Vector &v) const;
   inline bool operator != (const Vector &v) const;
@@ -104,7 +104,7 @@ struct Vector {
 };
 
 struct SignedVector : Vector {
-  inline SignedVector (const Vector &v, bool negative_) : Vector (v), negative (negative_) {};
+  inline SignedVector (const Vector &v, bool negative_) : Vector (v), negative (negative_) {}
   inline operator Vector (void) { return Vector (dx, dy); }
 
   inline bool operator == (const SignedVector &v) const;
@@ -115,10 +115,10 @@ struct SignedVector : Vector {
 };
 
 struct Line {
-  inline Line (double a_, double b_, double c_) : n (a_, b_), c (c_) {};
-  inline Line (Vector n_, double c_) : n (n_), c (c_) {};
+  inline Line (double a_, double b_, double c_) : n (a_, b_), c (c_) {}
+  inline Line (Vector n_, double c_) : n (n_), c (c_) {}
   inline Line (const Point &p0, const Point &p1) :
-               n ((p1 - p0).perpendicular ()), c (n * Vector (p0)) {};
+               n ((p1 - p0).perpendicular ()), c (n * Vector (p0)) {}
 
   inline const Point operator+ (const Line &l) const; /* line intersection! */
   inline const SignedVector operator- (const Point &p) const; /* shortest vector from point to line */
@@ -133,7 +133,7 @@ struct Line {
 
 struct Segment {
   inline Segment (const Point &p0_, const Point &p1_) :
-		  p0 (p0_), p1 (p1_) {};
+		  p0 (p0_), p1 (p1_) {}
 
   inline const SignedVector operator- (const Point &p) const; /* shortest vector from point to ***line*** */
   inline double distance_to_point (const Point &p) const; /* shortest distance from point to segment */
@@ -159,7 +159,7 @@ struct Arc {
 	      p0 (center + Vector (cos(a0),sin(a0)) * radius),
 	      p1 (center + Vector (cos(a1),sin(a1)) * radius),
 	      d (tan ((a1 - a0) / 4 - (complement ? 0 : M_PI_2))) {}
-  inline Arc (const glyphy_arc_t &a) : p0 (a.p0), p1 (a.p1), d (a.d) {};
+  inline Arc (const glyphy_arc_t &a) : p0 (a.p0), p1 (a.p1), d (a.d) {}
   inline operator glyphy_arc_t (void) const { glyphy_arc_t a = {p0, p1, d}; return a; }
 
   inline bool operator == (const Arc &a) const;
@@ -255,6 +255,11 @@ inline bool Point::is_finite (void) const {
   return isfinite (x) && isfinite (y);
 }
 inline const Point Point::lerp (const double &a, const Point &p) const {
+  /* The following two cases are special-cased to get better floating
+   * point stability.  We require that points that are the same be
+   * bit-equal. */
+  if (a == 0)   return *this;
+  if (a == 1.0) return p;
   return Point ((1-a) * x + a * p.x, (1-a) * y + a * p.y);
 }
 
@@ -566,7 +571,6 @@ inline double Arc::extended_dist (const Point &p) const {
 }
 
 inline void Arc::extents (glyphy_extents_t &extents) const {
-  /* TODO make this faster? */
   glyphy_extents_clear (&extents);
   glyphy_extents_add (&extents, p0);
   glyphy_extents_add (&extents, p1);
@@ -645,7 +649,7 @@ inline const Pair<Bezier > Bezier::split (const double &t) const {
   Point p123 = p12.lerp (t, p23);
   Point p0123 = p012.lerp (t, p123);
   return Pair<Bezier > (Bezier (p0, p01, p012, p0123),
-			       Bezier (p0123, p123, p23, p3));
+			Bezier (p0123, p123, p23, p3));
 }
 
 inline const Pair<Bezier > Bezier::halve (void) const

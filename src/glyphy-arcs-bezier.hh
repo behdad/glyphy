@@ -81,6 +81,7 @@ class ArcsBezierApproximatorSpringSystem
 	double l = k_inv / total;
 	t[i + 1] = t[i] + l;
       }
+      t[n] = 1.0; // Do this to get real 1.0, not .9999999999999998!
 
       calc_arcs (b, t, appx, e, arcs, max_e, min_e);
 
@@ -110,8 +111,9 @@ class ArcsBezierApproximatorSpringSystem
     for (unsigned int n = 1; n <= max_segments; n++)
     {
       t.resize (n + 1);
-      for (unsigned int i = 0; i <= n; i++)
+      for (unsigned int i = 0; i < n; i++)
         t[i] = double (i) / n;
+      t[n] = 1.0; // Do this out of the loop to get real 1.0, not .9999999999999998!
 
       calc_arcs (b, t, appx, e, arcs, max_e, min_e);
 

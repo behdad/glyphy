@@ -51,8 +51,6 @@ glyphy_sdf_from_arc_list (const glyphy_arc_endpoint_t *endpoints,
     Arc arc (p0, endpoint.p, endpoint.d);
     p0 = endpoint.p;
 
-    assert (arc.p0 != arc.p1);
-
     if (arc.wedge_contains_point (c)) {
       double sdist = arc.distance_to_point (c); /* TODO This distance has the wrong sign.  Fix */
       double udist = abs (sdist) - GLYPHY_EPSILON;
