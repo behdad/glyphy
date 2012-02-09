@@ -129,10 +129,9 @@ process_contour (glyphy_arc_endpoint_t       *endpoints,
     return false; // Need a closed contour
    }
 
-  bool winding_expected = winding (endpoints, num_endpoints);
-  bool even_odd_expected = even_odd (endpoints, num_endpoints,
-				     all_endpoints, all_num_endpoints);
-  if (winding_expected ^ even_odd_expected ^ !!inverse)
+  if (!!inverse ^
+      winding (endpoints, num_endpoints) ^
+      even_odd (endpoints, num_endpoints, all_endpoints, all_num_endpoints))
   {
     // Reverse the contour
 
