@@ -257,6 +257,18 @@ glyphy_arc_list_extents (const glyphy_arc_endpoint_t *endpoints,
 
 
 /*
+ * Modify outlines for proper consumption
+ */
+
+/* Returns true if outline was modified */
+glyphy_bool_t
+glyphy_outline_winding_from_even_odd (glyphy_arc_endpoint_t *endpoints,
+				      unsigned int           num_endpoints,
+				      glyphy_bool_t          inverse);
+
+
+
+/*
  * Encode an arc outline into binary blob for fast SDF calculation
  */
 
@@ -270,6 +282,7 @@ typedef struct {
 
 
 /* TODO make this callback-based also? */
+/* TODO rename to glyphy_blob_encode? */
 glyphy_bool_t
 glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
 			     unsigned int                 num_endpoints,
@@ -282,6 +295,8 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
 			     unsigned int                *nominal_width,  /* 8bit */
 			     unsigned int                *nominal_height, /* 8bit */
 			     glyphy_extents_t            *extents);
+
+/* TBD _decode_blob */
 
 
 

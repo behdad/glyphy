@@ -147,6 +147,8 @@ encode_ft_glyph (demo_font_t      *font,
 
   assert (glyphy_arc_accumulator_get_error (font->acc) <= tolerance);
 
+  glyphy_outline_winding_from_even_odd (&endpoints[0], endpoints.size (), false);
+
   double avg_fetch_achieved;
   if (!glyphy_arc_list_encode_blob (&endpoints[0], endpoints.size (),
 				    buffer,
