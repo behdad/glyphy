@@ -25,17 +25,20 @@ glyph_info_decode (vec4 v)
 }
 
 
-float antialias0 (float d)
+float
+antialias0 (float d)
 {
   return clamp (d + .5, 0., 1.);
 }
 
-float antialias1 (float d)
+float
+antialias1 (float d)
 {
   return smoothstep (-.75, +.75, d);
 }
 
-float antialias2 (float d)
+float
+antialias2 (float d)
 {
   d = d * 16. / 30. + .5;
   if (d <= 0.) return 0.;
@@ -43,12 +46,13 @@ float antialias2 (float d)
   return d*d*d*(d*(d*6 - 15) + 10);
 }
 
-float antialias (float d)
+float
+antialias (float d)
 {
   if (u_smoothfunc == 0) return antialias0 (d);
   if (u_smoothfunc == 1) return antialias1 (d);
   if (u_smoothfunc == 2) return antialias2 (d);
-  return 0;
+  return 0.;
 }
 
 void
