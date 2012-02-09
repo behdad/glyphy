@@ -534,6 +534,7 @@ inline Bezier Arc::approximate_bezier (double *error) const
 
 inline bool Arc::wedge_contains_point (const Point &p) const
 {
+  // TODO this doesn't handle fabs(d) > 1.
   Pair<Vector> t = tangents ();
   return (p - p0) * t.first  >= 0 &&
 	 (p - p1) * t.second <= 0;
@@ -663,8 +664,8 @@ inline const Pair<Bezier > Bezier::split (const double &t) const {
   Point p012 = p01.lerp (t, p12);
   Point p123 = p12.lerp (t, p23);
   Point p0123 = p012.lerp (t, p123);
-  return Pair<Bezier > (Bezier (p0, p01, p012, p0123),
-			Bezier (p0123, p123, p23, p3));
+  return Pair<Bezier> (Bezier (p0, p01, p012, p0123),
+		       Bezier (p0123, p123, p23, p3));
 }
 
 inline const Pair<Bezier > Bezier::halve (void) const
@@ -675,8 +676,8 @@ inline const Pair<Bezier > Bezier::halve (void) const
   Point p012 = p01.midpoint (p12);
   Point p123 = p12.midpoint (p23);
   Point p0123 = p012.midpoint (p123);
-  return Pair<Bezier > (Bezier (p0, p01, p012, p0123),
-			       Bezier (p0123, p123, p23, p3));
+  return Pair<Bezier> (Bezier (p0, p01, p012, p0123),
+		       Bezier (p0123, p123, p23, p3));
 }
 
 inline const Bezier Bezier::segment (const double &t0, const double &t1) const
@@ -686,8 +687,25 @@ inline const Bezier Bezier::segment (const double &t0, const double &t1) const
     Point p = point (t0);
     return Bezier (p, p, p, p);
   }
-  //TODO make this more stable
-  return split (t0).second.split ((t1 - t0) / (1 - t0)).first;
+
+  Point p01 = p0.lerp (t0, p1);
+  Point p12 = p1.lerp (t0, p2);
+  Point p23 = p2.lerp (t0, p3);
+  Point p012 = p01.lerp (t0, p12);
+  Point p123 = p12.lerp (t0, p23);
+  Point p0123 = p012.lerp (t0, p123);
+
+  Point q01 = p0.lerp (t1, p1);
+  Point q12 = p1.lerp (t1, p2);
+  Point q23 = p2.lerp (t1, p3);
+  Point q012 = q01.lerp (t1, q12);
+  Point q123 = q12.lerp (t1, q23);
+  Point q0123 = q012.lerp (t1, q123);
+
+  return Bezier (p0123,
+		 p0123 + (p123 - p0123) * ((t1 - t0) / (1 - t0)),
+		 q0123 + (q012 - q0123) * ((t1 - t0) / t1),
+		 q0123);
 }
 
 } /* namespace Geometry */
