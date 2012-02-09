@@ -45,7 +45,7 @@ glyphy_outline_reverse (glyphy_arc_endpoint_t *endpoints,
 }
 
 
-static glyphy_bool_t
+static bool
 winding (const glyphy_arc_endpoint_t *endpoints,
 	 unsigned int                 num_endpoints)
 {
@@ -93,42 +93,97 @@ winding (const glyphy_arc_endpoint_t *endpoints,
     const glyphy_arc_endpoint_t ethis = endpoints[corner];
     const glyphy_arc_endpoint_t eprev = endpoints[(corner + 1) % num_endpoints];
     const glyphy_arc_endpoint_t enext = endpoints[corner ? corner - 1 : num_endpoints - 1];
-    double in  = (-Arc (eprev.p, ethis.p, ethis.d).tangents ().second).angle (); 
-    double out = (+Arc (ethis.p, enext.p, enext.d).tangents ().first ).angle (); 
-    return in < out;
+    double in  = (-Arc (eprev.p, ethis.p, ethis.d).tangents ().second).angle ();
+    double out = (+Arc (ethis.p, enext.p, enext.d).tangents ().first ).angle ();
+    return out < in;
   }
   else
   {
     // Easy.
-    return endpoints[winner].d > 0;
+    return endpoints[winner].d < 0;
   }
 
   return false;
 }
 
-static glyphy_bool_t
+static bool
 even_odd (const glyphy_arc_endpoint_t *endpoints,
 	  unsigned int                 num_endpoints,
 	  const glyphy_arc_endpoint_t *all_endpoints,
-	  unsigned int                 all_num_endpoints)
+	  unsigned int                 num_all_endpoints)
 {
   /*
    * Algorithm:
    *
-   * - For a point on the contour, draw a line in a direction (eg. decreasing x) to infinity,
+   * - For a point on the contour, draw a halfline in a direction
+   *   (eg. decreasing x) to infinity,
    * - Count how many times it crosses all contours,
-   *   Pay special attention to points falling exactly on the line and arcs crossing more than once.
+   *   Pay special attention to points falling exactly on the line,
+   *   etc.
    */
 
-  return false;
+  const Point p = endpoints[0].p;
+  // We care about all contours, lets just make it easier
+  endpoints = all_endpoints;
+  num_endpoints = num_all_endpoints;
+
+  unsigned int count = 0;
+  Point p0 (0, 0);
+  for (unsigned int i = 0; i < num_endpoints; i++) {
+    const glyphy_arc_endpoint_t &endpoint = endpoints[i];
+    if (endpoint.d == INFINITY) {
+      p0 = endpoint.p;
+      continue;
+    }
+    Arc arc (p0, endpoint.p, endpoint.d);
+    p0 = endpoint.p;
+
+    if (p == arc.p1) {
+      count++;
+      continue;
+    }
+
+    if (arc.d == 0)
+    {
+      /* Line */
+      if ((p.y < arc.p0.y) == (p.y < arc.p1.y))
+        continue;
+      // Find x pos that the line segment would intersect the half-line.
+      double x = arc.p0.x + (arc.p1.x - arc.p0.x) * ((p.y - arc.p0.y) / (arc.p1.y - arc.p0.y));
+      if (x >= p.x)
+	continue;
+      count++;
+    }
+    else
+    {
+      /* Arc */
+      Point c = arc.center ();
+      double r = arc.radius ();
+      if (c.x - r >= p.x)
+        continue;
+      double dy = p.y - c.y;
+      double x2 = r * r - dy * dy;
+      if (x2 <= 0)
+        continue;
+      double dx = sqrt (x2);
+      Point pp[2] = { Point (c.x - dx, p.y),
+		      Point (c.x + dx, p.y) };
+      for (unsigned int i = 0; i < ARRAY_LENGTH (pp); i++)
+        if (pp[i].x < p.x && arc.wedge_contains_point (pp[i]))
+	  count++;
+    }
+  }
+
+  printf ("count %d\n", count);
+  return !!(count & 1);
 }
 
-static glyphy_bool_t
+static bool
 process_contour (glyphy_arc_endpoint_t       *endpoints,
 		 unsigned int                 num_endpoints,
 		 const glyphy_arc_endpoint_t *all_endpoints,
-		 unsigned int                 all_num_endpoints,
-		 glyphy_bool_t                inverse)
+		 unsigned int                 num_all_endpoints,
+		 bool                         inverse)
 {
   /*
    * Algorithm:
@@ -141,7 +196,7 @@ process_contour (glyphy_arc_endpoint_t       *endpoints,
     return false;
 
   if (num_endpoints < 3) {
-//    abort (); // XXX remove this after testing lots of fonts?
+    abort (); // XXX remove this after testing lots of fonts?
     return false; // Need at least two arcs
   }
   if (Point (endpoints[0].p) != Point (endpoints[num_endpoints-1].p)) {
@@ -149,9 +204,9 @@ process_contour (glyphy_arc_endpoint_t       *endpoints,
     return false; // Need a closed contour
    }
 
-  if (!!inverse ^
+  if (inverse ^
       winding (endpoints, num_endpoints) ^
-      even_odd (endpoints, num_endpoints, all_endpoints, all_num_endpoints))
+      even_odd (endpoints, num_endpoints, all_endpoints, num_all_endpoints))
   {
     glyphy_outline_reverse (endpoints, num_endpoints);
     return true;
@@ -173,14 +228,14 @@ glyphy_outline_winding_from_even_odd (glyphy_arc_endpoint_t *endpoints,
    */
 
   unsigned int start = 0;
-  glyphy_bool_t ret = false;
+  bool ret = false;
   for (unsigned int i = 1; i < num_endpoints; i++) {
     const glyphy_arc_endpoint_t &endpoint = endpoints[i];
     if (endpoint.d == INFINITY) {
-      ret = ret || process_contour (endpoints + start, i - start, endpoints, num_endpoints, inverse);
+      ret = ret | process_contour (endpoints + start, i - start, endpoints, num_endpoints, bool (inverse));
       start = i;
     }
   }
-  ret = ret || process_contour (endpoints + start, num_endpoints - start, endpoints, num_endpoints, inverse);
+  ret = ret | process_contour (endpoints + start, num_endpoints - start, endpoints, num_endpoints, bool (inverse));
   return ret;
 }
