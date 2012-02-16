@@ -25,7 +25,12 @@
 #  include <Glut/glut.h>
 #  include <OpenGL/OpenGL.h>
 #else
-    #include <GL/glut.h>
+#  if defined(_WIN32)
+#    include <GL/wglew.h>
+#  else
+#    include <GL/glxew.h>
+#  endif
+#  include <GL/glut.h>
 #endif
 
 #include <stdlib.h>

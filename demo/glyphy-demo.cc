@@ -84,21 +84,23 @@ static double view_scale = 1.0;
 static glyphy_point_t translate = {0, 0};
 static GLint vsync = 0;
 
-
 void
 v_sync_set (glyphy_bool_t sync)
 {
   vsync = sync ? 1 : 0;
+  printf ("Setting vsync %s.\n", vsync ? "on" : "off");
 #if defined(__APPLE__)
   CGLSetParameter(CGLGetCurrentContext(), kCGLCPSwapInterval, &sync);
-#else
-#if 0
-  /* TODO figure out right macro feature test for these */
+#elif defined(_WIN32)
   if (glewIsSupported ("WGL_EXT_swap_control"))
     wglSwapIntervalEXT (vsync);
-  else if (glewIsSupported ("GLX_SGI_swap_control"))
+  else
+    printf ("WGL_EXT_swal_control not supported; failed to set vsync\n");
+#else
+  if (glxewIsSupported ("GLX_SGI_swap_control"))
     glXSwapIntervalSGI (vsync);
-#endif
+  else
+    printf ("GLX_SGI_swap_control not supported; failed to set vsync\n");
 #endif
 }
 
@@ -179,7 +181,6 @@ keyboard_func (unsigned char key, int x, int y)
 
     case 'v':
       v_sync_set (1 - vsync);
-      printf ("Setting vsync %s.\n", vsync ? "on" : "off");
       break;
 
     case 'k': 
@@ -284,9 +285,10 @@ main (int argc, char** argv)
   glutKeyboardFunc (keyboard_func);
   glutSpecialFunc (special_func);
 
-  glewInit ();
-//  if (!glewIsSupported ("GL_VERSION_2_0"))
-//    die ("OpenGL 2.0 not supported");
+  if (GLEW_OK != glewInit ())
+    die ("Failed to initialize GL; something really broken");
+  if (!glewIsSupported ("GL_VERSION_2_0"))
+    die ("OpenGL 2.0 not supported");
 
   if (!glewIsSupported ("GL_ARB_framebuffer_sRGB") &&
       !glewIsSupported ("GL_EXT_framebuffer_sRGB"))
