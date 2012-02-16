@@ -147,7 +147,17 @@ encode_ft_glyph (demo_font_t      *font,
 
   assert (glyphy_arc_accumulator_get_error (font->acc) <= tolerance);
 
+#if 0
+  /* Technically speaking, we want the following code,
+   * however, crappy fonts have crappy flags.  So we just
+   * fixup unconditionally... */
+  if (face->glyph->outline.flags & FT_OUTLINE_EVEN_ODD_FILL)
+    glyphy_outline_winding_from_even_odd (&endpoints[0], endpoints.size (), false);
+  else if (face->glyph->outline.flags & FT_OUTLINE_REVERSE_FILL)
+    glyphy_outline_reverse (&endpoints[0], endpoints.size ());
+#else
   glyphy_outline_winding_from_even_odd (&endpoints[0], endpoints.size (), false);
+#endif
 
   double avg_fetch_achieved;
   if (!glyphy_arc_list_encode_blob (&endpoints[0], endpoints.size (),
