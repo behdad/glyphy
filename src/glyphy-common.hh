@@ -28,12 +28,16 @@
 #include <vector>
 #include <algorithm>
 
-#ifndef GLYPHY_INFINITY
-#  define GLYPHY_INFINITY 1e9
+#ifndef EPSILON
+#  define EPSILON  1e-5
 #endif
-#ifndef GLYPHY_EPSILON
-#  define GLYPHY_EPSILON  1e-5
-#endif
+
+static inline bool
+iszero (double v)
+{
+  return fabs (v) < 2 * EPSILON;
+}
+
 
 #define GLYPHY_MAX_D .5
 
