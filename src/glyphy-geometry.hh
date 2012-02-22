@@ -510,7 +510,7 @@ inline const Point Arc::center (void) const
 
 inline const Pair<Vector> Arc::tangents (void) const
 {
-  Vector dp = p1 - p0;
+  Vector dp = (p1 - p0) * .5;
   Vector pp = -tan2atan (d) * dp.perpendicular ();
   return Pair<Vector> (dp + pp, dp - pp);
 }

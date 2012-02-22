@@ -124,7 +124,6 @@ even_odd (const glyphy_arc_endpoint_t *c_endpoints,
 
   const Point p = c_endpoints[0].p;
 
-  printf ("CONTOUR %d p %g,%g\n", c_endpoints - endpoints, p.x, p.y);
   double count = 0;
   Point p0 (0, 0);
   for (unsigned int i = 0; i < num_endpoints; i++) {
@@ -139,7 +138,6 @@ even_odd (const glyphy_arc_endpoint_t *c_endpoints,
     // Skip our own contour
     if (&endpoint >= c_endpoints && &endpoint < c_endpoints + num_c_endpoints)
       continue;
-    printf ("e %d %g,%g %g,%g %g\n", i, arc.p0.x, arc.p0.y, arc.p1.x, arc.p1.y, arc.d);
 
     unsigned s0 = arc.p0.y < p.y - EPSILON ? -1 : arc.p0.y > p.y + EPSILON ? +1 : 0;
     unsigned s1 = arc.p1.y < p.y - EPSILON ? -1 : arc.p1.y > p.y + EPSILON ? +1 : 0;
@@ -179,16 +177,9 @@ even_odd (const glyphy_arc_endpoint_t *c_endpoints,
         Pair<Vector> t = arc.tangents ();
 	// Ugh.  if tangent is zero, check other y
         if (!s0 && arc.p0.x < p.x + EPSILON)
-	 {
 	  count += .5 * (t.first.dy  > EPSILON ? +1 : t.first.dy  < -EPSILON ? -1 : 0);
-	printf ("first dx,dy %g,%g\n", t.first.dx, t.first.dy);
-	 }
         if (!s1 && arc.p1.x < p.x + EPSILON)
-	 {
 	  count += .5 * (t.second.dy > EPSILON ? +1 : t.second.dy < -EPSILON ? -1 : 0);
-	printf ("second dx,dy %g,%g\n", t.second.dx, t.second.dy);
-	}
-	//continue; // XXX
       }
 
       Point c = arc.center ();
@@ -203,14 +194,14 @@ even_odd (const glyphy_arc_endpoint_t *c_endpoints,
       Point pp[2] = { Point (c.x - dx, p.y),
 		      Point (c.x + dx, p.y) };
 
+#define POINTS_EQ(a,b) (fabs (a.x - b.x) < EPSILON && fabs (a.y - b.y) < EPSILON)
       for (unsigned int i = 0; i < ARRAY_LENGTH (pp); i++)
-        if (pp[i] != arc.p0 && pp[i] != arc.p1 &&
+        if (!POINTS_EQ (pp[i], arc.p0) && !POINTS_EQ (pp[i], arc.p1) &&
 	    pp[i].x < p.x - EPSILON && arc.wedge_contains_point (pp[i]))
 	  count++;
     }
   }
 
-  printf ("count %g\n", count);
   return !(int (floor (count)) & 1);
 }
 
