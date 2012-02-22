@@ -125,21 +125,6 @@ v_srgb_set (glyphy_bool_t _srgb)
 }
 
 
-static FT_Face
-open_ft_face (const char   *font_path,
-	      unsigned int  face_index)
-{
-  static FT_Library library;
-  if (!library)
-    FT_Init_FreeType (&library);
-  FT_Face face;
-  FT_New_Face (library, font_path, face_index, &face);
-  if (!face)
-    die ("Failed to open font file");
-  return face;
-}
-
-
 
 void
 reshape_func (int width, int height)
@@ -324,12 +309,19 @@ main (int argc, char** argv)
     fprintf (stderr, "Usage: %s FONT_FILE TEXT\n", argv[0]);
     exit (1);
   }
-   font_path = argv[1];
-   text = argv[2];
+  font_path = argv[1];
+  text = argv[2];
 
   demo_state_init (st);
-  FT_Face face = open_ft_face (font_path, 0);
-  demo_font_t *font = demo_font_create (face, st->atlas);
+
+  FT_Library ft_library;
+  FT_Init_FreeType (&ft_library);
+  FT_Face ft_face;
+  FT_New_Face (ft_library, font_path, 0/*face_index*/, &ft_face);
+  if (!ft_face)
+    die ("Failed to open font file");
+
+  demo_font_t *font = demo_font_create (ft_face, st->atlas);
 
   glyphy_point_t top_left = {0, 0};
   buffer = demo_buffer_create ();
@@ -345,6 +337,10 @@ main (int argc, char** argv)
 
   demo_buffer_destroy (buffer);
   demo_font_destroy (font);
+
+  FT_Done_Face (ft_face);
+  FT_Done_FreeType (ft_library);
+
   demo_state_fini (st);
 
   glutDestroyWindow (window);
