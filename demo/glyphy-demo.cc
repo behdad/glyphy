@@ -84,6 +84,10 @@ static double view_scale = 1.0;
 static glyphy_point_t translate = {0, 0};
 static double phase_offset = 0;
 static GLint vsync = 0;
+static glyphy_bool_t srgb = false;
+
+#define WINDOW_W 700
+#define WINDOW_H 700
 
 void
 v_sync_set (glyphy_bool_t sync)
@@ -103,6 +107,21 @@ v_sync_set (glyphy_bool_t sync)
   else
     printf ("GLX_SGI_swap_control not supported; failed to set vsync\n");
 #endif
+}
+
+void
+v_srgb_set (glyphy_bool_t _srgb)
+{
+  srgb = _srgb;
+  printf ("Setting sRGB framebuffer %s.\n", srgb ? "on" : "off");
+  if (glewIsSupported ("GL_ARB_framebuffer_sRGB") || glewIsSupported ("GL_EXT_framebuffer_sRGB")) {
+    if (srgb)
+      glEnable (GL_FRAMEBUFFER_SRGB);
+    else
+      glDisable (GL_FRAMEBUFFER_SRGB);
+  } else
+    printf ("No sRGB framebuffer extension found; failed to set sRGB framebuffer\n");
+
 }
 
 
@@ -145,7 +164,7 @@ keyboard_func (unsigned char key, int x, int y)
       glyphy_demo_animation_toggle ();
       break;
     case 'v':
-      v_sync_set (1 - vsync);
+      v_sync_set (!vsync);
       break;
 
     case 'f':
@@ -170,6 +189,9 @@ keyboard_func (unsigned char key, int x, int y)
       break;
     case 'b':
       SET_UNIFORM (u_gamma_adjust, st->u_gamma_adjust / STEP);
+      break;
+    case 'c':
+      v_srgb_set (!srgb);
       break;
 
     case '=':
@@ -198,6 +220,7 @@ keyboard_func (unsigned char key, int x, int y)
       view_scale = 1.;
       translate.x = translate.y = 0.;
       phase_offset = glyphy_demo_animation_get_phase ();
+      glutReshapeWindow (WINDOW_W, WINDOW_H);
       break;
 
     default:
@@ -281,7 +304,7 @@ main (int argc, char** argv)
   const char *text = NULL;
 
   glutInit (&argc, argv);
-  glutInitWindowSize (700, 700);
+  glutInitWindowSize (WINDOW_W, WINDOW_H);
   glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB);
   int window = glutCreateWindow ("GLyphy Demo");
   glutReshapeFunc (reshape_func);
@@ -293,12 +316,6 @@ main (int argc, char** argv)
     die ("Failed to initialize GL; something really broken");
   if (!glewIsSupported ("GL_VERSION_2_0"))
     die ("OpenGL 2.0 not supported");
-
-  if (!glewIsSupported ("GL_ARB_framebuffer_sRGB") &&
-      !glewIsSupported ("GL_EXT_framebuffer_sRGB"))
-    printf ("No sRGB framebuffer extension found; feel free to play with gamma adjustment\n");
-  else
-    glEnable (GL_FRAMEBUFFER_SRGB);
 
   glEnable (GL_BLEND);
   glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -320,7 +337,8 @@ main (int argc, char** argv)
   demo_buffer_add_text (buffer, text, font, 1, top_left);
   demo_font_print_stats (font);
 
-  v_sync_set (1);
+  v_sync_set (true);
+  v_srgb_set (true);
 
   demo_state_setup (st);
   glutMainLoop ();
