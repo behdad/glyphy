@@ -82,6 +82,7 @@ static demo_buffer_t *buffer;
 static double content_scale;
 static double view_scale = 1.0;
 static glyphy_point_t translate = {0, 0};
+static double phase_offset = 0;
 static GLint vsync = 0;
 
 void
@@ -143,6 +144,9 @@ keyboard_func (unsigned char key, int x, int y)
     case ' ':
       glyphy_demo_animation_toggle ();
       break;
+    case 'v':
+      v_sync_set (1 - vsync);
+      break;
 
     case 'f':
       glutFullScreen ();
@@ -155,14 +159,12 @@ keyboard_func (unsigned char key, int x, int y)
     case 's':
       SET_UNIFORM (u_smoothfunc, ((int) st->u_smoothfunc + 1) % 3);
       break;
-
     case 'a':
       SET_UNIFORM (u_contrast, st->u_contrast * STEP);
       break;
     case 'z':
       SET_UNIFORM (u_contrast, st->u_contrast / STEP);
       break;
-
     case 'g':
       SET_UNIFORM (u_gamma_adjust, st->u_gamma_adjust * STEP);
       break;
@@ -179,10 +181,6 @@ keyboard_func (unsigned char key, int x, int y)
       printf ("Setting scale to %g; font size is %.2f now.\n", view_scale, view_scale * content_scale);
       break;
 
-    case 'v':
-      v_sync_set (1 - vsync);
-      break;
-
     case 'k': 
       translate.y -= .1;
       break;
@@ -194,6 +192,12 @@ keyboard_func (unsigned char key, int x, int y)
       break;
     case 'l':
       translate.x -= .1;
+      break;
+
+    case 'r':
+      view_scale = 1.;
+      translate.x = translate.y = 0.;
+      phase_offset = glyphy_demo_animation_get_phase ();
       break;
 
     default:
@@ -236,7 +240,7 @@ display_func (void)
   GLuint width  = viewport[2];
   GLuint height = viewport[3];
 
-  double phase = glyphy_demo_animation_get_phase ();
+  double phase = glyphy_demo_animation_get_phase () - phase_offset;
 
   glMatrixMode (GL_MODELVIEW);
   glLoadIdentity ();
