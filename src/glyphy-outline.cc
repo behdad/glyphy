@@ -106,6 +106,19 @@ winding (const glyphy_arc_endpoint_t *endpoints,
   return false;
 }
 
+
+static int
+categorize (double v, double ref)
+{
+  return v < ref - EPSILON ? -1 : v > ref + EPSILON ? +1 : 0;
+}
+
+static bool
+is_zero (double v)
+{
+  return fabs (v) < EPSILON;
+}
+
 static bool
 even_odd (const glyphy_arc_endpoint_t *c_endpoints,
 	  unsigned int                 num_c_endpoints,
@@ -117,9 +130,58 @@ even_odd (const glyphy_arc_endpoint_t *c_endpoints,
    *
    * - For a point on the contour, draw a halfline in a direction
    *   (eg. decreasing x) to infinity,
-   * - Count how many times it crosses all contours,
-   *   Pay special attention to points falling exactly on the line,
-   *   etc.
+   * - Count how many times it crosses all other contours,
+   * - Pay special attention to points falling exactly on the halfline,
+   *   specifically, they count as +.5 or -.5, depending the direction
+   *   of crossing.
+   *
+   * All this counting is extremely tricky:
+   *
+   * - Floating point equality cannot be relied on here,
+   * - Lots of arc analysis needed,
+   * - Without having a point that we know falls /inside/ the contour,
+   *   there are legitimate cases that we simply cannot handle using
+   *   this algorithm.  For example, imagine the following glyph shape:
+   *
+   *         +---------+
+   *         | +-----+ |
+   *         |  \   /  |
+   *         |   \ /   |
+   *         +----o----+
+   *
+   *   If the glyph is defined as two outlines, and when analysing the
+   *   inner outline we happen to pick the point denoted by 'o' for
+   *   analysis, there simply is no way to differentiate this case from
+   *   the following case:
+   *
+   *         +---------+
+   *         |         |
+   *         |         |
+   *         |         |
+   *         +----o----+
+   *             / \
+   *            /   \
+   *           +-----+
+   *
+   *   However, in one, the triangle should be filled in, and in the other
+   *   filled out.
+   *
+   *   One way to work around this may be to do the analysis for all endpoints
+   *   on the outline and take majority.  But even that can fail in more
+   *   extreme yet legitimate cases, such as this one:
+   *
+   *           +--+--+
+   *           | / \ |
+   *           |/   \|
+   *           +     +
+   *           |\   /|
+   *           | \ / |
+   *           +--o--+
+   *
+   *   The only correct algorithm I can think of requires a point that falls
+   *   fully inside the outline.  While we can try finding such a point (not
+   *   dissimilar to the winding algorithm), it's beyond what I'm willing to
+   *   implement right now.
    */
 
   const Point p = c_endpoints[0].p;
@@ -135,37 +197,44 @@ even_odd (const glyphy_arc_endpoint_t *c_endpoints,
     Arc arc (p0, endpoint.p, endpoint.d);
     p0 = endpoint.p;
 
-    // Skip our own contour
+    /*
+     * Skip our own contour
+     */
     if (&endpoint >= c_endpoints && &endpoint < c_endpoints + num_c_endpoints)
       continue;
 
-    unsigned s0 = arc.p0.y < p.y - EPSILON ? -1 : arc.p0.y > p.y + EPSILON ? +1 : 0;
-    unsigned s1 = arc.p1.y < p.y - EPSILON ? -1 : arc.p1.y > p.y + EPSILON ? +1 : 0;
+    /* End-point y's compared to the ref point; lt, eq, or gt */
+    unsigned s0 = categorize (arc.p0.y, p.y);
+    unsigned s1 = categorize (arc.p1.y, p.y);
 
-    if (fabs (arc.d) < EPSILON)
+    if (is_zero (arc.d))
     {
       /* Line */
 
       if (!s0 || !s1)
       {
+        /*
+	 * Add +.5 / -.5 for each endpoint on the halfline, depending on
+	 * crossing direction.
+	 */
         Pair<Vector> t = arc.tangents ();
         if (!s0 && arc.p0.x < p.x + EPSILON)
-	  count += .5 * (t.first.dy  > EPSILON ? +1 : t.first.dy  < -EPSILON ? -1 : 0);
+	  count += .5 * categorize (t.first.dy, 0);
         if (!s1 && arc.p1.x < p.x + EPSILON)
-	  count += .5 * (t.second.dy > EPSILON ? +1 : t.second.dy < -EPSILON ? -1 : 0);
+	  count += .5 * categorize (t.second.dy, 0);
 	continue;
       }
 
       if (s0 == s1)
-        continue;
+        continue; // Segment fully above or below the halfline
 
       // Find x pos that the line segment would intersect the half-line.
       double x = arc.p0.x + (arc.p1.x - arc.p0.x) * ((p.y - arc.p0.y) / (arc.p1.y - arc.p0.y));
 
       if (x >= p.x - EPSILON)
-	continue;
+	continue; // Does not intersect halfline
 
-      count++;
+      count++; // Add one for full crossing
       continue;
     }
     else
@@ -174,31 +243,52 @@ even_odd (const glyphy_arc_endpoint_t *c_endpoints,
 
       if (!s0 || !s1)
       {
+        /*
+	 * Add +.5 / -.5 for each endpoint on the halfline, depending on
+	 * crossing direction.
+	 */
         Pair<Vector> t = arc.tangents ();
-	// Ugh.  if tangent is zero, check other y
+
+	/* Arc-specific logic:
+	 * If the tangent has dy==0, use the other endpoint's
+	 * y value to decide which way the arc will be heading.
+	 */
+	if (is_zero (t.first.dy))
+	  t.first.dy  = +categorize (arc.p1.y, p.y);
+	if (is_zero (t.second.dy))
+	  t.second.dy = -categorize (arc.p0.y, p.y);
+
         if (!s0 && arc.p0.x < p.x + EPSILON)
-	  count += .5 * (t.first.dy  > EPSILON ? +1 : t.first.dy  < -EPSILON ? -1 : 0);
+	  count += .5 * categorize (t.first.dy, 0);
         if (!s1 && arc.p1.x < p.x + EPSILON)
-	  count += .5 * (t.second.dy > EPSILON ? +1 : t.second.dy < -EPSILON ? -1 : 0);
+	  count += .5 * categorize (t.second.dy, 0);
       }
 
       Point c = arc.center ();
       double r = arc.radius ();
-      if (c.x - r >= p.x - EPSILON)
-        continue;
+      if (c.x - r >= p.x)
+        continue; // No chance
+      /* Solve for arc crossing line with y = p.y */
       double dy = p.y - c.y;
       double x2 = r * r - dy * dy;
       if (x2 <= EPSILON)
-        continue;
+        continue; // Negative delta, no crossing
       double dx = sqrt (x2);
+      /* There's two candidate points on the arc with the same y as the
+       * ref point. */
       Point pp[2] = { Point (c.x - dx, p.y),
 		      Point (c.x + dx, p.y) };
 
-#define POINTS_EQ(a,b) (fabs (a.x - b.x) < EPSILON && fabs (a.y - b.y) < EPSILON)
+#define POINTS_EQ(a,b) (is_zero (a.x - b.x) && is_zero (a.y - b.y))
       for (unsigned int i = 0; i < ARRAY_LENGTH (pp); i++)
+      {
+        /* Make sure we don't double-count endpoints that fall on the
+	 * halfline as we already accounted for those above */
         if (!POINTS_EQ (pp[i], arc.p0) && !POINTS_EQ (pp[i], arc.p1) &&
 	    pp[i].x < p.x - EPSILON && arc.wedge_contains_point (pp[i]))
-	  count++;
+	  count++; // Add one for full crossing
+      }
+#undef POINTS_EQ
     }
   }
 
@@ -223,11 +313,11 @@ process_contour (glyphy_arc_endpoint_t       *endpoints,
     return false;
 
   if (num_endpoints < 3) {
-    abort (); // XXX remove this after testing lots of fonts?
+    abort (); // TODO remove this after testing lots of fonts?
     return false; // Need at least two arcs
   }
   if (Point (endpoints[0].p) != Point (endpoints[num_endpoints-1].p)) {
-    abort (); // XXX remove this after testing lots of fonts?
+    abort (); // TODO remove this after testing lots of fonts?
     return false; // Need a closed contour
    }
 
