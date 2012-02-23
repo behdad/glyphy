@@ -4,6 +4,7 @@ CLEANFILES =
 DISTCLEANFILES =
 MAINTAINERCLEANFILES =
 BUILT_SOURCES =
+noinst_PROGRAMS =
 
 
 if HAVE_FREETYPE2
@@ -11,7 +12,7 @@ if HAVE_GL
 if HAVE_GLEW
 if HAVE_GLUT
 
-noinst_PROGRAMS = glyphy-demo
+noinst_PROGRAMS += glyphy-demo
 
 glyphy_demo_CPPFLAGS = \
 	-I $(top_srcdir)/src \
@@ -33,6 +34,7 @@ glyphy_demo_SOURCES = \
 	demo-atlas.cc \
 	demo-buffer.h \
 	demo-buffer.cc \
+	demo-common.h \
 	demo-font.h \
 	demo-font.cc \
 	demo-shader.h \
@@ -60,6 +62,26 @@ endif
 endif
 endif
 endif
+
+
+if HAVE_FREETYPE2
+
+noinst_PROGRAMS += glyphy-validate
+glyphy_validate_CPPFLAGS = \
+	-I $(top_srcdir)/src \
+	$(FREETYPE2_CFLAGS) \
+	$(NULL)
+glyphy_validate_LDADD = \
+	$(top_builddir)/src/libglyphy.la \
+	$(FREETYPE2_LIBS) \
+	$(NULL)
+glyphy_validate_SOURCES = \
+	demo-common.h \
+	glyphy-validate.cc \
+	$(NULL)
+
+endif
+
 
 EXTRA_DIST += TEXT
 
