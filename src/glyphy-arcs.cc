@@ -37,7 +37,6 @@ using namespace GLyphy::ArcsBezier;
 struct glyphy_arc_accumulator_t {
   unsigned int refcount;
 
-
   double tolerance;
   double max_d;
   unsigned int d_bits;
@@ -45,6 +44,7 @@ struct glyphy_arc_accumulator_t {
   void                                       *user_data;
 
   glyphy_point_t current_point;
+  bool           need_moveto;
   unsigned int   num_endpoints;
   double max_error;
   glyphy_bool_t success;
@@ -72,6 +72,7 @@ void
 glyphy_arc_accumulator_reset (glyphy_arc_accumulator_t *acc)
 {
   acc->current_point = Point (0, 0);
+  acc->need_moveto = true;
   acc->num_endpoints = 0;
   acc->max_error = 0;
   acc->success = true;
@@ -171,16 +172,33 @@ glyphy_arc_accumulator_successful (glyphy_arc_accumulator_t *acc)
 /* Accumulate */
 
 static void
-accumulate (glyphy_arc_accumulator_t *acc, const Point &p, double d)
+emit (glyphy_arc_accumulator_t *acc, const Point &p, double d)
 {
   glyphy_arc_endpoint_t endpoint = {p, d};
-  if (Point (acc->current_point) == p)
-    return;
   acc->success = acc->success && acc->callback (&endpoint, acc->user_data);
   if (acc->success) {
     acc->num_endpoints++;
     acc->current_point = p;
   }
+}
+
+static void
+accumulate (glyphy_arc_accumulator_t *acc, const Point &p, double d)
+{
+  if (Point (acc->current_point) == p)
+    return;
+  if (d == INFINITY) {
+    /* Emit moveto lazily, for cleaner outlines */
+    acc->need_moveto = true;
+    acc->current_point = p;
+    return;
+  }
+  if (acc->need_moveto) {
+    emit (acc, acc->current_point, INFINITY);
+    if (acc->success)
+      acc->need_moveto = false;
+  }
+  emit (acc, p, d);
 }
 
 static void
