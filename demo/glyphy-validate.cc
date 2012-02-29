@@ -65,7 +65,7 @@ main (int argc, char** argv)
        * faces in the font file. */
       num_faces = ft_face->num_faces;
       printf ("Opened %s face index %d. Has %d glyphs\n",
-	      font_path, face_index, ft_face->num_glyphs);
+	      font_path, face_index, (int) ft_face->num_glyphs);
 
       for (unsigned int glyph_index = 0; glyph_index < ft_face->num_glyphs; glyph_index++)
       {
