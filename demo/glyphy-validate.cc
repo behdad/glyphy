@@ -64,9 +64,17 @@ main (int argc, char** argv)
       /* FreeType's absurd.  You have to open a ft_face to get the number of
        * faces in the font file. */
       num_faces = ft_face->num_faces;
+      printf ("Opened %s face index %d. Has %d glyphs\n",
+	      font_path, face_index, ft_face->num_glyphs);
 
       for (unsigned int glyph_index = 0; glyph_index < ft_face->num_glyphs; glyph_index++)
       {
+	char glyph_name[30];
+	if (FT_Get_Glyph_Name (ft_face, glyph_index, glyph_name, sizeof (glyph_name)))
+	  sprintf (glyph_name, "gid%u", glyph_index);
+
+	printf ("Processing glyph %d (%s)\n", glyph_index, glyph_name);
+
 	if (FT_Err_Ok != FT_Load_Glyph (ft_face,
 					glyph_index,
 					FT_LOAD_NO_BITMAP |
@@ -96,20 +104,17 @@ main (int argc, char** argv)
 	assert (glyphy_arc_accumulator_get_error (acc) <= tolerance);
 
 #if 0
-	/* Technically speaking, we want the following code,
-	 * however, crappy fonts have crappy flags.  So we just
-	 * fixup unconditionally... */
 	if (ft_face->glyph->outline.flags & FT_OUTLINE_EVEN_ODD_FILL)
 	  glyphy_outline_winding_from_even_odd (&endpoints[0], endpoints.size (), false);
-	else if (ft_face->glyph->outline.flags & FT_OUTLINE_REVERSE_FILL)
+#endif
+	if (ft_face->glyph->outline.flags & FT_OUTLINE_REVERSE_FILL)
 	  glyphy_outline_reverse (&endpoints[0], endpoints.size ());
-#else
+
 	if (glyphy_outline_winding_from_even_odd (&endpoints[0], endpoints.size (), false))
 	{
-	  printf ("%s: %s:%d: Glyph %d has contours with wrong direction\n",
-		  argv[0], font_path, face_index, glyph_index);
+	  fprintf (stderr, "ERROR: %s:%d: Glyph %d (%s) has contours with wrong direction\n",
+		   font_path, face_index, glyph_index, glyph_name);
 	}
-#endif
       }
 
       FT_Done_Face (ft_face);
