@@ -41,7 +41,7 @@ static void
 demo_state_init (demo_state_t *st)
 {
   st->program = demo_shader_create_program ();
-  st->atlas = demo_atlas_create (512, 512, 32, 4);
+  st->atlas = demo_atlas_create (2048, 1024, 64, 8);
 
   st->u_debug = false;
   st->u_smoothfunc = 1;

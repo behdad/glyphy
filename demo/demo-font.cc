@@ -193,7 +193,7 @@ _demo_font_upload_glyph (demo_font_t *font,
 			 unsigned int glyph_index,
 			 glyph_info_t *glyph_info)
 {
-  glyphy_rgba_t buffer[4096];
+  glyphy_rgba_t buffer[4096 * 16];
   unsigned int output_len;
 
   encode_ft_glyph (font,
