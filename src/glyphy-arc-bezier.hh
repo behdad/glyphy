@@ -27,15 +27,6 @@ namespace ArcBezier {
 
 using namespace Geometry;
 
-/*
- * Note:
- *
- * Some of the classes here are alternative implementations of the same
- * functionality and not used in the library.  Used for algorithm
- * comparisons.
- */
-
-
 
 class MaxDeviationApproximatorExact
 {
@@ -80,68 +71,6 @@ class MaxDeviationApproximatorExact
 };
 
 
-
-
-template <class MaxDeviationApproximator>
-class BezierBezierErrorApproximatorSimpleMagnitude
-{
-  public:
-  static double approximate_bezier_bezier_error (const Bezier &b0, const Bezier &b1)
-  {
-    assert (b0.p0 == b1.p0);
-    assert (b0.p3 == b1.p3);
-
-    return MaxDeviationApproximator::approximate_deviation ((b1.p1 - b0.p1).len (),
-							    (b1.p2 - b0.p2).len ());
-  }
-};
-
-template <class MaxDeviationApproximator>
-class BezierBezierErrorApproximatorSimpleMagnitudeDecomposed
-{
-  public:
-  static double approximate_bezier_bezier_error (const Bezier &b0, const Bezier &b1)
-  {
-    assert (b0.p0 == b1.p0);
-    assert (b0.p3 == b1.p3);
-
-    return hypot (MaxDeviationApproximator::approximate_deviation
-		  (b1.p1.x - b0.p1.x, b1.p2.x - b0.p2.x),
-		  MaxDeviationApproximator::approximate_deviation
-		  (b1.p1.y - b0.p1.y, b1.p2.y - b0.p2.y));
-  }
-};
-
-
-
-template <class BezierBezierErrorApproximator>
-class ArcBezierErrorApproximatorViaBezier
-{
-  public:
-  static double approximate_bezier_arc_error (const Bezier &b0, const Arc &a)
-  {
-    double ea;
-    Bezier b1 = a.approximate_bezier (&ea);
-    double eb = BezierBezierErrorApproximator::approximate_bezier_bezier_error (b0, b1);
-    return ea + eb;
-  }
-};
-
-class ArcBezierErrorApproximatorSampling
-{
-  public:
-  static double approximate_bezier_arc_error (const Bezier &b, const Arc &a,
-					      double step = .001)
-  {
-    assert (b.p0 == a.p0);
-    assert (b.p3 == a.p1);
-
-    double e = 0;
-    for (double t = step; t < 1; t += step)
-      e = std::max (e, a.distance_to_point (b.point (t)));
-    return e;
-  }
-};
 
 template <class MaxDeviationApproximator>
 class ArcBezierErrorApproximatorBehdad
