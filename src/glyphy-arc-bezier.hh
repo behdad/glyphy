@@ -37,24 +37,10 @@ using namespace Geometry;
 
 
 
-class MaxDeviationApproximatorFast
-{
-  public:
-  /* Returns upper bound for max(abs(d₀ t (1-t)² + d₁ t² (1-t)) for 0≤t≤1. */
-  static double approximate_deviation (double d0, double d1)
-  {
-    d0 = fabs (d0);
-    d1 = fabs (d1);
-    double e0 = 3./4. * std::max (d0, d1);
-    double e1 = 4./9. * (d0 + d1);
-    return std::min (e0, e1);
-  }
-};
-
 class MaxDeviationApproximatorExact
 {
   public:
-  /* Returns max(abs(d₀ t (1-t)² + d₁ t² (1-t)) for 0≤t≤1. */
+  /* Returns 3 max(abs(d₀ t (1-t)² + d₁ t² (1-t)) for 0≤t≤1. */
   static double approximate_deviation (double d0, double d1)
   {
     double candidates[4] = {0,1};
