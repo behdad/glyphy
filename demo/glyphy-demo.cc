@@ -89,7 +89,7 @@ static glyphy_bool_t srgb = false;
 #define WINDOW_W 700
 #define WINDOW_H 700
 
-void
+static void
 v_sync_set (glyphy_bool_t sync)
 {
   vsync = sync ? 1 : 0;
@@ -109,7 +109,7 @@ v_sync_set (glyphy_bool_t sync)
 #endif
 }
 
-void
+static void
 v_srgb_set (glyphy_bool_t _srgb)
 {
   srgb = _srgb;
@@ -126,11 +126,18 @@ v_srgb_set (glyphy_bool_t _srgb)
 
 
 
-void
+static void
 reshape_func (int width, int height)
 {
   glViewport (0, 0, width, height);
   glutPostRedisplay ();
+}
+
+
+static void
+print_welcome (void)
+{
+  printf ("Welcome to GLyphy demo\n");
 }
 
 
@@ -311,6 +318,8 @@ main (int argc, char** argv)
   }
   font_path = argv[1];
   text = argv[2];
+
+  print_welcome ();
 
   demo_state_init (st);
 
