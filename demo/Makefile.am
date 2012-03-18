@@ -42,6 +42,8 @@ glyphy_demo_SOURCES = \
 	glyphy-demo.h \
 	glyphy-demo.cc \
 	glyphy-demo-animation.cc \
+	trackball.h \
+	trackball.c \
 	$(SHADERHEADERS) \
 	$(NULL)
 SHADERS = \
