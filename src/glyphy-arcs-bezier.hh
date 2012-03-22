@@ -43,7 +43,7 @@ class ArcsBezierApproximatorSpringSystem
     e.resize (n);
     arcs.clear ();
     max_e = 0;
-    min_e = INFINITY;
+    min_e = GLYPHY_INFINITY;
     for (unsigned int i = 0; i < n; i++)
     {
       Bezier segment = b.segment (t[i], t[i + 1]);

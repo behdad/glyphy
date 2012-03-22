@@ -40,11 +40,11 @@ glyphy_sdf_from_arc_list (const glyphy_arc_endpoint_t *endpoints,
   Point c = p;
   Point p0 (0, 0);
   Arc closest_arc (p0, p0, 0);
-  double min_dist = INFINITY;
+  double min_dist = GLYPHY_INFINITY;
   int side = 0;
   for (unsigned int i = 0; i < num_endpoints; i++) {
     const glyphy_arc_endpoint_t &endpoint = endpoints[i];
-    if (endpoint.d == INFINITY) {
+    if (endpoint.d == GLYPHY_INFINITY) {
       p0 = endpoint.p;
       continue;
     }
@@ -53,7 +53,7 @@ glyphy_sdf_from_arc_list (const glyphy_arc_endpoint_t *endpoints,
 
     if (arc.wedge_contains_point (c)) {
       double sdist = arc.distance_to_point (c); /* TODO This distance has the wrong sign.  Fix */
-      double udist = abs (sdist) - EPSILON;
+      double udist = abs (sdist) - GLYPHY_EPSILON;
       if (udist <= min_dist) {
         min_dist = udist;
 	side = sdist >= 0 ? -1 : +1;

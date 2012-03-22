@@ -372,7 +372,7 @@ inline const SignedVector SignedVector::operator- (void) const {
 inline const Point Line::operator+ (const Line &l) const {
   double det = n.dx * l.n.dy - n.dy * l.n.dx;
   if (!det)
-    return Point (INFINITY, INFINITY);
+    return Point (GLYPHY_INFINITY, GLYPHY_INFINITY);
   return Point ((c * l.n.dy - n.dy * l.c) / det,
 		       (n.dx * l.c - c * l.n.dx) / det);
 }

@@ -28,14 +28,18 @@
 #include <vector>
 #include <algorithm>
 
-#ifndef EPSILON
-#  define EPSILON  1e-5
+#ifndef GLYPHY_EPSILON
+#  define GLYPHY_EPSILON  1e-5
 #endif
+#ifndef GLYPHY_INFINITY
+#  define GLYPHY_INFINITY INFINITY
+#endif
+
 
 static inline bool
 iszero (double v)
 {
-  return fabs (v) < 2 * EPSILON;
+  return fabs (v) < 2 * GLYPHY_EPSILON;
 }
 
 

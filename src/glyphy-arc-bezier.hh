@@ -166,7 +166,7 @@ template <class ArcBezierErrorApproximator>
 class ArcBezierApproximatorQuantized
 {
   public:
-  ArcBezierApproximatorQuantized (double _max_d = INFINITY, unsigned int _d_bits = 0) :
+  ArcBezierApproximatorQuantized (double _max_d = GLYPHY_INFINITY, unsigned int _d_bits = 0) :
     max_d (_max_d), d_bits (_d_bits) {};
 
   protected:

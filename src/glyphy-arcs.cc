@@ -187,14 +187,14 @@ accumulate (glyphy_arc_accumulator_t *acc, const Point &p, double d)
 {
   if (Point (acc->current_point) == p)
     return;
-  if (d == INFINITY) {
+  if (d == GLYPHY_INFINITY) {
     /* Emit moveto lazily, for cleaner outlines */
     acc->need_moveto = true;
     acc->current_point = p;
     return;
   }
   if (acc->need_moveto) {
-    emit (acc, acc->current_point, INFINITY);
+    emit (acc, acc->current_point, GLYPHY_INFINITY);
     if (acc->success)
       acc->need_moveto = false;
   }
@@ -205,7 +205,7 @@ static void
 move_to (glyphy_arc_accumulator_t *acc, const Point &p)
 {
   if (!acc->num_endpoints || p != acc->current_point)
-    accumulate (acc, p, INFINITY);
+    accumulate (acc, p, GLYPHY_INFINITY);
 }
 
 static void
@@ -290,7 +290,7 @@ glyphy_arc_list_extents (const glyphy_arc_endpoint_t *endpoints,
   glyphy_extents_clear (extents);
   for (unsigned int i = 0; i < num_endpoints; i++) {
     const glyphy_arc_endpoint_t &endpoint = endpoints[i];
-    if (endpoint.d == INFINITY) {
+    if (endpoint.d == GLYPHY_INFINITY) {
       p0 = endpoint.p;
       continue;
     }

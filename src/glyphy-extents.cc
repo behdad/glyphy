@@ -26,10 +26,10 @@
 void
 glyphy_extents_clear (glyphy_extents_t *extents)
 {
-  extents->min_x =  INFINITY;
-  extents->min_y =  INFINITY;
-  extents->max_x = -INFINITY;
-  extents->max_y = -INFINITY;
+  extents->min_x =  GLYPHY_INFINITY;
+  extents->min_y =  GLYPHY_INFINITY;
+  extents->max_x = -GLYPHY_INFINITY;
+  extents->max_y = -GLYPHY_INFINITY;
 }
 
 glyphy_bool_t

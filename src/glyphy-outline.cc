@@ -71,7 +71,7 @@ winding (const glyphy_arc_endpoint_t *endpoints,
   Point p0 (0, 0);
   for (unsigned int i = 0; i < num_endpoints; i++) {
     const glyphy_arc_endpoint_t &endpoint = endpoints[i];
-    if (endpoint.d == INFINITY || endpoint.d == 0 /* arcs only, not lines */) {
+    if (endpoint.d == GLYPHY_INFINITY || endpoint.d == 0 /* arcs only, not lines */) {
       p0 = endpoint.p;
       continue;
     }
@@ -110,13 +110,13 @@ winding (const glyphy_arc_endpoint_t *endpoints,
 static int
 categorize (double v, double ref)
 {
-  return v < ref - EPSILON ? -1 : v > ref + EPSILON ? +1 : 0;
+  return v < ref - GLYPHY_EPSILON ? -1 : v > ref + GLYPHY_EPSILON ? +1 : 0;
 }
 
 static bool
 is_zero (double v)
 {
-  return fabs (v) < EPSILON;
+  return fabs (v) < GLYPHY_EPSILON;
 }
 
 static bool
@@ -190,7 +190,7 @@ even_odd (const glyphy_arc_endpoint_t *c_endpoints,
   Point p0 (0, 0);
   for (unsigned int i = 0; i < num_endpoints; i++) {
     const glyphy_arc_endpoint_t &endpoint = endpoints[i];
-    if (endpoint.d == INFINITY) {
+    if (endpoint.d == GLYPHY_INFINITY) {
       p0 = endpoint.p;
       continue;
     }
@@ -218,9 +218,9 @@ even_odd (const glyphy_arc_endpoint_t *c_endpoints,
 	 * crossing direction.
 	 */
         Pair<Vector> t = arc.tangents ();
-        if (!s0 && arc.p0.x < p.x + EPSILON)
+        if (!s0 && arc.p0.x < p.x + GLYPHY_EPSILON)
 	  count += .5 * categorize (t.first.dy, 0);
-        if (!s1 && arc.p1.x < p.x + EPSILON)
+        if (!s1 && arc.p1.x < p.x + GLYPHY_EPSILON)
 	  count += .5 * categorize (t.second.dy, 0);
 	continue;
       }
@@ -231,7 +231,7 @@ even_odd (const glyphy_arc_endpoint_t *c_endpoints,
       // Find x pos that the line segment would intersect the half-line.
       double x = arc.p0.x + (arc.p1.x - arc.p0.x) * ((p.y - arc.p0.y) / (arc.p1.y - arc.p0.y));
 
-      if (x >= p.x - EPSILON)
+      if (x >= p.x - GLYPHY_EPSILON)
 	continue; // Does not intersect halfline
 
       count++; // Add one for full crossing
@@ -258,9 +258,9 @@ even_odd (const glyphy_arc_endpoint_t *c_endpoints,
 	if (is_zero (t.second.dy))
 	  t.second.dy = -categorize (arc.p0.y, p.y);
 
-        if (!s0 && arc.p0.x < p.x + EPSILON)
+        if (!s0 && arc.p0.x < p.x + GLYPHY_EPSILON)
 	  count += .5 * categorize (t.first.dy, 0);
-        if (!s1 && arc.p1.x < p.x + EPSILON)
+        if (!s1 && arc.p1.x < p.x + GLYPHY_EPSILON)
 	  count += .5 * categorize (t.second.dy, 0);
       }
 
@@ -271,7 +271,7 @@ even_odd (const glyphy_arc_endpoint_t *c_endpoints,
       /* Solve for arc crossing line with y = p.y */
       double dy = p.y - c.y;
       double x2 = r * r - dy * dy;
-      if (x2 <= EPSILON)
+      if (x2 <= GLYPHY_EPSILON)
         continue; // Negative delta, no crossing
       double dx = sqrt (x2);
       /* There's two candidate points on the arc with the same y as the
@@ -285,7 +285,7 @@ even_odd (const glyphy_arc_endpoint_t *c_endpoints,
         /* Make sure we don't double-count endpoints that fall on the
 	 * halfline as we already accounted for those above */
         if (!POINTS_EQ (pp[i], arc.p0) && !POINTS_EQ (pp[i], arc.p1) &&
-	    pp[i].x < p.x - EPSILON && arc.wedge_contains_point (pp[i]))
+	    pp[i].x < p.x - GLYPHY_EPSILON && arc.wedge_contains_point (pp[i]))
 	  count++; // Add one for full crossing
       }
 #undef POINTS_EQ
@@ -348,7 +348,7 @@ glyphy_outline_winding_from_even_odd (glyphy_arc_endpoint_t *endpoints,
   bool ret = false;
   for (unsigned int i = 1; i < num_endpoints; i++) {
     const glyphy_arc_endpoint_t &endpoint = endpoints[i];
-    if (endpoint.d == INFINITY) {
+    if (endpoint.d == GLYPHY_INFINITY) {
       ret = ret | process_contour (endpoints + start, i - start, endpoints, num_endpoints, bool (inverse));
       start = i;
     }

@@ -126,7 +126,7 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
     Point p0 (0, 0);
     for (unsigned int i = 0; i < num_endpoints; i++) {
       const glyphy_arc_endpoint_t &endpoint = endpoints[i];
-      if (endpoint.d == INFINITY) {
+      if (endpoint.d == GLYPHY_INFINITY) {
 	p0 = endpoint.p;
 	continue;
       }
@@ -144,7 +144,7 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
     Arc arc = near_arcs[i];
 
     if (i == 0 || p1 != arc.p0) {
-      glyphy_arc_endpoint_t endpoint = {arc.p0, INFINITY};
+      glyphy_arc_endpoint_t endpoint = {arc.p0, GLYPHY_INFINITY};
       near_endpoints.push_back (endpoint);
       p1 = arc.p0;
     }
