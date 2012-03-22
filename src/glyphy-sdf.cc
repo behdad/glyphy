@@ -71,11 +71,11 @@ glyphy_sdf_from_arc_list (const glyphy_arc_endpoint_t *endpoints,
 	double old_ext_dist = closest_arc.extended_dist (c);
 	double new_ext_dist = arc.extended_dist (c);
 
-	double ext_dist = abs (new_ext_dist) <= abs (old_ext_dist) ?
+	double ext_dist = fabs (new_ext_dist) <= fabs (old_ext_dist) ?
 			  old_ext_dist : new_ext_dist;
 
 	/* For emboldening and stuff: */
-	// min_dist = abs (ext_dist);
+	// min_dist = fabs (ext_dist);
 	side = ext_dist >= 0 ? +1 : -1;
       }
     }
