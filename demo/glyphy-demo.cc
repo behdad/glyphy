@@ -23,6 +23,7 @@
 #include "glyphy-demo.h"
 #include "demo-buffer.h"
 #include "demo-font.h"
+#include "trackball.h"
 
 
 typedef struct {
@@ -247,6 +248,45 @@ special_func (int key, int x, int y)
   glutPostRedisplay ();
 }
 
+
+static void
+mouse_func (int button, int state, int x, int y)
+{
+  switch (button)
+  {
+    case GLUT_LEFT_BUTTON:
+      switch (state) {
+        case GLUT_DOWN:
+	  break;
+        case GLUT_UP:
+	  break;
+      }
+      break;
+
+    case GLUT_RIGHT_BUTTON:
+      break;
+
+    case GLUT_MIDDLE_BUTTON:
+      break;
+
+#if defined(GLUT_WHEEL_UP)
+
+    case GLUT_WHEEL_UP:
+      break;
+
+    case GLUT_WHEEL_DOWN:
+      break;
+
+#endif
+  }
+}
+
+static void
+motion_func (int x, int y)
+{
+}
+
+
 static void
 display_func (void)
 {
@@ -303,6 +343,8 @@ main (int argc, char** argv)
   glutDisplayFunc (display_func);
   glutKeyboardFunc (keyboard_func);
   glutSpecialFunc (special_func);
+  glutMouseFunc (mouse_func);
+  glutMotionFunc (motion_func);
 
   if (GLEW_OK != glewInit ())
     die ("Failed to initialize GL; something really broken");
