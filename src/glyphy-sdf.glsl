@@ -80,7 +80,7 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
     if (glyphy_arc_wedge_contains (a, p))
     {
       float sdist = glyphy_arc_wedge_signed_dist (a, p);
-      float udist = abs (sdist) - GLYPHY_EPSILON;
+      float udist = abs (sdist) * (1 - GLYPHY_EPSILON);
       if (udist <= min_dist) {
 	min_dist = udist;
 	side = sdist <= 0 ? -1 : +1;
