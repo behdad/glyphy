@@ -64,7 +64,7 @@ glyphy_sdf_from_arc_list (const glyphy_arc_endpoint_t *endpoints,
         min_dist = udist;
 	side = 0; /* unsure */
 	closest_arc = arc;
-      } else if (side == 0 && fabs (udist - min_dist) < 1) {
+      } else if (side == 0 && udist == min_dist) {
 	/* If this new distance is the same as the current minimum,
 	 * compare extended distances.  Take the sign from the arc
 	 * with larger extended distance. */
