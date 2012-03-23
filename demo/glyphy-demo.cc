@@ -64,6 +64,7 @@ typedef struct {
   int buttons;
   bool dragged;
   double beginx, beginy;/* position of drag start */
+  double lastx, lasty;	/* last motion position */
   double dx,dy;		/* TODO REMOVE */
   float quat[4];	/* orientation of object */
   float dquat[4];
@@ -82,6 +83,7 @@ demo_view_init (demo_view_t *vu)
   vu->buttons = 0;
   vu->dragged = false;
   vu->beginx = vu->beginy = 0;
+  vu->lastx = vu->lastx = 0;
   vu->dx = vu->dy = 0;
 
   demo_view_reset (vu);
@@ -293,8 +295,8 @@ special_func (int key, int x, int y)
 static void
 mouse_func (int button, int state, int x, int y)
 {
-  vu->beginx = x;
-  vu->beginy = y;
+  vu->beginx = vu->lastx = x;
+  vu->beginy = vu->lasty = y;
   vu->dragged = false;
 
   if (state == GLUT_DOWN)
@@ -309,10 +311,6 @@ mouse_func (int button, int state, int x, int y)
         case GLUT_DOWN:
 	  //if (vu->animate)
 	  //  glyphy_demo_animation_toggle ();
-
-	  /* beginning of drag, reset mouse position */
-	  vu->beginx = x;
-	  vu->beginy = y;
 	  break;
         case GLUT_UP:
 	  //if (!vu->animate)
@@ -364,21 +362,22 @@ motion_func (int x, int y)
 
   if (vu->buttons & (1 << GLUT_LEFT_BUTTON))
   {
-    vu->translate.x += 2 * (x - vu->beginx) / width  / vu->scale;
-    vu->translate.y -= 2 * (y - vu->beginy) / height / vu->scale;
+    /* translate */
+    vu->translate.x += 2 * (x - vu->lastx) / width  / vu->scale;
+    vu->translate.y -= 2 * (y - vu->lasty) / height / vu->scale;
   }
 
   if (vu->buttons & (1 << GLUT_RIGHT_BUTTON))
   {
     /* rotate */
     trackball (vu->dquat,
-	       (2.0*vu->beginx -          width) / width,
-	       (        height - 2.0*vu->beginy) / height,
-	       (         2.0*x -          width) / width,
-	       (        height -          2.0*y) / height );
+	       (2.0*vu->lastx -         width) / width,
+	       (       height - 2.0*vu->lasty) / height,
+	       (        2.0*x -         width) / width,
+	       (       height -         2.0*y) / height );
 
-    vu->dx = x - vu->beginx;
-    vu->dy = y - vu->beginy;
+    vu->dx = x - vu->lastx;
+    vu->dy = y - vu->lasty;
 
     add_quats (vu->dquat, vu->quat, vu->quat);
   }
@@ -386,11 +385,14 @@ motion_func (int x, int y)
   if (vu->buttons & (1 << GLUT_MIDDLE_BUTTON))
   {
     /* scale */
-    vu->scale *= 1 - ((y - vu->beginy) / height) * 5;
+    double factor = 1 - ((y - vu->lasty) / height) * 5;
+    vu->scale *= factor;
+    vu->translate.x += (2. * vu->beginx / width  - 1) / vu->scale * (1 - factor);
+    vu->translate.y -= (2. * vu->beginy / height - 1) / vu->scale * (1 - factor);
   }
 
-  vu->beginx = x;
-  vu->beginy = y;
+  vu->lastx = x;
+  vu->lasty = y;
 
   glutPostRedisplay ();
 }
