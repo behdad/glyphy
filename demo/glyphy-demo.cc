@@ -84,6 +84,7 @@ demo_state_setup (demo_state_t *st)
 typedef struct {
   int buttons;
   bool dragged;
+  bool click_handled;
   double beginx, beginy;
   double lastx, lasty, lastt;
   double dx,dy, dt;
@@ -114,15 +115,16 @@ demo_view_fini (demo_view_t *vu)
 {
 }
 
+#define ANIMATION_SPEED .01
 static void
 demo_view_reset (demo_view_t *vu)
 {
-  vu->quat[0] = vu->quat[1] = vu->quat[2] = 0.0; vu->quat[3] = 1.0;
-  vu->dquat[0] = vu->dquat[1] = vu->dquat[2] = 0.0; vu->dquat[3] = 1.0;
   vu->perspective = 30;
   vu->scale = 1;
   vu->translate.x = vu->translate.y = 0;
   trackball (vu->quat , 0.0, 0.0, 0.0, 0.0);
+  float a[3] = {0, 0, 1};
+  axis_to_quat (a, ANIMATION_SPEED, vu->dquat);
 }
 
 static demo_state_t st[1];
@@ -149,7 +151,7 @@ current_time (void)
 static void
 next_frame (void)
 {
-  add_quats(vu->dquat, vu->quat, vu->quat);
+  add_quats (vu->dquat, vu->quat, vu->quat);
 
   vu->num_frames++;
   glutPostRedisplay ();
@@ -366,9 +368,10 @@ special_func (int key, int x, int y)
 static void
 mouse_func (int button, int state, int x, int y)
 {
-  if (state == GLUT_DOWN)
+  if (state == GLUT_DOWN) {
     vu->buttons |= (1 << button);
-  else
+    vu->click_handled = false;
+  } else
     vu->buttons &= !(1 << button);
 
   switch (button)
@@ -376,21 +379,23 @@ mouse_func (int button, int state, int x, int y)
     case GLUT_RIGHT_BUTTON:
       switch (state) {
         case GLUT_DOWN:
-	  if (vu->animate)
+	  if (vu->animate) {
 	    demo_view_animation_toggle (vu);
+	    vu->click_handled = true;
+	  }
 	  break;
         case GLUT_UP:
 	  if (!vu->animate)
 	    {
-	      double speed = hypot (vu->dx, vu->dy) / vu->dt;
-	      if (speed > 0.1)
+	      if (!vu->dragged && !vu->click_handled)
 		demo_view_animation_toggle (vu);
-	      else {
-		vu->dquat[0] = vu->dquat[1] = vu->dquat[2] = 0.0; vu->dquat[3] = 1.0;
+	      else if (vu->dt) {
+		double speed = hypot (vu->dx, vu->dy) / vu->dt;
+		if (speed > 0.1)
+		  demo_view_animation_toggle (vu);
 	      }
+	      vu->dx = vu->dy = vu->dt = 0;
 	    }
-	  vu->dx = 0.0;
-	  vu->dy = 0.0;
 	  break;
       }
       break;
