@@ -151,6 +151,7 @@ current_time (void)
 static void
 next_frame (void)
 {
+  // TODO rotate depending on time elapsed (current_time () - vu->last_frame_time)
   add_quats (vu->dquat, vu->quat, vu->quat);
 
   vu->num_frames++;
