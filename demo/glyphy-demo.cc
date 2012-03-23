@@ -20,12 +20,13 @@
 #include <config.h>
 #endif
 
-#include "glyphy-demo.h"
 #include "demo-buffer.h"
 #include "demo-font.h"
 extern "C" {
 #include "trackball.h"
 }
+
+#include <sys/time.h>
 
 
 typedef struct {
@@ -59,53 +60,6 @@ demo_state_fini (demo_state_t *st)
   glDeleteProgram (st->program);
 }
 
-
-typedef struct {
-  int buttons;
-  bool dragged;
-  double beginx, beginy;/* position of drag start */
-  double lastx, lasty;	/* last motion position */
-  double dx,dy;		/* TODO REMOVE */
-  float quat[4];	/* orientation of object */
-  float dquat[4];
-  double scale;
-  glyphy_point_t translate;
-  double phase_offset;
-
-  float perspective;    /* perpective */
-} demo_view_t;
-
-static void demo_view_reset (demo_view_t *vu);
-
-static void
-demo_view_init (demo_view_t *vu)
-{
-  vu->buttons = 0;
-  vu->dragged = false;
-  vu->beginx = vu->beginy = 0;
-  vu->lastx = vu->lastx = 0;
-  vu->dx = vu->dy = 0;
-
-  demo_view_reset (vu);
-}
-
-static void
-demo_view_fini (demo_view_t *vu)
-{
-}
-
-static void
-demo_view_reset (demo_view_t *vu)
-{
-  vu->quat[0] = vu->quat[1] = vu->quat[2] = 0.0; vu->quat[3] = 1.0;
-  vu->dquat[0] = vu->dquat[1] = vu->dquat[2] = 0.0; vu->dquat[3] = 1.0;
-  vu->perspective = 30;
-  vu->scale = 1;
-  vu->translate.x = vu->translate.y = 0;
-  vu->phase_offset = glyphy_demo_animation_get_phase ();
-  trackball (vu->quat , 0.0, 0.0, 0.0, 0.0);
-}
-
 static void
 set_uniform (GLuint program, const char *name, double *p, double value)
 {
@@ -126,6 +80,51 @@ demo_state_setup (demo_state_t *st)
   SET_UNIFORM (u_gamma_adjust, st->u_gamma_adjust);
 }
 
+
+typedef struct {
+  int buttons;
+  bool dragged;
+  double beginx, beginy;
+  double lastx, lasty, lastt;
+  double dx,dy, dt;
+  float quat[4];
+  float dquat[4];
+  double scale;
+  glyphy_point_t translate;
+  float perspective;    /* perpective */
+
+  bool animate;
+  int num_frames;
+  long fps_start_time;
+  long last_frame_time;
+  bool has_fps_timer;
+} demo_view_t;
+
+static void demo_view_reset (demo_view_t *vu);
+
+static void
+demo_view_init (demo_view_t *vu)
+{
+  memset (vu, 0, sizeof (*vu));
+  demo_view_reset (vu);
+}
+
+static void
+demo_view_fini (demo_view_t *vu)
+{
+}
+
+static void
+demo_view_reset (demo_view_t *vu)
+{
+  vu->quat[0] = vu->quat[1] = vu->quat[2] = 0.0; vu->quat[3] = 1.0;
+  vu->dquat[0] = vu->dquat[1] = vu->dquat[2] = 0.0; vu->dquat[3] = 1.0;
+  vu->perspective = 30;
+  vu->scale = 1;
+  vu->translate.x = vu->translate.y = 0;
+  trackball (vu->quat , 0.0, 0.0, 0.0, 0.0);
+}
+
 static demo_state_t st[1];
 static demo_view_t vu[1];
 static demo_buffer_t *buffer;
@@ -136,6 +135,78 @@ static glyphy_bool_t srgb = false;
 
 #define WINDOW_W 700
 #define WINDOW_H 700
+
+/* return current time in milli-seconds */
+static long
+current_time (void)
+{
+   struct timeval tv;
+   struct timezone tz;
+   (void) gettimeofday(&tv, &tz);
+   return (long) tv.tv_sec * 1000 + (long) tv.tv_usec / 1000;
+}
+
+static void
+next_frame (void)
+{
+  add_quats(vu->dquat, vu->quat, vu->quat);
+
+  vu->num_frames++;
+  glutPostRedisplay ();
+}
+
+static void
+timed_step (int ms)
+{
+  if (vu->animate) {
+    glutTimerFunc (ms, timed_step, ms);
+    next_frame ();
+  }
+}
+
+static void
+idle_step (void)
+{
+  if (vu->animate) {
+    glutIdleFunc (idle_step);
+    next_frame ();
+  }
+}
+
+static void
+print_fps (int ms)
+{
+  if (vu->animate) {
+    glutTimerFunc (ms, print_fps, ms);
+    long t = current_time ();
+    printf ("%gfps\n", vu->num_frames * 1000. / (t - vu->fps_start_time));
+    vu->num_frames = 0;
+    vu->fps_start_time = t;
+  } else
+    vu->has_fps_timer = false;
+}
+
+static void
+start_animation (demo_view_t *vu)
+{
+  vu->num_frames = 0;
+  vu->last_frame_time = vu->fps_start_time = current_time ();
+  //glutTimerFunc (1000/60, timed_step, 1000/60);
+  glutIdleFunc (idle_step);
+  if (!vu->has_fps_timer) {
+    vu->has_fps_timer = true;
+    glutTimerFunc (5000, print_fps, 5000);
+  }
+}
+
+static void
+demo_view_animation_toggle (demo_view_t *vu)
+{
+  vu->animate = !vu->animate;
+  if (vu->animate)
+    start_animation (vu);
+}
+
 
 static void
 v_sync_set (glyphy_bool_t sync)
@@ -201,7 +272,7 @@ keyboard_func (unsigned char key, int x, int y)
       break;
 
     case ' ':
-      glyphy_demo_animation_toggle ();
+      demo_view_animation_toggle (vu);
       break;
     case 'v':
       v_sync_set (!vsync);
@@ -295,10 +366,6 @@ special_func (int key, int x, int y)
 static void
 mouse_func (int button, int state, int x, int y)
 {
-  vu->beginx = vu->lastx = x;
-  vu->beginy = vu->lasty = y;
-  vu->dragged = false;
-
   if (state == GLUT_DOWN)
     vu->buttons |= (1 << button);
   else
@@ -306,18 +373,18 @@ mouse_func (int button, int state, int x, int y)
 
   switch (button)
   {
-    case GLUT_LEFT_BUTTON:
+    case GLUT_RIGHT_BUTTON:
       switch (state) {
         case GLUT_DOWN:
-	  //if (vu->animate)
-	  //  glyphy_demo_animation_toggle ();
+	  if (vu->animate)
+	    demo_view_animation_toggle (vu);
 	  break;
         case GLUT_UP:
-	  //if (!vu->animate)
+	  if (!vu->animate)
 	    {
-#define ANIMATE_THRESHOLD 25.0
-	      if (((vu->dx*vu->dx + vu->dy*vu->dy) > ANIMATE_THRESHOLD))
-		;//glyphy_demo_animation_toggle ();
+	      double speed = hypot (vu->dx, vu->dy) / vu->dt;
+	      if (speed > 0.1)
+		demo_view_animation_toggle (vu);
 	      else {
 		vu->dquat[0] = vu->dquat[1] = vu->dquat[2] = 0.0; vu->dquat[3] = 1.0;
 	      }
@@ -326,12 +393,6 @@ mouse_func (int button, int state, int x, int y)
 	  vu->dy = 0.0;
 	  break;
       }
-      break;
-
-    case GLUT_RIGHT_BUTTON:
-      break;
-
-    case GLUT_MIDDLE_BUTTON:
       break;
 
 #if defined(GLUT_WHEEL_UP)
@@ -346,6 +407,10 @@ mouse_func (int button, int state, int x, int y)
 
 #endif
   }
+
+  vu->beginx = vu->lastx = x;
+  vu->beginy = vu->lasty = y;
+  vu->dragged = false;
 
   glutPostRedisplay ();
 }
@@ -378,6 +443,7 @@ motion_func (int x, int y)
 
     vu->dx = x - vu->lastx;
     vu->dy = y - vu->lasty;
+    vu->dt = current_time () - vu->lastt;
 
     add_quats (vu->dquat, vu->quat, vu->quat);
   }
@@ -393,6 +459,7 @@ motion_func (int x, int y)
 
   vu->lastx = x;
   vu->lasty = y;
+  vu->lastt = current_time ();
 
   glutPostRedisplay ();
 }
@@ -406,11 +473,8 @@ display_func (void)
   GLuint width  = viewport[2];
   GLuint height = viewport[3];
 
-  double phase = glyphy_demo_animation_get_phase () - vu->phase_offset;
-
   glMatrixMode (GL_MODELVIEW);
   glLoadIdentity ();
-
 
   // View transform
   glScaled (vu->scale, vu->scale, 1);
@@ -422,9 +486,6 @@ display_func (void)
   float m[4][4];
   build_rotmatrix (m, vu->quat);
   glMultMatrixf(&m[0][0]);
-
-  // Animation rotate
-  glRotated (phase / 1000. * 360 / 10/*seconds*/, 0, 0, 1);
 
   // Fix 'up'
   glScaled (1, -1, 1);
