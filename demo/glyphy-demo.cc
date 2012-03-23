@@ -84,21 +84,27 @@ demo_state_setup (demo_state_t *st)
 typedef struct {
   demo_state_t *st;
 
+  /* Output */
+  GLint vsync;
+  glyphy_bool_t srgb;
+
+  /* Mouse handling */
   int buttons;
   int modifiers;
-
   bool dragged;
   bool click_handled;
   double beginx, beginy;
   double lastx, lasty, lastt;
   double dx,dy, dt;
 
+  /* Transformation */
   float quat[4];
   float dquat[4];
   double scale;
   glyphy_point_t translate;
   double perspective;
 
+  /* Animation */
   bool animate;
   int num_frames;
   long fps_start_time;
@@ -156,9 +162,6 @@ demo_view_scale_perspective (demo_view_t *vu, double factor)
 static demo_state_t st[1];
 static demo_view_t vu[1];
 static demo_buffer_t *buffer;
-/* Viewer settings */
-static GLint vsync = 0;
-static glyphy_bool_t srgb = false;
 
 #define WINDOW_W 700
 #define WINDOW_H 700
@@ -228,7 +231,7 @@ start_animation (demo_view_t *vu)
 }
 
 static void
-demo_view_animation_toggle (demo_view_t *vu)
+demo_view_toggle_animation (demo_view_t *vu)
 {
   vu->animate = !vu->animate;
   if (vu->animate)
@@ -237,32 +240,32 @@ demo_view_animation_toggle (demo_view_t *vu)
 
 
 static void
-v_sync_set (glyphy_bool_t sync)
+demo_view_toggle_vsync (demo_view_t *vu)
 {
-  vsync = sync ? 1 : 0;
-  printf ("Setting vsync %s.\n", vsync ? "on" : "off");
+  vu->vsync = !vu->vsync;
+  printf ("Setting vsync %s.\n", vu->vsync ? "on" : "off");
 #if defined(__APPLE__)
-  CGLSetParameter(CGLGetCurrentContext(), kCGLCPSwapInterval, &sync);
+  CGLSetParameter(CGLGetCurrentContext(), kCGLCPSwapInterval, &vu->vsync);
 #elif defined(_WIN32)
   if (glewIsSupported ("WGL_EXT_swap_control"))
-    wglSwapIntervalEXT (vsync);
+    wglSwapIntervalEXT (vu->vsync);
   else
     printf ("WGL_EXT_swal_control not supported; failed to set vsync\n");
 #else
   if (glxewIsSupported ("GLX_SGI_swap_control"))
-    glXSwapIntervalSGI (vsync);
+    glXSwapIntervalSGI (vu->vsync);
   else
     printf ("GLX_SGI_swap_control not supported; failed to set vsync\n");
 #endif
 }
 
 static void
-v_srgb_set (glyphy_bool_t _srgb)
+demo_view_toggle_srgb (demo_view_t *vu)
 {
-  srgb = _srgb;
-  printf ("Setting sRGB framebuffer %s.\n", srgb ? "on" : "off");
+  vu->srgb = !vu->srgb;
+  printf ("Setting sRGB framebuffer %s.\n", vu->srgb ? "on" : "off");
   if (glewIsSupported ("GL_ARB_framebuffer_sRGB") || glewIsSupported ("GL_EXT_framebuffer_sRGB")) {
-    if (srgb)
+    if (vu->srgb)
       glEnable (GL_FRAMEBUFFER_SRGB);
     else
       glDisable (GL_FRAMEBUFFER_SRGB);
@@ -300,10 +303,10 @@ keyboard_func (unsigned char key, int x, int y)
       break;
 
     case ' ':
-      demo_view_animation_toggle (vu);
+      demo_view_toggle_animation (vu);
       break;
     case 'v':
-      v_sync_set (!vsync);
+      demo_view_toggle_vsync (vu);
       break;
 
     case 'f':
@@ -330,7 +333,7 @@ keyboard_func (unsigned char key, int x, int y)
       demo_view_scale_gamma_adjust (vu, 1. / STEP);
       break;
     case 'c':
-      v_srgb_set (!srgb);
+      demo_view_toggle_srgb (vu);
       break;
 
     case '=':
@@ -407,7 +410,7 @@ mouse_func (int button, int state, int x, int y)
       switch (state) {
         case GLUT_DOWN:
 	  if (vu->animate) {
-	    demo_view_animation_toggle (vu);
+	    demo_view_toggle_animation (vu);
 	    vu->click_handled = true;
 	  }
 	  break;
@@ -415,11 +418,11 @@ mouse_func (int button, int state, int x, int y)
 	  if (!vu->animate)
 	    {
 	      if (!vu->dragged && !vu->click_handled)
-		demo_view_animation_toggle (vu);
+		demo_view_toggle_animation (vu);
 	      else if (vu->dt) {
 		double speed = hypot (vu->dx, vu->dy) / vu->dt;
 		if (speed > 0.1)
-		  demo_view_animation_toggle (vu);
+		  demo_view_toggle_animation (vu);
 	      }
 	      vu->dx = vu->dy = vu->dt = 0;
 	    }
@@ -617,8 +620,8 @@ main (int argc, char** argv)
   demo_buffer_add_text (buffer, text, font, 1, top_left);
   demo_font_print_stats (font);
 
-  v_sync_set (true);
-  v_srgb_set (true);
+  demo_view_toggle_vsync (vu);
+  demo_view_toggle_srgb (vu);
 
   demo_state_setup (st);
   glutMainLoop ();
