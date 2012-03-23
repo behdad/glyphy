@@ -65,22 +65,20 @@ typedef struct {
   float dx,dy;
   float quat[4];        /* orientation of object */
   float dquat[4];
+  double scale;
+  glyphy_point_t translate;
+  double phase_offset;
 
   float zoom;           /* field of view in degrees */
   float perspective;    /* perpective */
 } demo_view_t;
 
+static void demo_view_reset (demo_view_t *vu);
+
 static void
 demo_view_init (demo_view_t *vu)
 {
-  vu->beginx = vu->beginy = 0;
-  vu->dx = vu->dy = 0;
-  vu->quat[0] = vu->quat[1] = vu->quat[2] = 0.0; vu->quat[3] = 1.0;
-  vu->dquat[0] = vu->dquat[1] = vu->dquat[2] = 0.0; vu->dquat[3] = 1.0;
-  vu->zoom = 45;
-  vu->perspective = 30;
-
-  trackball (vu->quat , 0.0, 0.0, 0.0, 0.0);
+  demo_view_reset (vu);
 }
 
 static void
@@ -88,6 +86,20 @@ demo_view_fini (demo_view_t *vu)
 {
 }
 
+static void
+demo_view_reset (demo_view_t *vu)
+{
+  vu->beginx = vu->beginy = 0;
+  vu->dx = vu->dy = 0;
+  vu->quat[0] = vu->quat[1] = vu->quat[2] = 0.0; vu->quat[3] = 1.0;
+  vu->dquat[0] = vu->dquat[1] = vu->dquat[2] = 0.0; vu->dquat[3] = 1.0;
+  vu->zoom = 45;
+  vu->perspective = 30;
+  vu->scale = 1;
+  vu->translate.x = vu->translate.y = 0;
+  vu->phase_offset = glyphy_demo_animation_get_phase ();
+  trackball (vu->quat , 0.0, 0.0, 0.0, 0.0);
+}
 
 static void
 set_uniform (GLuint program, const char *name, double *p, double value)
@@ -114,9 +126,6 @@ static demo_view_t vu[1];
 static demo_buffer_t *buffer;
 /* Viewer settings */
 static double content_scale;
-static double view_scale = 1.0;
-static glyphy_point_t translate = {0, 0};
-static double phase_offset = 0;
 static GLint vsync = 0;
 static glyphy_bool_t srgb = false;
 
@@ -221,32 +230,29 @@ keyboard_func (unsigned char key, int x, int y)
       break;
 
     case '=':
-      view_scale *= STEP;
-      printf ("Setting scale to %g; font size is %.1f now.\n", view_scale, view_scale * content_scale);
+      vu->scale *= STEP;
+      printf ("Setting scale to %g; font size is %.1f now.\n", vu->scale, vu->scale * content_scale);
       break;
     case '-':
-      view_scale /= STEP;
-      printf ("Setting scale to %g; font size is %.2f now.\n", view_scale, view_scale * content_scale);
+      vu->scale /= STEP;
+      printf ("Setting scale to %g; font size is %.2f now.\n", vu->scale, vu->scale * content_scale);
       break;
 
     case 'k': 
-      translate.y -= .1;
+      vu->translate.y -= .1;
       break;
     case 'j':
-      translate.y += .1;
+      vu->translate.y += .1;
       break;
     case 'h':
-      translate.x += .1;
+      vu->translate.x += .1;
       break;
     case 'l':
-      translate.x -= .1;
+      vu->translate.x -= .1;
       break;
 
     case 'r':
-      view_scale = 1.;
-      translate.x = translate.y = 0.;
-      phase_offset = glyphy_demo_animation_get_phase ();
-      vu->quat[0] = vu->quat[1] = vu->quat[2] = 0.0; vu->quat[3] = 1.0;
+      demo_view_reset (vu);
       glutReshapeWindow (WINDOW_W, WINDOW_H);
       break;
 
@@ -263,16 +269,16 @@ special_func (int key, int x, int y)
   switch (key)
   {
     case GLUT_KEY_UP:
-      translate.y -= .1;
+      vu->translate.y -= .1;
       break;
     case GLUT_KEY_DOWN:
-      translate.y += .1;
+      vu->translate.y += .1;
       break;
     case GLUT_KEY_LEFT:
-      translate.x += .1;
+      vu->translate.x += .1;
       break;
     case GLUT_KEY_RIGHT:
-      translate.x -= .1;
+      vu->translate.x -= .1;
       break;
 
     default:
@@ -376,23 +382,23 @@ display_func (void)
   GLuint width  = viewport[2];
   GLuint height = viewport[3];
 
-  double phase = glyphy_demo_animation_get_phase () - phase_offset;
+  double phase = glyphy_demo_animation_get_phase () - vu->phase_offset;
 
   glMatrixMode (GL_MODELVIEW);
   glLoadIdentity ();
 
   glScaled (1., -1., 1);
 
+  // View transform
   float m[4][4];
   build_rotmatrix (m, vu->quat);
   glMultMatrixf(&m[0][0]);
+  glTranslated (vu->translate.x, -vu->translate.y, 0);
 
-  // Translate translate
-  glTranslated (translate.x, -translate.y, 0);
   // Screen coordinates
   glScaled (2. / width, 2. / height, 1);
   // View scale
-  glScaled (view_scale, view_scale, 1);
+  glScaled (vu->scale, vu->scale, 1);
   // Animation rotate
   glRotated (phase / 1000. * 360 / 10/*seconds*/, 0, 0, 1);
   // Buffer best-fit
