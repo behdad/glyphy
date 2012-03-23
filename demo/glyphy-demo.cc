@@ -246,6 +246,7 @@ keyboard_func (unsigned char key, int x, int y)
       view_scale = 1.;
       translate.x = translate.y = 0.;
       phase_offset = glyphy_demo_animation_get_phase ();
+      vu->quat[0] = vu->quat[1] = vu->quat[2] = 0.0; vu->quat[3] = 1.0;
       glutReshapeWindow (WINDOW_W, WINDOW_H);
       break;
 
