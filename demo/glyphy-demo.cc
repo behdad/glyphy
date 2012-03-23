@@ -240,16 +240,16 @@ keyboard_func (unsigned char key, int x, int y)
       break;
 
     case 'k': 
-      vu->translate.y -= .1;
+      vu->translate.y -= .1 / vu->scale;
       break;
     case 'j':
-      vu->translate.y += .1;
+      vu->translate.y += .1 / vu->scale;
       break;
     case 'h':
-      vu->translate.x += .1;
+      vu->translate.x += .1 / vu->scale;
       break;
     case 'l':
-      vu->translate.x -= .1;
+      vu->translate.x -= .1 / vu->scale;
       break;
 
     case 'r':
@@ -270,16 +270,16 @@ special_func (int key, int x, int y)
   switch (key)
   {
     case GLUT_KEY_UP:
-      vu->translate.y -= .1;
+      vu->translate.y -= .1 / vu->scale;
       break;
     case GLUT_KEY_DOWN:
-      vu->translate.y += .1;
+      vu->translate.y += .1 / vu->scale;
       break;
     case GLUT_KEY_LEFT:
-      vu->translate.x += .1;
+      vu->translate.x += .1 / vu->scale;
       break;
     case GLUT_KEY_RIGHT:
-      vu->translate.x -= .1;
+      vu->translate.x -= .1 / vu->scale;
       break;
 
     default:
@@ -364,8 +364,8 @@ motion_func (int x, int y)
 
   if (vu->buttons & (1 << GLUT_LEFT_BUTTON))
   {
-    vu->translate.x += 2 * (x - vu->beginx) / width;
-    vu->translate.y -= 2 * (y - vu->beginy) / height;
+    vu->translate.x += 2 * (x - vu->beginx) / width  / vu->scale;
+    vu->translate.y -= 2 * (y - vu->beginy) / height / vu->scale;
   }
 
   if (vu->buttons & (1 << GLUT_RIGHT_BUTTON))
@@ -411,6 +411,7 @@ display_func (void)
 
 
   // View transform
+  glScaled (vu->scale, vu->scale, 1);
   glTranslated (vu->translate.x, vu->translate.y, 0);
   float m[4][4];
   build_rotmatrix (m, vu->quat);
@@ -420,8 +421,6 @@ display_func (void)
   glScaled (1., -1., 1);
   // Screen coordinates
   glScaled (2. / width, 2. / height, 1);
-  // View scale
-  glScaled (vu->scale, vu->scale, 1);
   // Animation rotate
   glRotated (phase / 1000. * 360 / 10/*seconds*/, 0, 0, 1);
   // Buffer best-fit
