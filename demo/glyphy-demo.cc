@@ -400,10 +400,10 @@ display_func (void)
 
 
   // View transform
+  glTranslated (vu->translate.x, vu->translate.y, 0);
   float m[4][4];
   build_rotmatrix (m, vu->quat);
   glMultMatrixf(&m[0][0]);
-  glTranslated (vu->translate.x, vu->translate.y, 0);
 
   // Fix 'up'
   glScaled (1., -1., 1);
