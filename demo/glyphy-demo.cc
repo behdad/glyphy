@@ -427,7 +427,7 @@ display_func (void)
   // Buffer best-fit
   glyphy_extents_t extents;
   demo_buffer_extents (buffer, &extents);
-  content_scale = .9 * std::min (width / (extents.max_x - extents.min_x),
+  content_scale = .9 * std::min (width  / (extents.max_x - extents.min_x),
 				 height / (extents.max_y - extents.min_y));
   glScaled (content_scale, content_scale, 1);
   // Center buffer
