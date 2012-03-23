@@ -223,7 +223,7 @@ current_time (void)
 }
 
 static void
-next_frame (void)
+next_frame (demo_view_t *vu)
 {
   // TODO rotate depending on time elapsed (current_time () - vu->last_frame_time)
   add_quats (vu->dquat, vu->quat, vu->quat);
@@ -237,7 +237,7 @@ timed_step (int ms)
 {
   if (vu->animate) {
     glutTimerFunc (ms, timed_step, ms);
-    next_frame ();
+    next_frame (vu);
   }
 }
 
@@ -246,7 +246,7 @@ idle_step (void)
 {
   if (vu->animate) {
     glutIdleFunc (idle_step);
-    next_frame ();
+    next_frame (vu);
   }
 }
 
