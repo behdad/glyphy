@@ -173,6 +173,38 @@ demo_view_translate (demo_view_t *vu, double dx, double dy)
 }
 
 
+static void
+demo_view_apply_transform (demo_view_t *vu)
+{
+  int viewport[4];
+  glGetIntegerv (GL_VIEWPORT, viewport);
+  GLint width  = viewport[2];
+  GLint height = viewport[3];
+
+  // View transform
+  glScaled (vu->scale, vu->scale, 1);
+  glTranslated (vu->translate.x, vu->translate.y, 0);
+
+  // Perspective
+  {
+    double d = std::max (width, height);
+    double near = d / vu->perspective;
+    double far = near + d;
+    double factor = near / (2 * near + d);
+    glFrustum (-width * factor, width * factor, -height * factor, height * factor, near, far);
+    glTranslated (0, 0, -(near + d * .5));
+  }
+
+  // Rotate
+  float m[4][4];
+  build_rotmatrix (m, vu->quat);
+  glMultMatrixf(&m[0][0]);
+
+  // Fix 'up'
+  glScaled (1, -1, 1);
+}
+
+
 static demo_state_t st[1];
 static demo_view_t vu[1];
 static demo_buffer_t *buffer;
@@ -551,26 +583,7 @@ display_func (void)
   glMatrixMode (GL_MODELVIEW);
   glLoadIdentity ();
 
-  // View transform
-  glScaled (vu->scale, vu->scale, 1);
-  glTranslated (vu->translate.x, vu->translate.y, 0);
-
-  // Perspective
-  {
-    double d = std::max (width, height);
-    double near = d / vu->perspective;
-    double far = near + d;
-    double factor = near / (2 * near + d);
-    glFrustum (-width * factor, width * factor, -height * factor, height * factor, near, far);
-    glTranslated (0, 0, -(near + d * .5));
-  }
-
-  float m[4][4];
-  build_rotmatrix (m, vu->quat);
-  glMultMatrixf(&m[0][0]);
-
-  // Fix 'up'
-  glScaled (1, -1, 1);
+  demo_view_apply_transform (vu);
 
   // Buffer best-fit
   glyphy_extents_t extents;
