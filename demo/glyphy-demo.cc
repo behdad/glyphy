@@ -83,16 +83,19 @@ demo_state_setup (demo_state_t *st)
 
 typedef struct {
   int buttons;
+  int modifiers;
+
   bool dragged;
   bool click_handled;
   double beginx, beginy;
   double lastx, lasty, lastt;
   double dx,dy, dt;
+
   float quat[4];
   float dquat[4];
   double scale;
   glyphy_point_t translate;
-  float perspective;    /* perpective */
+  float perspective;    /* unused for now */
 
   bool animate;
   int num_frames;
@@ -374,6 +377,7 @@ mouse_func (int button, int state, int x, int y)
     vu->click_handled = false;
   } else
     vu->buttons &= !(1 << button);
+  vu->modifiers = glutGetModifiers ();
 
   switch (button)
   {
@@ -433,9 +437,18 @@ motion_func (int x, int y)
 
   if (vu->buttons & (1 << GLUT_LEFT_BUTTON))
   {
-    /* translate */
-    vu->translate.x += 2 * (x - vu->lastx) / width  / vu->scale;
-    vu->translate.y -= 2 * (y - vu->lasty) / height / vu->scale;
+    if (vu->modifiers & GLUT_ACTIVE_CTRL) {
+      /* adjust contrast/gamma */
+      double factor;
+      factor = 1 - ((y - vu->lasty) / height) * 3;
+      SET_UNIFORM (u_gamma_adjust, st->u_gamma_adjust * factor);
+      factor = 1 - ((x - vu->lastx) / width) * 3;
+      SET_UNIFORM (u_contrast, st->u_contrast / factor);
+    } else {
+      /* translate */
+      vu->translate.x += 2 * (x - vu->lastx) / width  / vu->scale;
+      vu->translate.y -= 2 * (y - vu->lasty) / height / vu->scale;
+    }
   }
 
   if (vu->buttons & (1 << GLUT_RIGHT_BUTTON))
