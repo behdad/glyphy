@@ -209,8 +209,8 @@ trackball(float q[4], float p1x, float p1y, float p2x, float p2y)
 void
 axis_to_quat(float a[3], float phi, float q[4])
 {
-    vnormal(a);
     vcopy(a,q);
+    vnormal(q);
     vscale(q,sin(phi/2.0));
     q[3] = cos(phi/2.0);
 }
