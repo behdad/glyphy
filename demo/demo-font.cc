@@ -28,6 +28,9 @@
 
 using namespace __gnu_cxx; /* This is ridiculous */
 
+/* Used for testing only */
+#define SCALE  (1. * (1 << 0))
+
 
 typedef hash_map<unsigned int, glyph_info_t> glyph_cache_t;
 
@@ -159,11 +162,18 @@ encode_ft_glyph (demo_font_t      *font,
   glyphy_outline_winding_from_even_odd (&endpoints[0], endpoints.size (), false);
 #endif
 
+  if (SCALE != 1.)
+    for (unsigned int i = 0; i < endpoints.size (); i++)
+    {
+      endpoints[i].p.x /= SCALE;
+      endpoints[i].p.y /= SCALE;
+    }
+
   double avg_fetch_achieved;
   if (!glyphy_arc_list_encode_blob (&endpoints[0], endpoints.size (),
 				    buffer,
 				    buffer_len,
-				    faraway,
+				    faraway / SCALE,
 				    4, /* UNUSED */
 				    &avg_fetch_achieved,
 				    output_len,
@@ -173,6 +183,8 @@ encode_ft_glyph (demo_font_t      *font,
     die ("Failed encoding arcs");
 
   glyphy_extents_scale (extents, 1. / upem, 1. / upem);
+  glyphy_extents_scale (extents, SCALE, SCALE);
+
   *advance = face->glyph->metrics.horiAdvance / (double) upem;
 
   if (0)
