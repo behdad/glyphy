@@ -98,56 +98,56 @@ glyphy_perpendicular (const vec2 v)
 int
 glyphy_float_to_byte (const float v)
 {
-  return int (v * (256 - GLYPHY_EPSILON));
+  return int (v * (256. - GLYPHY_EPSILON));
 }
 
 ivec4
 glyphy_vec4_to_bytes (const vec4 v)
 {
-  return ivec4 (v * (256 - GLYPHY_EPSILON));
+  return ivec4 (v * (256. - GLYPHY_EPSILON));
 }
 
 ivec2
 glyphy_float_to_two_nimbles (const float v)
 {
   int f = glyphy_float_to_byte (v);
-  return ivec2 (f / 16, mod (f, 16));
+  return ivec2 (f / 16, int(mod (float(f), 16.)));
 }
 
 /* returns tan (2 * atan (d)) */
 float
 glyphy_tan2atan (float d)
 {
-  return 2 * d / (1 - d * d);
+  return 2. * d / (1. - d * d);
 }
 
 glyphy_arc_endpoint_t
 glyphy_arc_endpoint_decode (const vec4 v, ivec2 nominal_size)
 {
-  vec2 p = (vec2 (glyphy_float_to_two_nimbles (v.a)) + v.gb) / 16;
+  vec2 p = (vec2 (glyphy_float_to_two_nimbles (v.a)) + v.gb) / 16.;
   float d = v.r;
-  if (d == 0)
+  if (d == 0.)
     d = GLYPHY_INFINITY;
   else
 #define GLYPHY_MAX_D .5
-    d = (glyphy_float_to_byte (d) - 128) * GLYPHY_MAX_D / 127.;
+    d = float(glyphy_float_to_byte (d) - 128) * GLYPHY_MAX_D / 127.;
 #undef GLYPHY_MAX_D
-  return glyphy_arc_endpoint_t (p * nominal_size, d);
+  return glyphy_arc_endpoint_t (p * vec2(nominal_size), d);
 }
 
 vec2
 glyphy_arc_center (glyphy_arc_t a)
 {
   return mix (a.p0, a.p1, .5) +
-	 glyphy_perpendicular (a.p1 - a.p0) / (2 * glyphy_tan2atan (a.d));
+	 glyphy_perpendicular (a.p1 - a.p0) / (2. * glyphy_tan2atan (a.d));
 }
 
 bool
 glyphy_arc_wedge_contains (const glyphy_arc_t a, const vec2 p)
 {
   float d2 = glyphy_tan2atan (a.d);
-  return dot (p - a.p0, (a.p1 - a.p0) * mat2(1,  d2, -d2, 1)) >= 0 &&
-	 dot (p - a.p1, (a.p1 - a.p0) * mat2(1, -d2,  d2, 1)) <= 0;
+  return dot (p - a.p0, (a.p1 - a.p0) * mat2(1,  d2, -d2, 1)) >= 0. &&
+	 dot (p - a.p1, (a.p1 - a.p0) * mat2(1, -d2,  d2, 1)) <= 0.;
 }
 
 float
@@ -160,13 +160,13 @@ glyphy_arc_wedge_signed_dist (const glyphy_arc_t a, const vec2 p)
       return line_d;
 
     float d0 = dot ((p - a.p0), v);
-    if (d0 < 0)
+    if (d0 < 0.)
       return sign (line_d) * distance (p, a.p0);
     float d1 = dot ((a.p1 - p), v);
-    if (d1 < 0)
+    if (d1 < 0.)
       return sign (line_d) * distance (p, a.p1);
-    float r = 2 * a.d * (d0 * d1) / (d0 + d1);
-    if (r * line_d > 0)
+    float r = 2. * a.d * (d0 * d1) / (d0 + d1);
+    if (r * line_d > 0.)
       return sign (line_d) * min (abs (line_d + r), min (distance (p, a.p0), distance (p, a.p1)));
     return line_d + r;
   }
@@ -180,7 +180,7 @@ glyphy_arc_extended_dist (const glyphy_arc_t a, const vec2 p)
   /* Note: this doesn't handle points inside the wedge. */
   vec2 m = mix (a.p0, a.p1, .5);
   float d2 = glyphy_tan2atan (a.d);
-  if (dot (p - m, a.p1 - m) < 0)
+  if (dot (p - m, a.p1 - m) < 0.)
     return dot (p - a.p0, normalize ((a.p1 - a.p0) * mat2(+d2, -1, +1, +d2)));
   else
     return dot (p - a.p1, normalize ((a.p1 - a.p0) * mat2(-d2, -1, +1, -d2)));
@@ -189,7 +189,7 @@ glyphy_arc_extended_dist (const glyphy_arc_t a, const vec2 p)
 int
 glyphy_arc_list_offset (const vec2 p, ivec2 nominal_size)
 {
-  ivec2 cell = ivec2 (clamp (floor (p), ivec2 (0,0), nominal_size - 1));
+  ivec2 cell = ivec2 (clamp (vec2(floor (p)), vec2 (0.,0.), vec2(nominal_size - 1)));
   return cell.y * nominal_size.x + cell.x;
 }
 
@@ -209,9 +209,9 @@ glyphy_arc_list_decode (const vec4 v, ivec2 nominal_size)
       l.side = +1;
   } else { /* single line encoded */
     l.num_endpoints = -1;
-    l.line_distance = (((iv.r - 128) * 256 + iv.g) - 0x4000) / float (0x2000)
+    l.line_distance = float(((iv.r - 128) * 256 + iv.g) - 0x4000) / float (0x2000)
                     * max (float (nominal_size.x), float (nominal_size.y));
-    l.line_angle = -((iv.b * 256 + iv.a) - 0x8000) / float (0x8000) * 3.14159265358979;
+    l.line_angle = float(-((iv.b * 256 + iv.a) - 0x8000)) / float (0x8000) * 3.14159265358979;
   }
   return l;
 }
