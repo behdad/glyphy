@@ -28,9 +28,6 @@
 
 using namespace __gnu_cxx; /* This is ridiculous */
 
-/* Used for testing only */
-#define SCALE  (1. * (1 << 0))
-
 
 typedef hash_map<unsigned int, glyph_info_t> glyph_cache_t;
 
@@ -120,6 +117,9 @@ encode_ft_glyph (demo_font_t      *font,
 		 glyphy_extents_t *extents,
 		 double           *advance)
 {
+/* Used for testing only */
+#define SCALE  (1. * (1 << 0))
+
   FT_Face face = font->face;
   if (FT_Err_Ok != FT_Load_Glyph (face,
 				  glyph_index,
