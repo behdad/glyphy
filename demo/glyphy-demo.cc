@@ -414,16 +414,18 @@ display_func (void)
   glScaled (vu->scale, vu->scale, 1);
   glTranslated (vu->translate.x, vu->translate.y, 0);
 
+  // Screen coordinates
+  glScaled (2. / width, 2. / height, 0);
 
   float m[4][4];
   build_rotmatrix (m, vu->quat);
   glMultMatrixf(&m[0][0]);
 
-  // Screen coordinates
-  glScaled (2. / width, -2. / height, 1);
-
   // Animation rotate
   glRotated (phase / 1000. * 360 / 10/*seconds*/, 0, 0, 1);
+
+  // Fix 'up'
+  glScaled (1, -1, 1);
 
   // Buffer best-fit
   glyphy_extents_t extents;
