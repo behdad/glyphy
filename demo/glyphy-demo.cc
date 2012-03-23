@@ -339,13 +339,17 @@ mouse_func (int button, int state, int x, int y)
 #if defined(GLUT_WHEEL_UP)
 
     case GLUT_WHEEL_UP:
+      vu->scale *= STEP;
       break;
 
     case GLUT_WHEEL_DOWN:
+      vu->scale /= STEP;
       break;
 
 #endif
   }
+
+  glutPostRedisplay ();
 }
 
 static void
@@ -360,6 +364,12 @@ motion_func (int x, int y)
 
   if (vu->buttons & (1 << GLUT_LEFT_BUTTON))
   {
+    vu->translate.x += 2 * (x - vu->beginx) / width;
+    vu->translate.y -= 2 * (y - vu->beginy) / height;
+  }
+
+  if (vu->buttons & (1 << GLUT_RIGHT_BUTTON))
+  {
     /* rotate */
     trackball (vu->dquat,
 	       (2.0*vu->beginx -          width) / width,
@@ -372,7 +382,8 @@ motion_func (int x, int y)
 
     add_quats (vu->dquat, vu->quat, vu->quat);
   }
-  else if (vu->buttons & (1 << GLUT_RIGHT_BUTTON))
+
+  if (vu->buttons & (1 << GLUT_MIDDLE_BUTTON))
   {
     /* scale */
     vu->scale *= 1 - ((y - vu->beginy) / height) * 5;
