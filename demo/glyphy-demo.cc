@@ -61,15 +61,16 @@ demo_state_fini (demo_state_t *st)
 
 
 typedef struct {
-  float beginx, beginy; /* position of mouse */
-  float dx,dy;
-  float quat[4];        /* orientation of object */
+  int buttons;
+  bool dragged;
+  double beginx, beginy;/* position of drag start */
+  double dx,dy;		/* TODO REMOVE */
+  float quat[4];	/* orientation of object */
   float dquat[4];
   double scale;
   glyphy_point_t translate;
   double phase_offset;
 
-  float zoom;           /* field of view in degrees */
   float perspective;    /* perpective */
 } demo_view_t;
 
@@ -78,6 +79,11 @@ static void demo_view_reset (demo_view_t *vu);
 static void
 demo_view_init (demo_view_t *vu)
 {
+  vu->buttons = 0;
+  vu->dragged = false;
+  vu->beginx = vu->beginy = 0;
+  vu->dx = vu->dy = 0;
+
   demo_view_reset (vu);
 }
 
@@ -89,11 +95,8 @@ demo_view_fini (demo_view_t *vu)
 static void
 demo_view_reset (demo_view_t *vu)
 {
-  vu->beginx = vu->beginy = 0;
-  vu->dx = vu->dy = 0;
   vu->quat[0] = vu->quat[1] = vu->quat[2] = 0.0; vu->quat[3] = 1.0;
   vu->dquat[0] = vu->dquat[1] = vu->dquat[2] = 0.0; vu->dquat[3] = 1.0;
-  vu->zoom = 45;
   vu->perspective = 30;
   vu->scale = 1;
   vu->translate.x = vu->translate.y = 0;
@@ -231,11 +234,9 @@ keyboard_func (unsigned char key, int x, int y)
 
     case '=':
       vu->scale *= STEP;
-      printf ("Setting scale to %g; font size is %.1f now.\n", vu->scale, vu->scale * content_scale);
       break;
     case '-':
       vu->scale /= STEP;
-      printf ("Setting scale to %g; font size is %.2f now.\n", vu->scale, vu->scale * content_scale);
       break;
 
     case 'k': 
@@ -292,6 +293,15 @@ special_func (int key, int x, int y)
 static void
 mouse_func (int button, int state, int x, int y)
 {
+  vu->beginx = x;
+  vu->beginy = y;
+  vu->dragged = false;
+
+  if (state == GLUT_DOWN)
+    vu->buttons |= (1 << button);
+  else
+    vu->buttons &= !(1 << button);
+
   switch (button)
   {
     case GLUT_LEFT_BUTTON:
@@ -341,14 +351,16 @@ mouse_func (int button, int state, int x, int y)
 static void
 motion_func (int x, int y)
 {
+  vu->dragged = true;
+
   int viewport[4];
   glGetIntegerv (GL_VIEWPORT, viewport);
   GLuint width  = viewport[2];
   GLuint height = viewport[3];
 
-  if (1) //dragging?
+  if (vu->buttons & (1 << GLUT_LEFT_BUTTON))
   {
-    /* drag in progress, simulate trackball */
+    /* rotate */
     trackball (vu->dquat,
 	       (2.0*vu->beginx -          width) / width,
 	       (        height - 2.0*vu->beginy) / height,
@@ -360,11 +372,10 @@ motion_func (int x, int y)
 
     add_quats (vu->dquat, vu->quat, vu->quat);
   }
-
-  if (0)
+  else if (vu->buttons & (1 << GLUT_RIGHT_BUTTON))
   {
-    /* zooming drag */
-    vu->zoom -= ((y - vu->beginy) / height) * 40.0;
+    /* scale */
+    vu->scale *= 1 - ((y - vu->beginy) / height) * 5;
   }
 
   vu->beginx = x;
@@ -387,14 +398,15 @@ display_func (void)
   glMatrixMode (GL_MODELVIEW);
   glLoadIdentity ();
 
-  glScaled (1., -1., 1);
 
   // View transform
   float m[4][4];
   build_rotmatrix (m, vu->quat);
   glMultMatrixf(&m[0][0]);
-  glTranslated (vu->translate.x, -vu->translate.y, 0);
+  glTranslated (vu->translate.x, vu->translate.y, 0);
 
+  // Fix 'up'
+  glScaled (1., -1., 1);
   // Screen coordinates
   glScaled (2. / width, 2. / height, 1);
   // View scale
