@@ -23,7 +23,9 @@
 #include "glyphy-demo.h"
 #include "demo-buffer.h"
 #include "demo-font.h"
+extern "C" {
 #include "trackball.h"
+}
 
 
 typedef struct {
@@ -57,6 +59,36 @@ demo_state_fini (demo_state_t *st)
   glDeleteProgram (st->program);
 }
 
+
+typedef struct {
+  float beginx, beginy; /* position of mouse */
+  float dx,dy;
+  float quat[4];        /* orientation of object */
+  float dquat[4];
+
+  float zoom;           /* field of view in degrees */
+  float perspective;    /* perpective */
+} demo_view_t;
+
+static void
+demo_view_init (demo_view_t *vu)
+{
+  vu->beginx = vu->beginy = 0;
+  vu->dx = vu->dy = 0;
+  vu->quat[0] = vu->quat[1] = vu->quat[2] = 0.0; vu->quat[3] = 1.0;
+  vu->dquat[0] = vu->dquat[1] = vu->dquat[2] = 0.0; vu->dquat[3] = 1.0;
+  vu->zoom = 45;
+  vu->perspective = 30;
+
+  trackball (vu->quat , 0.0, 0.0, 0.0, 0.0);
+}
+
+static void
+demo_view_fini (demo_view_t *vu)
+{
+}
+
+
 static void
 set_uniform (GLuint program, const char *name, double *p, double value)
 {
@@ -78,6 +110,7 @@ demo_state_setup (demo_state_t *st)
 }
 
 static demo_state_t st[1];
+static demo_view_t vu[1];
 static demo_buffer_t *buffer;
 /* Viewer settings */
 static double content_scale;
@@ -257,8 +290,25 @@ mouse_func (int button, int state, int x, int y)
     case GLUT_LEFT_BUTTON:
       switch (state) {
         case GLUT_DOWN:
+	  //if (vu->animate)
+	  //  glyphy_demo_animation_toggle ();
+
+	  /* beginning of drag, reset mouse position */
+	  vu->beginx = x;
+	  vu->beginy = y;
 	  break;
         case GLUT_UP:
+	  //if (!vu->animate)
+	    {
+#define ANIMATE_THRESHOLD 25.0
+	      if (((vu->dx*vu->dx + vu->dy*vu->dy) > ANIMATE_THRESHOLD))
+		;//glyphy_demo_animation_toggle ();
+	      else {
+		vu->dquat[0] = vu->dquat[1] = vu->dquat[2] = 0.0; vu->dquat[3] = 1.0;
+	      }
+	    }
+	  vu->dx = 0.0;
+	  vu->dy = 0.0;
 	  break;
       }
       break;
@@ -284,6 +334,36 @@ mouse_func (int button, int state, int x, int y)
 static void
 motion_func (int x, int y)
 {
+  int viewport[4];
+  glGetIntegerv (GL_VIEWPORT, viewport);
+  GLuint width  = viewport[2];
+  GLuint height = viewport[3];
+
+  if (1) //dragging?
+  {
+    /* drag in progress, simulate trackball */
+    trackball (vu->dquat,
+	       (2.0*vu->beginx -          width) / width,
+	       (        height - 2.0*vu->beginy) / height,
+	       (         2.0*x -          width) / width,
+	       (        height -          2.0*y) / height );
+
+    vu->dx = x - vu->beginx;
+    vu->dy = y - vu->beginy;
+
+    add_quats (vu->dquat, vu->quat, vu->quat);
+  }
+
+  if (0)
+  {
+    /* zooming drag */
+    vu->zoom -= ((y - vu->beginy) / height) * 40.0;
+  }
+
+  vu->beginx = x;
+  vu->beginy = y;
+
+  glutPostRedisplay ();
 }
 
 
@@ -299,10 +379,17 @@ display_func (void)
 
   glMatrixMode (GL_MODELVIEW);
   glLoadIdentity ();
+
+  glScaled (1., -1., 1);
+
+  float m[4][4];
+  build_rotmatrix (m, vu->quat);
+  glMultMatrixf(&m[0][0]);
+
   // Translate translate
-  glTranslated (translate.x, translate.y, 0);
+  glTranslated (translate.x, -translate.y, 0);
   // Screen coordinates
-  glScaled (2. / width, -2. / height, 1);
+  glScaled (2. / width, 2. / height, 1);
   // View scale
   glScaled (view_scale, view_scale, 1);
   // Animation rotate
@@ -364,6 +451,7 @@ main (int argc, char** argv)
   print_welcome ();
 
   demo_state_init (st);
+  demo_view_init (vu);
 
   FT_Library ft_library;
   FT_Init_FreeType (&ft_library);
@@ -392,6 +480,7 @@ main (int argc, char** argv)
   FT_Done_Face (ft_face);
   FT_Done_FreeType (ft_library);
 
+  demo_view_fini (vu);
   demo_state_fini (st);
 
   glutDestroyWindow (window);
