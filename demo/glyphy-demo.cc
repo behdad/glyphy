@@ -159,6 +159,20 @@ demo_view_scale_perspective (demo_view_t *vu, double factor)
   vu->perspective = clamp (vu->perspective * factor, .01, 100.);
 }
 
+static void
+demo_view_scale (demo_view_t *vu, double factor)
+{
+  vu->scale *= factor;
+}
+
+static void
+demo_view_translate (demo_view_t *vu, double dx, double dy)
+{
+  vu->translate.x += dx / vu->scale;
+  vu->translate.y += dy / vu->scale;
+}
+
+
 static demo_state_t st[1];
 static demo_view_t vu[1];
 static demo_buffer_t *buffer;
@@ -274,7 +288,19 @@ demo_view_toggle_srgb (demo_view_t *vu)
 
 }
 
+static void
+demo_view_toggle_debug (demo_view_t *vu)
+{
+  demo_state_t *st = vu->st;
+  SET_UNIFORM (u_debug, 1 - st->u_debug);
+}
 
+static void
+demo_view_next_smoothfunc (demo_view_t *vu)
+{
+  demo_state_t *st = vu->st;
+  SET_UNIFORM (u_smoothfunc, ((int) st->u_smoothfunc + 1) % 3);
+}
 
 static void
 reshape_func (int width, int height)
@@ -314,11 +340,11 @@ keyboard_func (unsigned char key, int x, int y)
       break;
 
     case 'd':
-      SET_UNIFORM (u_debug, 1 - st->u_debug);
+      demo_view_toggle_debug (vu);
       break;
 
     case 's':
-      SET_UNIFORM (u_smoothfunc, ((int) st->u_smoothfunc + 1) % 3);
+      demo_view_next_smoothfunc (vu);
       break;
     case 'a':
       demo_view_scale_contrast (vu, STEP);
@@ -337,23 +363,23 @@ keyboard_func (unsigned char key, int x, int y)
       break;
 
     case '=':
-      vu->scale *= STEP;
+      demo_view_scale (vu, STEP);
       break;
     case '-':
-      vu->scale /= STEP;
+      demo_view_scale (vu, 1. / STEP);
       break;
 
     case 'k': 
-      vu->translate.y -= .1 / vu->scale;
+      demo_view_translate (vu, 0, -.1);
       break;
     case 'j':
-      vu->translate.y += .1 / vu->scale;
+      demo_view_translate (vu, 0, +.1);
       break;
     case 'h':
-      vu->translate.x += .1 / vu->scale;
+      demo_view_translate (vu, +.1, 0);
       break;
     case 'l':
-      vu->translate.x -= .1 / vu->scale;
+      demo_view_translate (vu, -.1, 0);
       break;
 
     case 'r':
@@ -374,16 +400,16 @@ special_func (int key, int x, int y)
   switch (key)
   {
     case GLUT_KEY_UP:
-      vu->translate.y -= .1 / vu->scale;
+      demo_view_translate (vu, 0, -.1);
       break;
     case GLUT_KEY_DOWN:
-      vu->translate.y += .1 / vu->scale;
+      demo_view_translate (vu, 0, +.1);
       break;
     case GLUT_KEY_LEFT:
-      vu->translate.x += .1 / vu->scale;
+      demo_view_translate (vu, +.1, 0);
       break;
     case GLUT_KEY_RIGHT:
-      vu->translate.x -= .1 / vu->scale;
+      demo_view_translate (vu, -.1, 0);
       break;
 
     default:
@@ -433,11 +459,11 @@ mouse_func (int button, int state, int x, int y)
 #if defined(GLUT_WHEEL_UP)
 
     case GLUT_WHEEL_UP:
-      vu->scale *= STEP;
+      demo_view_scale (vu, STEP);
       break;
 
     case GLUT_WHEEL_DOWN:
-      vu->scale /= STEP;
+      demo_view_scale (vu, 1. / STEP);
       break;
 
 #endif
@@ -464,15 +490,13 @@ motion_func (int x, int y)
   {
     if (vu->modifiers & GLUT_ACTIVE_CTRL) {
       /* adjust contrast/gamma */
-      double factor;
-      factor = 1 - ((y - vu->lasty) / height);
-      demo_view_scale_gamma_adjust (vu, factor);
-      factor = 1 - ((x - vu->lastx) / width);
-      demo_view_scale_contrast (vu, 1 / factor);
+      demo_view_scale_gamma_adjust (vu, 1 - ((y - vu->lasty) / height));
+      demo_view_scale_contrast (vu, 1 + ((x - vu->lastx) / width));
     } else {
       /* translate */
-      vu->translate.x += 2 * (x - vu->lastx) / width  / vu->scale;
-      vu->translate.y -= 2 * (y - vu->lasty) / height / vu->scale;
+      demo_view_translate (vu,
+			   +2 * (x - vu->lastx) / width,
+			   -2 * (y - vu->lasty) / height);
     }
   }
 
@@ -480,8 +504,7 @@ motion_func (int x, int y)
   {
     if (vu->modifiers & GLUT_ACTIVE_CTRL) {
       /* adjust perspective */
-      double factor = 1 - ((y - vu->lasty) / height) * 5;
-      demo_view_scale_perspective (vu, factor);
+      demo_view_scale_perspective (vu, 1 - ((y - vu->lasty) / height) * 5);
     } else {
       /* rotate */
       trackball (vu->dquat,
@@ -502,9 +525,11 @@ motion_func (int x, int y)
   {
     /* scale */
     double factor = 1 - ((y - vu->lasty) / height) * 5;
-    vu->scale *= factor;
-    vu->translate.x += (2. * vu->beginx / width  - 1) / vu->scale * (1 - factor);
-    vu->translate.y -= (2. * vu->beginy / height - 1) / vu->scale * (1 - factor);
+    demo_view_scale (vu, factor);
+    /* adjust translate so we scale centered at the drag-begin mouse position */
+    demo_view_translate (vu,
+			 +(2. * vu->beginx / width  - 1) * (1 - factor),
+			 -(2. * vu->beginy / height - 1) * (1 - factor));
   }
 
   vu->lastx = x;
