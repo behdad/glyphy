@@ -10,8 +10,8 @@ glyph_vertex_transcode (vec2 v)
   ivec2 g = ivec2 (v);
   ivec2 corner = ivec2 (mod (g, 2));
   g /= 2;
-  ivec2 nominal_size = ivec2 (mod (g, 256));
-  return vec4 (corner * nominal_size, g);
+  ivec2 nominal_size = ivec2 (mod (g, 64));
+  return vec4 (corner * nominal_size, g * 4);
 }
 
 void

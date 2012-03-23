@@ -82,6 +82,8 @@ demo_state_setup (demo_state_t *st)
 
 
 typedef struct {
+  demo_state_t *st;
+
   int buttons;
   int modifiers;
 
@@ -95,7 +97,7 @@ typedef struct {
   float dquat[4];
   double scale;
   glyphy_point_t translate;
-  float perspective;    /* unused for now */
+  double perspective;
 
   bool animate;
   int num_frames;
@@ -107,9 +109,10 @@ typedef struct {
 static void demo_view_reset (demo_view_t *vu);
 
 static void
-demo_view_init (demo_view_t *vu)
+demo_view_init (demo_view_t *vu, demo_state_t *st)
 {
   memset (vu, 0, sizeof (*vu));
+  vu->st = st;
   demo_view_reset (vu);
 }
 
@@ -122,12 +125,32 @@ demo_view_fini (demo_view_t *vu)
 static void
 demo_view_reset (demo_view_t *vu)
 {
-  vu->perspective = 30;
+  vu->perspective = 4;
   vu->scale = 1;
   vu->translate.x = vu->translate.y = 0;
   trackball (vu->quat , 0.0, 0.0, 0.0, 0.0);
   float a[3] = {0, 0, 1};
   axis_to_quat (a, ANIMATION_SPEED, vu->dquat);
+}
+
+static void
+demo_view_scale_gamma_adjust (demo_view_t *vu, double factor)
+{
+  demo_state_t *st = vu->st;
+  SET_UNIFORM (u_gamma_adjust, clamp (st->u_gamma_adjust * factor, .1, 10.));
+}
+
+static void
+demo_view_scale_contrast (demo_view_t *vu, double factor)
+{
+  demo_state_t *st = vu->st;
+  SET_UNIFORM (u_contrast, clamp (st->u_contrast * factor, .1, 10.));
+}
+
+static void
+demo_view_scale_perspective (demo_view_t *vu, double factor)
+{
+  vu->perspective = clamp (vu->perspective * factor, .01, 100.);
 }
 
 static demo_state_t st[1];
@@ -296,16 +319,16 @@ keyboard_func (unsigned char key, int x, int y)
       SET_UNIFORM (u_smoothfunc, ((int) st->u_smoothfunc + 1) % 3);
       break;
     case 'a':
-      SET_UNIFORM (u_contrast, st->u_contrast * STEP);
+      demo_view_scale_contrast (vu, STEP);
       break;
     case 'z':
-      SET_UNIFORM (u_contrast, st->u_contrast / STEP);
+      demo_view_scale_contrast (vu, 1. / STEP);
       break;
     case 'g':
-      SET_UNIFORM (u_gamma_adjust, st->u_gamma_adjust * STEP);
+      demo_view_scale_gamma_adjust (vu, STEP);
       break;
     case 'b':
-      SET_UNIFORM (u_gamma_adjust, st->u_gamma_adjust / STEP);
+      demo_view_scale_gamma_adjust (vu, 1. / STEP);
       break;
     case 'c':
       v_srgb_set (!srgb);
@@ -440,10 +463,10 @@ motion_func (int x, int y)
     if (vu->modifiers & GLUT_ACTIVE_CTRL) {
       /* adjust contrast/gamma */
       double factor;
-      factor = 1 - ((y - vu->lasty) / height) * 3;
-      SET_UNIFORM (u_gamma_adjust, st->u_gamma_adjust * factor);
-      factor = 1 - ((x - vu->lastx) / width) * 3;
-      SET_UNIFORM (u_contrast, st->u_contrast / factor);
+      factor = 1 - ((y - vu->lasty) / height);
+      demo_view_scale_gamma_adjust (vu, factor);
+      factor = 1 - ((x - vu->lastx) / width);
+      demo_view_scale_contrast (vu, 1 / factor);
     } else {
       /* translate */
       vu->translate.x += 2 * (x - vu->lastx) / width  / vu->scale;
@@ -453,18 +476,24 @@ motion_func (int x, int y)
 
   if (vu->buttons & (1 << GLUT_RIGHT_BUTTON))
   {
-    /* rotate */
-    trackball (vu->dquat,
-	       (2.0*vu->lastx -         width) / width,
-	       (       height - 2.0*vu->lasty) / height,
-	       (        2.0*x -         width) / width,
-	       (       height -         2.0*y) / height );
+    if (vu->modifiers & GLUT_ACTIVE_CTRL) {
+      /* adjust perspective */
+      double factor = 1 - ((y - vu->lasty) / height) * 5;
+      demo_view_scale_perspective (vu, factor);
+    } else {
+      /* rotate */
+      trackball (vu->dquat,
+		 (2.0*vu->lastx -         width) / width,
+		 (       height - 2.0*vu->lasty) / height,
+		 (        2.0*x -         width) / width,
+		 (       height -         2.0*y) / height );
 
-    vu->dx = x - vu->lastx;
-    vu->dy = y - vu->lasty;
-    vu->dt = current_time () - vu->lastt;
+      vu->dx = x - vu->lastx;
+      vu->dy = y - vu->lasty;
+      vu->dt = current_time () - vu->lastt;
 
-    add_quats (vu->dquat, vu->quat, vu->quat);
+      add_quats (vu->dquat, vu->quat, vu->quat);
+    }
   }
 
   if (vu->buttons & (1 << GLUT_MIDDLE_BUTTON))
@@ -489,8 +518,8 @@ display_func (void)
 {
   int viewport[4];
   glGetIntegerv (GL_VIEWPORT, viewport);
-  GLuint width  = viewport[2];
-  GLuint height = viewport[3];
+  GLint width  = viewport[2];
+  GLint height = viewport[3];
 
   glMatrixMode (GL_MODELVIEW);
   glLoadIdentity ();
@@ -499,8 +528,15 @@ display_func (void)
   glScaled (vu->scale, vu->scale, 1);
   glTranslated (vu->translate.x, vu->translate.y, 0);
 
-  // Screen coordinates
-  glScaled (2. / width, 2. / height, 0);
+  // Perspective
+  {
+    double d = std::max (width, height);
+    double near = d / vu->perspective;
+    double far = near + d;
+    double factor = near / (2 * near + d);
+    glFrustum (-width * factor, width * factor, -height * factor, height * factor, near, far);
+    glTranslated (0, 0, -(near + d * .5));
+  }
 
   float m[4][4];
   build_rotmatrix (m, vu->quat);
@@ -518,7 +554,6 @@ display_func (void)
   // Center buffer
   glTranslated (-(extents.max_x + extents.min_x) / 2.,
 		-(extents.max_y + extents.min_y) / 2., 0);
-
 
   GLfloat mat[16];
   glGetFloatv (GL_MODELVIEW_MATRIX, mat);
@@ -566,7 +601,7 @@ main (int argc, char** argv)
   print_welcome ();
 
   demo_state_init (st);
-  demo_view_init (vu);
+  demo_view_init (vu, st);
 
   FT_Library ft_library;
   FT_Init_FreeType (&ft_library);

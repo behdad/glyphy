@@ -296,8 +296,8 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
 			     double                       avg_fetch_desired,
 			     double                      *avg_fetch_achieved,
 			     unsigned int                *output_len,
-			     unsigned int                *nominal_width,  /* 8bit */
-			     unsigned int                *nominal_height, /* 8bit */
+			     unsigned int                *nominal_width,  /* 6bit */
+			     unsigned int                *nominal_height, /* 6bit */
 			     glyphy_extents_t            *extents);
 
 /* TBD _decode_blob */

@@ -80,5 +80,11 @@ die (const char *msg)
   exit (1);
 }
 
+template <typename T>
+T clamp (T v, T m, T M)
+{
+  return v < m ? m : v > M ? M : v;
+}
+
 
 #endif /* DEMO_COMMON_H */

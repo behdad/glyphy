@@ -32,18 +32,18 @@ glyph_encode (unsigned int atlas_x ,  /* 7 bits */
 	      unsigned int atlas_y,   /* 7 bits */
 	      unsigned int corner_x,  /* 1 bit */
 	      unsigned int corner_y,  /* 1 bit */
-	      unsigned int nominal_w, /* 8 bits */
-	      unsigned int nominal_h  /* 8 bits */)
+	      unsigned int nominal_w, /* 6 bits */
+	      unsigned int nominal_h  /* 6 bits */)
 {
   assert (0 == (atlas_x & ~0x7F));
   assert (0 == (atlas_y & ~0x7F));
   assert (0 == (corner_x & ~1));
   assert (0 == (corner_y & ~1));
-  assert (0 == (nominal_w & ~0xFF));
-  assert (0 == (nominal_h & ~0xFF));
+  assert (0 == (nominal_w & ~0x3F));
+  assert (0 == (nominal_h & ~0x3F));
 
-  unsigned int x = (((atlas_x << 8) | nominal_w) << 1) | corner_x;
-  unsigned int y = (((atlas_y << 8) | nominal_h) << 1) | corner_y;
+  unsigned int x = (((atlas_x << 6) | nominal_w) << 1) | corner_x;
+  unsigned int y = (((atlas_y << 6) | nominal_h) << 1) | corner_y;
 
   return (x << 16) | y;
 }

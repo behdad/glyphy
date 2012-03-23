@@ -14,7 +14,7 @@ glyph_info_t
 glyph_info_decode (vec4 v)
 {
   glyph_info_t gi;
-  gi.nominal_size = ivec2 (mod (v.zw, 256));
+  gi.nominal_size = (ivec2 (mod (v.zw, 256)) + 2) / 4;
   gi.atlas_pos = ivec2 (v_glyph.zw) / 256;
   return gi;
 }
