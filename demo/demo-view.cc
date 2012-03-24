@@ -24,6 +24,7 @@
 
 extern "C" {
 #include "trackball.h"
+#include "matrix4x4.h"
 }
 
 #include <sys/time.h>
@@ -145,7 +146,7 @@ demo_view_translate (demo_view_t *vu, double dx, double dy)
 }
 
 static void
-demo_view_apply_transform (demo_view_t *vu)
+demo_view_apply_transform (demo_view_t *vu, float *mat)
 {
   int viewport[4];
   glGetIntegerv (GL_VIEWPORT, viewport);
@@ -153,8 +154,8 @@ demo_view_apply_transform (demo_view_t *vu)
   GLint height = viewport[3];
 
   // View transform
-  glScaled (vu->scale, vu->scale, 1);
-  glTranslated (vu->translate.x, vu->translate.y, 0);
+  m4Scale (mat, vu->scale, vu->scale, 1);
+  m4Translate (mat, vu->translate.x, vu->translate.y, 0);
 
   // Perspective
   {
@@ -162,17 +163,17 @@ demo_view_apply_transform (demo_view_t *vu)
     double near = d / vu->perspective;
     double far = near + d;
     double factor = near / (2 * near + d);
-    glFrustum (-width * factor, width * factor, -height * factor, height * factor, near, far);
-    glTranslated (0, 0, -(near + d * .5));
+    m4Frustum (mat, -width * factor, width * factor, -height * factor, height * factor, near, far);
+    m4Translate (mat, 0, 0, -(near + d * .5));
   }
 
   // Rotate
   float m[4][4];
   build_rotmatrix (m, vu->quat);
-  glMultMatrixf(&m[0][0]);
+  m4MultMatrix(mat, &m[0][0]);
 
   // Fix 'up'
-  glScaled (1, -1, 1);
+  m4Scale (mat, 1, -1, 1);
 }
 
 
@@ -543,23 +544,24 @@ demo_view_display (demo_view_t *vu, demo_buffer_t *buffer)
   GLint width  = viewport[2];
   GLint height = viewport[3];
 
-  glMatrixMode (GL_MODELVIEW);
-  glLoadIdentity ();
 
-  demo_view_apply_transform (vu);
+  float mat[16];
+
+  m4LoadIdentity (mat);
+
+  demo_view_apply_transform (vu, mat);
 
   // Buffer best-fit
   glyphy_extents_t extents;
   demo_buffer_extents (buffer, &extents);
   double content_scale = .9 * std::min (width  / (extents.max_x - extents.min_x),
 				        height / (extents.max_y - extents.min_y));
-  glScaled (content_scale, content_scale, 1);
+  m4Scale (mat, content_scale, content_scale, 1);
   // Center buffer
-  glTranslated (-(extents.max_x + extents.min_x) / 2.,
-		-(extents.max_y + extents.min_y) / 2., 0);
+  m4Translate (mat,
+	       -(extents.max_x + extents.min_x) / 2.,
+	       -(extents.max_y + extents.min_y) / 2., 0);
 
-  GLfloat mat[16];
-  glGetFloatv (GL_MODELVIEW_MATRIX, mat);
   demo_glstate_set_matrix (vu->st, mat);
 
   glClearColor (1, 1, 1, 1);

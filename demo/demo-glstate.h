@@ -56,6 +56,6 @@ void
 demo_glstate_next_smoothfunc (demo_glstate_t *st);
 
 void
-demo_glstate_set_matrix (demo_glstate_t *st, GLfloat mat[16]);
+demo_glstate_set_matrix (demo_glstate_t *st, float mat[16]);
 
 #endif /* DEMO_GLSTATE_H */

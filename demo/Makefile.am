@@ -44,6 +44,8 @@ glyphy_demo_SOURCES = \
 	demo-view.h \
 	demo-view.cc \
 	glyphy-demo.cc \
+	matrix4x4.h \
+	matrix4x4.c \
 	trackball.h \
 	trackball.c \
 	$(SHADERHEADERS) \
