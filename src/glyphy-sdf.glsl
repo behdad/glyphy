@@ -39,6 +39,10 @@
 #define GLYPHY_SDF_TEXTURE1D(offset) GLYPHY_RGBA (GLYPHY_SDF_TEXTURE1D_FUNC (offset GLYPHY_TEXTURE1D_EXTRA_ARGS))
 #endif
 
+#ifndef GLYPHY_MAX_NUM_ENDPOINTS
+#define GLYPHY_MAX_NUM_ENDPOINTS 32
+#endif
+
 glyphy_arc_list_t
 glyphy_arc_list (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 {
@@ -69,7 +73,7 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 
   glyphy_arc_endpoint_t endpoint_prev, endpoint;
   endpoint_prev = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset), nominal_size);
-  for (int i = 1; i < MAX_ENDPOINTS_NUM; i++)
+  for (int i = 1; i < GLYPHY_MAX_NUM_ENDPOINTS; i++)
   {
     if (i >= arc_list.num_endpoints) {
       break;
@@ -132,7 +136,7 @@ glyphy_point_dist (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 
   glyphy_arc_endpoint_t endpoint_prev, endpoint;
   endpoint_prev = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset), nominal_size);
-  for (int i = 1; i < MAX_ENDPOINTS_NUM; i++)
+  for (int i = 1; i < GLYPHY_MAX_NUM_ENDPOINTS; i++)
   {
     if (i >= arc_list.num_endpoints) {
       break;

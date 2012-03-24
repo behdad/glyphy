@@ -5,8 +5,6 @@ uniform ivec4 u_atlas_info;
 #define GLYPHY_TEXTURE1D_EXTRA_ARGS , _tex, _atlas_info, _atlas_pos
 #define GLYPHY_DEMO_EXTRA_ARGS , u_atlas_tex, u_atlas_info, gi.atlas_pos
 
-#define MAX_ENDPOINTS_NUM 16
-
 vec4
 glyphy_texture1D_func (int offset GLYPHY_TEXTURE1D_EXTRA_DECLS)
 {
