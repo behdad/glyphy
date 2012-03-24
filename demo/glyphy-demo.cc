@@ -70,9 +70,7 @@ display_func (void)
 int
 main (int argc, char** argv)
 {
-  const char *font_path = NULL;
-  const char *text = NULL;
-
+  /* Setup glut */
   glutInit (&argc, argv);
   glutInitWindowSize (WINDOW_W, WINDOW_H);
   glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB);
@@ -84,11 +82,13 @@ main (int argc, char** argv)
   glutMouseFunc (mouse_func);
   glutMotionFunc (motion_func);
 
+  /* Setup glew */
   if (GLEW_OK != glewInit ())
     die ("Failed to initialize GL; something really broken");
   if (!glewIsSupported ("GL_VERSION_2_0"))
     die ("OpenGL 2.0 not supported");
 
+  /* Setup gl */
   glEnable (GL_BLEND);
   glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -96,8 +96,8 @@ main (int argc, char** argv)
     fprintf (stderr, "Usage: %s FONT_FILE TEXT\n", argv[0]);
     exit (1);
   }
-  font_path = argv[1];
-  text = argv[2];
+  const char *font_path = argv[1];
+  const char *text = argv[2];
 
   st = demo_glstate_create ();
   vu = demo_view_create (st);
@@ -110,17 +110,16 @@ main (int argc, char** argv)
   FT_New_Face (ft_library, font_path, 0/*face_index*/, &ft_face);
   if (!ft_face)
     die ("Failed to open font file");
-
   demo_font_t *font = demo_font_create (ft_face, demo_glstate_get_atlas (st));
 
-  glyphy_point_t top_left = {0, 0};
   buffer = demo_buffer_create ();
+  glyphy_point_t top_left = {0, 0};
   demo_buffer_move_to (buffer, top_left);
   demo_buffer_add_text (buffer, text, font, 1, top_left);
+
   demo_font_print_stats (font);
 
   demo_view_setup (vu);
-
   glutMainLoop ();
 
   demo_buffer_destroy (buffer);
