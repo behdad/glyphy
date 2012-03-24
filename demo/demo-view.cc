@@ -32,7 +32,7 @@ extern "C" {
 struct demo_view_t {
   unsigned int   refcount;
 
-  demo_state_t *st;
+  demo_glstate_t *st;
 
   /* Output */
   GLint vsync;
@@ -65,7 +65,7 @@ struct demo_view_t {
 demo_view_t *static_vu;
 
 demo_view_t *
-demo_view_create (demo_state_t *st)
+demo_view_create (demo_glstate_t *st)
 {
   demo_view_t *vu = (demo_view_t *) calloc (1, sizeof (demo_view_t));
   vu->refcount = 1;
@@ -111,18 +111,27 @@ demo_view_reset (demo_view_t *vu)
   axis_to_quat (a, ANIMATION_SPEED, vu->dquat);
 }
 
+
+static void
+set_uniform (GLuint program, const char *name, double *p, double value)
+{
+  *p = value;
+  glUniform1f (glGetUniformLocation (program, name), value);
+  printf ("Setting %s to %g\n", name, value);
+}
+
+#define SET_UNIFORM(name, value) set_uniform (vu->st->program, #name, &vu->st->name, value)
+
 static void
 demo_view_scale_gamma_adjust (demo_view_t *vu, double factor)
 {
-  demo_state_t *st = vu->st;
-  SET_UNIFORM (u_gamma_adjust, clamp (st->u_gamma_adjust * factor, .1, 10.));
+  SET_UNIFORM (u_gamma_adjust, clamp (vu->st->u_gamma_adjust * factor, .1, 10.));
 }
 
 static void
 demo_view_scale_contrast (demo_view_t *vu, double factor)
 {
-  demo_state_t *st = vu->st;
-  SET_UNIFORM (u_contrast, clamp (st->u_contrast * factor, .1, 10.));
+  SET_UNIFORM (u_contrast, clamp (vu->st->u_contrast * factor, .1, 10.));
 }
 
 static void
@@ -291,15 +300,13 @@ demo_view_toggle_srgb (demo_view_t *vu)
 static void
 demo_view_toggle_debug (demo_view_t *vu)
 {
-  demo_state_t *st = vu->st;
-  SET_UNIFORM (u_debug, 1 - st->u_debug);
+  SET_UNIFORM (u_debug, 1 - vu->st->u_debug);
 }
 
 static void
 demo_view_next_smoothfunc (demo_view_t *vu)
 {
-  demo_state_t *st = vu->st;
-  SET_UNIFORM (u_smoothfunc, ((int) st->u_smoothfunc + 1) % 3);
+  SET_UNIFORM (u_smoothfunc, ((int) vu->st->u_smoothfunc + 1) % 3);
 }
 
 
@@ -579,5 +586,5 @@ demo_view_setup (demo_view_t *vu)
     demo_view_toggle_vsync (vu);
   if (!vu->srgb)
     demo_view_toggle_srgb (vu);
-  demo_state_setup (vu->st);
+  demo_glstate_setup (vu->st);
 }

@@ -24,8 +24,8 @@
 #include "demo-font.h"
 #include "demo-view.h"
 
+static demo_glstate_t *st;
 static demo_view_t *vu;
-static demo_state_t st[1];
 static demo_buffer_t *buffer;
 
 #define WINDOW_W 700
@@ -99,7 +99,7 @@ main (int argc, char** argv)
   font_path = argv[1];
   text = argv[2];
 
-  demo_state_init (st);
+  st = demo_glstate_create ();
   vu = demo_view_create (st);
 
   demo_view_print_help (vu);
@@ -111,7 +111,7 @@ main (int argc, char** argv)
   if (!ft_face)
     die ("Failed to open font file");
 
-  demo_font_t *font = demo_font_create (ft_face, st->atlas);
+  demo_font_t *font = demo_font_create (ft_face, demo_glstate_get_atlas (st));
 
   glyphy_point_t top_left = {0, 0};
   buffer = demo_buffer_create ();
@@ -130,7 +130,7 @@ main (int argc, char** argv)
   FT_Done_FreeType (ft_library);
 
   demo_view_destroy (vu);
-  demo_state_fini (st);
+  demo_glstate_destroy (st);
 
   glutDestroyWindow (window);
 
