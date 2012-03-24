@@ -39,6 +39,8 @@ glyphy_demo_SOURCES = \
 	demo-font.cc \
 	demo-shader.h \
 	demo-shader.cc \
+	demo-view.h \
+	demo-view.cc \
 	glyphy-demo.cc \
 	trackball.h \
 	trackball.c \
