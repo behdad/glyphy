@@ -87,11 +87,16 @@ void
 demo_glstate_setup (demo_glstate_t *st)
 {
   glUseProgram (st->program);
+
   demo_atlas_set_uniforms (st->atlas);
+
   SET_UNIFORM (u_debug, st->u_debug);
   SET_UNIFORM (u_smoothfunc, st->u_smoothfunc);
   SET_UNIFORM (u_contrast, st->u_contrast);
   SET_UNIFORM (u_gamma_adjust, st->u_gamma_adjust);
+
+  glEnable (GL_BLEND);
+  glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 demo_atlas_t *
