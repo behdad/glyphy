@@ -33,17 +33,24 @@ AC_DEFUN([GLYPHY_CHECK_PACKAGE],
 	m4_define([_framework], [$3])
 	m4_define([PKG], [m4_translit(pkg,[-a-z.+],[_A-Z_])])
 
-	PKG_CHECK_MODULES(PKG, pkg, [HAVE_]PKG[=true], [HAVE_]PKG[=false])
+	HAVE_[]PKG=false
 
-	if ! $HAVE_[]PKG && test -n "_framework"; then
+	if test -n "_framework"; then
 		case "$host" in
 			*-darwin*)
-			    HAVE_[]PKG=true
-			    PKG[]_LIBS="-framework _framework"
-			    break;
+				AC_MSG_CHECKING([for ]PKG)
+				HAVE_[]PKG=true
+				PKG[]_LIBS="-framework _framework"
+				AC_MSG_RESULT($PKG[]_LIBS)
+				break;
 			;;
 		esac
 	fi
+
+	if ! $HAVE_[]PKG; then
+		PKG_CHECK_MODULES(PKG, pkg, [HAVE_]PKG[=true], [HAVE_]PKG[=false])
+	fi
+
 	m4_foreach_w(lib, [m4_translit(PKG,[A-Z],[a-z]) PKG], [
 		if ! $HAVE_[]PKG; then
 			AC_CHECK_LIB(lib, _symbol, [
