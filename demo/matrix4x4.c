@@ -91,8 +91,7 @@ m4Multiply (float *mat, const float *right) {
       (mat[i*4+3] * right[3*4+3]) ;
   }
 
-  m4Copy (mat, tmp);
-  return mat;
+  return m4Copy (mat, tmp);
 }
 
 inline float
@@ -306,7 +305,7 @@ m4Invert (float *mat) {
 		    (tmp_15 * m4Get(mat,0,3) + tmp_18 * m4Get(mat,1,3) + tmp_23 * m4Get(mat,3,3)));
   float out_23 = d * ((tmp_17 * m4Get(mat,0,3) + tmp_20 * m4Get(mat,1,3) + tmp_23 * m4Get(mat,2,3)) -
 		    (tmp_16 * m4Get(mat,0,3) + tmp_21 * m4Get(mat,1,3) + tmp_22 * m4Get(mat,2,3)));
-  
+
   float out_30 = d * ((tmp_14 * m4Get(mat,2,2) + tmp_17 * m4Get(mat,3,2) + tmp_13 * m4Get(mat,1,2)) -
 		    (tmp_16 * m4Get(mat,3,2) + tmp_12 * m4Get(mat,1,2) + tmp_15 * m4Get(mat,2,2)));
   float out_31 = d * ((tmp_20 * m4Get(mat,3,2) + tmp_12 * m4Get(mat,0,2) + tmp_19 * m4Get(mat,2,2)) -
