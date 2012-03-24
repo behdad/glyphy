@@ -25,19 +25,7 @@
 #include "demo-atlas.h"
 #include "demo-shader.h"
 
-typedef struct {
-  unsigned int   refcount;
-
-  GLuint program;
-  demo_atlas_t *atlas;
-
-  /* Uniforms */
-  double u_debug;
-  double u_smoothfunc;
-  double u_contrast;
-  double u_gamma_adjust;
-
-} demo_glstate_t;
+typedef struct demo_glstate_t demo_glstate_t;
 
 demo_glstate_t *
 demo_glstate_create (void);
@@ -55,5 +43,19 @@ demo_glstate_setup (demo_glstate_t *st);
 demo_atlas_t *
 demo_glstate_get_atlas (demo_glstate_t *st);
 
+void
+demo_glstate_scale_gamma_adjust (demo_glstate_t *st, double factor);
+
+void
+demo_glstate_scale_contrast (demo_glstate_t *st, double factor);
+
+void
+demo_glstate_toggle_debug (demo_glstate_t *st);
+
+void
+demo_glstate_next_smoothfunc (demo_glstate_t *st);
+
+void
+demo_glstate_set_matrix (demo_glstate_t *st, GLfloat mat[16]);
 
 #endif /* DEMO_GLSTATE_H */

@@ -113,25 +113,15 @@ demo_view_reset (demo_view_t *vu)
 
 
 static void
-set_uniform (GLuint program, const char *name, double *p, double value)
-{
-  *p = value;
-  glUniform1f (glGetUniformLocation (program, name), value);
-  printf ("Setting %s to %g\n", name, value);
-}
-
-#define SET_UNIFORM(name, value) set_uniform (vu->st->program, #name, &vu->st->name, value)
-
-static void
 demo_view_scale_gamma_adjust (demo_view_t *vu, double factor)
 {
-  SET_UNIFORM (u_gamma_adjust, clamp (vu->st->u_gamma_adjust * factor, .1, 10.));
+  demo_glstate_scale_gamma_adjust (vu->st, factor);
 }
 
 static void
 demo_view_scale_contrast (demo_view_t *vu, double factor)
 {
-  SET_UNIFORM (u_contrast, clamp (vu->st->u_contrast * factor, .1, 10.));
+  demo_glstate_scale_contrast (vu->st, factor);
 }
 
 static void
@@ -300,13 +290,13 @@ demo_view_toggle_srgb (demo_view_t *vu)
 static void
 demo_view_toggle_debug (demo_view_t *vu)
 {
-  SET_UNIFORM (u_debug, 1 - vu->st->u_debug);
+  demo_glstate_toggle_debug (vu->st);
 }
 
 static void
 demo_view_next_smoothfunc (demo_view_t *vu)
 {
-  SET_UNIFORM (u_smoothfunc, ((int) vu->st->u_smoothfunc + 1) % 3);
+  demo_glstate_next_smoothfunc (vu->st);
 }
 
 
@@ -570,7 +560,7 @@ demo_view_display (demo_view_t *vu, demo_buffer_t *buffer)
 
   GLfloat mat[16];
   glGetFloatv (GL_MODELVIEW_MATRIX, mat);
-  glUniformMatrix4fv (glGetUniformLocation (vu->st->program, "u_matViewProjection"), 1, GL_FALSE, mat);
+  demo_glstate_set_matrix (vu->st, mat);
 
   glClearColor (1, 1, 1, 1);
   glClear (GL_COLOR_BUFFER_BIT);

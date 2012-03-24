@@ -22,6 +22,20 @@
 
 #include "demo-glstate.h"
 
+struct demo_glstate_t {
+  unsigned int   refcount;
+
+  GLuint program;
+  demo_atlas_t *atlas;
+
+  /* Uniforms */
+  double u_debug;
+  double u_smoothfunc;
+  double u_contrast;
+  double u_gamma_adjust;
+
+};
+
 demo_glstate_t *
 demo_glstate_create (void)
 {
@@ -84,4 +98,34 @@ demo_atlas_t *
 demo_glstate_get_atlas (demo_glstate_t *st)
 {
   return st->atlas;
+}
+
+void
+demo_glstate_scale_gamma_adjust (demo_glstate_t *st, double factor)
+{
+  SET_UNIFORM (u_gamma_adjust, clamp (st->u_gamma_adjust * factor, .1, 10.));
+}
+
+void
+demo_glstate_scale_contrast (demo_glstate_t *st, double factor)
+{
+  SET_UNIFORM (u_contrast, clamp (st->u_contrast * factor, .1, 10.));
+}
+
+void
+demo_glstate_toggle_debug (demo_glstate_t *st)
+{
+  SET_UNIFORM (u_debug, 1 - st->u_debug);
+}
+
+void
+demo_glstate_next_smoothfunc (demo_glstate_t *st)
+{
+  SET_UNIFORM (u_smoothfunc, ((int) st->u_smoothfunc + 1) % 3);
+}
+
+void
+demo_glstate_set_matrix (demo_glstate_t *st, GLfloat mat[16])
+{
+  glUniformMatrix4fv (glGetUniformLocation (st->program, "u_matViewProjection"), 1, GL_FALSE, mat);
 }
