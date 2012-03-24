@@ -100,8 +100,9 @@ m4Get (float *mat, unsigned int row, unsigned int col) {
 }
 
 float *
-m4MultMatrix (float *mat, const float *right) {
-  return m4Multiply (mat, right);
+m4MultMatrix (float *mat, const float *left) {
+  float tmp[16];
+  return m4Copy (mat, m4Multiply (m4Copy (tmp, left), mat));
 }
 
 float *
