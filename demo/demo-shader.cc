@@ -176,14 +176,11 @@ link_program (GLuint vshader,
   return program;
 }
 
+#define GL_ES_VERSION_2_0 1
 #ifdef GL_ES_VERSION_2_0
-# define GLSL_HEADER_STRING \
-    "#version 100\n" \
-    "precision int highp\n" \
-    "precision float highp\n"
+# define GLSL_HEADER_STRING ""
 #else
-# define GLSL_HEADER_STRING \
-    "#version 120\n"
+# define GLSL_HEADER_STRING "#version 120\n"
 #endif
 
 GLuint

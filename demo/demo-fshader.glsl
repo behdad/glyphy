@@ -1,3 +1,7 @@
+#ifdef GL_ES
+precision highp float;
+#endif
+
 uniform float u_smoothfunc;
 uniform float u_contrast;
 uniform float u_gamma_adjust;
