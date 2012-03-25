@@ -181,10 +181,7 @@ demo_view_apply_transform (demo_view_t *vu, float *mat)
 static long
 current_time (void)
 {
-   struct timeval tv;
-   struct timezone tz;
-   (void) gettimeofday(&tv, &tz);
-   return (long) tv.tv_sec * 1000 + (long) tv.tv_usec / 1000;
+  return glutGet (GLUT_ELAPSED_TIME);
 }
 
 static void
@@ -375,9 +372,7 @@ demo_view_keyboard_func (demo_view_t *vu, unsigned char key, int x, int y)
 
     case 'r':
       demo_view_reset (vu);
-#define WINDOW_W 700
-#define WINDOW_H 700
-      glutReshapeWindow (WINDOW_W, WINDOW_H);
+      glutReshapeWindow (glutGet (GLUT_INIT_WINDOW_WIDTH), glutGet (GLUT_INIT_WINDOW_HEIGHT));
       break;
 
     default:
