@@ -359,7 +359,7 @@ demo_view_keyboard_func (demo_view_t *vu, unsigned char key, int x, int y)
       demo_view_scale (vu, 1. / STEP);
       break;
 
-    case 'k': 
+    case 'k':
       demo_view_translate (vu, 0, -.1);
       break;
     case 'j':
