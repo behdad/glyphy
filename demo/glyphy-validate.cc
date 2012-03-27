@@ -50,7 +50,7 @@ main (int argc, char** argv)
 
   glyphy_arc_accumulator_t *acc = glyphy_arc_accumulator_create ();
 
-  for (unsigned int arg = 1; arg < argc; arg++)
+  for (unsigned int arg = 1; (int) arg < argc; arg++)
   {
     const char *font_path = argv[arg];
 

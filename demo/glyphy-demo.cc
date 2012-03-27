@@ -88,12 +88,23 @@ main (int argc, char** argv)
   if (!glewIsSupported ("GL_VERSION_2_0"))
     die ("OpenGL 2.0 not supported");
 
-  if (argc < 2) {
-    fprintf (stderr, "Usage: %s FONTFILE [TEXT]\n", argv[0]);
+  if ((argc > 1 && 0 == strcmp (argv[1], "--help")) || argc > 3) {
+    fprintf (stderr, "Usage: %s [FONTFILE [TEXT]]\n", argv[0]);
     exit (1);
   }
-  const char *font_path = argc >= 2 ? argv[1] : "DroidSans.ttf";
-  const char *text;
+
+  const char *font_path = NULL;
+  if (argc >= 2)
+    font_path = argv[1];
+  else {
+#if defined(EMSCRIPTEN)
+    font_path = "DroidSans.ttf";
+#else
+    font_path = DEFAULT_FONT;
+#endif
+  }
+
+  const char *text = NULL;
   if (argc >= 3)
     text = argv[2];
   else {
