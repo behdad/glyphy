@@ -144,11 +144,13 @@ m4Rotate (float *mat, float angle, float x, float y, float z) {
   float sinAngle = sin(angle * M_PI / 180.0);
   float cosAngle = cos(angle * M_PI / 180.0);
 
-  if (mag <= 0)
-    return mat;
-
   float xx, yy, zz, xy, yz, zx, xs, ys, zs;
   float oneMinusCos;
+
+  float rotMat[16];
+
+  if (mag <= 0)
+    return mat;
 
   x /= mag;
   y /= mag;
@@ -164,8 +166,6 @@ m4Rotate (float *mat, float angle, float x, float y, float z) {
   ys = y * sinAngle;
   zs = z * sinAngle;
   oneMinusCos = 1.0 - cosAngle;
-
-  float rotMat[16];
 
   rotMat[0*4+0] = (oneMinusCos * xx) + cosAngle;
   rotMat[0*4+1] = (oneMinusCos * xy) - zs;
@@ -196,11 +196,11 @@ m4Frustum (float *mat, float left, float right, float bottom, float top, float n
   float deltaY = top - bottom;
   float deltaZ = farZ - nearZ;
 
+  float frust[16];
+
   if ( (nearZ <= 0.0) || (farZ <= 0.0) ||
        (deltaX <= 0.0) || (deltaY <= 0.0) || (deltaZ <= 0.0) )
        return mat;
-
-  float frust[16];
 
   frust[0*4+0] = 2.0 * nearZ / deltaX;
   frust[0*4+1] = frust[0*4+2] = frust[0*4+3] = 0.0;
