@@ -257,12 +257,12 @@ demo_view_toggle_vsync (demo_view_t *vu)
   printf ("Setting vsync %s.\n", vu->vsync ? "on" : "off");
 #if defined(__APPLE__)
   CGLSetParameter(CGLGetCurrentContext(), kCGLCPSwapInterval, &vu->vsync);
-#elif defined(_WIN32)
-  if (glewIsSupported ("WGL_EXT_swap_control"))
+#elif defined(__WGLEW__)
+  if (wglewIsSupported ("WGL_EXT_swap_control"))
     wglSwapIntervalEXT (vu->vsync);
   else
     printf ("WGL_EXT_swal_control not supported; failed to set vsync\n");
-#else
+#elif defined(__GLXEW_H__)
   if (glxewIsSupported ("GLX_SGI_swap_control"))
     glXSwapIntervalSGI (vu->vsync);
   else

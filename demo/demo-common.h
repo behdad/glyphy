@@ -20,15 +20,31 @@
 #define DEMO_COMMON_H
 
 #include <glyphy.h>
-#include <GL/glew.h>
+
+#ifdef EMSCRIPTEN
+#undef HAVE_GLEW
+#endif
+
+#ifdef HAVE_GLEW
+#  include <GL/glew.h>
+#else
+#define GLEW_OK 0
+   static inline int glewInit (void) { return GLEW_OK; }
+   static inline int glewIsSupported (const char *) { return 1; }
+#  define GL_GLEXT_PROTOTYPES 1
+#  include <GL/gl.h>
+#endif
+
 #if defined(__APPLE__)
 #  include <Glut/glut.h>
 #  include <OpenGL/OpenGL.h>
 #else
-#  if defined(_WIN32)
-#    include <GL/wglew.h>
-#  else
-#    include <GL/glxew.h>
+#  ifdef HAVE_GLEW
+#    if defined(_WIN32)
+#      include <GL/wglew.h>
+#    else
+#      include <GL/glxew.h>
+#    endif
 #  endif
 #  include <GL/glut.h>
 #endif
