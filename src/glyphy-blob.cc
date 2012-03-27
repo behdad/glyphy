@@ -202,10 +202,12 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
     while ((grid_h - 1) * unit / grid_w > glyph_height)
       grid_h--;
     glyph_height = grid_h * unit / grid_w;
+    extents.max_y = extents.min_y + glyph_height;
   } else {
     while ((grid_w - 1) * unit / grid_h > glyph_width)
       grid_w--;
     glyph_width = grid_w * unit / grid_h;
+    extents.max_x = extents.min_x + glyph_width;
   }
 
   double cell_unit = unit / std::max (grid_w, grid_h);
