@@ -38,6 +38,7 @@ struct demo_view_t {
   /* Output */
   GLint vsync;
   glyphy_bool_t srgb;
+  glyphy_bool_t fullscreen;
 
   /* Mouse handling */
   int buttons;
@@ -288,6 +289,18 @@ demo_view_toggle_srgb (demo_view_t *vu)
 }
 
 static void
+demo_view_toggle_fullscreen (demo_view_t *vu)
+{
+  vu->fullscreen = !vu->fullscreen;
+  if (vu->fullscreen)
+    glutFullScreen ();
+  else {
+    glutReshapeWindow (glutGet (GLUT_INIT_WINDOW_WIDTH), glutGet (GLUT_INIT_WINDOW_HEIGHT));
+    glutPositionWindow (glutGet (GLUT_INIT_WINDOW_X), glutGet (GLUT_INIT_WINDOW_Y));
+  }
+}
+
+static void
 demo_view_toggle_debug (demo_view_t *vu)
 {
   demo_glstate_toggle_debug (vu->st);
@@ -326,7 +339,7 @@ demo_view_keyboard_func (demo_view_t *vu, unsigned char key, int x, int y)
       break;
 
     case 'f':
-      glutFullScreen ();
+      demo_view_toggle_fullscreen (vu);
       break;
 
     case 'd':
@@ -374,7 +387,6 @@ demo_view_keyboard_func (demo_view_t *vu, unsigned char key, int x, int y)
 
     case 'r':
       demo_view_reset (vu);
-      glutReshapeWindow (glutGet (GLUT_INIT_WINDOW_WIDTH), glutGet (GLUT_INIT_WINDOW_HEIGHT));
       break;
 
     default:
