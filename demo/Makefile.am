@@ -44,6 +44,7 @@ glyphy_demo_SOURCES = \
 	demo-view.h \
 	demo-view.cc \
 	glyphy-demo.cc \
+	jabberwocky.h \
 	matrix4x4.h \
 	matrix4x4.c \
 	trackball.h \

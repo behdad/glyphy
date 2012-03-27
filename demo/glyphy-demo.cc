@@ -88,12 +88,18 @@ main (int argc, char** argv)
   if (!glewIsSupported ("GL_VERSION_2_0"))
     die ("OpenGL 2.0 not supported");
 
-  if (argc != 3) {
-    fprintf (stderr, "Usage: %s FONT_FILE TEXT\n", argv[0]);
+  if (argc < 2) {
+    fprintf (stderr, "Usage: %s FONTFILE [TEXT]\n", argv[0]);
     exit (1);
   }
-  const char *font_path = argv[1];
-  const char *text = argv[2];
+  const char *font_path = argc >= 2 ? argv[1] : "DroidSans.ttf";
+  const char *text;
+  if (argc >= 3)
+    text = argv[2];
+  else {
+#   include "jabberwocky.h"
+    text = jabberwocky;
+  }
 
   st = demo_glstate_create ();
   vu = demo_view_create (st);
