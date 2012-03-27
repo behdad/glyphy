@@ -31,18 +31,18 @@ using namespace GLyphy::Geometry;
 #define UPPER_BITS(v,bits,total_bits) ((v) >> ((total_bits) - (bits)))
 #define LOWER_BITS(v,bits,total_bits) ((v) & ((1 << (bits)) - 1))
 
+#define MAX_X 4095
+#define MAX_Y 4095
 
 static inline glyphy_rgba_t
-arc_endpoint_encode (double x, double y, double d)
+arc_endpoint_encode (unsigned int ix, unsigned int iy, double d)
 {
   glyphy_rgba_t v;
 
   /* 12 bits for each of x and y, 8 bits for d */
-  unsigned int ix, iy, id;
-  ix = lround (x * 4095);
-  assert (ix < 4096);
-  iy = lround (y * 4095);
-  assert (iy < 4096);
+  assert (ix <= MAX_X);
+  assert (iy <= MAX_Y);
+  unsigned int id;
   if (isinf (d))
     id = 0;
   else {
@@ -78,12 +78,11 @@ line_encode (const Line &line)
   double angle = l.n.angle ();
   double distance = l.c;
 
-  int ia = -angle / M_PI * 0x8000;
-  if (ia == 0x8000) ia--;
+  int ia = lround (-angle / M_PI * 0x7FFF);
   unsigned int ua = ia + 0x8000;
   assert (0 == (ua & ~0xFFFF));
 
-  int id = distance * 0x2000;
+  int id = lround (distance * 0x1FFF);
   unsigned int ud = id + 0x4000;
   assert (0 == (ud & ~0x7FFF));
 
@@ -235,24 +234,25 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
 			    near_endpoints,
 			    &side);
 
+#define QUANTIZE_X(X) (lround (MAX_X * ((X - extents.min_x) / glyph_width )))
+#define QUANTIZE_Y(Y) (lround (MAX_Y * ((Y - extents.min_y) / glyph_height)))
+#define DEQUANTIZE_X(X) (double (X) / MAX_X * glyph_width  + extents.min_x)
+#define DEQUANTIZE_Y(Y) (double (Y) / MAX_Y * glyph_height + extents.min_y)
+#define SNAP(P) (Point (DEQUANTIZE_X (QUANTIZE_X ((P).x)), DEQUANTIZE_Y (QUANTIZE_Y ((P).y))))
+
       if (near_endpoints.size () == 2 && near_endpoints[1].d == 0) {
         Point c (extents.min_x + glyph_width * .5, extents.min_y + glyph_height * .5);
-        Line line (near_endpoints[0].p, near_endpoints[1].p);
+        Line line (SNAP (near_endpoints[0].p), SNAP (near_endpoints[1].p));
 	line.c -= line.n * Vector (c);
 	line.c /= unit;
 	tex_data[row * grid_w + col] = line_encode (line);
 	continue;
       }
 
-#define ARC_ENDPOINT_ENCODE(E) \
-	arc_endpoint_encode ((E.p.x - extents.min_x) / glyph_width, \
-			     (E.p.y - extents.min_y) / glyph_height, \
-			     (E.d))
       for (unsigned i = 0; i < near_endpoints.size (); i++) {
         glyphy_arc_endpoint_t &endpoint = near_endpoints[i];
-	tex_data.push_back (ARC_ENDPOINT_ENCODE (endpoint));
+	tex_data.push_back (arc_endpoint_encode (QUANTIZE_X(endpoint.p.x), QUANTIZE_Y(endpoint.p.y), endpoint.d));
       }
-#undef ARC_ENDPOINT_ENCODE
 
       unsigned int current_endpoints = tex_data.size () - offset;
 

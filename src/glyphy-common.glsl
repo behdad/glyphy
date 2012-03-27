@@ -209,9 +209,9 @@ glyphy_arc_list_decode (const vec4 v, ivec2 nominal_size)
       l.side = +1;
   } else { /* single line encoded */
     l.num_endpoints = -1;
-    l.line_distance = float(((iv.r - 128) * 256 + iv.g) - 0x4000) / float (0x2000)
+    l.line_distance = float(((iv.r - 128) * 256 + iv.g) - 0x4000) / float (0x1FFF)
                     * max (float (nominal_size.x), float (nominal_size.y));
-    l.line_angle = float(-((iv.b * 256 + iv.a) - 0x8000)) / float (0x8000) * 3.14159265358979;
+    l.line_angle = float(-((iv.b * 256 + iv.a) - 0x8000)) / float (0x7FFF) * 3.14159265358979;
   }
   return l;
 }
