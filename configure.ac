@@ -17,6 +17,10 @@ AC_CANONICAL_HOST
 LT_PREREQ([2.2])
 LT_INIT([disable-static])
 
+# TODO flesh this out
+GLYPHY_LIBTOOL_VERSION_INFO="0:0:0"
+AC_SUBST(GLYPHY_LIBTOOL_VERSION_INFO)
+
 # Check for programs
 AC_PROG_CC
 AM_PROG_CC_C_O
@@ -70,19 +74,7 @@ GLYPHY_CHECK_PACKAGE(gl, glCreateShader, OpenGL)
 GLYPHY_CHECK_PACKAGE(glew, glewInit)
 GLYPHY_CHECK_PACKAGE(glut, glutInit, GLUT)
 
-
 dnl ===========================================================================
-
-glyphy_includedir=${includedir}/${PACKAGE_NAME}-${PACKAGE_VERSION}
-AC_SUBST(glyphy_includedir)
-
-glyphy_datadir=${datadir}/${PACKAGE_NAME}-${PACKAGE_VERSION}
-AC_SUBST(glyphy_datadir)
-
-glyphy_libversion="0:0:0"
-AC_SUBST(glyphy_libversion)
-
-AC_DEFINE_DIR([GLYPHY_SHADERDIR], [glyphy_datadir], [Directory containing shader code.])
 
 AC_DEFINE_DIR([PKGDATADIR], [$pkgdatadir], [Define to the directory containing package data.])
 

@@ -12,7 +12,7 @@ libglyphy_la_LIBADD = \
 	-lm \
 	$(NULL)
 libglyphy_la_LDFLAGS = \
-	-version-info @glyphy_libversion@ \
+	-version-info @GLYPHY_LIBTOOL_VERSION_INFO@ \
 	$(NULL)
 libglyphy_la_SOURCES = \
 	glyphy-arc.cc \
