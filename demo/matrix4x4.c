@@ -41,6 +41,9 @@
 
 /*
  * Ported from JavaScript to C by Behdad Esfahbod, 2012.
+ * Added MultMatrix.  Converting from fixed-function OpenGL matrix
+ * operations to these functions should be as simple as renaming the
+ * 'gl' prefix to 'm4' and adding the matrix argument to the call.
  */
 
 #include "matrix4x4.h"
