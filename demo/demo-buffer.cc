@@ -28,6 +28,7 @@ struct demo_buffer_t {
   glyphy_point_t cursor;
   std::vector<glyph_vertex_t> *vertices;
   glyphy_extents_t extents;
+  GLuint buf_name;
 };
 
 demo_buffer_t *
@@ -37,6 +38,7 @@ demo_buffer_create (void)
   buffer->refcount = 1;
 
   buffer->vertices = new std::vector<glyph_vertex_t>;
+  glGenBuffers (1, &buffer->buf_name);
 
   demo_buffer_clear (buffer);
 
@@ -56,6 +58,7 @@ demo_buffer_destroy (demo_buffer_t *buffer)
   if (!buffer || --buffer->refcount)
     return;
 
+  glDeleteBuffers (1, &buffer->buf_name);
   delete buffer->vertices;
   free (buffer);
 }
@@ -143,6 +146,7 @@ demo_buffer_draw (demo_buffer_t *buffer)
   GLint program;
   glGetIntegerv (GL_CURRENT_PROGRAM, &program);
   GLuint a_glyph_vertex_loc = glGetAttribLocation (program, "a_glyph_vertex");
+  glBindBuffer (GL_ARRAY_BUFFER, buffer->buf_name);
   glEnableVertexAttribArray (a_glyph_vertex_loc);
   glVertexAttribPointer (a_glyph_vertex_loc, 4, GL_FLOAT, GL_FALSE, sizeof (glyph_vertex_t), (const char *) &(*buffer->vertices)[0]);
   glDrawArrays (GL_TRIANGLES, 0, buffer->vertices->size ());
