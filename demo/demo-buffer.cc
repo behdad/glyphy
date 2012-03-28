@@ -147,7 +147,8 @@ demo_buffer_draw (demo_buffer_t *buffer)
   glGetIntegerv (GL_CURRENT_PROGRAM, &program);
   GLuint a_glyph_vertex_loc = glGetAttribLocation (program, "a_glyph_vertex");
   glBindBuffer (GL_ARRAY_BUFFER, buffer->buf_name);
+  glBufferData (GL_ARRAY_BUFFER,  sizeof (glyph_vertex_t) * buffer->vertices->size (), (const char *) &(*buffer->vertices)[0], GL_STATIC_DRAW);
   glEnableVertexAttribArray (a_glyph_vertex_loc);
-  glVertexAttribPointer (a_glyph_vertex_loc, 4, GL_FLOAT, GL_FALSE, sizeof (glyph_vertex_t), (const char *) &(*buffer->vertices)[0]);
+  glVertexAttribPointer (a_glyph_vertex_loc, 4, GL_FLOAT, GL_FALSE, sizeof (glyph_vertex_t), 0);
   glDrawArrays (GL_TRIANGLES, 0, buffer->vertices->size ());
 }
