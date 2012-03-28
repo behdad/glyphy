@@ -176,6 +176,10 @@ link_program (GLuint vshader,
   return program;
 }
 
+#ifdef EMSCRIPTEN
+#define GL_ES_VERSION_2_0
+#endif
+
 #ifdef GL_ES_VERSION_2_0
 # define GLSL_HEADER_STRING ""
 #else
