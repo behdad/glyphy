@@ -267,8 +267,8 @@ demo_view_toggle_vsync (demo_view_t *vu)
   if (glxewIsSupported ("GLX_SGI_swap_control"))
     glXSwapIntervalSGI (vu->vsync);
   else
-    printf ("GLX_SGI_swap_control not supported; failed to set vsync\n");
 #endif
+    printf ("GLX_SGI_swap_control not supported; failed to set vsync\n");
 }
 
 static void
