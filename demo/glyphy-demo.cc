@@ -96,13 +96,8 @@ main (int argc, char** argv)
   const char *font_path = NULL;
   if (argc >= 2)
     font_path = argv[1];
-  else {
-#if defined(EMSCRIPTEN)
-    font_path = "DroidSans.ttf";
-#else
+  else
     font_path = DEFAULT_FONT;
-#endif
-  }
 
   const char *text = NULL;
   if (argc >= 3)
@@ -120,7 +115,12 @@ main (int argc, char** argv)
   FT_Library ft_library;
   FT_Init_FreeType (&ft_library);
   FT_Face ft_face;
+#ifdef EMSCRIPTEN
+# include "DroidSans.c"
+  FT_New_Memory_Face (ft_library, (const FT_Byte *) DroidSans, sizeof (DroidSans), 0/*face_index*/, &ft_face);
+#else
   FT_New_Face (ft_library, font_path, 0/*face_index*/, &ft_face);
+#endif
   if (!ft_face)
     die ("Failed to open font file");
   demo_font_t *font = demo_font_create (ft_face, demo_glstate_get_atlas (st));
