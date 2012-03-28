@@ -18,7 +18,7 @@ glyph_info_t
 glyph_info_decode (vec4 v)
 {
   glyph_info_t gi;
-  gi.nominal_size = (ivec2 (mod (v.zw, 256)) + 2) / 4;
+  gi.nominal_size = (ivec2 (mod (v.zw, 256.)) + 2) / 4;
   gi.atlas_pos = ivec2 (v_glyph.zw) / 256;
   return gi;
 }
@@ -42,15 +42,15 @@ antialias2 (float d)
   d = d * 16. / 30. + .5;
   if (d <= 0.) return 0.;
   if (d >= 1.) return 1.;
-  return d*d*d*(d*(d*6 - 15) + 10);
+  return d*d*d*(d*(d*6. - 15.) + 10.);
 }
 
 float
 antialias (float d)
 {
-  if (u_smoothfunc == 0) return antialias0 (d);
-  if (u_smoothfunc == 1) return antialias1 (d);
-  if (u_smoothfunc == 2) return antialias2 (d);
+  if (u_smoothfunc == 0.) return antialias0 (d);
+  if (u_smoothfunc == 1.) return antialias1 (d);
+  if (u_smoothfunc == 2.) return antialias2 (d);
   return 0.;
 }
 
@@ -71,25 +71,25 @@ main()
   float sdist = gsdist / m * u_contrast;
 
   if (!u_debug) {
-    if (sdist > 1)
+    if (sdist > 1.)
       discard;
     float alpha = antialias (-sdist);
-    if (u_gamma_adjust != 1)
+    if (u_gamma_adjust != 1.)
       alpha = pow (alpha, 1./u_gamma_adjust);
     color = vec4 (color.rgb,color.a * alpha);
   } else {
     color = vec4 (0,0,0,0);
 
     // Color the inside of the glyph a light red
-    color += vec4 (.5,0,0,.5) * smoothstep (1, -1, sdist);
+    color += vec4 (.5,0,0,.5) * smoothstep (1., -1., sdist);
 
     float udist = abs (sdist);
     float gudist = abs (gsdist);
     // Color the outline red
-    color += vec4 (1,0,0,1) * smoothstep (2, 1, udist);
+    color += vec4 (1,0,0,1) * smoothstep (2., 1., udist);
     // Color the distance field in green
     if (!glyphy_isinf (udist))
-      color += vec4 (0,.3,0,(1 + sin (sdist)) * abs(1 - gsdist * 3) / 3.);
+      color += vec4 (0,.3,0,(1. + sin (sdist)) * abs(1. - gsdist * 3.) / 3.);
 
     float pdist = glyphy_point_dist (p, gi.nominal_size GLYPHY_DEMO_EXTRA_ARGS);
     // Color points green
@@ -97,7 +97,7 @@ main()
 
     glyphy_arc_list_t arc_list = glyphy_arc_list (p, gi.nominal_size GLYPHY_DEMO_EXTRA_ARGS);
     // Color the number of endpoints per cell blue
-    color += vec4 (0,0,1,.1) * arc_list.num_endpoints * 32./255.;
+    color += vec4 (0,0,1,.1) * float(arc_list.num_endpoints) * 32./255.;
   }
 
   gl_FragColor = color;
