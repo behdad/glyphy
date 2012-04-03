@@ -22,7 +22,10 @@
 #include <glyphy.h>
 
 #ifdef EMSCRIPTEN
+/* https://github.com/kripken/emscripten/issues/340 */
 #undef HAVE_GLEW
+/* WebGL shaders are ES2 */
+#define GL_ES_VERSION_2_0
 #endif
 
 #ifdef HAVE_GLEW
@@ -30,7 +33,7 @@
 #else
 #define GLEW_OK 0
    static inline int glewInit (void) { return GLEW_OK; }
-   static inline int glewIsSupported (const char *) { return 1; }
+   static inline int glewIsSupported (const char *s) { return 0 == strcmp ("GL_VERSION_2_0", s); }
 #  define GL_GLEXT_PROTOTYPES 1
 #  include <GL/gl.h>
 #endif
