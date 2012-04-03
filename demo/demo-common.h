@@ -21,6 +21,16 @@
 
 #include <glyphy.h>
 
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include <math.h>
+#include <assert.h>
+
+#include <algorithm>
+#include <vector>
+
+
 #ifdef EMSCRIPTEN
 /* https://github.com/kripken/emscripten/issues/340 */
 #undef HAVE_GLEW
@@ -51,15 +61,6 @@
 #  endif
 #  include <GL/glut.h>
 #endif
-
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <math.h>
-#include <assert.h>
-
-#include <algorithm>
-#include <vector>
 
 
 #define STRINGIZE1(Src) #Src
