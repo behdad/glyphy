@@ -38,6 +38,8 @@
 #define GL_ES_VERSION_2_0
 #endif
 
+#if defined(HAVE_GL) && defined(HAVE_GLUT)
+
 #ifdef HAVE_GLEW
 #  include <GL/glew.h>
 #else
@@ -64,6 +66,8 @@
 #    endif
 #  endif
 #  include <GL/glut.h>
+#endif
+
 #endif
 
 

@@ -9,7 +9,6 @@ noinst_PROGRAMS =
 
 if HAVE_FREETYPE2
 if HAVE_GL
-if HAVE_GLEW
 if HAVE_GLUT
 
 noinst_PROGRAMS += glyphy-demo
@@ -65,7 +64,6 @@ EXTRA_DIST += $(SHADERS)
 	sed 's@.*/@@;s/[-.]/_/g'`" < "$<" > "$@.tmp" && \
 	mv "$@.tmp" "$@" || ($(RM) "$@.tmp"; false)
 
-endif
 endif
 endif
 endif
