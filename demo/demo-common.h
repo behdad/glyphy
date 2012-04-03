@@ -45,7 +45,11 @@
    static inline int glewInit (void) { return GLEW_OK; }
    static inline int glewIsSupported (const char *s) { return 0 == strcmp ("GL_VERSION_2_0", s); }
 #  define GL_GLEXT_PROTOTYPES 1
-#  include <GL/gl.h>
+#  if defined(__APPLE__)
+#    include <OpenGL/gl.h>
+#  else
+#    include <GL/gl.h>
+#  endif
 #endif
 
 #if defined(__APPLE__)
