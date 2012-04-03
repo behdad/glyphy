@@ -50,7 +50,7 @@ pkgdata_DATA = \
 
 EXTRA_DIST += stringize
 %-glsl.h: %.glsl stringize
-	$(AM_V_GEN) ./stringize "static const char *`echo "$<" | \
+	$(AM_V_GEN) $(srcdir)/stringize "static const char *`echo "$<" | \
 	sed 's@.*/@@;s/[-.]/_/g'`" < "$<" > "$@.tmp" && \
 	mv "$@.tmp" "$@" || ($(RM) "$@.tmp"; false)
 
