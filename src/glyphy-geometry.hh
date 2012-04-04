@@ -106,7 +106,6 @@ struct Vector {
 
 struct SignedVector : Vector {
   inline SignedVector (const Vector &v, bool negative_) : Vector (v), negative (negative_) {}
-  inline operator Vector (void) { return Vector (dx, dy); }
 
   inline bool operator == (const SignedVector &v) const;
   inline bool operator != (const SignedVector &v) const;
