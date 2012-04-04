@@ -177,7 +177,7 @@ link_program (GLuint vshader,
 }
 
 #ifdef GL_ES_VERSION_2_0
-# define GLSL_HEADER_STRING "precision highp float;"
+# define GLSL_HEADER_STRING "precision highp float;\n"
 #else
 # define GLSL_HEADER_STRING "#version 110\n"
 #endif
