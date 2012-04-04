@@ -489,7 +489,7 @@ demo_view_motion_func (demo_view_t *vu, int x, int y)
 
   if (vu->buttons & (1 << GLUT_LEFT_BUTTON))
   {
-    if (vu->modifiers & GLUT_ACTIVE_CTRL) {
+    if (vu->modifiers & GLUT_ACTIVE_SHIFT) {
       /* adjust contrast/gamma */
       demo_view_scale_gamma_adjust (vu, 1 - ((y - vu->lasty) / height));
       demo_view_scale_contrast (vu, 1 + ((x - vu->lastx) / width));
@@ -503,7 +503,7 @@ demo_view_motion_func (demo_view_t *vu, int x, int y)
 
   if (vu->buttons & (1 << GLUT_RIGHT_BUTTON))
   {
-    if (vu->modifiers & GLUT_ACTIVE_CTRL) {
+    if (vu->modifiers & GLUT_ACTIVE_SHIFT) {
       /* adjust perspective */
       demo_view_scale_perspective (vu, 1 - ((y - vu->lasty) / height) * 5);
     } else {
