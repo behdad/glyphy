@@ -62,6 +62,12 @@ struct demo_view_t {
   long fps_start_time;
   long last_frame_time;
   bool has_fps_timer;
+
+  /* Window geometry just before going fullscreen */
+  int x;
+  int y;
+  int width;
+  int height;
 };
 
 demo_view_t *static_vu;
@@ -295,11 +301,15 @@ static void
 demo_view_toggle_fullscreen (demo_view_t *vu)
 {
   vu->fullscreen = !vu->fullscreen;
-  if (vu->fullscreen)
+  if (vu->fullscreen) {
+    vu->x = glutGet (GLUT_WINDOW_X);
+    vu->y = glutGet (GLUT_WINDOW_Y);
+    vu->width  = glutGet (GLUT_WINDOW_WIDTH);
+    vu->height = glutGet (GLUT_WINDOW_HEIGHT);
     glutFullScreen ();
-  else {
-    glutReshapeWindow (glutGet (GLUT_INIT_WINDOW_WIDTH), glutGet (GLUT_INIT_WINDOW_HEIGHT));
-    glutPositionWindow (glutGet (GLUT_INIT_WINDOW_X), glutGet (GLUT_INIT_WINDOW_Y));
+  } else {
+    glutReshapeWindow (vu->width, vu->height);
+    glutPositionWindow (vu->x, vu->y);
   }
 }
 
