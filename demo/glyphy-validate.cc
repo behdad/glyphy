@@ -64,7 +64,7 @@ main (int argc, char** argv)
     unsigned int num_faces = 1;
     for (unsigned int face_index = 0; face_index < num_faces; face_index++)
     {
-      FT_Face ft_face;
+      FT_Face ft_face = NULL;
       FT_New_Face (ft_library, font_path, face_index, &ft_face);
       if (!ft_face)
 	die ("Failed to open font file");
