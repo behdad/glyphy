@@ -210,9 +210,10 @@ idle_step (void)
 {
   demo_view_t *vu = static_vu;
   if (vu->animate) {
-    glutIdleFunc (idle_step);
     next_frame (vu);
   }
+  else
+    glutIdleFunc (NULL);
 }
 
 static void
