@@ -39,6 +39,13 @@ accumulate_endpoint (glyphy_arc_endpoint_t         *endpoint,
 int
 main (int argc, char** argv)
 {
+  bool verbose = false;
+
+  if (argc > 1 && 0 == strcmp (argv[1], "--verbose")) {
+    verbose = true;
+    argc--;
+    argv++;
+  }
 
   if (argc == 1) {
     fprintf (stderr, "Usage: %s FONT_FILE...\n", argv[0]);
@@ -100,6 +107,12 @@ main (int argc, char** argv)
 
 	if (FT_Err_Ok != glyphy_freetype(outline_decompose) (&ft_face->glyph->outline, acc))
 	  die ("Failed converting glyph outline to arcs");
+
+	if (verbose) {
+	  printf ("Arc list has %d endpoints\n", endpoints.size ());
+	  for (unsigned int i = 0; i < endpoints.size (); i++)
+	    printf ("Endpoint %d: p=(%g,%g),d=%g\n", i, endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d);
+	}
 
 	assert (glyphy_arc_accumulator_get_error (acc) <= tolerance);
 
