@@ -329,6 +329,7 @@ demo_view_next_smoothfunc (demo_view_t *vu)
 void
 demo_view_reshape_func (demo_view_t *vu, int width, int height)
 {
+  vu->fullscreen = false;
   glViewport (0, 0, width, height);
   glutPostRedisplay ();
 }
