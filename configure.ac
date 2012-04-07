@@ -1,6 +1,6 @@
 AC_PREREQ([2.64])
 AC_INIT([glyphy],
-        [0.1.0],
+        [0.2.0],
         [http://code.google.com/p/glyphy/issues/list],
         [glyphy],
         [http://code.google.com/p/glyphy/])
