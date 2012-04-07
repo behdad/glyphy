@@ -88,6 +88,4 @@ glyphy_validate_SOURCES = \
 endif
 
 
-EXTRA_DIST += TEXT
-
 -include $(top_srcdir)/git.mk
