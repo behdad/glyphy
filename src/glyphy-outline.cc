@@ -57,6 +57,13 @@ winding (const glyphy_arc_endpoint_t *endpoints,
    *   o compare the angle of the incoming and outgoing edges of that point
    *     to find out whether it's CW or CCW,
    * - Otherwise, compare the y of the two endpoints of the arc with lowest-x point.
+   *
+   * Note:
+   *
+   * We can use a simpler algorithm here: Act as if arcs are lines, then use the
+   * triangle method to calculate the signed area of the contour and get the sign.
+   * It should work for all cases we care about.  The only case failing would be
+   * that of two endpoints and two arcs.  But we can even special-case that.
    */
 
   unsigned int corner = 1;
