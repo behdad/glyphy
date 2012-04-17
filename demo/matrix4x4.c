@@ -53,6 +53,19 @@
  * A simple 4x4 matrix utility implementation
  */
 
+
+float *
+m4LoadIdentity (float *mat) {
+  unsigned int i;
+  for (i = 0; i < 16; i++)
+    mat[i] = 0;
+  mat[0*4+0] = 1.0;
+  mat[1*4+1] = 1.0;
+  mat[2*4+2] = 1.0;
+  mat[3*4+3] = 1.0;
+  return mat;
+}
+
 /* Copies other matrix into mat */
 float *
 m4Copy (float *mat, const float *other) {
@@ -152,6 +165,8 @@ m4Rotate (float *mat, float angle, float x, float y, float z) {
   if (mag <= 0)
     return mat;
 
+  m4LoadIdentity (rotMat);
+
   x /= mag;
   y /= mag;
   z /= mag;
@@ -202,6 +217,8 @@ m4Frustum (float *mat, float left, float right, float bottom, float top, float n
        (deltaX <= 0.0) || (deltaY <= 0.0) || (deltaZ <= 0.0) )
        return mat;
 
+  m4LoadIdentity (frust);
+
   frust[0*4+0] = 2.0 * nearZ / deltaX;
   frust[0*4+1] = frust[0*4+2] = frust[0*4+3] = 0.0;
 
@@ -237,6 +254,8 @@ m4Ortho (float *mat, float left, float right, float bottom, float top, float nea
 
   if ( (deltaX == 0.0) || (deltaY == 0.0) || (deltaZ == 0.0) )
     return mat;
+
+  m4LoadIdentity (ortho);
 
   ortho[0*4+0] = 2.0 / deltaX;
   ortho[3*4+0] = -(right + left) / deltaX;
@@ -373,17 +392,5 @@ m4Transpose (float *mat) {
   mat[2*4+3] = mat[3*4+2];
   mat[3*4+2] = tmp;
 
-  return mat;
-}
-
-float *
-m4LoadIdentity (float *mat) {
-  unsigned int i;
-  for (i = 0; i < 16; i++)
-    mat[i] = 0;
-  mat[0*4+0] = 1.0;
-  mat[1*4+1] = 1.0;
-  mat[2*4+2] = 1.0;
-  mat[3*4+3] = 1.0;
   return mat;
 }
