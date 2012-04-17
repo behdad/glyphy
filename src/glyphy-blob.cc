@@ -111,7 +111,7 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
 {
   // Find distance between cell center
   Point c = c0.midpoint (c1);
-  double min_dist = glyphy_sdf_from_arc_list (endpoints, num_endpoints, c, NULL);
+  double min_dist = glyphy_sdf_from_arc_list (endpoints, num_endpoints, &c, NULL);
 
   *side = min_dist >= 0 ? +1 : -1;
   min_dist = fabs (min_dist);

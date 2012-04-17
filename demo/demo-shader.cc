@@ -99,7 +99,7 @@ demo_shader_add_glyph_vertices (const glyphy_point_t        &p,
     glyphy_extents_clear (extents);
     for (unsigned int i = 0; i < 4; i++) {
       glyphy_point_t p = {v[i].x, v[i].y};
-      glyphy_extents_add (extents, p);
+      glyphy_extents_add (extents, &p);
     }
   }
 }

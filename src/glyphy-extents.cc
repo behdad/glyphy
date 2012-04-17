@@ -39,18 +39,18 @@ glyphy_extents_is_empty (const glyphy_extents_t *extents)
 }
 
 void
-glyphy_extents_add (glyphy_extents_t *extents,
-		    glyphy_point_t    p)
+glyphy_extents_add (glyphy_extents_t     *extents,
+		    const glyphy_point_t *p)
 {
   if (glyphy_extents_is_empty (extents)) {
-    extents->min_x = extents->max_x = p.x;
-    extents->min_y = extents->max_y = p.y;
+    extents->min_x = extents->max_x = p->x;
+    extents->min_y = extents->max_y = p->y;
     return;
   }
-  extents->min_x = std::min (extents->min_x, p.x);
-  extents->min_y = std::min (extents->min_y, p.y);
-  extents->max_x = std::max (extents->max_x, p.x);
-  extents->max_y = std::max (extents->max_y, p.y);
+  extents->min_x = std::min (extents->min_x, p->x);
+  extents->min_y = std::min (extents->min_y, p->y);
+  extents->max_x = std::max (extents->max_x, p->x);
+  extents->max_y = std::max (extents->max_y, p->y);
 }
 
 void
@@ -71,10 +71,10 @@ glyphy_extents_extend (glyphy_extents_t       *extents,
 
 glyphy_bool_t
 glyphy_extents_includes (const glyphy_extents_t *extents,
-			 glyphy_point_t          p)
+			 const glyphy_point_t   *p)
 {
-  return extents->min_x <= p.x && p.x <= extents->max_x &&
-	 extents->min_y <= p.y && p.y <= extents->max_y;
+  return extents->min_x <= p->x && p->x <= extents->max_x &&
+	 extents->min_y <= p->y && p->y <= extents->max_y;
 }
 
 void

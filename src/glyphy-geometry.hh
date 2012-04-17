@@ -47,10 +47,10 @@ struct Pair {
   Type first, second;
 };
 
-struct Point {
-  inline Point (double x_, double y_) : x (x_), y (y_) {}
+struct Point : glyphy_point_t {
+  inline Point (double x_, double y_) { x = x_; y = y_; }
   inline explicit Point (const Vector &v);
-  inline Point (const glyphy_point_t &p) : x (p.x), y (p.y) {}
+  inline Point (const glyphy_point_t &p) { *(glyphy_point_t *)this = p; }
   inline operator glyphy_point_t (void) const { glyphy_point_t p = {x, y}; return p; }
 
   inline bool operator == (const Point &p) const;
@@ -67,8 +67,6 @@ struct Point {
 
   inline bool is_finite (void) const;
   inline const Point lerp (const double &a, const Point &p) const;
-
-  double x, y;
 };
 
 struct Vector {
@@ -587,8 +585,8 @@ inline double Arc::extended_dist (const Point &p) const {
 
 inline void Arc::extents (glyphy_extents_t &extents) const {
   glyphy_extents_clear (&extents);
-  glyphy_extents_add (&extents, p0);
-  glyphy_extents_add (&extents, p1);
+  glyphy_extents_add (&extents, &p0);
+  glyphy_extents_add (&extents, &p1);
   Point c = center ();
   double r = radius ();
   Point p[4] = {c + r * Vector (-1,  0),
@@ -597,7 +595,7 @@ inline void Arc::extents (glyphy_extents_t &extents) const {
 		c + r * Vector ( 0, +1)};
   for (unsigned int i = 0; i < 4; i++)
     if (wedge_contains_point (p[i]))
-      glyphy_extents_add (&extents, p[i]);
+      glyphy_extents_add (&extents, &p[i]);
 }
 
 

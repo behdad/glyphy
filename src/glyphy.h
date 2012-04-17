@@ -58,8 +58,8 @@ glyphy_bool_t
 glyphy_extents_is_empty (const glyphy_extents_t *extents);
 
 void
-glyphy_extents_add (glyphy_extents_t *extents,
-		    glyphy_point_t    p);
+glyphy_extents_add (glyphy_extents_t     *extents,
+		    const glyphy_point_t *p);
 
 void
 glyphy_extents_extend (glyphy_extents_t       *extents,
@@ -67,7 +67,7 @@ glyphy_extents_extend (glyphy_extents_t       *extents,
 
 glyphy_bool_t
 glyphy_extents_includes (const glyphy_extents_t *extents,
-			 glyphy_point_t          p);
+			 const glyphy_point_t   *p);
 
 void
 glyphy_extents_scale (glyphy_extents_t *extents,
@@ -90,12 +90,12 @@ typedef struct {
 
 /* Build from a conventional arc representation */
 void
-glyphy_arc_from_conventional (glyphy_point_t  center,
-			      double          radius,
-			      double          angle0,
-			      double          angle1,
-			      glyphy_bool_t   negative,
-			      glyphy_arc_t   *arc);
+glyphy_arc_from_conventional (const glyphy_point_t *center,
+			      double                radius,
+			      double                angle0,
+			      double                angle1,
+			      glyphy_bool_t         negative,
+			      glyphy_arc_t         *arc);
 
 /* Convert to a conventional arc representation */
 void
@@ -121,32 +121,32 @@ glyphy_arc_extents (glyphy_arc_t      arc,
 
 
 void
-glyphy_arc_from_line (glyphy_point_t  p0,
-		      glyphy_point_t  p1,
-		      glyphy_arc_t   *arc);
+glyphy_arc_from_line (const glyphy_point_t *p0,
+		      const glyphy_point_t *p1,
+		      glyphy_arc_t         *arc);
 
 void
-glyphy_arc_from_conic (glyphy_point_t  p0,
-		       glyphy_point_t  p1,
-		       glyphy_point_t  p2,
-		       glyphy_arc_t   *arc,
-		       double         *error);
+glyphy_arc_from_conic (const glyphy_point_t *p0,
+		       const glyphy_point_t *p1,
+		       const glyphy_point_t *p2,
+		       glyphy_arc_t         *arc,
+		       double               *error);
 
 void
-glyphy_arc_from_cubic (glyphy_point_t  p0,
-		       glyphy_point_t  p1,
-		       glyphy_point_t  p2,
-		       glyphy_point_t  p3,
-		       glyphy_arc_t   *arc,
-		       double         *error);
+glyphy_arc_from_cubic (const glyphy_point_t *p0,
+		       const glyphy_point_t *p1,
+		       const glyphy_point_t *p2,
+		       const glyphy_point_t *p3,
+		       glyphy_arc_t         *arc,
+		       double               *error);
 
 void
-glyphy_arc_to_cubic (glyphy_arc_t    arc,
-		     glyphy_point_t *p0,
-		     glyphy_point_t *p1,
-		     glyphy_point_t *p2,
-		     glyphy_point_t *p3,
-		     double         *error);
+glyphy_arc_to_cubic (const glyphy_arc_t *arc,
+		     glyphy_point_t     *p0,
+		     glyphy_point_t     *p1,
+		     glyphy_point_t     *p2,
+		     glyphy_point_t     *p3,
+		     double             *error);
 
 
 
@@ -226,27 +226,27 @@ glyphy_arc_accumulator_successful (glyphy_arc_accumulator_t *acc);
 
 void
 glyphy_arc_accumulator_move_to (glyphy_arc_accumulator_t *acc,
-				glyphy_point_t p0);
+				const glyphy_point_t *p0);
 
 void
 glyphy_arc_accumulator_line_to (glyphy_arc_accumulator_t *acc,
-				glyphy_point_t p1);
+				const glyphy_point_t *p1);
 
 void
 glyphy_arc_accumulator_conic_to (glyphy_arc_accumulator_t *acc,
-				 glyphy_point_t p1,
-				 glyphy_point_t p2);
+				 const glyphy_point_t *p1,
+				 const glyphy_point_t *p2);
 
 void
 glyphy_arc_accumulator_cubic_to (glyphy_arc_accumulator_t *acc,
-				 glyphy_point_t p1,
-				 glyphy_point_t p2,
-				 glyphy_point_t p3);
+				 const glyphy_point_t *p1,
+				 const glyphy_point_t *p2,
+				 const glyphy_point_t *p3);
 
 void
 glyphy_arc_accumulator_arc_to (glyphy_arc_accumulator_t *acc,
-			       glyphy_point_t p1,
-			       double         d);
+			       const glyphy_point_t *p1,
+			       double                d);
 
 
 void
@@ -312,16 +312,16 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
 double
 glyphy_sdf_from_arc_list (const glyphy_arc_endpoint_t *endpoints,
 			  unsigned int                 num_endpoints,
-			  glyphy_point_t               p,
+			  const glyphy_point_t        *p,
 			  glyphy_point_t              *closest_p /* may be NULL; TBD not implemented yet */);
 
 /* TBD */
 double
-glyphy_sdf_from_blob (const glyphy_rgba_t *blob,
-		      unsigned int         nominal_width,
-		      unsigned int         nominal_height,
-		      glyphy_point_t       p,
-		      glyphy_point_t      *closest_p /* may be NULL; TBD not implemented yet */);
+glyphy_sdf_from_blob (const glyphy_rgba_t  *blob,
+		      unsigned int          nominal_width,
+		      unsigned int          nominal_height,
+		      const glyphy_point_t *p,
+		      glyphy_point_t       *closest_p /* may be NULL; TBD not implemented yet */);
 
 
 

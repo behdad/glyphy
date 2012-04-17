@@ -36,14 +36,14 @@ using namespace GLyphy::ArcBezier;
 
 /* Build from a conventional arc representation */
 void
-glyphy_arc_from_conventional (glyphy_point_t  center,
-			      double          radius,
-			      double          angle0,
-			      double          angle1,
-			      glyphy_bool_t   negative,
-			      glyphy_arc_t   *arc)
+glyphy_arc_from_conventional (const glyphy_point_t *center,
+			      double                radius,
+			      double                angle0,
+			      double                angle1,
+			      glyphy_bool_t         negative,
+			      glyphy_arc_t         *arc)
 {
-  *arc = Arc (center, radius, angle0, angle1, negative);
+  *arc = Arc (*center, radius, angle0, angle1, negative);
 };
 
 /* Convert to a conventional arc representation */
@@ -86,50 +86,52 @@ glyphy_arc_extents (glyphy_arc_t      arc,
 
 
 void
-glyphy_arc_from_line (glyphy_point_t  p0,
-		      glyphy_point_t  p1,
-		      glyphy_arc_t   *arc)
+glyphy_arc_from_line (const glyphy_point_t *p0,
+		      const glyphy_point_t *p1,
+		      glyphy_arc_t         *arc)
 {
-  *arc = Arc (p0, p1, 0);
+  *arc = Arc (*p0, *p1, 0);
 }
 
 void
-glyphy_arc_from_conic (glyphy_point_t  p0,
-		       glyphy_point_t  p1,
-		       glyphy_point_t  p2,
-		       glyphy_arc_t   *arc,
-		       double         *error)
+glyphy_arc_from_conic (const glyphy_point_t *p0,
+		       const glyphy_point_t *p1,
+		       const glyphy_point_t *p2,
+		       glyphy_arc_t         *arc,
+		       double               *error)
 {
+  Point p1_ (Point (*p0).lerp (2/3., *p1));
+  Point p2_ (Point (*p2).lerp (2/3., *p1));
   glyphy_arc_from_cubic (p0,
-			Point (p0).lerp (2/3., p1),
-			Point (p2).lerp (2/3., p1),
-			p2,
-			arc,
-			error);
+			 &p1_,
+			 &p2_,
+			 p2,
+			 arc,
+			 error);
 }
 
 void
-glyphy_arc_from_cubic (glyphy_point_t  p0,
-		       glyphy_point_t  p1,
-		       glyphy_point_t  p2,
-		       glyphy_point_t  p3,
-		       glyphy_arc_t   *arc,
-		       double         *error)
+glyphy_arc_from_cubic (const glyphy_point_t *p0,
+		       const glyphy_point_t *p1,
+		       const glyphy_point_t *p2,
+		       const glyphy_point_t *p3,
+		       glyphy_arc_t         *arc,
+		       double               *error)
 {
-  *arc = ArcBezierApproximatorDefault::approximate_bezier_with_arc (Bezier (p0, p1, p2, p3), error);
+  *arc = ArcBezierApproximatorDefault::approximate_bezier_with_arc (Bezier (*p0, *p1, *p2, *p3), error);
 }
 
 void
-glyphy_arc_to_cubic (glyphy_arc_t    arc,
-		     glyphy_point_t *p0,
-		     glyphy_point_t *p1,
-		     glyphy_point_t *p2,
-		     glyphy_point_t *p3,
-		     double         *error)
+glyphy_arc_to_cubic (const glyphy_arc_t *arc,
+		     glyphy_point_t     *p0,
+		     glyphy_point_t     *p1,
+		     glyphy_point_t     *p2,
+		     glyphy_point_t     *p3,
+		     double             *error)
 {
-  Bezier b = Arc (arc).approximate_bezier (error);
-  *p0 = arc.p0;
+  Bezier b = Arc (*arc).approximate_bezier (error);
+  *p0 = arc->p0;
   *p1 = b.p1;
   *p2 = b.p2;
-  *p3 = arc.p1;
+  *p3 = arc->p1;
 }

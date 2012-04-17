@@ -209,7 +209,7 @@ move_to (glyphy_arc_accumulator_t *acc, const Point &p)
 }
 
 static void
-arc_to (glyphy_arc_accumulator_t *acc, const Point p1, double d)
+arc_to (glyphy_arc_accumulator_t *acc, const Point &p1, double d)
 {
   accumulate (acc, p1, d);
 }
@@ -234,44 +234,44 @@ bezier (glyphy_arc_accumulator_t *acc, const Bezier &b)
 
 void
 glyphy_arc_accumulator_move_to (glyphy_arc_accumulator_t *acc,
-				glyphy_point_t p0)
+				const glyphy_point_t *p0)
 {
-  move_to (acc, p0);
+  move_to (acc, *p0);
 }
 
 void
 glyphy_arc_accumulator_line_to (glyphy_arc_accumulator_t *acc,
-				glyphy_point_t p1)
+				const glyphy_point_t *p1)
 {
-  arc_to (acc, p1, 0);
+  arc_to (acc, *p1, 0);
 }
 
 void
 glyphy_arc_accumulator_conic_to (glyphy_arc_accumulator_t *acc,
-				 glyphy_point_t p1,
-				 glyphy_point_t p2)
+				 const glyphy_point_t *p1,
+				 const glyphy_point_t *p2)
 {
-  glyphy_arc_accumulator_cubic_to (acc,
-				   Point (acc->current_point).lerp (2/3., p1),
-				   Point (p2).lerp (2/3., p1),
-				   p2);
+  bezier (acc, Bezier (acc->current_point,
+		       Point (acc->current_point).lerp (2/3., *p1),
+		       Point (*p2).lerp (2/3., *p1),
+		       *p2));
 }
 
 void
 glyphy_arc_accumulator_cubic_to (glyphy_arc_accumulator_t *acc,
-				 glyphy_point_t p1,
-				 glyphy_point_t p2,
-				 glyphy_point_t p3)
+				 const glyphy_point_t *p1,
+				 const glyphy_point_t *p2,
+				 const glyphy_point_t *p3)
 {
-  bezier (acc, Bezier (acc->current_point, p1, p2, p3));
+  bezier (acc, Bezier (acc->current_point, *p1, *p2, *p3));
 }
 
 void
 glyphy_arc_accumulator_arc_to (glyphy_arc_accumulator_t *acc,
-			       glyphy_point_t p1,
+			       const glyphy_point_t *p1,
 			       double         d)
 {
-  arc_to (acc, p1, d);
+  arc_to (acc, *p1, d);
 }
 
 

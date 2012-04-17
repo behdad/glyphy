@@ -34,10 +34,10 @@ using namespace GLyphy::Geometry;
 double
 glyphy_sdf_from_arc_list (const glyphy_arc_endpoint_t *endpoints,
 			  unsigned int                 num_endpoints,
-			  glyphy_point_t               p,
+			  const glyphy_point_t        *p,
 			  glyphy_point_t              *closest_p /* may be NULL; TBD not implemented yet */)
 {
-  Point c = p;
+  Point c = *p;
   Point p0 (0, 0);
   Arc closest_arc (p0, p0, 0);
   double min_dist = GLYPHY_INFINITY;
