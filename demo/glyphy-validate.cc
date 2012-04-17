@@ -109,7 +109,7 @@ main (int argc, char** argv)
 	  die ("Failed converting glyph outline to arcs");
 
 	if (verbose) {
-	  printf ("Arc list has %d endpoints\n", endpoints.size ());
+	  printf ("Arc list has %d endpoints\n", (int) endpoints.size ());
 	  for (unsigned int i = 0; i < endpoints.size (); i++)
 	    printf ("Endpoint %d: p=(%g,%g),d=%g\n", i, endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d);
 	}
