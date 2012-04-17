@@ -28,6 +28,7 @@ struct demo_buffer_t {
   glyphy_point_t cursor;
   std::vector<glyph_vertex_t> *vertices;
   glyphy_extents_t extents;
+  bool dirty;
   GLuint buf_name;
 };
 
@@ -69,6 +70,7 @@ demo_buffer_clear (demo_buffer_t *buffer)
 {
   buffer->vertices->clear ();
   glyphy_extents_clear (&buffer->extents);
+  buffer->dirty = true;
 }
 
 void
@@ -138,6 +140,8 @@ demo_buffer_add_text (demo_buffer_t  *buffer,
     glyphy_extents_extend (&buffer->extents, &extents);
     buffer->cursor.x += font_size * gi.advance;
   }
+
+  buffer->dirty = true;
 }
 
 void
@@ -147,8 +151,12 @@ demo_buffer_draw (demo_buffer_t *buffer)
   glGetIntegerv (GL_CURRENT_PROGRAM, &program);
   GLuint a_glyph_vertex_loc = glGetAttribLocation (program, "a_glyph_vertex");
   glBindBuffer (GL_ARRAY_BUFFER, buffer->buf_name);
-  glBufferData (GL_ARRAY_BUFFER,  sizeof (glyph_vertex_t) * buffer->vertices->size (), (const char *) &(*buffer->vertices)[0], GL_STATIC_DRAW);
+  if (buffer->dirty) {
+    glBufferData (GL_ARRAY_BUFFER,  sizeof (glyph_vertex_t) * buffer->vertices->size (), (const char *) &(*buffer->vertices)[0], GL_STATIC_DRAW);
+    buffer->dirty = false;
+  }
   glEnableVertexAttribArray (a_glyph_vertex_loc);
   glVertexAttribPointer (a_glyph_vertex_loc, 4, GL_FLOAT, GL_FALSE, sizeof (glyph_vertex_t), 0);
   glDrawArrays (GL_TRIANGLES, 0, buffer->vertices->size ());
+  glDisableVertexAttribArray (a_glyph_vertex_loc);
 }
