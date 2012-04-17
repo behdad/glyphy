@@ -51,7 +51,6 @@ struct Point : glyphy_point_t {
   inline Point (double x_, double y_) { x = x_; y = y_; }
   inline explicit Point (const Vector &v);
   inline Point (const glyphy_point_t &p) { *(glyphy_point_t *)this = p; }
-  inline operator glyphy_point_t (void) const { glyphy_point_t p = {x, y}; return p; }
 
   inline bool operator == (const Point &p) const;
   inline bool operator != (const Point &p) const;
