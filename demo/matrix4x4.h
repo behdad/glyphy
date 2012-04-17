@@ -44,6 +44,8 @@
  * Added MultMatrix.  Converting from fixed-function OpenGL matrix
  * operations to these functions should be as simple as renaming the
  * 'gl' prefix to 'm4' and adding the matrix argument to the call.
+ *
+ * The C version lives at http://code.google.com/p/matrix4x4-c/
  */
 
 /*
