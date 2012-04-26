@@ -151,25 +151,30 @@ glyphy_arc_wedge_contains (const glyphy_arc_t a, const vec2 p)
 }
 
 float
+glyphy_arc_wedge_signed_dist_shallow (const glyphy_arc_t a, const vec2 p)
+{
+  vec2 v = normalize (a.p1 - a.p0);
+  float line_d = dot (p - a.p0, glyphy_perpendicular (v));
+  if (a.d == 0.)
+    return line_d;
+
+  float d0 = dot ((p - a.p0), v);
+  if (d0 < 0.)
+    return sign (line_d) * distance (p, a.p0);
+  float d1 = dot ((a.p1 - p), v);
+  if (d1 < 0.)
+    return sign (line_d) * distance (p, a.p1);
+  float r = 2. * a.d * (d0 * d1) / (d0 + d1);
+  if (r * line_d > 0.)
+    return sign (line_d) * min (abs (line_d + r), min (distance (p, a.p0), distance (p, a.p1)));
+  return line_d + r;
+}
+
+float
 glyphy_arc_wedge_signed_dist (const glyphy_arc_t a, const vec2 p)
 {
-  if (abs (a.d) <= .01) {
-    vec2 v = normalize (a.p1 - a.p0);
-    float line_d = dot (p - a.p0, glyphy_perpendicular (v));
-    if (a.d == 0.)
-      return line_d;
-
-    float d0 = dot ((p - a.p0), v);
-    if (d0 < 0.)
-      return sign (line_d) * distance (p, a.p0);
-    float d1 = dot ((a.p1 - p), v);
-    if (d1 < 0.)
-      return sign (line_d) * distance (p, a.p1);
-    float r = 2. * a.d * (d0 * d1) / (d0 + d1);
-    if (r * line_d > 0.)
-      return sign (line_d) * min (abs (line_d + r), min (distance (p, a.p0), distance (p, a.p1)));
-    return line_d + r;
-  }
+  if (abs (a.d) <= .01)
+    return glyphy_arc_wedge_signed_dist_shallow (a, p);
   vec2 c = glyphy_arc_center (a);
   return sign (a.d) * (distance (a.p0, c) - distance (p, c));
 }
