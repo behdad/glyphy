@@ -152,6 +152,13 @@ demo_view_scale_outline_thickness (demo_view_t *vu, double factor)
 
 
 static void
+demo_view_adjust_boldness (demo_view_t *vu, double factor)
+{
+  demo_glstate_adjust_boldness (vu->st, factor);
+}
+
+
+static void
 demo_view_scale (demo_view_t *vu, double factor)
 {
   vu->scale *= factor;
@@ -379,6 +386,13 @@ demo_view_keyboard_func (demo_view_t *vu, unsigned char key, int x, int y)
       break;
     case 'i':
       demo_view_scale_outline_thickness (vu, 1. / STEP);
+      break;
+
+    case '0':
+      demo_view_adjust_boldness (vu, +.01);
+      break;
+    case '9':
+      demo_view_adjust_boldness (vu, -.01);
       break;
 
 

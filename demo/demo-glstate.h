@@ -64,5 +64,8 @@ demo_glstate_toggle_outline (demo_glstate_t *st);
 void
 demo_glstate_scale_outline_thickness (demo_glstate_t *st, double factor);
 
+void
+demo_glstate_adjust_boldness (demo_glstate_t *st, double adjustment);
+
 
 #endif /* DEMO_GLSTATE_H */
