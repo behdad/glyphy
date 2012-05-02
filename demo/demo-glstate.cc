@@ -33,7 +33,8 @@ struct demo_glstate_t {
   double u_smoothfunc;
   double u_contrast;
   double u_gamma_adjust;
-
+  double u_outline;
+  double u_outline_thickness;
 };
 
 demo_glstate_t *
@@ -49,6 +50,8 @@ demo_glstate_create (void)
   st->u_smoothfunc = 1;
   st->u_contrast = 1.0;
   st->u_gamma_adjust = 1.0;
+  st->u_outline = false;
+  st->u_outline_thickness = 1.0;
 
   return st;
 }
@@ -94,6 +97,8 @@ demo_glstate_setup (demo_glstate_t *st)
   SET_UNIFORM (u_smoothfunc, st->u_smoothfunc);
   SET_UNIFORM (u_contrast, st->u_contrast);
   SET_UNIFORM (u_gamma_adjust, st->u_gamma_adjust);
+  SET_UNIFORM (u_outline, st->u_outline);
+  SET_UNIFORM (u_outline_thickness, st->u_outline_thickness);
 
   glEnable (GL_BLEND);
   glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -133,4 +138,16 @@ void
 demo_glstate_set_matrix (demo_glstate_t *st, float mat[16])
 {
   glUniformMatrix4fv (glGetUniformLocation (st->program, "u_matViewProjection"), 1, GL_FALSE, mat);
+}
+
+void
+demo_glstate_toggle_outline (demo_glstate_t *st)
+{
+  SET_UNIFORM (u_outline, 1 - st->u_outline);
+}
+
+void
+demo_glstate_scale_outline_thickness (demo_glstate_t *st, double factor)
+{
+  SET_UNIFORM (u_outline_thickness, clamp (st->u_outline_thickness * factor, .5, 3.));
 }

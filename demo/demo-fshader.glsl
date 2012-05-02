@@ -1,6 +1,8 @@
 uniform float u_smoothfunc;
 uniform float u_contrast;
 uniform float u_gamma_adjust;
+uniform float u_outline_thickness;
+uniform bool  u_outline;
 uniform bool  u_debug;
 
 varying vec4 v_glyph;
@@ -67,6 +69,8 @@ main()
   float sdist = gsdist / m * u_contrast;
 
   if (!u_debug) {
+    if (u_outline)
+      sdist = abs (sdist) - u_outline_thickness * .5;
     if (sdist > 1.)
       discard;
     float alpha = antialias (-sdist);

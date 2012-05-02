@@ -138,6 +138,18 @@ demo_view_scale_perspective (demo_view_t *vu, double factor)
   vu->perspective = clamp (vu->perspective * factor, .01, 100.);
 }
 
+static void
+demo_view_toggle_outline (demo_view_t *vu)
+{
+  demo_glstate_toggle_outline (vu->st);
+}
+
+static void
+demo_view_scale_outline_thickness (demo_view_t *vu, double factor)
+{
+  demo_glstate_scale_outline_thickness (vu->st, factor);
+}
+
 
 static void
 demo_view_scale (demo_view_t *vu, double factor)
@@ -358,6 +370,17 @@ demo_view_keyboard_func (demo_view_t *vu, unsigned char key, int x, int y)
     case 'd':
       demo_view_toggle_debug (vu);
       break;
+
+    case 'o':
+      demo_view_toggle_outline (vu);
+      break;
+    case 'p':
+      demo_view_scale_outline_thickness (vu, STEP);
+      break;
+    case 'i':
+      demo_view_scale_outline_thickness (vu, 1. / STEP);
+      break;
+
 
     case 's':
       demo_view_next_smoothfunc (vu);
