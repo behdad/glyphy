@@ -107,7 +107,7 @@ demo_view_destroy (demo_view_t *vu)
 }
 
 
-#define ANIMATION_SPEED .01
+#define ANIMATION_SPEED .007
 void
 demo_view_reset (demo_view_t *vu)
 {
