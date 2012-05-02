@@ -70,7 +70,7 @@ main()
   float sdist = gsdist / m * u_contrast;
 
   if (!u_debug) {
-    sdist -= u_boldness / m;
+    sdist -= u_boldness * 10.;
     if (u_outline)
       sdist = abs (sdist) - u_outline_thickness * .5;
     if (sdist > 1.)
