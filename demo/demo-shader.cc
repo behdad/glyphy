@@ -192,6 +192,7 @@ demo_shader_create_program (void)
   const GLchar *fshader_sources[] = {GLSL_HEADER_STRING,
 				     demo_atlas_glsl,
 				     glyphy_common_shader_source (),
+				     "#define GLYPHY_SDF_PSEUDO_DISTANCE 1\n",
 				     glyphy_sdf_shader_source (),
 				     demo_fshader_glsl};
   fshader = compile_shader (GL_FRAGMENT_SHADER, ARRAY_LEN (fshader_sources), fshader_sources);

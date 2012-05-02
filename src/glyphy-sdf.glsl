@@ -107,8 +107,10 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 	float ext_dist = abs (new_ext_dist) <= abs (old_ext_dist) ?
 			 old_ext_dist : new_ext_dist;
 
+#ifdef GLYPHY_SDF_PSEUDO_DISTANCE
 	/* For emboldening and stuff: */
-	// min_dist = abs (ext_dist);
+	min_dist = abs (ext_dist);
+#endif
 	side = sign (ext_dist);
       }
     }
