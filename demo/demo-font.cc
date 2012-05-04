@@ -239,7 +239,7 @@ demo_font_lookup_glyph (demo_font_t  *font,
 void
 demo_font_print_stats (demo_font_t *font)
 {
-  printf ("%3d glyphs; avg tex fetch%4.1f; avg %4.1fkb per glyph\n",
+  printf ("%3d glyphs; avg tex fetch%5.2f; avg %5.2fkb per glyph\n",
 	  font->num_glyphs,
 	  font->sum_fetch / font->num_glyphs,
 	  font->sum_bytes / 1024. / font->num_glyphs);
