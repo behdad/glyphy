@@ -249,6 +249,23 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
 	continue;
       }
 
+      /* If the arclist is two arcs that can be combined in encoding if reordered,
+       * do that. */
+      if (near_endpoints.size () == 4 &&
+	  isinf (near_endpoints[2].d) &&
+	  near_endpoints[0].p.x == near_endpoints[3].p.x &&
+	  near_endpoints[0].p.y == near_endpoints[3].p.y)
+      {
+        glyphy_arc_endpoint_t e0, e1, e2;
+	e0 = near_endpoints[2];
+	e1 = near_endpoints[3];
+	e2 = near_endpoints[1];
+	near_endpoints.resize (0);
+	near_endpoints.push_back (e0);
+	near_endpoints.push_back (e1);
+	near_endpoints.push_back (e2);
+      }
+
       for (unsigned i = 0; i < near_endpoints.size (); i++) {
         glyphy_arc_endpoint_t &endpoint = near_endpoints[i];
 	tex_data.push_back (arc_endpoint_encode (QUANTIZE_X(endpoint.p.x), QUANTIZE_Y(endpoint.p.y), endpoint.d));
