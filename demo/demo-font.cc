@@ -136,7 +136,7 @@ encode_ft_glyph (demo_font_t      *font,
 
   unsigned int upem = face->units_per_EM;
   double tolerance = upem * tolerance_per_em; /* in font design units */
-  double faraway = double (upem) / MIN_FONT_SIZE;
+  double faraway = double (upem) / (MIN_FONT_SIZE * 2);
   vector<glyphy_arc_endpoint_t> endpoints;
 
   glyphy_arc_accumulator_reset (font->acc);

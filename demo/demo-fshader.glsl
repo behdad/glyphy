@@ -62,7 +62,7 @@ main()
   /* isotropic antialiasing */
   vec2 dpdx = dFdx (p);
   vec2 dpdy = dFdy (p);
-  float m = length (vec2 (length (dpdx), length (dpdy))) / sqrt(2.);
+  float m = length (vec2 (length (dpdx), length (dpdy))) * 0.70710678118654757 /* 1 / sqrt(2.) */;
 
   vec4 color = vec4 (0,0,0,1);
 
