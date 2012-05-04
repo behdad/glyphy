@@ -612,7 +612,7 @@ demo_view_display (demo_view_t *vu, demo_buffer_t *buffer)
 
   // Buffer best-fit
   glyphy_extents_t extents;
-  demo_buffer_extents (buffer, &extents);
+  demo_buffer_extents (buffer, NULL, &extents);
   double content_scale = .9 * std::min (width  / (extents.max_x - extents.min_x),
 				        height / (extents.max_y - extents.min_y));
   m4Scale (mat, content_scale, content_scale, 1);

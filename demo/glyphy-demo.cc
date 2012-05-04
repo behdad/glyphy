@@ -127,8 +127,8 @@ main (int argc, char** argv)
 
   buffer = demo_buffer_create ();
   glyphy_point_t top_left = {0, 0};
-  demo_buffer_move_to (buffer, top_left);
-  demo_buffer_add_text (buffer, text, font, 1, top_left);
+  demo_buffer_move_to (buffer, &top_left);
+  demo_buffer_add_text (buffer, text, font, 1);
 
   demo_font_print_stats (font);
 

@@ -27,7 +27,8 @@ struct demo_buffer_t {
 
   glyphy_point_t cursor;
   std::vector<glyph_vertex_t> *vertices;
-  glyphy_extents_t extents;
+  glyphy_extents_t ink_extents;
+  glyphy_extents_t logical_extents;
   bool dirty;
   GLuint buf_name;
 };
@@ -69,22 +70,27 @@ void
 demo_buffer_clear (demo_buffer_t *buffer)
 {
   buffer->vertices->clear ();
-  glyphy_extents_clear (&buffer->extents);
+  glyphy_extents_clear (&buffer->ink_extents);
+  glyphy_extents_clear (&buffer->logical_extents);
   buffer->dirty = true;
 }
 
 void
 demo_buffer_extents (demo_buffer_t    *buffer,
-		     glyphy_extents_t *extents)
+		     glyphy_extents_t *ink_extents,
+		     glyphy_extents_t *logical_extents)
 {
-  *extents = buffer->extents;
+  if (ink_extents)
+    *ink_extents = buffer->ink_extents;
+  if (logical_extents)
+    *logical_extents = buffer->logical_extents;
 }
 
 void
-demo_buffer_move_to (demo_buffer_t  *buffer,
-		     glyphy_point_t  p)
+demo_buffer_move_to (demo_buffer_t        *buffer,
+		     const glyphy_point_t *p)
 {
-  buffer->cursor = p;
+  buffer->cursor = *p;
 }
 
 void
@@ -95,14 +101,13 @@ demo_buffer_current_point (demo_buffer_t  *buffer,
 }
 
 void
-demo_buffer_add_text (demo_buffer_t  *buffer,
-		      const char     *utf8,
-		      demo_font_t    *font,
-		      double          font_size,
-		      glyphy_point_t  top_left)
+demo_buffer_add_text (demo_buffer_t        *buffer,
+		      const char           *utf8,
+		      demo_font_t          *font,
+		      double                font_size)
 {
   FT_Face face = demo_font_get_face (font);
-  buffer->cursor = top_left;
+  glyphy_point_t top_left = buffer->cursor;
   buffer->cursor.y += font_size /* * font->ascent */;
   unsigned int unicode;
   for (const unsigned char *p = (const unsigned char *) utf8; *p; p++) {
@@ -132,12 +137,25 @@ demo_buffer_add_text (demo_buffer_t  *buffer,
       buffer->cursor.x = top_left.x;
       continue;
     }
+
     unsigned int glyph_index = FT_Get_Char_Index (face, unicode);
     glyph_info_t gi;
-    glyphy_extents_t extents;
     demo_font_lookup_glyph (font, glyph_index, &gi);
-    demo_shader_add_glyph_vertices (buffer->cursor, font_size, &gi, buffer->vertices, &extents);
-    glyphy_extents_extend (&buffer->extents, &extents);
+
+    /* Update ink extents */
+    glyphy_extents_t ink_extents;
+    demo_shader_add_glyph_vertices (buffer->cursor, font_size, &gi, buffer->vertices, &ink_extents);
+    glyphy_extents_extend (&buffer->ink_extents, &ink_extents);
+
+    /* Update logical extents */
+    glyphy_point_t corner;
+    corner.x = buffer->cursor.x;
+    corner.y = buffer->cursor.y - font_size;
+    glyphy_extents_add (&buffer->logical_extents, &corner);
+    corner.x = buffer->cursor.x + font_size * gi.advance;
+    corner.y = buffer->cursor.y;
+    glyphy_extents_add (&buffer->logical_extents, &corner);
+
     buffer->cursor.x += font_size * gi.advance;
   }
 
