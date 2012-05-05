@@ -89,7 +89,7 @@
 #endif
 #endif
 
-#define MIN_FONT_SIZE 16
+#define MIN_FONT_SIZE 10
 #define TOLERANCE (1./2048)
 
 
