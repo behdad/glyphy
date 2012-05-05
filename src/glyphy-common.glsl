@@ -173,7 +173,7 @@ glyphy_arc_wedge_signed_dist_shallow (const glyphy_arc_t a, const vec2 p)
 float
 glyphy_arc_wedge_signed_dist (const glyphy_arc_t a, const vec2 p)
 {
-  if (abs (a.d) <= .01)
+  if (abs (a.d) <= .1)
     return glyphy_arc_wedge_signed_dist_shallow (a, p);
   vec2 c = glyphy_arc_center (a);
   return sign (a.d) * (distance (a.p0, c) - distance (p, c));
