@@ -41,6 +41,8 @@ struct demo_font_t {
 
   /* stats */
   unsigned int num_glyphs;
+  double       sum_error;
+  unsigned int sum_endpoints;
   double       sum_fetch;
   unsigned int sum_bytes;
 };
@@ -58,6 +60,8 @@ demo_font_create (FT_Face       face,
   font->acc = glyphy_arc_accumulator_create ();
 
   font->num_glyphs = 0;
+  font->sum_error  = 0;
+  font->sum_endpoints  = 0;
   font->sum_fetch  = 0;
   font->sum_bytes  = 0;
 
@@ -196,6 +200,8 @@ encode_ft_glyph (demo_font_t      *font,
 	  (*output_len * sizeof (glyphy_rgba_t)) / 1024.);
 
   font->num_glyphs++;
+  font->sum_error += glyphy_arc_accumulator_get_error (font->acc) / tolerance;
+  font->sum_endpoints += glyphy_arc_accumulator_get_num_endpoints (font->acc);
   font->sum_fetch += avg_fetch_achieved;
   font->sum_bytes += (*output_len * sizeof (glyphy_rgba_t));
 }
@@ -239,8 +245,10 @@ demo_font_lookup_glyph (demo_font_t  *font,
 void
 demo_font_print_stats (demo_font_t *font)
 {
-  printf ("%3d glyphs; avg tex fetch%5.2f; avg %5.2fkb per glyph\n",
+  printf ("%3d glyphs; avg num endpoints%6.2f; avg error%5.1f%%; avg tex fetch%5.2f; avg %5.2fkb per glyph\n",
 	  font->num_glyphs,
+	  (double) font->sum_endpoints / font->num_glyphs,
+	  100. * font->sum_error / font->num_glyphs,
 	  font->sum_fetch / font->num_glyphs,
 	  font->sum_bytes / 1024. / font->num_glyphs);
 }
