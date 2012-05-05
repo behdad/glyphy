@@ -146,9 +146,9 @@ template <class ArcBezierErrorApproximator>
 class ArcBezierApproximatorMidpointTwoPart
 {
   public:
-  static const Arc approximate_bezier_with_arc (const Bezier &b, double *error)
+  static const Arc approximate_bezier_with_arc (const Bezier &b, double *error, double mid_t = .5)
   {
-    Pair<Bezier > pair = b.halve ();
+    Pair<Bezier > pair = b.split (mid_t);
     Point m = pair.second.p0;
 
     Arc a0 (b.p0, m, b.p3, true);
@@ -176,7 +176,8 @@ class ArcBezierApproximatorQuantized
   public:
   const Arc approximate_bezier_with_arc (const Bezier &b, double *error) const
   {
-    Arc a (b.p0, b.p3, b.point (.5), false);
+    double mid_t = .5;
+    Arc a (b.p0, b.p3, b.point (mid_t), false);
     Arc orig_a = a;
 
     if (isnormal (max_d)) {
@@ -198,7 +199,7 @@ class ArcBezierApproximatorQuantized
     double ed = fabs (a.d - orig_a.d) * (a.p1 - a.p0).len () * .5;
 
     Arc t = ArcBezierApproximatorMidpointTwoPart<ArcBezierErrorApproximator>
-	    ::approximate_bezier_with_arc (b, error);
+	    ::approximate_bezier_with_arc (b, error, mid_t);
 
     if (ed) {
       *error += ed;
