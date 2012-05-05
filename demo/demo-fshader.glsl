@@ -1,4 +1,3 @@
-uniform float u_smoothfunc;
 uniform float u_contrast;
 uniform float u_gamma_adjust;
 uniform float u_outline_thickness;
@@ -7,6 +6,9 @@ uniform float u_boldness;
 uniform bool  u_debug;
 
 varying vec4 v_glyph;
+
+#define SQRT2_2 0.70710678118654757 /* 1 / sqrt(2.) */
+#define SQRT2   1.4142135623730951
 
 struct glyph_info_t {
   ivec2 nominal_size;
@@ -24,33 +26,27 @@ glyph_info_decode (vec4 v)
 
 
 float
-antialias0 (float d)
+antialias_axisaligned (float d)
 {
   return clamp (d + .5, 0., 1.);
 }
 
 float
-antialias1 (float d)
+antialias_diagonal (float d)
 {
-  return smoothstep (-.75, +.75, d);
+  /* TODO optimize this */
+  if (d <= -SQRT2_2) return 0.;
+  if (d >= +SQRT2_2) return 1.;
+  if (d <= 0.) return pow (d + SQRT2_2, 2);
+  return 1. - pow (SQRT2_2 - d, 2);
 }
 
 float
-antialias2 (float d)
+antialias (float d, float w)
 {
-  d = d * 16. / 30. + .5;
-  if (d <= 0.) return 0.;
-  if (d >= 1.) return 1.;
-  return d*d*d*(d*(d*6. - 15.) + 10.);
-}
-
-float
-antialias (float d)
-{
-  if (u_smoothfunc == 0.) return antialias0 (d);
-  if (u_smoothfunc == 1.) return antialias1 (d);
-  if (u_smoothfunc == 2.) return antialias2 (d);
-  return 0.;
+  /* w is 1.0 for axisaligned pixels, and SQRT2 for diagonal pixels,
+   * and something in between otherwise... */
+  return mix (antialias_axisaligned (d), antialias_diagonal (d), clamp ((w - 1.) / (SQRT2 - 1.), 0, 1));
 }
 
 void
@@ -62,7 +58,8 @@ main()
   /* isotropic antialiasing */
   vec2 dpdx = dFdx (p);
   vec2 dpdy = dFdy (p);
-  float m = length (vec2 (length (dpdx), length (dpdy))) * 0.70710678118654757 /* 1 / sqrt(2.) */;
+  float m = length (vec2 (length (dpdx), length (dpdy))) * SQRT2_2;
+  float w = abs (normalize (dpdx).x) + abs (normalize (dpdy).x);
 
   vec4 color = vec4 (0,0,0,1);
 
@@ -75,7 +72,7 @@ main()
       sdist = abs (sdist) - u_outline_thickness * .5;
     if (sdist > 1.)
       discard;
-    float alpha = antialias (-sdist);
+    float alpha = antialias (-sdist, w);
     if (u_gamma_adjust != 1.)
       alpha = pow (alpha, 1./u_gamma_adjust);
     color = vec4 (color.rgb,color.a * alpha);

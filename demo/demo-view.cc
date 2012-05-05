@@ -340,12 +340,6 @@ demo_view_toggle_debug (demo_view_t *vu)
   demo_glstate_toggle_debug (vu->st);
 }
 
-static void
-demo_view_next_smoothfunc (demo_view_t *vu)
-{
-  demo_glstate_next_smoothfunc (vu->st);
-}
-
 
 void
 demo_view_reshape_func (demo_view_t *vu, int width, int height)
@@ -398,9 +392,6 @@ demo_view_keyboard_func (demo_view_t *vu, unsigned char key, int x, int y)
       break;
 
 
-    case 's':
-      demo_view_next_smoothfunc (vu);
-      break;
     case 'a':
       demo_view_scale_contrast (vu, STEP);
       break;
