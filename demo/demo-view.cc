@@ -304,8 +304,10 @@ demo_view_toggle_srgb (demo_view_t *vu)
 {
   vu->srgb = !vu->srgb;
   printf ("Setting sRGB framebuffer %s.\n", vu->srgb ? "on" : "off");
-#ifdef GL_FRAMEBUFFER_SRGB
-  if (glewIsSupported ("GL_ARB_framebuffer_sRGB") || glewIsSupported ("GL_EXT_framebuffer_sRGB")) {
+#if defined(GL_FRAMEBUFFER_SRGB) && defined(GL_FRAMEBUFFER_SRGB_CAPABLE_EXT)
+  GLboolean available = false;
+  if ((glewIsSupported ("GL_ARB_framebuffer_sRGB") || glewIsSupported ("GL_EXT_framebuffer_sRGB")) &&
+      (glGetBooleanv (GL_FRAMEBUFFER_SRGB_CAPABLE_EXT, &available), available)) {
     if (vu->srgb)
       glEnable (GL_FRAMEBUFFER_SRGB);
     else
