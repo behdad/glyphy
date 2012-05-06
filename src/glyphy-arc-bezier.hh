@@ -180,13 +180,13 @@ class ArcBezierApproximatorQuantized
     Arc a (b.p0, b.p3, b.point (mid_t), false);
     Arc orig_a = a;
 
-    if (isnormal (max_d)) {
+    if (isfinite (max_d)) {
       assert (max_d >= 0);
       if (fabs (a.d) > max_d)
         a.d = a.d < 0 ? -max_d : max_d;
     }
-    if (d_bits) {
-      assert (isnormal (max_d));
+    if (d_bits && max_d != 0) {
+      assert (isfinite (max_d));
       assert (fabs (a.d) <= max_d);
       int mult = (1 << (d_bits - 1)) - 1;
       int id = round (a.d / max_d * mult);
