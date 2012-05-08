@@ -37,8 +37,8 @@ antialias_diagonal (float d)
   /* TODO optimize this */
   if (d <= -SQRT2_2) return 0.;
   if (d >= +SQRT2_2) return 1.;
-  if (d <= 0.) return pow (d + SQRT2_2, 2);
-  return 1. - pow (SQRT2_2 - d, 2);
+  if (d <= 0.) return pow (d + SQRT2_2, 2.);
+  return 1. - pow (SQRT2_2 - d, 2.);
 }
 
 float
@@ -46,7 +46,7 @@ antialias (float d, float w)
 {
   /* w is 1.0 for axisaligned pixels, and SQRT2 for diagonal pixels,
    * and something in between otherwise... */
-  return mix (antialias_axisaligned (d), antialias_diagonal (d), clamp ((w - 1.) / (SQRT2 - 1.), 0, 1));
+  return mix (antialias_axisaligned (d), antialias_diagonal (d), clamp ((w - 1.) / (SQRT2 - 1.), 0., 1.));
 }
 
 void
