@@ -120,7 +120,7 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
   // If d is the distance from the center of the square to the nearest arc, then
   // all nearest arcs to the square must be at most almost [d + half_diagonal] from the center.
   double half_diagonal = (c - c0).len ();
-  double radius_squared = pow (min_dist + half_diagonal, 2);
+  double radius_squared = pow (min_dist + half_diagonal, 2.);
   if (min_dist - half_diagonal <= faraway) {
     Point p0 (0, 0);
     for (unsigned int i = 0; i < num_endpoints; i++) {

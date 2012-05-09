@@ -137,6 +137,8 @@ struct Segment {
   inline double squared_distance_to_point (const Point &p) const; /* shortest distance squared from point to segment */
   inline bool contains_in_span (const Point &p) const; /* is p in the stripe formed by sliding this segment? */
   inline double max_distance_to_arc (const Arc &a) const;
+  inline bool contains_point (const Point &p) const;
+  inline bool intersects_segment (const Segment &s) const;
 
 
   Point p0;
@@ -173,6 +175,8 @@ struct Arc {
   inline double distance_to_point (const Point &p) const;
   inline double squared_distance_to_point (const Point &p) const;
   inline double extended_dist (const Point &p) const;
+  inline bool intersects_arc (const Arc &a) const;
+  inline bool intersects_segment (const Segment &s) const;
 
   inline void extents (glyphy_extents_t &extents) const;
 
@@ -372,6 +376,7 @@ inline const Point Line::operator+ (const Line &l) const {
   return Point ((c * l.n.dy - n.dy * l.c) / det,
 		       (n.dx * l.c - c * l.n.dx) / det);
 }
+
 inline const SignedVector Line::operator- (const Point &p) const {
   double mag = -(n * Vector (p) - c) / n.len ();
   return SignedVector (n.normalized () * mag, mag < 0); /******************************************************************************************* FIX. *************************************/
@@ -453,6 +458,35 @@ inline double Segment::max_distance_to_arc (const Arc &a) const {
   return  max_distance >  fabs(a.distance_to_point(p1)) ? max_distance : fabs(a.distance_to_point(p1)) ;
 }
 
+inline bool Segment::contains_point (const Point &p) const {
+  return (p0.distance_to_point (p) + p1.distance_to_point (p) == p0.distance_to_point(p1));
+}
+
+inline bool Segment::intersects_segment (const Segment &s) const {
+  /* Can't make lines if segments are degenerate. Handle this case with triangle equality. */
+  if (p0 == p1)
+    return s.contains_point (p0);
+  if (s.p0 == s.p1)
+    return contains_point (s.p0);
+    
+  Line line1 (p0, p1);
+  Line line2 (s.p0, s.p1);  
+  
+  /* If segments are parallel, we have another special case. */   
+  Vector normal = line1.normal ();
+  if (normal == line2.normal ()) {
+    if (normal.dx * p0.x + normal.dy + p0.y != normal.dx + s.p0.x + normal.dy + s.p0.y)  /* TODO: Can we write using dot product? */
+      return false;  
+    
+    /* Lines are coincident. */
+    return (contains_point (s.p0) || contains_point (s.p1) || s.contains_point (p0) || s.contains_point (p1));
+  }  
+  
+  
+  Point p = line1 + line2;
+  return contains_in_span (p) && s.contains_in_span (p);
+    
+}
 
 
 /* Arc */
@@ -580,6 +614,47 @@ inline double Arc::extended_dist (const Point &p) const {
     return (p - p0) * (pp + dp * d2).normalized ();
   else
     return (p - p1) * (pp - dp * d2).normalized ();
+}
+
+inline bool Arc::intersects_segment (const Segment &s) const {
+  if (fabs(d) < 1e-5) {
+    Segment arc_segment (p0, p1);
+    return s.intersects_segment (arc_segment);
+  }
+  
+  Point c1 = center ();
+  double a = (s.p0.x - s.p1.x) * (s.p0.x - s.p1.x) + (s.p0.y - s.p1.y) * (s.p0.y - s.p1.y);
+  double b = 2 * ((s.p1.x - s.p0.x) * (s.p0.x - c1.x) + (s.p1.y - s.p0.y) * (s.p0.y - c1.y));
+  double c = c1.x * c1.x + c1.y * c1.y + s.p0.x + s.p0.x + s.p1.y * s.p1.y - 2 * (c1.x * s.p0.x + c1.y * s.p0.y) - radius () * radius ();
+  double d = b * b - 4 * a * c;
+  if (d < 0)
+    return false;
+  
+  double u = /* W... get it?! */ (-1 * b + sqrt (d)) / (2 * a);
+  Point p (s.p0.x + u * (s.p0.x - s.p1.x), s.p0.y + u * (s.p0.y - s.p1.y));
+  if ((0 <= u && u <= 1) && wedge_contains_point(p))
+    return true;
+  u = (-1 * b - sqrt (d)) / (2 * a);
+  p = Point (s.p0.x + u * (s.p0.x - s.p1.x), s.p0.y + u * (s.p0.y - s.p1.y));
+  return ((0 <= u && u <= 1) && wedge_contains_point(p));
+}
+
+inline bool Arc::intersects_arc (const Arc &a) const {
+  if (fabs(d) < 1e-5) {
+    Segment arc_segment (p0, p1);
+    return intersects_segment (arc_segment);
+  }
+  
+  Point c1 = center ();
+  Point c2 = a.center ();
+  double d = c1.distance_to_point (c2);
+  double b = (radius () * radius () - a.radius () * a.radius () + d * d) / (2 * d);
+  double h = sqrt( radius () * radius () - b * b);   
+  Point p (c1.x + b * (c2.x - c1.x) / b, c1.y + b * (c2.y - c1.y) / b);
+  Point p1 (p.x + h * (c2.y - c1.y) / d, p.x - h * (c2.x - c1.x) / d);
+  Point p2 (p.x - h * (c2.y - c1.y) / d, p.x + h * (c2.x - c1.x) / d);
+  
+  return (wedge_contains_point (p1) && a.wedge_contains_point (p1)) || (wedge_contains_point (p2) && a.wedge_contains_point (p2));
 }
 
 inline void Arc::extents (glyphy_extents_t &extents) const {

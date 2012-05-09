@@ -73,15 +73,17 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 
   glyphy_arc_endpoint_t endpoint_prev, endpoint;
   endpoint_prev = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset), nominal_size);
+
   for (int i = 1; i < GLYPHY_MAX_NUM_ENDPOINTS; i++)
   {
+  
     if (i >= arc_list.num_endpoints) {
       break;
     }
     endpoint = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset + i), nominal_size);
     glyphy_arc_t a = glyphy_arc_t (endpoint_prev.p, endpoint.p, endpoint.d);
     endpoint_prev = endpoint;
-    if (glyphy_isinf (a.d)) continue;
+    if (glyphy_isinf (a.d)) continue; 
 
     if (glyphy_arc_wedge_contains (a, p))
     {
