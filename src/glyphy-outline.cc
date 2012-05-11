@@ -315,7 +315,6 @@ process_contour (glyphy_arc_endpoint_t       *endpoints,
    * - Find the winding direction and even-odd number,
    * - If the two disagree, reverse the contour, inplace.
    */
-
   if (!num_endpoints)
     return false;
 
@@ -339,6 +338,24 @@ process_contour (glyphy_arc_endpoint_t       *endpoints,
   return false;
 }
 
+/* Returns true if given arc intersects a previously seen contour. */
+glyphy_bool_t
+arc_intersects_contour (Arc 			&a, 
+			glyphy_arc_endpoint_t 	*endpoints,
+			unsigned int 		start)
+{
+  for (unsigned int i = 1; i < start; i++) {
+    const glyphy_arc_endpoint_t ethis = endpoints[i - 1];
+    const glyphy_arc_endpoint_t enext = endpoints[i];    
+    Arc current_arc (ethis.p, enext.p, enext.d);
+    if (current_arc.intersects_arc (a)) {
+   //   printf("The arc [(%f,%f), (%f,%f), %f], center (%f,%f), radius=%f, on a previous contour ", current_arc.p0.x, current_arc.p0.y, current_arc.p1.x, current_arc.p1.y, current_arc.d, current_arc.center ().x, current_arc.center ().y, current_arc.radius ());
+      return true;      
+    }
+  } 
+  return false;
+}
+
 /* Returns true if outline was modified */
 glyphy_bool_t
 glyphy_outline_winding_from_even_odd (glyphy_arc_endpoint_t *endpoints,
@@ -354,6 +371,12 @@ glyphy_outline_winding_from_even_odd (glyphy_arc_endpoint_t *endpoints,
   unsigned int start = 0;
   bool ret = false;
   for (unsigned int i = 1; i < num_endpoints; i++) {
+    const glyphy_arc_endpoint_t ethis = endpoints[i - 1];
+    const glyphy_arc_endpoint_t enext = endpoints[i];    
+    Arc current_arc (ethis.p, enext.p, enext.d);
+/*    if (arc_intersects_contour (current_arc, endpoints, start))
+      printf("intersects the arc [(%f,%f), (%f,%f), %f], center (%f,%f), radius=%f.\n", current_arc.p0.x, current_arc.p0.y, current_arc.p1.x, current_arc.p1.y, current_arc.d, current_arc.center ().x, current_arc.center ().y, current_arc.radius ());
+  */
     const glyphy_arc_endpoint_t &endpoint = endpoints[i];
     if (endpoint.d == GLYPHY_INFINITY) {
       ret = ret | process_contour (endpoints + start, i - start, endpoints, num_endpoints, bool (inverse));
@@ -362,6 +385,5 @@ glyphy_outline_winding_from_even_odd (glyphy_arc_endpoint_t *endpoints,
   }
   ret = ret | process_contour (endpoints + start, num_endpoints - start, endpoints, num_endpoints, bool (inverse));
   
-  printf(".");
   return ret;
 }

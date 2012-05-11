@@ -625,23 +625,30 @@ inline bool Arc::intersects_segment (const Segment &s) const {
   Point c1 = center ();
   double a = (s.p0.x - s.p1.x) * (s.p0.x - s.p1.x) + (s.p0.y - s.p1.y) * (s.p0.y - s.p1.y);
   double b = 2 * ((s.p1.x - s.p0.x) * (s.p0.x - c1.x) + (s.p1.y - s.p0.y) * (s.p0.y - c1.y));
-  double c = c1.x * c1.x + c1.y * c1.y + s.p0.x + s.p0.x + s.p1.y * s.p1.y - 2 * (c1.x * s.p0.x + c1.y * s.p0.y) - radius () * radius ();
+  double c = (c1.x * c1.x) + (c1.y * c1.y) + (s.p0.x * s.p0.x) + (s.p0.y * s.p0.y) - 2 * (c1.x * s.p0.x + c1.y * s.p0.y) - radius () * radius ();
   double d = b * b - 4 * a * c;
   if (d < 0)
     return false;
   
   double u = /* W... get it?! */ (-1 * b + sqrt (d)) / (2 * a);
-  Point p (s.p0.x + u * (s.p0.x - s.p1.x), s.p0.y + u * (s.p0.y - s.p1.y));
+  Point p (s.p0.x + u * (s.p1.x - s.p0.x), s.p0.y + u * (s.p1.y - s.p0.y));
+  
   if ((0 <= u && u <= 1) && wedge_contains_point(p))
     return true;
   u = (-1 * b - sqrt (d)) / (2 * a);
-  p = Point (s.p0.x + u * (s.p0.x - s.p1.x), s.p0.y + u * (s.p0.y - s.p1.y));
+  p = Point (s.p0.x + u * (s.p1.x - s.p0.x), s.p0.y + u * (s.p1.y - s.p0.y));
   return ((0 <= u && u <= 1) && wedge_contains_point(p));
 }
 
 inline bool Arc::intersects_arc (const Arc &a) const {
-  if (fabs(d) < 1e-5) {
+
+  if (fabs (d) < 1e-5) {
     Segment arc_segment (p0, p1);
+    return a.intersects_segment (arc_segment);
+  }
+  
+  if (fabs (a.d) < 1e-5) {
+    Segment arc_segment (a.p0, a.p1);
     return intersects_segment (arc_segment);
   }
   
@@ -650,9 +657,9 @@ inline bool Arc::intersects_arc (const Arc &a) const {
   double d = c1.distance_to_point (c2);
   double b = (radius () * radius () - a.radius () * a.radius () + d * d) / (2 * d);
   double h = sqrt( radius () * radius () - b * b);   
-  Point p (c1.x + b * (c2.x - c1.x) / b, c1.y + b * (c2.y - c1.y) / b);
-  Point p1 (p.x + h * (c2.y - c1.y) / d, p.x - h * (c2.x - c1.x) / d);
-  Point p2 (p.x - h * (c2.y - c1.y) / d, p.x + h * (c2.x - c1.x) / d);
+  Point p (c1.x + b * (c2.x - c1.x) / d, c1.y + b * (c2.y - c1.y) / d);
+  Point p1 (p.x + h * (c2.y - c1.y) / d, p.y - h * (c2.x - c1.x) / d);
+  Point p2 (p.x - h * (c2.y - c1.y) / d, p.y + h * (c2.x - c1.x) / d);
   
   return (wedge_contains_point (p1) && a.wedge_contains_point (p1)) || (wedge_contains_point (p2) && a.wedge_contains_point (p2));
 }
