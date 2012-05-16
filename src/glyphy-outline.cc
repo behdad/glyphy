@@ -348,10 +348,10 @@ arc_intersects_contour (Arc 			&a,
     const glyphy_arc_endpoint_t ethis = endpoints[i - 1];
     const glyphy_arc_endpoint_t enext = endpoints[i];    
     Arc current_arc (ethis.p, enext.p, enext.d);
-    if (current_arc.intersects_arc (a)) {
-   //   printf("The arc [(%f,%f), (%f,%f), %f], center (%f,%f), radius=%f, on a previous contour ", current_arc.p0.x, current_arc.p0.y, current_arc.p1.x, current_arc.p1.y, current_arc.d, current_arc.center ().x, current_arc.center ().y, current_arc.radius ());
-      return true;      
-    }
+//    if (current_arc.intersects_arc (a)) {
+//      printf("The arc [(%f,%f), (%f,%f), %f], center (%f,%f), radius=%f, on a previous contour ", current_arc.p0.x, current_arc.p0.y, current_arc.p1.x, current_arc.p1.y, current_arc.d, current_arc.center ().x, current_arc.center ().y, current_arc.radius ());
+//      return true;      
+//    }
   } 
   return false;
 }
@@ -374,9 +374,9 @@ glyphy_outline_winding_from_even_odd (glyphy_arc_endpoint_t *endpoints,
     const glyphy_arc_endpoint_t ethis = endpoints[i - 1];
     const glyphy_arc_endpoint_t enext = endpoints[i];    
     Arc current_arc (ethis.p, enext.p, enext.d);
-/*    if (arc_intersects_contour (current_arc, endpoints, start))
+    if (arc_intersects_contour (current_arc, endpoints, start))
       printf("intersects the arc [(%f,%f), (%f,%f), %f], center (%f,%f), radius=%f.\n", current_arc.p0.x, current_arc.p0.y, current_arc.p1.x, current_arc.p1.y, current_arc.d, current_arc.center ().x, current_arc.center ().y, current_arc.radius ());
-  */
+  
     const glyphy_arc_endpoint_t &endpoint = endpoints[i];
     if (endpoint.d == GLYPHY_INFINITY) {
       ret = ret | process_contour (endpoints + start, i - start, endpoints, num_endpoints, bool (inverse));
