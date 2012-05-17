@@ -138,7 +138,7 @@ struct Segment {
   inline bool contains_in_span (const Point &p) const; /* is p in the stripe formed by sliding this segment? */
   inline double max_distance_to_arc (const Arc &a) const;
   inline bool contains_point (const Point &p) const;
-  inline bool intersects_segment (const Segment &s) const;
+  inline Point intersects_segment (const Segment &s) const;
 
 
   Point p0;
@@ -175,8 +175,8 @@ struct Arc {
   inline double distance_to_point (const Point &p) const;
   inline double squared_distance_to_point (const Point &p) const;
   inline double extended_dist (const Point &p) const;
-  inline bool intersects_arc (const Arc &a) const;
-  inline bool intersects_segment (const Segment &s) const;
+  inline Point intersects_arc (const Arc &a) const;
+  inline Point intersects_segment (const Segment &s) const;
 
   inline void extents (glyphy_extents_t &extents) const;
 
@@ -462,12 +462,14 @@ inline bool Segment::contains_point (const Point &p) const {
   return (p0.distance_to_point (p) + p1.distance_to_point (p) == p0.distance_to_point(p1));
 }
 
-inline bool Segment::intersects_segment (const Segment &s) const {
+inline Point Segment::intersects_segment (const Segment &s) const {
   /* Can't make lines if segments are degenerate. Handle this case with triangle equality. */
-  if (p0 == p1)
-    return s.contains_point (p0);
-  if (s.p0 == s.p1)
-    return contains_point (s.p0);
+  if (s.contains_point (p0)) // Includes case p0 == p1
+    return p0; 
+  if (contains_point (s.p0)) // Includes case s.p0 == s.p1
+    return s.p0;
+  if (p0 == p1 || s.p0 == s.p1)
+    return Point (GLYPHY_INFINITY, GLYPHY_INFINITY);
     
   Line line1 (p0, p1);
   Line line2 (s.p0, s.p1);  
@@ -476,15 +478,25 @@ inline bool Segment::intersects_segment (const Segment &s) const {
   Vector normal = line1.normal ();
   if (normal == line2.normal ()) {
     if (normal.dx * p0.x + normal.dy + p0.y != normal.dx + s.p0.x + normal.dy + s.p0.y)  /* TODO: Can we write using dot product? */
-      return false;  
+      return Point (GLYPHY_INFINITY, GLYPHY_INFINITY); //false;  
     
     /* Lines are coincident. */
-    return (contains_point (s.p0) || contains_point (s.p1) || s.contains_point (p0) || s.contains_point (p1));
+    if (contains_point (s.p0))
+      return s.p0;
+    if (contains_point (s.p1))
+      return s.p1;
+    if (s.contains_point (p0))
+      return p0;
+    if (s.contains_point (p1)) // Is this case necessary? I don't think so.
+      return p1;
+    return Point (GLYPHY_INFINITY, GLYPHY_INFINITY); //(contains_point (s.p0) || contains_point (s.p1) || s.contains_point (p0) || s.contains_point (p1));
   }  
   
   
   Point p = line1 + line2;
-  return contains_in_span (p) && s.contains_in_span (p);
+  if (contains_in_span (p) && s.contains_in_span (p))
+    return p;
+  return Point (GLYPHY_INFINITY, GLYPHY_INFINITY); //contains_in_span (p) && s.contains_in_span (p);
     
 }
 
@@ -565,6 +577,9 @@ inline Bezier Arc::approximate_bezier (double *error) const
 inline bool Arc::wedge_contains_point (const Point &p) const
 {
   // TODO this doesn't handle fabs(d) > 1.
+  if (p == p0 || p == p1)
+    return true;
+  
   Pair<Vector> t = tangents ();
   return (p - p0) * t.first  >= 0 &&
 	 (p - p1) * t.second <= 0;
@@ -616,7 +631,8 @@ inline double Arc::extended_dist (const Point &p) const {
     return (p - p1) * (pp - dp * d2).normalized ();
 }
 
-inline bool Arc::intersects_segment (const Segment &s) const {
+/* TODO: Handle possibility that there are two intersection points. */
+inline Point Arc::intersects_segment (const Segment &s) const {
   if (fabs(d) < 1e-5) {
     Segment arc_segment (p0, p1);
     return s.intersects_segment (arc_segment);
@@ -626,21 +642,27 @@ inline bool Arc::intersects_segment (const Segment &s) const {
   double a = (s.p0.x - s.p1.x) * (s.p0.x - s.p1.x) + (s.p0.y - s.p1.y) * (s.p0.y - s.p1.y);
   double b = 2 * ((s.p1.x - s.p0.x) * (s.p0.x - c1.x) + (s.p1.y - s.p0.y) * (s.p0.y - c1.y));
   double c = (c1.x * c1.x) + (c1.y * c1.y) + (s.p0.x * s.p0.x) + (s.p0.y * s.p0.y) - 2 * (c1.x * s.p0.x + c1.y * s.p0.y) - radius () * radius ();
-  double d = b * b - 4 * a * c;
-  if (d < 0)
-    return false;
+  double disc = b * b - 4 * a * c;
+  if (disc < 0)
+    return Point (GLYPHY_INFINITY, GLYPHY_INFINITY); //false;
+
+  /* Sometimes, u = nan. Can't explain that. */
   
-  double u = /* W... get it?! */ (-1 * b + sqrt (d)) / (2 * a);
+  double u = /* W... get it?! */ (-1 * b + sqrt (disc)) / (2 * a);
   Point p (s.p0.x + u * (s.p1.x - s.p0.x), s.p0.y + u * (s.p1.y - s.p0.y));
-  
   if ((0 <= u && u <= 1) && wedge_contains_point(p))
-    return true;
-  u = (-1 * b - sqrt (d)) / (2 * a);
+    return p; //true;
+  
+  u = -1 * b / a - u; //(-1 * b - sqrt (d)) / (2 * a);
   p = Point (s.p0.x + u * (s.p1.x - s.p0.x), s.p0.y + u * (s.p1.y - s.p0.y));
-  return ((0 <= u && u <= 1) && wedge_contains_point(p));
+  if ((0 <= u && u <= 1) && wedge_contains_point(p))
+    return p; //true;
+  
+  return Point (GLYPHY_INFINITY, GLYPHY_INFINITY); //((0 <= u && u <= 1) && wedge_contains_point(p));
 }
 
-inline bool Arc::intersects_arc (const Arc &a) const {
+/* TODO: Handle possibility that there are two intersection points. */
+inline Point Arc::intersects_arc (const Arc &a) const {
 
   if (fabs (d) < 1e-5) {
     Segment arc_segment (p0, p1);
@@ -661,7 +683,11 @@ inline bool Arc::intersects_arc (const Arc &a) const {
   Point p1 (p.x + h * (c2.y - c1.y) / d, p.y - h * (c2.x - c1.x) / d);
   Point p2 (p.x - h * (c2.y - c1.y) / d, p.y + h * (c2.x - c1.x) / d);
   
-  return (wedge_contains_point (p1) && a.wedge_contains_point (p1)) || (wedge_contains_point (p2) && a.wedge_contains_point (p2));
+  if (wedge_contains_point (p1) && a.wedge_contains_point (p1))
+    return p1;
+  if (wedge_contains_point (p2) && a.wedge_contains_point (p2))
+    return p2;
+  return Point (GLYPHY_INFINITY, GLYPHY_INFINITY); //(wedge_contains_point (p1) && a.wedge_contains_point (p1)) || (wedge_contains_point (p2) && a.wedge_contains_point (p2));
 }
 
 inline void Arc::extents (glyphy_extents_t &extents) const {
