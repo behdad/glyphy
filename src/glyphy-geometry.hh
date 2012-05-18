@@ -639,6 +639,11 @@ inline Point Arc::intersects_segment (const Segment &s) const {
   }
 //  if (fabs(d) > 1e5)
 //    printf("WEIRDNESS. Arc from (%f,%f) to (%f,%f) with d=%f.\n", p0.x, p0.y, p1.x, p1.y, d);
+
+  if (s.contains_point (p0))
+    return p0;
+  if (s.contains_point (p1))
+    return p1;
   
   Point c1 = center ();
 //  printf("Centre at (%f,%f), radius is %f, depth is %f.\n", c1.x, c1.y, radius (), d);
