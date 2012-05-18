@@ -637,8 +637,11 @@ inline Point Arc::intersects_segment (const Segment &s) const {
     Segment arc_segment (p0, p1);
     return s.intersects_segment (arc_segment);
   }
+//  if (fabs(d) > 1e5)
+//    printf("WEIRDNESS. Arc from (%f,%f) to (%f,%f) with d=%f.\n", p0.x, p0.y, p1.x, p1.y, d);
   
   Point c1 = center ();
+//  printf("Centre at (%f,%f), radius is %f, depth is %f.\n", c1.x, c1.y, radius (), d);
   double a = (s.p0.x - s.p1.x) * (s.p0.x - s.p1.x) + (s.p0.y - s.p1.y) * (s.p0.y - s.p1.y);
   double b = 2 * ((s.p1.x - s.p0.x) * (s.p0.x - c1.x) + (s.p1.y - s.p0.y) * (s.p0.y - c1.y));
   double c = (c1.x * c1.x) + (c1.y * c1.y) + (s.p0.x * s.p0.x) + (s.p0.y * s.p0.y) - 2 * (c1.x * s.p0.x + c1.y * s.p0.y) - radius () * radius ();
@@ -649,6 +652,7 @@ inline Point Arc::intersects_segment (const Segment &s) const {
   /* Sometimes, u = nan. Can't explain that. */
   
   double u = /* W... get it?! */ (-1 * b + sqrt (disc)) / (2 * a);
+//  printf("a=%f, b=%f, c=%f, disc=%f\n  u=%f\n", a, b, c, disc, u);
   Point p (s.p0.x + u * (s.p1.x - s.p0.x), s.p0.y + u * (s.p1.y - s.p0.y));
   if ((0 <= u && u <= 1) && wedge_contains_point(p))
     return p; //true;
