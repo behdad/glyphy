@@ -476,8 +476,10 @@ inline Point Segment::intersects_segment (const Segment &s) const {
   
   /* If segments are parallel, we have another special case. */   
   Vector normal = line1.normal ();
+  
   if (normal * line2.normal ().perpendicular () == 0) {
-    printf ("Parallel lines: (%f,%f)-(%f,%f) and (%f,%f)-(%f,%f).\n", p0.x, p0.y, p1.x, p1.y, s.p0.x, s.p0.y, s.p1.x, s.p1.y);
+    
+    /* This is NOT a great check. However, it might do for now - maybe it's not necessary. */
     if (normal.dx * p0.x + normal.dy + p0.y != normal.dx + s.p0.x + normal.dy + s.p0.y)  /* TODO: Can we write using dot product? */
       return Point (GLYPHY_INFINITY, GLYPHY_INFINITY); //false;  
     

@@ -342,9 +342,10 @@ process_contour (glyphy_arc_endpoint_t       *endpoints,
 Point
 arc_intersects_contour (Arc 			&a, 
 			glyphy_arc_endpoint_t 	*endpoints,
-			unsigned int 		start)
+			unsigned int 		start,
+			unsigned int		end)
 {
-  for (unsigned int i = 1; i < start; i++) {
+  for (unsigned int i = start; i < end; i++) {
     const glyphy_arc_endpoint_t ethis = endpoints[i - 1];
     const glyphy_arc_endpoint_t enext = endpoints[i];    
     Arc current_arc (ethis.p, enext.p, enext.d);
@@ -355,6 +356,95 @@ arc_intersects_contour (Arc 			&a,
   } 
   return Point (GLYPHY_INFINITY, GLYPHY_INFINITY);//false;
 }
+
+
+/* Returns true if the contour in endpoints[start...end-1] intersects any arc in endpoints[0...start-1]. */
+glyphy_bool_t
+contour_intersects_contour_list (glyphy_arc_endpoint_t  *endpoints,
+			    	 unsigned int 	  	start,
+			    	 unsigned int	  	end)
+{
+  /* Compare every arc pair in the two contours. TODO: Be more efficient (sanity check first.) */
+  for (unsigned int i = start + 1; i < end; i++) {
+    const glyphy_arc_endpoint_t ethis = endpoints[i - 1];
+    const glyphy_arc_endpoint_t enext = endpoints[i];    
+    Arc a (ethis.p, enext.p, enext.d);
+    
+    for (unsigned int j = 1; j < start; j++) {
+  //    if (endpoints[j].d != GLYPHY_INFINITY) ?????????????????????????????????????????????????????
+      const glyphy_arc_endpoint_t ethis2 = endpoints[j - 1];
+      const glyphy_arc_endpoint_t enext2 = endpoints[j];    
+      Arc current_arc (ethis2.p, enext2.p, enext2.d);
+      
+      if (current_arc.intersects_arc (a) != Point (GLYPHY_INFINITY, GLYPHY_INFINITY)) {
+        printf("Contours intersect.\n");
+        return true;      
+      }
+    }
+  } 
+  printf("Contours do not intersect.\n");
+  return false;
+}
+
+glyphy_bool_t
+rearrange_contours (glyphy_arc_endpoint_t *endpoints,
+		    unsigned int	  num_endpoints,
+		    glyphy_arc_endpoint_t *rearranged_endpoints)
+{
+  
+  
+  /* Copy first contour unchanged. */
+  unsigned int i = 0;
+  printf("Enter the REARRANGE function..\n");
+  printf("Endpoint [0] is (%f,%f),%f.\n", endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d);
+  while (endpoints[i + 1].d != GLYPHY_INFINITY && i + 1 < num_endpoints) {
+    rearranged_endpoints [i] = endpoints [i];
+    printf("Added endpoint (%f,%f),%f. Now i = %d.\n", endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d, i);
+    i++;
+  }
+  rearranged_endpoints [i] = endpoints [i];
+  
+  printf("Added final endpoint (%f,%f),%f. Now i = %d.\n", endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d, i);
+  i++;
+  
+    
+  /* Add new contours one-by-one. 
+   * If the new contour intersects a contour at the top of the rearranged list, add it to the bottom.
+   * Otherwise, add it to the top.
+   */
+   unsigned int top = i;
+   unsigned int bottom = num_endpoints;   
+   unsigned int start = i;
+   
+   while (top < bottom ) {
+     printf("Now, i = %d, top = %d, start = %d; bottom = %d, num_endpoints = %d.\n", i, top, start, bottom, num_endpoints);
+     printf("Currently at (%f,%f),%f. Now i = %d.\n", endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d, i);
+   
+     while (endpoints[i + 1].d != GLYPHY_INFINITY && i + 1 < num_endpoints ) {
+       printf("New contour includes (%f,%f),%f. Now i = %d.\n", endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d, i);
+       i++;
+     }
+     printf("Added final endpoint (%f,%f),%f. Now i = %d.\n", endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d, i);
+     i++;
+  
+  
+     if (contour_intersects_contour_list (endpoints, start, i)) { // TODO check for +-1 offsets
+       for (unsigned int j = start; j < i; j++)
+         rearranged_endpoints[bottom - (i - start + 1) + j] = endpoints[j];
+       bottom = bottom - (i - start);
+     }
+     else {
+       for (unsigned int j = start; j < i; j++)
+         rearranged_endpoints[top + j] = endpoints[j]; // THIS IS WRONGGGGGGGGGGGGGGGGGGGGGGGGGGG
+       top = top + (i - start);
+     }       
+     start = i;
+   }
+   
+  return true;
+}
+
+
 
 /* Returns true if outline was modified */
 glyphy_bool_t
@@ -371,12 +461,12 @@ glyphy_outline_winding_from_even_odd (glyphy_arc_endpoint_t *endpoints,
   unsigned int start = 0;
   bool ret = false;
   for (unsigned int i = 1; i < num_endpoints; i++) {
-    const glyphy_arc_endpoint_t ethis = endpoints[i - 1];
-    const glyphy_arc_endpoint_t enext = endpoints[i];    
-    Arc current_arc (ethis.p, enext.p, enext.d);
-    Point intersection = arc_intersects_contour (current_arc, endpoints, start);
-    if (intersection != Point (GLYPHY_INFINITY, GLYPHY_INFINITY))
-      printf("intersects the arc [(%f,%f), (%f,%f), %f], center (%f,%f), radius=%f at the point (%f,%f).\n", current_arc.p0.x, current_arc.p0.y, current_arc.p1.x, current_arc.p1.y, current_arc.d, current_arc.center ().x, current_arc.center ().y, current_arc.radius (), intersection.x, intersection.y);
+  //  const glyphy_arc_endpoint_t ethis = endpoints[i - 1];
+  //  const glyphy_arc_endpoint_t enext = endpoints[i];    
+ //   Arc current_arc (ethis.p, enext.p, enext.d);
+ //   Point intersection = arc_intersects_contour (current_arc, endpoints, 1, start);
+ //   if (intersection != Point (GLYPHY_INFINITY, GLYPHY_INFINITY))
+ //     printf("intersects the arc [(%f,%f), (%f,%f), %f], center (%f,%f), radius=%f at the point (%f,%f).\n", current_arc.p0.x, current_arc.p0.y, current_arc.p1.x, current_arc.p1.y, current_arc.d, current_arc.center ().x, current_arc.center ().y, current_arc.radius (), intersection.x, intersection.y);
   
     const glyphy_arc_endpoint_t &endpoint = endpoints[i];
     if (endpoint.d == GLYPHY_INFINITY) {
@@ -386,9 +476,12 @@ glyphy_outline_winding_from_even_odd (glyphy_arc_endpoint_t *endpoints,
   }
   ret = ret | process_contour (endpoints + start, num_endpoints - start, endpoints, num_endpoints, bool (inverse));
   
-  // glyphy_remove_overlaps (*endpoints, num_endpoints);
+  glyphy_arc_endpoint_t rearranged_endpoints [num_endpoints];
+  //rearrange_contours (endpoints, num_endpoints, rearranged_endpoints);
   
   return ret;
 }
+
+
 
 
