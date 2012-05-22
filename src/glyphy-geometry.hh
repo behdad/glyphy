@@ -459,7 +459,7 @@ inline double Segment::max_distance_to_arc (const Arc &a) const {
 }
 
 inline bool Segment::contains_point (const Point &p) const {
-  return (p0.distance_to_point (p) + p1.distance_to_point (p) == p0.distance_to_point(p1));
+  return (distance_to_point (p) == 0);
 }
 
 inline Point Segment::intersects_segment (const Segment &s) const {
@@ -476,7 +476,8 @@ inline Point Segment::intersects_segment (const Segment &s) const {
   
   /* If segments are parallel, we have another special case. */   
   Vector normal = line1.normal ();
-  if (normal == line2.normal ()) {
+  if (normal * line2.normal ().perpendicular () == 0) {
+    printf ("Parallel lines: (%f,%f)-(%f,%f) and (%f,%f)-(%f,%f).\n", p0.x, p0.y, p1.x, p1.y, s.p0.x, s.p0.y, s.p1.x, s.p1.y);
     if (normal.dx * p0.x + normal.dy + p0.y != normal.dx + s.p0.x + normal.dy + s.p0.y)  /* TODO: Can we write using dot product? */
       return Point (GLYPHY_INFINITY, GLYPHY_INFINITY); //false;  
     
