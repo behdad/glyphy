@@ -377,12 +377,12 @@ contour_intersects_contour_list (glyphy_arc_endpoint_t  *endpoints,
       Arc current_arc (ethis2.p, enext2.p, enext2.d);
       
       if (current_arc.intersects_arc (a) != Point (GLYPHY_INFINITY, GLYPHY_INFINITY)) {
-        printf("Contours intersect.\n");
+ //       printf("Contours intersect.\n");
         return true;      
       }
     }
   } 
-  printf("Contours do not intersect.\n");
+//  printf("Contours do not intersect.\n");
   return false;
 }
 
@@ -392,19 +392,24 @@ rearrange_contours (glyphy_arc_endpoint_t *endpoints,
 		    glyphy_arc_endpoint_t *rearranged_endpoints)
 {
   
-  
+  if (num_endpoints == 0)
+    return true;
+    
   /* Copy first contour unchanged. */
+
   unsigned int i = 0;
-  printf("Enter the REARRANGE function..\n");
-  printf("Endpoint [0] is (%f,%f),%f.\n", endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d);
-  while (endpoints[i + 1].d != GLYPHY_INFINITY && i + 1 < num_endpoints) {
-    rearranged_endpoints [i] = endpoints [i];
-    printf("Added endpoint (%f,%f),%f. Now i = %d.\n", endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d, i);
+//  printf("Enter the REARRANGE function.. num_endpoints=%d.\n", num_endpoints);
+//  printf("Endpoint [0] is (%f,%f),%f.\n", endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d);
+  while (i + 1 < num_endpoints && endpoints[i + 1].d != GLYPHY_INFINITY) {
+    rearranged_endpoints [i] = glyphy_arc_endpoint_t (endpoints[i]);
+//    printf("Added endpoint (%f,%f),%f. Now i = %d.\n", endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d, i);
+//    printf("  REARRANGED[%d] = (%f,%f),%f.\n", i, endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d);
     i++;
   }
   rearranged_endpoints [i] = endpoints [i];
   
-  printf("Added final endpoint (%f,%f),%f. Now i = %d.\n", endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d, i);
+ // printf("Added final endpoint (%f,%f),%f. Now i = %d.\n", endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d, i);
+ // printf("  REARRANGED[%d] = (%f,%f),%f.\n", i, endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d);
   i++;
   
     
@@ -417,30 +422,36 @@ rearrange_contours (glyphy_arc_endpoint_t *endpoints,
    unsigned int start = i;
    
    while (top < bottom ) {
-     printf("Now, i = %d, top = %d, start = %d; bottom = %d, num_endpoints = %d.\n", i, top, start, bottom, num_endpoints);
-     printf("Currently at (%f,%f),%f. Now i = %d.\n", endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d, i);
+ //    printf("Now, i = %d, top = %d, start = %d; bottom = %d, num_endpoints = %d.\n", i, top, start, bottom, num_endpoints);
+ //    printf("Currently at (%f,%f),%f. Now i = %d.\n", endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d, i);
    
      while (endpoints[i + 1].d != GLYPHY_INFINITY && i + 1 < num_endpoints ) {
-       printf("New contour includes (%f,%f),%f. Now i = %d.\n", endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d, i);
+ //      printf("New contour includes (%f,%f),%f. Now i = %d.\n", endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d, i);
        i++;
      }
-     printf("Added final endpoint (%f,%f),%f. Now i = %d.\n", endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d, i);
+ //    printf("Added final endpoint (%f,%f),%f. Now i = %d.\n", endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d, i);
      i++;
   
   
      if (contour_intersects_contour_list (endpoints, start, i)) { // TODO check for +-1 offsets
-       for (unsigned int j = start; j < i; j++)
-         rearranged_endpoints[bottom - (i - start + 1) + j] = endpoints[j];
+       for (unsigned int j = start; j < i; j++) {
+         rearranged_endpoints[bottom - i + j] = endpoints[j];
+ //        printf("  REARRANGED[%d] = (%f,%f),%f.\n", bottom - i + j, endpoints[j].p.x, endpoints[j].p.y, endpoints[j].d);
+       }
        bottom = bottom - (i - start);
      }
      else {
-       for (unsigned int j = start; j < i; j++)
-         rearranged_endpoints[top + j] = endpoints[j]; // THIS IS WRONGGGGGGGGGGGGGGGGGGGGGGGGGGG
+       for (unsigned int j = start; j < i; j++) {
+         rearranged_endpoints[top + j - start] = endpoints[j]; 
+ //        printf("  REARRANGED[%d] = (%f,%f),%f.\n", top + j - start, endpoints[j].p.x, endpoints[j].p.y, endpoints[j].d);
+       }
        top = top + (i - start);
      }       
      start = i;
    }
    
+   
+  
   return true;
 }
 
@@ -477,7 +488,7 @@ glyphy_outline_winding_from_even_odd (glyphy_arc_endpoint_t *endpoints,
   ret = ret | process_contour (endpoints + start, num_endpoints - start, endpoints, num_endpoints, bool (inverse));
   
   glyphy_arc_endpoint_t rearranged_endpoints [num_endpoints];
-  //rearrange_contours (endpoints, num_endpoints, rearranged_endpoints);
+  rearrange_contours (endpoints, num_endpoints, rearranged_endpoints);
   
   return ret;
 }
