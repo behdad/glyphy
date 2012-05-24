@@ -59,10 +59,10 @@ arc_endpoint_encode (unsigned int ix, unsigned int iy, double d)
 }
 
 static inline glyphy_rgba_t
-arc_list_encode (unsigned int offset, unsigned int num_points, int side)
+arc_list_encode (unsigned int first_contours_length, unsigned int offset, unsigned int num_points, int side)
 {
   glyphy_rgba_t v;
-  v.r = 0; // unused for arc-list encoding
+  v.r = 0;//LOWER_BITS (first_contours_length, 8, 8); 	//0; // unused for arc-list encoding
   v.g = UPPER_BITS (offset, 8, 16);
   v.b = LOWER_BITS (offset, 8, 16);
   v.a = LOWER_BITS (num_points, 8, 8);
@@ -155,6 +155,124 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
 }
 
 
+
+
+
+
+/* Returns true if the contour in endpoints[start...end-1] intersects any arc in endpoints[0...start-1]. */
+glyphy_bool_t
+contour_intersects_contour_list (const glyphy_arc_endpoint_t  *endpoints,
+			    	 unsigned int 	  	start,
+			    	 unsigned int	  	end)
+{
+  /* Find the smallest box around this contour. */
+  glyphy_extents_t extents;
+  glyphy_extents_clear (&extents);
+
+  glyphy_arc_list_extents (endpoints + start, end - start, &extents);
+  
+  for (unsigned int j = 1; j < start; j++) {
+  //    if (endpoints[j].d != GLYPHY_INFINITY) ?????????????????????????????????????????????????????
+    const glyphy_arc_endpoint_t ethis2 = endpoints[j - 1];
+    const glyphy_arc_endpoint_t enext2 = endpoints[j];    
+    Arc current_arc (ethis2.p, enext2.p, enext2.d);
+    
+    Point c = current_arc.center ();
+    double r = current_arc.radius ();
+    if (c.x - r <= extents.max_x && c.x + r >= extents.min_x && c.y + r >= extents.min_y && c.y - r <= extents.max_y) {
+
+      /* Compare every arc pair in the two contours. TODO: Be more efficient (sanity check first.) */
+      for (unsigned int i = start + 1; i < end; i++) {
+        const glyphy_arc_endpoint_t ethis = endpoints[i - 1];
+        const glyphy_arc_endpoint_t enext = endpoints[i];    
+        Arc a (ethis.p, enext.p, enext.d);
+      
+        if (current_arc.intersects_arc (a) != Point (GLYPHY_INFINITY, GLYPHY_INFINITY)) {
+ //         printf("Contours intersect.\n");
+          return true;      
+        }
+      }
+    }
+  } 
+//  printf("Contours do not intersect.\n");
+  return false;
+}
+
+unsigned int
+rearrange_contours (const glyphy_arc_endpoint_t *endpoints,
+		    unsigned int	  num_endpoints,
+		    glyphy_arc_endpoint_t *rearranged_endpoints)
+{
+  
+  if (num_endpoints == 0)
+    return 0;
+    
+  /* Copy first contour unchanged. */
+
+  unsigned int i = 0;
+//  printf("Enter the REARRANGE function.. num_endpoints=%d.\n", num_endpoints);
+//  printf("Endpoint [0] is (%f,%f),%f.\n", endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d);
+  while (i + 1 < num_endpoints && endpoints[i + 1].d != GLYPHY_INFINITY) {
+    rearranged_endpoints [i] = glyphy_arc_endpoint_t (endpoints[i]);
+//    printf("Added endpoint (%f,%f),%f. Now i = %d.\n", endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d, i);
+    printf("  REARRANGED[%d] = (%f,%f),%f.\n", i, endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d);
+    i++;
+  }
+  rearranged_endpoints [i] = endpoints [i];
+  
+ // printf("Added final endpoint (%f,%f),%f. Now i = %d.\n", endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d, i);
+  printf("  REARRANGED[%d] = (%f,%f),%f.\n", i, endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d);
+  i++;
+  
+    
+  /* Add new contours one-by-one. 
+   * If the new contour intersects a contour at the top of the rearranged list, add it to the bottom.
+   * Otherwise, add it to the top.
+   */
+   unsigned int top = i;
+   unsigned int bottom = num_endpoints;   
+   unsigned int start = i;
+   
+   while (top < bottom ) {
+ //    printf("Now, i = %d, top = %d, start = %d; bottom = %d, num_endpoints = %d.\n", i, top, start, bottom, num_endpoints);
+ //    printf("Currently at (%f,%f),%f. Now i = %d.\n", endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d, i);
+   
+     while (endpoints[i + 1].d != GLYPHY_INFINITY && i + 1 < num_endpoints ) {
+ //      printf("New contour includes (%f,%f),%f. Now i = %d.\n", endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d, i);
+       i++;
+     }
+ //    printf("Added final endpoint (%f,%f),%f. Now i = %d.\n", endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d, i);
+     i++;
+  
+  
+     if (contour_intersects_contour_list (endpoints, start, i)) { // TODO check for +-1 offsets
+       for (unsigned int j = start; j < i; j++) {
+         rearranged_endpoints[bottom - i + j] = endpoints[j];
+         printf("  REARRANGED[%d] = (%f,%f),%f.\n", bottom - i + j, endpoints[j].p.x, endpoints[j].p.y, endpoints[j].d);
+       }
+       bottom = bottom - (i - start);
+     }
+     else {
+       for (unsigned int j = start; j < i; j++) {
+         rearranged_endpoints[top + j - start] = endpoints[j]; 
+         printf("  REARRANGED[%d] = (%f,%f),%f.\n", top + j - start, endpoints[j].p.x, endpoints[j].p.y, endpoints[j].d);
+       }
+       top = top + (i - start);
+     }       
+     start = i;
+   }
+   
+   
+  
+  return top;
+}
+
+
+
+
+
+
+
 glyphy_bool_t
 glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
 			     unsigned int                 num_endpoints,
@@ -177,7 +295,7 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
     *pextents = extents;
     if (!blob_size)
       return false;
-    *blob = arc_list_encode (0, 0, +1);
+    *blob = arc_list_encode (0, 0, 0, +1);
     *avg_fetch_achieved = 1;
     *output_len = 1;
     *nominal_width = *nominal_height = 1;
@@ -219,7 +337,11 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
   tex_data.resize (header_length);
   Point origin = Point (extents.min_x, extents.min_y);
   unsigned int total_arcs = 0;
-
+  
+  glyphy_arc_endpoint_t rearranged_endpoints [num_endpoints];
+  unsigned int cutoff = rearrange_contours (endpoints, num_endpoints, rearranged_endpoints);
+  endpoints = rearranged_endpoints;
+      
   for (int row = 0; row < grid_h; row++)
     for (int col = 0; col < grid_w; col++)
     {
@@ -298,8 +420,10 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
 	tex_data.resize (offset);
 	offset = haystack - &tex_data[0];
       }
+      
+      
 
-      tex_data[row * grid_w + col] = arc_list_encode (offset, current_endpoints, side);
+      tex_data[row * grid_w + col] = arc_list_encode (cutoff, offset, current_endpoints, side);
       offset = tex_data.size ();
 
       total_arcs += current_endpoints;

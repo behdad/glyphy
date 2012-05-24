@@ -74,6 +74,8 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
   glyphy_arc_endpoint_t endpoint_prev, endpoint;
   endpoint_prev = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset), nominal_size);
 
+
+
   for (int i = 1; i < GLYPHY_MAX_NUM_ENDPOINTS; i++)
   {
   
