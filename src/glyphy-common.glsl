@@ -65,6 +65,11 @@ struct glyphy_arc_list_t {
    * Will be zero if we're far away inside or outside, in which case side is set.
    * Will be -1 if this arc-list encodes a single line, in which case line_* are set. */
   int num_endpoints;
+  
+  /* Number of endpoints corresponding to the arcs in the first set of contours in the list.
+   * Will be zero if we're far away inside or outside, in which case side is set.
+   * Will be -1 if this arc-list encodes a single line, in which case line_* are set. */
+  int first_contours_length;
 
   /* If num_endpoints is zero, this specifies whether we are inside (-1)
    * or outside (+1).  Otherwise we're unsure (0). */
@@ -204,9 +209,11 @@ glyphy_arc_list_decode (const vec4 v, ivec2 nominal_size)
   glyphy_arc_list_t l;
   ivec4 iv = glyphy_vec4_to_bytes (v);
   l.side = 0; /* unsure */
-  if (iv.r == 0) { /* arc-list encoded */
+  l.first_contours_length = 0;
+  if (iv.r < 128) { /* arc-list encoded */
     l.offset = (iv.g * 256) + iv.b;
     l.num_endpoints = iv.a;
+    l.first_contours_length = iv.r;
     if (l.num_endpoints == 255) {
       l.num_endpoints = 0;
       l.side = -1;

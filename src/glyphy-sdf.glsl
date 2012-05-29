@@ -72,11 +72,11 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
   glyphy_arc_t closest_arc;
 
   glyphy_arc_endpoint_t endpoint_prev, endpoint;
+  
   endpoint_prev = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset), nominal_size);
-
-
-
-  for (int i = 1; i < GLYPHY_MAX_NUM_ENDPOINTS; i++)
+  
+  /* Check arcs on the first contour group. */
+  for (int i = 1; i < GLYPHY_MAX_NUM_ENDPOINTS  && i <= arc_list.first_contours_length ; i++)
   {
   
     if (i >= arc_list.num_endpoints) {
@@ -101,7 +101,7 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 	min_dist = udist;
 	side = 0.; /* unsure */
 	closest_arc = a;
-      } else if (side == 0. && udist == min_dist) {
+      } else if (/*side == 0. && */udist == min_dist) {
 	/* If this new distance is the same as the current minimum,
 	 * compare extended distances.  Take the sign from the arc
 	 * with larger extended distance. */
@@ -119,12 +119,80 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
       }
     }
   }
+  
+  
+    
+  endpoint_prev = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset + arc_list.first_contours_length), nominal_size);
+
+
+#if 0
+
+  float side2 = float(arc_list.side);
+  float min_dist2 = GLYPHY_INFINITY;
+  glyphy_arc_t closest_arc2;
+  
+  /* Check arcs on the second contour group. */
+  for (int i = arc_list.first_contours_length + 1; i < GLYPHY_MAX_NUM_ENDPOINTS; i++)
+  {
+  
+    if (i >= arc_list.num_endpoints) {
+      break;
+    }
+    endpoint = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset + i), nominal_size);
+    glyphy_arc_t a = glyphy_arc_t (endpoint_prev.p, endpoint.p, endpoint.d);
+    endpoint_prev = endpoint;
+    if (glyphy_isinf (a.d)) continue; 
+
+    if (glyphy_arc_wedge_contains (a, p))
+    {
+      float sdist = glyphy_arc_wedge_signed_dist (a, p);
+      float udist = abs (sdist) * (1. - GLYPHY_EPSILON);
+      if (udist <= min_dist2) {
+	min_dist2 = udist;
+	side2 = sdist <= 0. ? -1. : +1.;
+      }
+    } else {
+      float udist = min (distance (p, a.p0), distance (p, a.p1));
+      if (udist < min_dist2) {
+	min_dist2 = udist;
+	side2 = 0.; /* unsure */
+	closest_arc2 = a;
+      } else if (side2 == 0. && udist == min_dist2) {
+	/* If this new distance is the same as the current minimum,
+	 * compare extended distances.  Take the sign from the arc
+	 * with larger extended distance. */
+	float old_ext_dist = glyphy_arc_extended_dist (closest_arc2, p);
+	float new_ext_dist = glyphy_arc_extended_dist (a, p);
+
+	float ext_dist = abs (new_ext_dist) <= abs (old_ext_dist) ?
+			 old_ext_dist : new_ext_dist;
+
+#ifdef GLYPHY_SDF_PSEUDO_DISTANCE
+	/* For emboldening and stuff: */
+	min_dist2 = abs (ext_dist);
+#endif
+	side2 = sign (ext_dist);
+      }
+    }
+  }
+  
+  #endif
+  /*  
+  if (side2 == -1.)
+  {
+    side = side2;
+    min_dist = min_dist2;
+    closest_arc = closest_arc2;
+  }
+*/
 
   if (side == 0.) {
     // Technically speaking this should not happen, but it does.  So try to fix it.
     float ext_dist = glyphy_arc_extended_dist (closest_arc, p);
     side = sign (ext_dist);
   }
+  
+
 
   return min_dist * side;
 }

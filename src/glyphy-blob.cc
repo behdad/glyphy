@@ -62,7 +62,7 @@ static inline glyphy_rgba_t
 arc_list_encode (unsigned int first_contours_length, unsigned int offset, unsigned int num_points, int side)
 {
   glyphy_rgba_t v;
-  v.r = 0;//LOWER_BITS (first_contours_length, 8, 8); 	//0; // unused for arc-list encoding
+  v.r = LOWER_BITS (first_contours_length, 7, 8); 	//0; // unused for arc-list encoding
   v.g = UPPER_BITS (offset, 8, 16);
   v.b = LOWER_BITS (offset, 8, 16);
   v.a = LOWER_BITS (num_points, 8, 8);
@@ -106,6 +106,8 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
 		      double faraway,
 		      const glyphy_arc_endpoint_t *endpoints,
 		      unsigned int num_endpoints,
+		      unsigned int cutoff,
+		      unsigned int *num_group_1_arcs,
 		      std::vector<glyphy_arc_endpoint_t> &near_endpoints,
 		      int *side)
 {
@@ -120,9 +122,13 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
   // If d is the distance from the center of the square to the nearest arc, then
   // all nearest arcs to the square must be at most almost [d + half_diagonal] from the center.
   double half_diagonal = (c - c0).len ();
-  double radius_squared = pow (min_dist + half_diagonal, 2.);
+  double radius_squared = (min_dist + half_diagonal) * (min_dist + half_diagonal);
+  unsigned int main_contour_arcs = 0;
+  
   if (min_dist - half_diagonal <= faraway) {
     Point p0 (0, 0);
+    
+    
     for (unsigned int i = 0; i < num_endpoints; i++) {
       const glyphy_arc_endpoint_t &endpoint = endpoints[i];
       if (endpoint.d == GLYPHY_INFINITY) {
@@ -132,11 +138,16 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
       Arc arc (p0, endpoint.p, endpoint.d);
       p0 = endpoint.p;
 
-      if (arc.squared_distance_to_point (c) <= radius_squared)
+      if (arc.squared_distance_to_point (c) <= radius_squared) {
         near_arcs.push_back (arc);
+        if (i < cutoff) {
+          main_contour_arcs++;
+        } 
+      }
     }
   }
 
+  *num_group_1_arcs = main_contour_arcs;
   Point p1 = Point (0, 0);
   for (unsigned i = 0; i < near_arcs.size (); i++)
   {
@@ -146,12 +157,15 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
       glyphy_arc_endpoint_t endpoint = {arc.p0, GLYPHY_INFINITY};
       near_endpoints.push_back (endpoint);
       p1 = arc.p0;
+      if (i < main_contour_arcs)
+        (*num_group_1_arcs)++;
     }
 
     glyphy_arc_endpoint_t endpoint = {arc.p1, arc.d};
     near_endpoints.push_back (endpoint);
     p1 = arc.p1;
   }
+  
 }
 
 
@@ -215,13 +229,13 @@ rearrange_contours (const glyphy_arc_endpoint_t *endpoints,
   while (i + 1 < num_endpoints && endpoints[i + 1].d != GLYPHY_INFINITY) {
     rearranged_endpoints [i] = glyphy_arc_endpoint_t (endpoints[i]);
 //    printf("Added endpoint (%f,%f),%f. Now i = %d.\n", endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d, i);
-    printf("  REARRANGED[%d] = (%f,%f),%f.\n", i, endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d);
+//    printf("  REARRANGED[%d] = (%f,%f),%f.\n", i, endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d);
     i++;
   }
   rearranged_endpoints [i] = endpoints [i];
   
  // printf("Added final endpoint (%f,%f),%f. Now i = %d.\n", endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d, i);
-  printf("  REARRANGED[%d] = (%f,%f),%f.\n", i, endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d);
+ // printf("  REARRANGED[%d] = (%f,%f),%f.\n", i, endpoints[i].p.x, endpoints[i].p.y, endpoints[i].d);
   i++;
   
     
@@ -248,14 +262,14 @@ rearrange_contours (const glyphy_arc_endpoint_t *endpoints,
      if (contour_intersects_contour_list (endpoints, start, i)) { // TODO check for +-1 offsets
        for (unsigned int j = start; j < i; j++) {
          rearranged_endpoints[bottom - i + j] = endpoints[j];
-         printf("  REARRANGED[%d] = (%f,%f),%f.\n", bottom - i + j, endpoints[j].p.x, endpoints[j].p.y, endpoints[j].d);
+  //       printf("  REARRANGED[%d] = (%f,%f),%f.\n", bottom - i + j, endpoints[j].p.x, endpoints[j].p.y, endpoints[j].d);
        }
        bottom = bottom - (i - start);
      }
      else {
        for (unsigned int j = start; j < i; j++) {
          rearranged_endpoints[top + j - start] = endpoints[j]; 
-         printf("  REARRANGED[%d] = (%f,%f),%f.\n", top + j - start, endpoints[j].p.x, endpoints[j].p.y, endpoints[j].d);
+  //       printf("  REARRANGED[%d] = (%f,%f),%f.\n", top + j - start, endpoints[j].p.x, endpoints[j].p.y, endpoints[j].d);
        }
        top = top + (i - start);
      }       
@@ -350,11 +364,13 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
       near_endpoints.clear ();
 
       int side;
+      unsigned int num_group_1_arcs = 0;
       closest_arcs_to_cell (cp0, cp1,
 			    faraway,
-			    endpoints, num_endpoints,
-			    near_endpoints,
+			    endpoints, num_endpoints, cutoff,
+			    &num_group_1_arcs, near_endpoints,
 			    &side);
+
 
 #define QUANTIZE_X(X) (lround (MAX_X * ((X - extents.min_x) / glyph_width )))
 #define QUANTIZE_Y(Y) (lround (MAX_Y * ((Y - extents.min_y) / glyph_height)))
@@ -402,7 +418,8 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
       unsigned int haystack_len = offset - header_length;
 
       bool found = false;
-      if (needle_len)
+
+     if (needle_len)
 	while (haystack_len >= needle_len) {
 	  /* Trick: we don't care about first endpoint's d value, so skip one
 	   * byte in comparison.  This works because arc_encode() packs the
@@ -420,10 +437,9 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
 	tex_data.resize (offset);
 	offset = haystack - &tex_data[0];
       }
-      
-      
+        
 
-      tex_data[row * grid_w + col] = arc_list_encode (cutoff, offset, current_endpoints, side);
+      tex_data[row * grid_w + col] = arc_list_encode (num_group_1_arcs, offset, current_endpoints, side);
       offset = tex_data.size ();
 
       total_arcs += current_endpoints;

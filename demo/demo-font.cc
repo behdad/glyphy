@@ -154,7 +154,7 @@ encode_ft_glyph (demo_font_t      *font,
 
   assert (glyphy_arc_accumulator_get_error (font->acc) <= tolerance);
 
-#if 0
+#if 1
   /* Technically speaking, we want the following code,
    * however, crappy fonts have crappy flags.  So we just
    * fixup unconditionally... */
