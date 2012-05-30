@@ -56,7 +56,7 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 {
   glyphy_arc_list_t arc_list = glyphy_arc_list (p, nominal_size  GLYPHY_SDF_TEXTURE1D_EXTRA_ARGS);
 
-  /* Short-circuits */
+  /* Short-circuits: 0 to 1 arcs near cell*/
   if (arc_list.num_endpoints == 0) {
     /* far-away cell */
     return GLYPHY_INFINITY * float(arc_list.side);
@@ -69,17 +69,27 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 
   float side = float(arc_list.side);
   float min_dist = GLYPHY_INFINITY;
-  glyphy_arc_t closest_arc;
+  glyphy_arc_t closest_arc;  
+
+  float side2 = float(arc_list.side);
+  float min_dist2 = GLYPHY_INFINITY;
+  glyphy_arc_t closest_arc2;
 
   glyphy_arc_endpoint_t endpoint_prev, endpoint;
   
-  endpoint_prev = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset), nominal_size);
   
-  /* Check arcs on the first contour group. */
-  for (int i = 1; i < GLYPHY_MAX_NUM_ENDPOINTS  && i <= arc_list.first_contours_length ; i++)
+    
+  
+  
+  /* Check arcs on the first contour group. 
+   * First contour group is non-empty IFF arc_list.first_contours_length > 0 
+   *				      IFF min_dist == GLYPHY_INFINITY after this loop
+   */
+  endpoint_prev = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset), nominal_size);
+  for (int i = 1; i < GLYPHY_MAX_NUM_ENDPOINTS; i++)
   {
   
-    if (i >= arc_list.num_endpoints) {
+    if (i >= arc_list.num_endpoints || i > arc_list.first_contours_length ) {
       break;
     }
     endpoint = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset + i), nominal_size);
@@ -101,7 +111,7 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 	min_dist = udist;
 	side = 0.; /* unsure */
 	closest_arc = a;
-      } else if (/*side == 0. && */udist == min_dist) {
+      } else if (side == 0. && udist == min_dist) {
 	/* If this new distance is the same as the current minimum,
 	 * compare extended distances.  Take the sign from the arc
 	 * with larger extended distance. */
@@ -118,20 +128,21 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 	side = sign (ext_dist);
       }
     }
+  }  
+  if (side == 0. && arc_list.first_contours_length > 0) {
+    // Technically speaking this should not happen, but it does.  So try to fix it.
+    float ext_dist = glyphy_arc_extended_dist (closest_arc, p);
+    side = sign (ext_dist);
   }
-  
-  
     
+    
+    
+  /* Check arcs on the second contour group. 
+   * Second contour group is non-empty IFF arc_list.num_endpoints > arc_list.first_contours_length 
+   *				       IFF min_dist2 == GLYPHY_INFINITY after this loop
+   */
   endpoint_prev = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset + arc_list.first_contours_length), nominal_size);
 
-
-#if 0
-
-  float side2 = float(arc_list.side);
-  float min_dist2 = GLYPHY_INFINITY;
-  glyphy_arc_t closest_arc2;
-  
-  /* Check arcs on the second contour group. */
   for (int i = arc_list.first_contours_length + 1; i < GLYPHY_MAX_NUM_ENDPOINTS; i++)
   {
   
@@ -174,24 +185,34 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 	side2 = sign (ext_dist);
       }
     }
-  }
+  }  
+  if (side2 == 0.) {
+    // Technically speaking this should not happen, but it does.  So try to fix it.
+    float ext_dist = glyphy_arc_extended_dist (closest_arc2, p);
+    if (ext_dist < 0.)
+      side2 = -1.;
+    else if (ext_dist == 0.)
+      side2 = 1.;
+    else
+      side2 = 1.;
+    side2 = sign (ext_dist); 
+  }  
+    
+
   
-  #endif
-  /*  
-  if (side2 == -1.)
+  
+
+  if (side2 == -1. || side == 0.)
   {
-    side = side2;
+    side = -1.;//side2;
     min_dist = min_dist2;
     closest_arc = closest_arc2;
   }
-*/
-
-  if (side == 0.) {
-    // Technically speaking this should not happen, but it does.  So try to fix it.
-    float ext_dist = glyphy_arc_extended_dist (closest_arc, p);
-    side = sign (ext_dist);
-  }
-  
+ /* else if (side2 == 1.) {
+    min_dist = min_dist2;
+//    side = side2;
+  }*/
+  else side = 0.;
 
 
   return min_dist * side;
