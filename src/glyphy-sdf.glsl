@@ -82,8 +82,8 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
   
   
   /* Check arcs on the first contour group. 
-   * First contour group is non-empty IFF arc_list.first_contours_length > 0 
-   *				      IFF min_dist == GLYPHY_INFINITY after this loop
+   * First contour group is non-empty <=> arc_list.first_contours_length > 0 
+   *				      <=> min_dist == GLYPHY_INFINITY after this loop
    */
   endpoint_prev = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset), nominal_size);
   for (int i = 1; i < GLYPHY_MAX_NUM_ENDPOINTS; i++)
@@ -141,7 +141,8 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
    * Second contour group is non-empty IFF arc_list.num_endpoints > arc_list.first_contours_length 
    *				       IFF min_dist2 == GLYPHY_INFINITY after this loop
    */
-  endpoint_prev = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset + arc_list.first_contours_length), nominal_size);
+  endpoint_prev = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D 
+  		(arc_list.offset + arc_list.first_contours_length), nominal_size);
 
   for (int i = arc_list.first_contours_length + 1; i < GLYPHY_MAX_NUM_ENDPOINTS; i++)
   {
@@ -189,32 +190,48 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
   if (side2 == 0.) {
     // Technically speaking this should not happen, but it does.  So try to fix it.
     float ext_dist = glyphy_arc_extended_dist (closest_arc2, p);
-    if (ext_dist < 0.)
-      side2 = -1.;
-    else if (ext_dist == 0.)
-      side2 = 1.;
-    else
-      side2 = 1.;
     side2 = sign (ext_dist); 
   }  
     
-
-  
-  
-
-  if (side2 == -1. || side == 0.)
-  {
-    side = -1.;//side2;
+  if (side == 0. || (side == 1. && side2 == -1.))
     min_dist = min_dist2;
-    closest_arc = closest_arc2;
+  else if (side == 1. && side2 == 1.)
+    min_dist = min (min_dist, min_dist2);
+  else if (side == -1. && side2 == -1.)
+    min_dist = max (min_dist, min_dist2);
+  
+    
+    
+  if (side2 < 0. || side == 0.) {
+    side = side2;
+//    min_dist = min_dist2;
+  } 
+  
+    
+/*    
+  if (min_dist2 < GLYPHY_EPSILON && side == -1. && side2 == -1.) {
+    side = side2;
+  } else if ((side2 == -1. || side == 0.) && !(min_dist2 < GLYPHY_EPSILON && side == -1. )) {
+    side = side2;
+    min_dist = min_dist2;
   }
- /* else if (side2 == 1.) {
+  
+  
+  /* If far from Group 1 contours or within Group 2 contours, use Group 2 shading. 
+  if (side2 == -1. || side == 0.) {
+    side = side2;
+      min_dist = min_dist2;
+  }*/
+/*  else if (side2 == 1.&& side == 1.) {
     min_dist = min_dist2;
 //    side = side2;
-  }*/
-  else side = 0.;
-
-
+  }
+  
+  if (side2 == 1. && side != 0.)
+    return -1. * min_dist;
+  return 0.;
+*/
+  
   return min_dist * side;
 }
 

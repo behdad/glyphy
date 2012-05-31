@@ -191,10 +191,20 @@ contour_intersects_contour_list (const glyphy_arc_endpoint_t  *endpoints,
     const glyphy_arc_endpoint_t enext2 = endpoints[j];    
     Arc current_arc (ethis2.p, enext2.p, enext2.d);
     
-    Point c = current_arc.center ();
-    double r = current_arc.radius ();
-    if (c.x - r <= extents.max_x && c.x + r >= extents.min_x && c.y + r >= extents.min_y && c.y - r <= extents.max_y) {
+    glyphy_bool_t feasible = false;
+    if (current_arc.d != 0) {
+      Point c = current_arc.center ();
+      double r = current_arc.radius ();
+      feasible = (c.x - r <= extents.max_x && c.x + r >= extents.min_x && c.y + r >= extents.min_y && c.y - r <= extents.max_y);
+    } else {
+      double min_x = (current_arc.p0.x < current_arc.p1.x ? current_arc.p0.x : current_arc.p1.x);
+      double min_y = (current_arc.p0.y < current_arc.p1.y ? current_arc.p0.y : current_arc.p1.y);
+      double max_x = (current_arc.p0.x > current_arc.p1.x ? current_arc.p0.x : current_arc.p1.x);
+      double max_y = (current_arc.p0.y > current_arc.p1.y ? current_arc.p0.y : current_arc.p1.y);
+      feasible = (min_x <= extents.max_x && max_x >= extents.min_x && max_y >= extents.min_y && min_y <= extents.max_y);
+    }
 
+    if (feasible) {
       /* Compare every arc pair in the two contours. TODO: Be more efficient (sanity check first.) */
       for (unsigned int i = start + 1; i < end; i++) {
         const glyphy_arc_endpoint_t ethis = endpoints[i - 1];
@@ -202,13 +212,13 @@ contour_intersects_contour_list (const glyphy_arc_endpoint_t  *endpoints,
         Arc a (ethis.p, enext.p, enext.d);
       
         if (current_arc.intersects_arc (a) != Point (GLYPHY_INFINITY, GLYPHY_INFINITY)) {
- //         printf("Contours intersect.\n");
+          printf("Contours intersect.\n");
           return true;      
         }
       }
     }
   } 
-//  printf("Contours do not intersect.\n");
+  printf("Contours do not intersect.\n");
   return false;
 }
 
