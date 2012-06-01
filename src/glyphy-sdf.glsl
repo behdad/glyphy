@@ -192,7 +192,8 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
     float ext_dist = glyphy_arc_extended_dist (closest_arc2, p);
     side2 = sign (ext_dist); 
   }  
-    
+
+  /* Update the distance to use as min_dist to outline, based on which contours we are in. */    
   if (side == 0. || (side == 1. && side2 == -1.))
     min_dist = min_dist2;
   else if (side == 1. && side2 == 1.)
@@ -201,37 +202,14 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
     min_dist = max (min_dist, min_dist2);
   
     
-    
+  /* Update side to reflect which side of the overall outline we are at: inside or outside the glyph. */  
   if (side2 < 0. || side == 0.) {
     side = side2;
-//    min_dist = min_dist2;
   } 
   
     
-/*    
-  if (min_dist2 < GLYPHY_EPSILON && side == -1. && side2 == -1.) {
-    side = side2;
-  } else if ((side2 == -1. || side == 0.) && !(min_dist2 < GLYPHY_EPSILON && side == -1. )) {
-    side = side2;
-    min_dist = min_dist2;
-  }
-  
-  
-  /* If far from Group 1 contours or within Group 2 contours, use Group 2 shading. 
-  if (side2 == -1. || side == 0.) {
-    side = side2;
-      min_dist = min_dist2;
-  }*/
-/*  else if (side2 == 1.&& side == 1.) {
-    min_dist = min_dist2;
-//    side = side2;
-  }
-  
-  if (side2 == 1. && side != 0.)
-    return -1. * min_dist;
-  return 0.;
-*/
-  
+   
+
   return min_dist * side;
 }
 
