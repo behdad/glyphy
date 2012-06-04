@@ -192,6 +192,10 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
     float ext_dist = glyphy_arc_extended_dist (closest_arc2, p);
     side2 = sign (ext_dist); 
   }  
+  
+  /* If the two minimum distances are the same, but the sides are different, don't anti-alias. */
+  if (min_dist == min_dist2 && side * side2 == -1.)
+    return -1. * GLYPHY_INFINITY;
 
   /* Update the distance to use as min_dist to outline, based on which contours we are in. */    
   if (side == 0. || (side == 1. && side2 == -1.))
