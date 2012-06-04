@@ -190,7 +190,7 @@ contour_intersects_contour_list (const glyphy_arc_endpoint_t  *endpoints,
     Arc current_arc (ethis2.p, enext2.p, enext2.d);
     
     glyphy_bool_t feasible = false;
-    if (current_arc.d != 0) {
+    if (!iszero (current_arc.d)) {
       Point c = current_arc.center ();
       double r = current_arc.radius ();
       feasible = (c.x - r <= extents.max_x && c.x + r >= extents.min_x && c.y + r >= extents.min_y && c.y - r <= extents.max_y);
@@ -274,6 +274,52 @@ rearrange_contours (const glyphy_arc_endpoint_t *endpoints,
 }
 
 
+typedef struct vertex glyphy_contour_vertex_t;
+struct vertex {
+  unsigned int start_posn;
+  unsigned int end_posn;
+  std::vector<glyphy_contour_vertex_t> dotted_edges;
+  std::vector<glyphy_contour_vertex_t> solid_edges;
+};
+
+
+unsigned int
+rearrange_contours2 (const glyphy_arc_endpoint_t *endpoints,
+		     unsigned int	  num_endpoints,
+		     glyphy_arc_endpoint_t *rearranged_endpoints)
+{
+  
+  if (num_endpoints == 0)
+    return 0;
+    
+  std::vector<glyphy_contour_vertex_t> contours;
+  unsigned int previous_index = 0;
+    
+  /* Create a list of vertices, where each vertex is a contour. */
+
+  unsigned int i = 0;
+  while (i < num_endpoints) {
+    while (i + 1 < num_endpoints && endpoints[i + 1].d != GLYPHY_INFINITY) {
+      i++;
+    }
+    rearranged_endpoints [i] = endpoints [i];
+    i++;
+    glyphy_contour_vertex_t current_contour;
+  
+    current_contour.start_posn = previous_index;
+    current_contour.end_posn = i;
+    current_contour.dotted_edges = std::vector<glyphy_contour_vertex_t> ();
+    current_contour.solid_edges = std::vector<glyphy_contour_vertex_t> ();
+  
+    contours.push_back (current_contour);
+    previous_index = i + 1;
+  }
+  
+  for (int j = 0; j < contours.size (); j++)
+    printf ("Contour %d spans from %d to %d.\n", j, contours[j].start_posn, contours[j].end_posn);
+    
+  return 0;
+}
 
 
 
@@ -347,6 +393,7 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
 
   /* Here is where we divide the arc list into two, based on intersecting contours. */  
   glyphy_arc_endpoint_t rearranged_endpoints [num_endpoints];
+  rearrange_contours2 (endpoints, num_endpoints, rearranged_endpoints);
   unsigned int cutoff = rearrange_contours (endpoints, num_endpoints, rearranged_endpoints);
   endpoints = rearranged_endpoints;
       
