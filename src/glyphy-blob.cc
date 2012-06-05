@@ -27,6 +27,13 @@
 
 using namespace GLyphy::Geometry;
 
+typedef struct vertex glyphy_contour_vertex_t;
+struct vertex {
+  unsigned int start_posn;
+  unsigned int end_posn;
+  std::vector<glyphy_contour_vertex_t*> dotted_edges;
+  std::vector<glyphy_contour_vertex_t*> solid_edges;
+};
 
 #define UPPER_BITS(v,bits,total_bits) ((v) >> ((total_bits) - (bits)))
 #define LOWER_BITS(v,bits,total_bits) ((v) & ((1 << (bits)) - 1))
@@ -220,6 +227,60 @@ contour_intersects_contour_list (const glyphy_arc_endpoint_t  *endpoints,
   return false;
 }
 
+
+/* Returns true if the contour in endpoints[start...end-1] intersects any arc in endpoints[0...start-1]. */
+glyphy_bool_t
+contours_intersect (const glyphy_arc_endpoint_t    *endpoints,
+		    const glyphy_contour_vertex_t  *contour_1,
+		    const glyphy_contour_vertex_t  *contour_2)
+{
+  /* Find the smallest box around these contours. 
+   * TODO: Okay, so extents don't *actually* work just yet. */
+  glyphy_extents_t extents_1;
+  glyphy_extents_clear (&extents_1);
+  glyphy_arc_list_extents (endpoints + contour_1->start_posn, contour_1->end_posn - contour_1->start_posn, &extents_1);
+  
+//  printf("Extents1: (%f,%f) by (%f,%f)\n", extents_1.min_x, extents_1.max_x, extents_1.min_y, extents_1.max_y);
+  
+  glyphy_extents_t extents_2;
+  glyphy_extents_clear (&extents_2);
+  glyphy_arc_list_extents (endpoints + contour_2->start_posn, contour_2->end_posn - contour_2->start_posn, &extents_2);
+    
+//  printf("Extents2: (%f,%f) by (%f,%f)\n", extents_2.min_x, extents_2.max_x, extents_2.min_y, extents_2.max_y);
+  
+  glyphy_bool_t feasible = false;
+  feasible = (extents_1.min_x <= extents_2.max_x && 
+  	      extents_1.max_x >= extents_2.min_x && 
+  	      extents_1.max_y >= extents_2.min_y && 
+  	      extents_1.min_y <= extents_2.max_y);
+  	      
+  if (!feasible)
+    return false;
+    
+  // If it seems feasible that this arc-arc pair (one per contour) might intersect, then check carefully.
+  for (unsigned int j = contour_1->start_posn + 1; j < contour_1->end_posn; j++) {
+      const glyphy_arc_endpoint_t ethis1 = endpoints[j - 1];
+      const glyphy_arc_endpoint_t enext1 = endpoints[j];    
+      Arc a1 (ethis1.p, enext1.p, enext1.d);
+      printf("#%2d. (%f,%f) to (%f,%f) with d=%f.\n", j, a1.p0.x, a1.p0.y, a1.p1.x, a1.p1.y, a1.d);
+        
+      for (unsigned int i = contour_2->start_posn + 1; i < contour_2->end_posn; i++) {
+        const glyphy_arc_endpoint_t ethis2 = endpoints[i - 1];
+        const glyphy_arc_endpoint_t enext2 = endpoints[i];    
+        Arc a2 (ethis2.p, enext2.p, enext2.d);
+      
+        if (a1.intersects_arc (a2) != Point (GLYPHY_INFINITY, GLYPHY_INFINITY)) {
+          printf("Contours intersect!!)\n");
+          return true;     
+        } 
+      } 
+  } 
+  printf("Contours do not intersect!!(\n");
+  return false; 
+}
+
+/* Rearrange contours into two groups which do not intersect each other, based on a heuristic. 
+ * Soon to be deprecated. */
 unsigned int
 rearrange_contours (const glyphy_arc_endpoint_t *endpoints,
 		    unsigned int	  num_endpoints,
@@ -230,7 +291,6 @@ rearrange_contours (const glyphy_arc_endpoint_t *endpoints,
     return 0;
     
   /* Copy first contour unchanged. */
-
   unsigned int i = 0;
   while (i + 1 < num_endpoints && endpoints[i + 1].d != GLYPHY_INFINITY) {
     rearranged_endpoints [i] = glyphy_arc_endpoint_t (endpoints[i]);
@@ -274,15 +334,10 @@ rearrange_contours (const glyphy_arc_endpoint_t *endpoints,
 }
 
 
-typedef struct vertex glyphy_contour_vertex_t;
-struct vertex {
-  unsigned int start_posn;
-  unsigned int end_posn;
-  std::vector<glyphy_contour_vertex_t> dotted_edges;
-  std::vector<glyphy_contour_vertex_t> solid_edges;
-};
 
 
+/* Rearranges contours into two groups that don't intersect, based on a bipartite graph partition. 
+ * Still in progress. */
 unsigned int
 rearrange_contours2 (const glyphy_arc_endpoint_t *endpoints,
 		     unsigned int	  num_endpoints,
@@ -291,33 +346,59 @@ rearrange_contours2 (const glyphy_arc_endpoint_t *endpoints,
   
   if (num_endpoints == 0)
     return 0;
-    
+  
   std::vector<glyphy_contour_vertex_t> contours;
   unsigned int previous_index = 0;
     
-  /* Create a list of vertices, where each vertex is a contour. */
-
+  /* Create a list of vertices, where each vertex is a contour. Edges are still empty for now. */
   unsigned int i = 0;
-  while (i < num_endpoints) {
+  unsigned int num_contours = 0;
+   while (i < num_endpoints) {
+  
     while (i + 1 < num_endpoints && endpoints[i + 1].d != GLYPHY_INFINITY) {
       i++;
-    }
-    rearranged_endpoints [i] = endpoints [i];
+    }    
     i++;
     glyphy_contour_vertex_t current_contour;
   
     current_contour.start_posn = previous_index;
     current_contour.end_posn = i;
-    current_contour.dotted_edges = std::vector<glyphy_contour_vertex_t> ();
-    current_contour.solid_edges = std::vector<glyphy_contour_vertex_t> ();
-  
+    current_contour.dotted_edges = std::vector<glyphy_contour_vertex_t*> ();
+    current_contour.solid_edges = std::vector<glyphy_contour_vertex_t*> ();
+    
     contours.push_back (current_contour);
-    previous_index = i + 1;
+    num_contours++;
+    previous_index = i;     
   }
   
-  for (int j = 0; j < contours.size (); j++)
-    printf ("Contour %d spans from %d to %d.\n", j, contours[j].start_posn, contours[j].end_posn);
+  /* Set up edges for vertices, based on intersections and inclusions. */
+  for (int k = 0; k < num_contours; k++) {
+    for (int j = 0; j < k; j++) {
     
+      /* If contours intersect, we place a solid edge between them. */
+      if (contours_intersect (endpoints, &contours[k], &contours[j])) {
+        contours[k].solid_edges.push_back (&contours[j]);
+        contours[j].solid_edges.push_back (&contours[k]);
+      }
+      else {
+      /* If one contour contains the other, we place a dotted edge between them. */
+      }
+    }
+  }
+  
+  /* Print out a list of contours and the contours they intersect. */
+  for (int j = 0; j < contours.size (); j++) {
+    printf ("Contour %d spans from %d to %d. ", j, contours[j].start_posn, contours[j].end_posn);
+    for (int k = 0; k < contours[j].solid_edges.size (); k++)
+      printf("It intersects contour from %d to %d. ", contours[j].solid_edges[k]->start_posn, contours[j].solid_edges[k]->end_posn);
+    printf("\n"); 
+ /*     printf("Contour Endpoint List:\n");
+      for (unsigned int k = contours[j].start_posn; k < contours[j].end_posn; k++) {
+        printf("#%2d. (%f,%f) with d=%f.\n", k, endpoints[k].p.x, endpoints[k].p.y, endpoints[k].d);
+      }
+   */   
+    }
+  
   return 0;
 }
 
