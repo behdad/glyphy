@@ -126,7 +126,8 @@ is_zero (double v)
   return fabs (v) < GLYPHY_EPSILON;
 }
 
-static bool
+/*static bool*/
+glyphy_bool_t
 even_odd (const glyphy_arc_endpoint_t *c_endpoints,
 	  unsigned int                 num_c_endpoints,
 	  const glyphy_arc_endpoint_t *endpoints,
@@ -192,6 +193,7 @@ even_odd (const glyphy_arc_endpoint_t *c_endpoints,
    */
 
   const Point p = c_endpoints[0].p;
+//  printf("EVEN_ODD! p is (%f,%f).\n", p.x, p.y);
 
   double count = 0;
   Point p0 (0, 0);
@@ -207,7 +209,7 @@ even_odd (const glyphy_arc_endpoint_t *c_endpoints,
     /*
      * Skip our own contour
      */
-    if (&endpoint >= c_endpoints && &endpoint < c_endpoints + num_c_endpoints)
+    if (&endpoint >= c_endpoints && &endpoint < c_endpoints + num_c_endpoints) 
       continue;
 
     /* End-point y's compared to the ref point; lt, eq, or gt */
@@ -217,6 +219,7 @@ even_odd (const glyphy_arc_endpoint_t *c_endpoints,
     if (is_zero (arc.d))
     {
       /* Line */
+ //     printf("  Checking a line segment...\n");
 
       if (!s0 || !s1)
       {
@@ -241,15 +244,18 @@ even_odd (const glyphy_arc_endpoint_t *c_endpoints,
       if (x >= p.x - GLYPHY_EPSILON)
 	continue; // Does not intersect halfline
 
+//      printf("   Crossing the line segment.\n");
       count++; // Add one for full crossing
       continue;
     }
     else
     {
       /* Arc */
+//     printf("  Checking an arc... (%f,%f) to (%f,%f) with %f.\n", arc.p0.x,arc.p0.y,arc.p1.x,arc.p1.y,arc.d);
 
       if (!s0 || !s1)
       {
+//        printf ("   We hit a vertex.\n");
         /*
 	 * Add +.5 / -.5 for each endpoint on the halfline, depending on
 	 * crossing direction.
@@ -269,7 +275,13 @@ even_odd (const glyphy_arc_endpoint_t *c_endpoints,
 	  count += .5 * categorize (t.first.dy, 0);
         if (!s1 && arc.p1.x < p.x + GLYPHY_EPSILON)
 	  count += .5 * categorize (t.second.dy, 0);
+	 
+//	printf("   Arc-specific execution status: %d, %d, %d, %d.\n", 
+//		is_zero (t.first.dy) ? 1 : 0, is_zero (t.second.dy) ? 1 : 0, !s0 && arc.p0.x < p.x + GLYPHY_EPSILON ? 1 : 0, !s1 && arc.p1.x < p.x + GLYPHY_EPSILON ? 1 : 0);
       }
+      
+
+
 
       Point c = arc.center ();
       double r = arc.radius ();
@@ -285,19 +297,23 @@ even_odd (const glyphy_arc_endpoint_t *c_endpoints,
        * ref point. */
       Point pp[2] = { Point (c.x - dx, p.y),
 		      Point (c.x + dx, p.y) };
-
+//      printf("   Nontrivial arc... \n");
 #define POINTS_EQ(a,b) (is_zero (a.x - b.x) && is_zero (a.y - b.y))
       for (unsigned int i = 0; i < ARRAY_LENGTH (pp); i++)
       {
         /* Make sure we don't double-count endpoints that fall on the
 	 * halfline as we already accounted for those above */
         if (!POINTS_EQ (pp[i], arc.p0) && !POINTS_EQ (pp[i], arc.p1) &&
-	    pp[i].x < p.x - GLYPHY_EPSILON && arc.wedge_contains_point (pp[i]))
+	    pp[i].x < p.x - GLYPHY_EPSILON && arc.wedge_contains_point (pp[i])) {
+//	  printf("   A cross! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
 	  count++; // Add one for full crossing
+	}
       }
 #undef POINTS_EQ
     }
   }
+  
+//  printf ("Count is %d.\n", int (floor (count)));
 
   return !(int (floor (count)) & 1);
 }

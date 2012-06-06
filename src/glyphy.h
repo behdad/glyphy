@@ -272,6 +272,14 @@ glyphy_outline_winding_from_even_odd (glyphy_arc_endpoint_t *endpoints,
 				      glyphy_bool_t          inverse);
 
 
+/* Returns true if a half line from the contour in c_endpoints 
+ * crosses an even number of features of other contours.
+ */
+glyphy_bool_t
+even_odd (const glyphy_arc_endpoint_t *c_endpoints,
+	  unsigned int                 num_c_endpoints,
+	  const glyphy_arc_endpoint_t *endpoints,
+	  unsigned int                 num_endpoints);
 
 /*
  * Encode an arc outline into binary blob for fast SDF calculation

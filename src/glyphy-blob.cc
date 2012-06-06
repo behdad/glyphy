@@ -262,7 +262,6 @@ contours_intersect (const glyphy_arc_endpoint_t    *endpoints,
       const glyphy_arc_endpoint_t ethis1 = endpoints[j - 1];
       const glyphy_arc_endpoint_t enext1 = endpoints[j];    
       Arc a1 (ethis1.p, enext1.p, enext1.d);
-      printf("#%2d. (%f,%f) to (%f,%f) with d=%f.\n", j, a1.p0.x, a1.p0.y, a1.p1.x, a1.p1.y, a1.d);
         
       for (unsigned int i = contour_2->start_posn + 1; i < contour_2->end_posn; i++) {
         const glyphy_arc_endpoint_t ethis2 = endpoints[i - 1];
@@ -270,12 +269,10 @@ contours_intersect (const glyphy_arc_endpoint_t    *endpoints,
         Arc a2 (ethis2.p, enext2.p, enext2.d);
       
         if (a1.intersects_arc (a2) != Point (GLYPHY_INFINITY, GLYPHY_INFINITY)) {
-          printf("Contours intersect!!)\n");
           return true;     
         } 
       } 
   } 
-  printf("Contours do not intersect!!(\n");
   return false; 
 }
 
@@ -375,28 +372,47 @@ rearrange_contours2 (const glyphy_arc_endpoint_t *endpoints,
   for (int k = 0; k < num_contours; k++) {
     for (int j = 0; j < k; j++) {
     
+    
       /* If contours intersect, we place a solid edge between them. */
       if (contours_intersect (endpoints, &contours[k], &contours[j])) {
         contours[k].solid_edges.push_back (&contours[j]);
         contours[j].solid_edges.push_back (&contours[k]);
       }
-      else {
-      /* If one contour contains the other, we place a dotted edge between them. */
+      else 
+       /* If one contour contains the other, we place a dotted edge between them. */
+       // To check if a contour contains another, it is sufficient to check 
+       // if contour_1 contains a point from contour_2, or vice versa, since we already
+       // know that these contours don't intersect. (For the same reason, we can be sure that
+       // the point from the first contour will not lie on the second contour.)
+       // Here we can use some code from glyphy-outline::even_odd.
+      
+      if (!even_odd (endpoints + contours[k].start_posn, 1, 
+      		    endpoints + contours[j].start_posn, contours[j].end_posn - contours[j].start_posn) ||
+      	  !even_odd (endpoints + contours[j].start_posn, 1, 
+      		    endpoints + contours[k].start_posn, contours[k].end_posn - contours[k].start_posn)) {
+	contours[k].dotted_edges.push_back (&contours[j]);
+        contours[j].dotted_edges.push_back (&contours[k]);
+      
       }
     }
   }
   
   /* Print out a list of contours and the contours they intersect. */
   for (int j = 0; j < contours.size (); j++) {
+    printf ("----------------------------------\n");
     printf ("Contour %d spans from %d to %d. ", j, contours[j].start_posn, contours[j].end_posn);
     for (int k = 0; k < contours[j].solid_edges.size (); k++)
       printf("It intersects contour from %d to %d. ", contours[j].solid_edges[k]->start_posn, contours[j].solid_edges[k]->end_posn);
     printf("\n"); 
- /*     printf("Contour Endpoint List:\n");
+    for (int k = 0; k < contours[j].dotted_edges.size (); k++)
+      printf("It contains/surrounds contour from %d to %d. ", contours[j].dotted_edges[k]->start_posn, contours[j].dotted_edges[k]->end_posn);
+    printf("\n"); 
+    
+      printf("Contour Endpoint List:\n");
       for (unsigned int k = contours[j].start_posn; k < contours[j].end_posn; k++) {
         printf("#%2d. (%f,%f) with d=%f.\n", k, endpoints[k].p.x, endpoints[k].p.y, endpoints[k].d);
       }
-   */   
+      
     }
   
   return 0;
