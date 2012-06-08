@@ -31,6 +31,7 @@ typedef struct vertex glyphy_contour_vertex_t;
 struct vertex {
   unsigned int start_posn;
   unsigned int end_posn;
+  unsigned int index; /* index in the relevant list of contours */
   std::vector<glyphy_contour_vertex_t*> dotted_edges;
   std::vector<glyphy_contour_vertex_t*> solid_edges;
 };
@@ -331,6 +332,19 @@ rearrange_contours (const glyphy_arc_endpoint_t *endpoints,
 }
 
 
+void
+populate_connected_component (const std::vector<glyphy_contour_vertex_t> contours, 
+			      const glyphy_contour_vertex_t 		 current_contour, 
+			      std::vector<glyphy_contour_vertex_t>  	 *connected_contours,
+			      bool					 *contours_seen)
+{
+// if (contours_seen [int (&contours - &current_contour)])
+//    return;
+  connected_contours->push_back (current_contour);
+  printf ("  Just pushed back contour (%d to %d)!\n", current_contour.start_posn, current_contour.end_posn);
+  for (unsigned int k = 0; k < current_contour.dotted_edges.size (); k++)
+    populate_connected_component (contours, *current_contour.dotted_edges[k], connected_contours, contours_seen);
+}
 
 
 /* Rearranges contours into two groups that don't intersect, based on a bipartite graph partition. 
@@ -360,6 +374,7 @@ rearrange_contours2 (const glyphy_arc_endpoint_t *endpoints,
   
     current_contour.start_posn = previous_index;
     current_contour.end_posn = i;
+    current_contour.index = num_contours;
     current_contour.dotted_edges = std::vector<glyphy_contour_vertex_t*> ();
     current_contour.solid_edges = std::vector<glyphy_contour_vertex_t*> ();
     
@@ -369,8 +384,8 @@ rearrange_contours2 (const glyphy_arc_endpoint_t *endpoints,
   }
   
   /* Set up edges for vertices, based on intersections and inclusions. */
-  for (int k = 0; k < num_contours; k++) {
-    for (int j = 0; j < k; j++) {
+  for (unsigned int k = 0; k < num_contours; k++) {
+    for (unsigned int j = 0; j < k; j++) {
     
     
       /* If contours intersect, we place a solid edge between them. */
@@ -405,15 +420,55 @@ rearrange_contours2 (const glyphy_arc_endpoint_t *endpoints,
       printf("It intersects contour from %d to %d. ", contours[j].solid_edges[k]->start_posn, contours[j].solid_edges[k]->end_posn);
     printf("\n"); 
     for (int k = 0; k < contours[j].dotted_edges.size (); k++)
-      printf("It contains/surrounds contour from %d to %d. ", contours[j].dotted_edges[k]->start_posn, contours[j].dotted_edges[k]->end_posn);
+      printf("It (surrounds/is contained in) contour from %d to %d. ", contours[j].dotted_edges[k]->start_posn, contours[j].dotted_edges[k]->end_posn);
     printf("\n"); 
     
-      printf("Contour Endpoint List:\n");
-      for (unsigned int k = contours[j].start_posn; k < contours[j].end_posn; k++) {
-        printf("#%2d. (%f,%f) with d=%f.\n", k, endpoints[k].p.x, endpoints[k].p.y, endpoints[k].d);
-      }
-      
+    printf("Contour Endpoint List:\n");
+    for (unsigned int k = contours[j].start_posn; k < contours[j].end_posn; k++) {
+      printf("#%2d. (%f,%f) with d=%f.\n", k, endpoints[k].p.x, endpoints[k].p.y, endpoints[k].d);
     }
+      
+  }
+  
+  /* Collapse all dotted edges by "merging" vertices together. 
+   * Note: We are assuming quite a bit about the graph structure here.
+   * Hopefully it all works in the cases that ever come up. */
+  bool contours_seen [contours.size ()];
+  // TODO: Is there a better way to initialize the array to all false?
+  for (int j = 0; j < contours.size(); j++) {
+    contours_seen[j] = false;
+    printf("%s", contours_seen[j] ? "O" : ".");
+  }
+  unsigned int current_end = 0;
+  
+  
+  /* For each entry in the vector of contours, make a list of contours that it has a dot-line connection with. */
+  std::vector<glyphy_contour_vertex_t> connected_contours;
+  for (unsigned int j = 0; j < contours.size (); j++) {
+    if (contours_seen [j])
+      continue;
+      
+    connected_contours.clear ();
+  //  populate_connected_component (contours, contours [j], &connected_contours, &contours_seen);
+  
+  }
+  
+  
+  
+ /* 
+  for (unsigned int j = 0;  j < contours.size (); j++) {
+    // Add this new, unseen contour to the rearranged list. 
+    if (!contours_seen [j]) {
+      contours_seen [j] = true;
+      merge_subtree_contours (endpoints, contours, j, current_end, rearranged_endpoints, &contours_seen);
+      
+      for (unsigned int k = 0; k < contours [j].end_posn - contours [j].start_posn; k++) {
+        rearranged_endpoints [k + current_end] = endpoints [k + contours [j].start_posn];
+      }
+      current_end += (contours [j].end_posn - contours [j].start_posn);
+    }       
+  }
+   */
   
   return 0;
 }
