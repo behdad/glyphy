@@ -77,10 +77,6 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 
   glyphy_arc_endpoint_t endpoint_prev, endpoint;
   
-  
-    
-  
-  
   /* Check arcs on the first contour group. 
    * First contour group is non-empty <=> arc_list.first_contours_length > 0 
    *				      <=> min_dist == GLYPHY_INFINITY after this loop
@@ -103,8 +99,10 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
       float udist = abs (sdist) * (1. - GLYPHY_EPSILON);
       if (udist <= min_dist) {
 	min_dist = udist;
-	side = sdist <= 0. ? -1. : +1.;
+	side = (sdist <= 0. ? -1. : +1.);
+	side = (float(arc_list.side) == -1. ? -1. : side);
       }
+      
     } else {
       float udist = min (distance (p, a.p0), distance (p, a.p1));
       if (udist < min_dist) {
@@ -211,11 +209,10 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
     side = side2;
   } 
   
-    
-   
 
   return min_dist * side;
 }
+
 
 float
 glyphy_point_dist (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)

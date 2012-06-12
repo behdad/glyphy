@@ -122,9 +122,17 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
   // Find distance between cell center
   Point c = c0.midpoint (c1);
   double min_dist = glyphy_sdf_from_arc_list (endpoints, num_endpoints, &c, NULL);
-
-  *side = min_dist >= 0 ? +1 : -1;
-  min_dist = fabs (min_dist);
+  double min_dist1 = glyphy_sdf_from_arc_list (endpoints, cutoff, &c, NULL);
+  double min_dist2 = glyphy_sdf_from_arc_list (endpoints + cutoff, num_endpoints - cutoff, &c, NULL);
+  printf("have distances %f, %f, and min of %f.\n", min_dist1, min_dist2, min_dist);
+ // if (min_dist2 < 0)
+ //   min_dist = -1 * fabs(min_dist);
+  
+  *side = min_dist1 >= 0 ? +1 : -1;
+  if (min_dist2 < 0)
+    *side = -1;
+  
+  min_dist = fabs (glyphy_sdf_from_arc_list (endpoints, num_endpoints, &c, NULL));
   std::vector<Arc> near_arcs;
 
   // If d is the distance from the center of the square to the nearest arc, then
@@ -133,7 +141,8 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
   double radius_squared = (min_dist + half_diagonal) * (min_dist + half_diagonal);
   unsigned int main_contour_arcs = 0;
   
-  if (min_dist - half_diagonal <= faraway) {
+  if (min_dist - half_diagonal <= faraway && 
+     (min_dist1 > -1 * half_diagonal && min_dist2 > -1 * half_diagonal) ) {
     Point p0 (0, 0);
     
     
@@ -154,6 +163,7 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
       }
     }
   }
+    
 
   *num_group_1_arcs = main_contour_arcs;
   Point p1 = Point (0, 0);
@@ -598,9 +608,11 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
 
   /* Here is where we divide the arc list into two, based on intersecting contours. */  
   glyphy_arc_endpoint_t rearranged_endpoints [num_endpoints];
-  rearrange_contours2 (endpoints, num_endpoints, rearranged_endpoints);
+//  rearrange_contours2 (endpoints, num_endpoints, rearranged_endpoints);
   unsigned int cutoff = rearrange_contours (endpoints, num_endpoints, rearranged_endpoints);
   endpoints = rearranged_endpoints;
+  
+  printf("The cutoff is %d out of a total of %d.\n", cutoff, num_endpoints);
       
   for (int row = 0; row < grid_h; row++)
     for (int col = 0; col < grid_w; col++)
@@ -611,6 +623,7 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
 
       int side;
       unsigned int num_group_1_arcs = 0;
+      printf("For cell (%d,%d), ", row, col);
       closest_arcs_to_cell (cp0, cp1,
 			    faraway,
 			    endpoints, num_endpoints, cutoff,
