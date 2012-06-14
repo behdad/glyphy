@@ -555,13 +555,7 @@ rearrange_contours2 (const glyphy_arc_endpoint_t *endpoints,
         }
       } 
     }
-      
- /*   for (unsigned int k = 0; k < new_contours.size (); k++) {
-      for (unsigned int m = 0; m < new_contours [k].solid_edges.size (); m++) {
-        new_contours[k].solid_edges[m] = contours[new_contours[k].solid_edges[m]].index;
-      }
-    }
-   */  
+ 
     
     printf("Made new contour: index=%d, startposn=%d, endposn=%d.\n", new_contours[j].index, new_contours[j].start_posn, new_contours[j].end_posn);
     for (unsigned int m = 0; m < new_contours[j].dotted_edges.size (); m++)
