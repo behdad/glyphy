@@ -1,3 +1,13 @@
 This is GLyphy.
 
 http://code.google.com/p/glyphy/
+
+----------------------------------------------------------------------
+Compilation instructions on Mac OS X:
+
+1) Install Xcode and command line tools (as of Xcode 4.3.x, from
+   within Preferences -> Downloads).
+2) Install MacPorts.
+3) sudo port install automake autoconf libtool pkgconfig cairo freetype
+4) ./autogen.sh
+5) make
