@@ -546,7 +546,7 @@ rearrange_contours2 (const glyphy_arc_endpoint_t *endpoints,
         printf("    (%d) Trying to add edge %d.\n", contours[new_contours[j].dotted_edges[m]].solid_edges[k], solid_edge_to_add);
         bool is_original_edge = true;
         for (unsigned int existing_edge = 0; existing_edge < new_contours[j].solid_edges.size (); existing_edge++)  {
-          if (solid_edge_to_add == existing_edge) 
+          if (solid_edge_to_add == new_contours[j].solid_edges [existing_edge]) 
             is_original_edge = false;
    	}
         if (is_original_edge) {
