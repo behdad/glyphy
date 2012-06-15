@@ -70,7 +70,7 @@ static inline glyphy_rgba_t
 arc_list_encode (unsigned int first_contours_length, unsigned int offset, unsigned int num_points, int side)
 {
   glyphy_rgba_t v;
-  v.r = LOWER_BITS (first_contours_length, 7, 8); 	//0; // unused for arc-list encoding
+  v.r = LOWER_BITS (first_contours_length, 7, 8); 	/* store the number of contours in the first part of the partition */
   v.g = UPPER_BITS (offset, 8, 16);
   v.b = LOWER_BITS (offset, 8, 16);
   v.a = LOWER_BITS (num_points, 8, 8);
@@ -167,80 +167,22 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
   for (unsigned i = 0; i < near_arcs.size (); i++)
   {
     Arc arc = near_arcs[i];
-
-    if (i == 0 || p1 != arc.p0) {
+ 
+    if (i == 0 || p1 != arc.p0 || i == main_contour_arcs) {
       glyphy_arc_endpoint_t endpoint = {arc.p0, GLYPHY_INFINITY};
       near_endpoints.push_back (endpoint);
       p1 = arc.p0;
-      if (i < main_contour_arcs)
+      if (i < main_contour_arcs) {
         (*num_group_1_arcs)++;
+      }
     }
 
     glyphy_arc_endpoint_t endpoint = {arc.p1, arc.d};
     near_endpoints.push_back (endpoint);
     p1 = arc.p1;
   }
-  
-  
-/*  printf ("  Endpoints in Group 1: \n");
-  for (int j = 0; j < *num_group_1_arcs; j++)
-    printf ("    (%f,%f), d=%f\n", near_endpoints[j].p.x, near_endpoints[j].p.y, near_endpoints[j].d);
-  printf ("  Endpoints in Group 2: \n");
-  for (int j = *num_group_1_arcs; j < near_endpoints.size ();  j++)
-    printf ("    (%f,%f), d=%f\n", near_endpoints[j].p.x, near_endpoints[j].p.y, near_endpoints[j].d);*/
 }
 
-
-
-
-/* Returns true if the contour in endpoints[start...end-1] intersects any arc in endpoints[0...start-1]. */
-glyphy_bool_t
-contour_intersects_contour_list (const glyphy_arc_endpoint_t  *endpoints,
-			    	 unsigned int 	  	start,
-			    	 unsigned int	  	end)
-{
-  /* Find the smallest box around this contour. */
-  glyphy_extents_t extents;
-  glyphy_extents_clear (&extents);
-
-  glyphy_arc_list_extents (endpoints + start, end - start, &extents);
-  
-  for (unsigned int j = 1; j < start; j++) {
-  //    if (endpoints[j].d != GLYPHY_INFINITY) ?????????????????????????????????????????????????????
-    const glyphy_arc_endpoint_t ethis2 = endpoints[j - 1];
-    const glyphy_arc_endpoint_t enext2 = endpoints[j];    
-    Arc current_arc (ethis2.p, enext2.p, enext2.d);
-    
-    glyphy_bool_t feasible = false;
-    if (!iszero (current_arc.d)) {
-      Point c = current_arc.center ();
-      double r = current_arc.radius ();
-      feasible = (c.x - r <= extents.max_x && c.x + r >= extents.min_x && c.y + r >= extents.min_y && c.y - r <= extents.max_y);
-    } else {
-      double min_x = (current_arc.p0.x < current_arc.p1.x ? current_arc.p0.x : current_arc.p1.x);
-      double min_y = (current_arc.p0.y < current_arc.p1.y ? current_arc.p0.y : current_arc.p1.y);
-      double max_x = (current_arc.p0.x > current_arc.p1.x ? current_arc.p0.x : current_arc.p1.x);
-      double max_y = (current_arc.p0.y > current_arc.p1.y ? current_arc.p0.y : current_arc.p1.y);
-      feasible = (min_x <= extents.max_x && max_x >= extents.min_x && max_y >= extents.min_y && min_y <= extents.max_y);
-    }
-
-    if (feasible) {
-      /* If it seems feasible that this arc-arc pair (one per contour) might intersect, then check carefully. */
-      for (unsigned int i = start + 1; i < end; i++) {
-        const glyphy_arc_endpoint_t ethis = endpoints[i - 1];
-        const glyphy_arc_endpoint_t enext = endpoints[i];    
-        Arc a (ethis.p, enext.p, enext.d);
-      
-        if (current_arc.intersects_arc (a) != Point (GLYPHY_INFINITY, GLYPHY_INFINITY)) {
-          printf("Contours intersect.\n");
-          return true;      
-        }
-      }
-    }
-  } 
-  printf("Contours do not intersect.\n");
-  return false;
-}
 
 
 /* Returns true if the contour in endpoints[start...end-1] intersects any arc in endpoints[0...start-1]. */
@@ -249,19 +191,14 @@ contours_intersect (const glyphy_arc_endpoint_t    *endpoints,
 		    const glyphy_contour_vertex_t  *contour_1,
 		    const glyphy_contour_vertex_t  *contour_2)
 {
-  /* Find the smallest box around these contours. 
-   * TODO: Okay, so extents don't *actually* work just yet. */
+  /* Find the smallest box around these contours. */
   glyphy_extents_t extents_1;
   glyphy_extents_clear (&extents_1);
   glyphy_arc_list_extents (endpoints + contour_1->start_posn, contour_1->end_posn - contour_1->start_posn, &extents_1);
   
-//  printf("Extents1: (%f,%f) by (%f,%f)\n", extents_1.min_x, extents_1.max_x, extents_1.min_y, extents_1.max_y);
-  
   glyphy_extents_t extents_2;
   glyphy_extents_clear (&extents_2);
   glyphy_arc_list_extents (endpoints + contour_2->start_posn, contour_2->end_posn - contour_2->start_posn, &extents_2);
-    
-//  printf("Extents2: (%f,%f) by (%f,%f)\n", extents_2.min_x, extents_2.max_x, extents_2.min_y, extents_2.max_y);
   
   glyphy_bool_t feasible = false;
   feasible = (extents_1.min_x <= extents_2.max_x && 
@@ -291,61 +228,6 @@ contours_intersect (const glyphy_arc_endpoint_t    *endpoints,
   return false; 
 }
 
-/* Rearrange contours into two groups which do not intersect each other, based on a heuristic. 
- * Soon to be deprecated. */
-unsigned int
-rearrange_contours (const glyphy_arc_endpoint_t *endpoints,
-		    unsigned int	  num_endpoints,
-		    glyphy_arc_endpoint_t *rearranged_endpoints)
-{
-  
-  if (num_endpoints == 0)
-    return 0;
-    
-  /* Copy first contour unchanged. */
-  unsigned int i = 0;
-  while (i + 1 < num_endpoints && endpoints[i + 1].d != GLYPHY_INFINITY) {
-    rearranged_endpoints [i] = glyphy_arc_endpoint_t (endpoints[i]);
-    i++;
-  }
-  rearranged_endpoints [i] = endpoints [i];
-  i++;
-  
-    
-  /* Add new contours one-by-one. 
-   * If the new contour intersects a contour at the top of the rearranged list, add it to the bottom.
-   * Otherwise, add it to the top.
-   */
-   unsigned int top = i;
-   unsigned int bottom = num_endpoints;   
-   unsigned int start = i;
-   
-   while (top < bottom ) {
-   
-     while (endpoints[i + 1].d != GLYPHY_INFINITY && i + 1 < num_endpoints ) {
-       i++;
-     }
-     i++;
-  
-  
-     if (contour_intersects_contour_list (endpoints, start, i)) { 
-       for (unsigned int j = start; j < i; j++) {
-         rearranged_endpoints[bottom - i + j] = endpoints[j];
-       }
-       bottom = bottom - (i - start);
-     }
-     else {
-       for (unsigned int j = start; j < i; j++) {
-         rearranged_endpoints[top + j - start] = endpoints[j]; 
-       }
-       top = top + (i - start);
-     }       
-     start = i;
-   }
-   
-  
-  return top;
-}
 
 
 void
@@ -359,7 +241,6 @@ populate_connected_component (const std::vector<glyphy_contour_vertex_t> contour
   contours_seen [current_contour] = true;
   
   connected_contours->push_back (current_contour);
-  printf ("  Just pushed back contour (%d to %d)!\n", contours[current_contour].start_posn, contours[current_contour].end_posn);
   for (unsigned int k = 0; k < contours[current_contour].dotted_edges.size (); k++)
     populate_connected_component (contours, 
     				  contours[contours[current_contour].dotted_edges[k]].index, /* o_O */
@@ -391,6 +272,11 @@ rearrange_contours2 (const glyphy_arc_endpoint_t *endpoints,
   
   if (num_endpoints == 0)
     return 0;
+    
+   printf("Original Endpoint List:\n");
+    for (unsigned int k = 0; k < num_endpoints; k++) {
+      printf("#%2d. (%f,%f) with d=%f.\n", k, endpoints[k].p.x, endpoints[k].p.y, endpoints[k].d);
+    }
   
   std::vector<glyphy_contour_vertex_t> contours;
   unsigned int previous_index = 0;
@@ -446,26 +332,7 @@ rearrange_contours2 (const glyphy_arc_endpoint_t *endpoints,
       }
     }
   }
-  
-  
-    printf("contours_size:%d\n", int (contours.size()));
-  
-/* Print out a list of contours and the contours they intersect. */
-  for (int j = 0; j < contours.size (); j++) {
-    printf ("----------------------------------\n");
-    printf ("Contour %d spans from %d to %d. ", j, contours[j].start_posn, contours[j].end_posn);
-    for (int k = 0; k < contours[j].solid_edges.size (); k++) 
-      printf("It intersects contour #%d. ", contours[j].solid_edges[k]);
-    printf("\n"); 
-    for (int k = 0; k < contours[j].dotted_edges.size (); k++)
-      printf("It includes the old contour #%d. ", contours[j].dotted_edges[k]);
-    printf("\n"); 
-    
-    printf("Contour Endpoint List:\n");
-    for (unsigned int k = contours[j].start_posn; k < contours[j].end_posn; k++) {
-      printf("#%2d. (%f,%f) with d=%f.\n", k, endpoints[k].p.x, endpoints[k].p.y, endpoints[k].d);
-    }
-  }
+
   
 
   
@@ -494,9 +361,7 @@ rearrange_contours2 (const glyphy_arc_endpoint_t *endpoints,
       
     connected_contours.clear ();
     populate_connected_component (contours, j, &connected_contours, contours_seen);
-    
-    printf("These contours are connected: ");
-    
+
     /* Create a new vertex representing the merged contours. */
     glyphy_contour_vertex_t merged_contour;
     merged_contour.start_posn = new_endpoint_list_index;    
@@ -506,7 +371,6 @@ rearrange_contours2 (const glyphy_arc_endpoint_t *endpoints,
     
     
     for (unsigned int k = 0; k < connected_contours.size (); k++) {
-      printf("(%d to %d); ", contours [connected_contours [k]].start_posn, contours [connected_contours [k]].end_posn);
       
       merged_contour.dotted_edges.push_back (contours [connected_contours [k]].index);
       
@@ -524,15 +388,10 @@ rearrange_contours2 (const glyphy_arc_endpoint_t *endpoints,
     new_contours.push_back (merged_contour);
     num_new_contours++; 
     
-    printf("JUST MADE NEW CONTOUR #%d.\n", new_contours[num_new_contours-1].index);
-
   }
   
   for (unsigned int j = 0; j < new_contours.size (); j++) 
-    printf ("------\nNew Contour %d has index %d.\n", j, new_contours[j].index);
-  
-  
-  
+
   /* Merge the lists of solid edges.  TODO This should happen outside, and use new contour references.*/
   for (unsigned int j = 0; j < new_contours.size (); j++) {
     new_contours[j].solid_edges.clear ();
@@ -543,7 +402,6 @@ rearrange_contours2 (const glyphy_arc_endpoint_t *endpoints,
     
         
         unsigned int solid_edge_to_add = contours[contours[new_contours[j].dotted_edges[m]].solid_edges[k]].index;
-        printf("    (%d) Trying to add edge %d.\n", contours[new_contours[j].dotted_edges[m]].solid_edges[k], solid_edge_to_add);
         bool is_original_edge = true;
         for (unsigned int existing_edge = 0; existing_edge < new_contours[j].solid_edges.size (); existing_edge++)  {
           if (solid_edge_to_add == new_contours[j].solid_edges [existing_edge]) 
@@ -551,19 +409,10 @@ rearrange_contours2 (const glyphy_arc_endpoint_t *endpoints,
    	}
         if (is_original_edge) {
           new_contours[j].solid_edges.push_back (solid_edge_to_add);
-          printf("     Success!\n");
         }
       } 
     }
  
-    
-    printf("Made new contour: index=%d, startposn=%d, endposn=%d.\n", new_contours[j].index, new_contours[j].start_posn, new_contours[j].end_posn);
-    for (unsigned int m = 0; m < new_contours[j].dotted_edges.size (); m++)
-      printf("Dotted edge to %d! ", new_contours[j].dotted_edges[m]);
-    printf("\n");
-    for (unsigned int m = 0; m < new_contours[j].solid_edges.size (); m++)
-      printf("Solidd edge to %d! ", new_contours[j].solid_edges[m]);
-    printf("\n");
   }
   
   
@@ -571,7 +420,6 @@ rearrange_contours2 (const glyphy_arc_endpoint_t *endpoints,
   
 /* Print out a list of contours and the contours they intersect. */
   for (int j = 0; j < new_contours.size (); j++) {
-    printf ("@@---------------------------------\n");
     printf ("Contour %d spans from %d to %d. ", j, new_contours[j].start_posn, new_contours[j].end_posn);
     for (int k = 0; k < new_contours[j].solid_edges.size (); k++) 
       printf("It intersects contour #%d. ", new_contours[j].solid_edges[k]);
@@ -600,12 +448,6 @@ rearrange_contours2 (const glyphy_arc_endpoint_t *endpoints,
       continue;
     assign_contour_levels (new_contours, j, 0, contour_levels);      
   }
-  
-  printf("The contours levels are as follows: \n");
-  for (unsigned int j = 0; j < new_contours.size (); j++) {
-    printf ("Contour %d: Level %d.\n", j, contour_levels [j]);
-  }
-  
   
   /* Add new contours one-by-one. 
    * If the new contour has an even level, add it to the top of the list.
@@ -708,12 +550,9 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
 
   /* Here is where we divide the arc list into two, based on intersecting contours. */  
   glyphy_arc_endpoint_t rearranged_endpoints [num_endpoints];
- // rearrange_contours2 (endpoints, num_endpoints, rearranged_endpoints);
   unsigned int cutoff = rearrange_contours2 (endpoints, num_endpoints, rearranged_endpoints);
   endpoints = rearranged_endpoints;
   
- // printf("The cutoff is %d out of a total of %d.\n", cutoff, num_endpoints);
-      
   for (int row = 0; row < grid_h; row++)
     for (int col = 0; col < grid_w; col++)
     {
@@ -728,7 +567,6 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
 			    endpoints, num_endpoints, cutoff,
 			    &num_group_1_arcs, near_endpoints,
 			    &side);
-  //    printf("Cell (%d,%d) has corner (%f,%f) and is close to %d arcs.\n", row, col, cp0.x, cp0.y, near_endpoints.size ());		    
 
 
 #define QUANTIZE_X(X) (lround (MAX_X * ((X - extents.min_x) / glyph_width )))
