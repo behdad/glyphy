@@ -31,9 +31,9 @@ typedef struct vertex glyphy_contour_vertex_t;
 struct vertex {
   unsigned int start_posn;
   unsigned int end_posn;
-  unsigned int index; /* index in the relevant list of contours */
-  std::vector<unsigned int> dotted_edges;
-  std::vector<unsigned int> solid_edges;
+  unsigned int index; /* index in whichever list of contours is most currently relevant */
+  std::vector<unsigned int> dotted_edges; /* in the contour relationship graph */
+  std::vector<unsigned int> solid_edges; /* in the contour relationship graph */
 };
 
 #define UPPER_BITS(v,bits,total_bits) ((v) >> ((total_bits) - (bits)))
@@ -114,12 +114,12 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
 		      double faraway,
 		      const glyphy_arc_endpoint_t *endpoints,
 		      unsigned int num_endpoints,
-		      unsigned int cutoff,
+		      unsigned int cutoff, /* how many endpoints are from the first contour group? */
 		      unsigned int *num_group_1_arcs,
 		      std::vector<glyphy_arc_endpoint_t> &near_endpoints,
 		      int *side)
 {
-  // Find distance between cell center
+  /* Find distance between arcs and cell center */
   Point c = c0.midpoint (c1);
 
   double min_dist1 = glyphy_sdf_from_arc_list (endpoints, cutoff, &c, NULL);
@@ -132,8 +132,9 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
   
   std::vector<Arc> near_arcs;
 
-  // If d is the distance from the center of the square to the nearest arc, then
-  // all nearest arcs to the square must be at most almost [d + half_diagonal] from the center.
+  /* If d is the distance from the center of the square to the nearest arc, then
+   * all nearest arcs to the square must be at most almost [d + half_diagonal] from the center.
+   */
   double half_diagonal = (c - c0).len ();
   double radius_squared = (min_dist + half_diagonal) * (min_dist + half_diagonal);
   unsigned int main_contour_arcs = 0;
@@ -185,7 +186,7 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
 
 
 
-/* Returns true if the contour in endpoints[start...end-1] intersects any arc in endpoints[0...start-1]. */
+/* Returns true if an arc in contour1 intersects any arc in contour2. */
 glyphy_bool_t
 contours_intersect (const glyphy_arc_endpoint_t    *endpoints,
 		    const glyphy_contour_vertex_t  *contour_1,
@@ -209,7 +210,7 @@ contours_intersect (const glyphy_arc_endpoint_t    *endpoints,
   if (!feasible)
     return false;
     
-  // If it seems feasible that this arc-arc pair (one per contour) might intersect, then check carefully.
+  /* If it seems feasible that these contours might intersect, then check carefully. */
   for (unsigned int j = contour_1->start_posn + 1; j < contour_1->end_posn; j++) {
       const glyphy_arc_endpoint_t ethis1 = endpoints[j - 1];
       const glyphy_arc_endpoint_t enext1 = endpoints[j];    
@@ -229,7 +230,12 @@ contours_intersect (const glyphy_arc_endpoint_t    *endpoints,
 }
 
 
-
+/** Used to generate a list of contours that have dotted line 
+  * connections in the contour relationship graph; that is, 
+  * these contours surround each other, but do not intersect.
+  * NOTE: the contours may not all be nested, as in the contours
+  * that outline the letter B (all three contours are returned).
+  */
 void
 populate_connected_component (const std::vector<glyphy_contour_vertex_t> contours, 
 			      const unsigned int			 current_contour, 
@@ -240,6 +246,7 @@ populate_connected_component (const std::vector<glyphy_contour_vertex_t> contour
     return;
   contours_seen [current_contour] = true;
   
+  /* Depth-first search, essentially. */
   connected_contours->push_back (current_contour);
   for (unsigned int k = 0; k < contours[current_contour].dotted_edges.size (); k++)
     populate_connected_component (contours, 
@@ -247,6 +254,10 @@ populate_connected_component (const std::vector<glyphy_contour_vertex_t> contour
     				  connected_contours, contours_seen);
 }
 
+/** To form a bipartition of the contour relationship graph, 
+  * assign each vertex a "level" based on DFS reachability,
+  * and derive the bipartition using parities of these levels.
+  */
 void 
 assign_contour_levels (const std::vector<glyphy_contour_vertex_t> new_contours,
 		       const unsigned int			  current_contour,
@@ -262,45 +273,40 @@ assign_contour_levels (const std::vector<glyphy_contour_vertex_t> new_contours,
 }     
 
 
-/* Rearranges contours into two groups that don't intersect, based on a bipartite graph partition. 
- * Still in progress. */
+/* Rearranges contours into two groups that don't intersect, based on a bipartite graph partition. */
 unsigned int
-rearrange_contours2 (const glyphy_arc_endpoint_t *endpoints,
-		     unsigned int	  num_endpoints,
-		     glyphy_arc_endpoint_t *rerearranged_endpoints)
+rearrange_contours (const glyphy_arc_endpoint_t *endpoints,
+		     unsigned int	  	 num_endpoints,
+		     glyphy_arc_endpoint_t 	 *rerearranged_endpoints)
 {
   
   if (num_endpoints == 0)
     return 0;
-    
-   printf("Original Endpoint List:\n");
-    for (unsigned int k = 0; k < num_endpoints; k++) {
-      printf("#%2d. (%f,%f) with d=%f.\n", k, endpoints[k].p.x, endpoints[k].p.y, endpoints[k].d);
-    }
-  
+      
   std::vector<glyphy_contour_vertex_t> contours;
   unsigned int previous_index = 0;
     
   /* Create a list of vertices, where each vertex is a contour. Edges are still empty for now. */
   unsigned int i = 0;
   unsigned int num_contours = 0;
-   while (i < num_endpoints) {
-  
-    while (i + 1 < num_endpoints && endpoints[i + 1].d != GLYPHY_INFINITY) {
-      i++;
-    }    
-    i++;
-    glyphy_contour_vertex_t current_contour;
-  
-    current_contour.start_posn = previous_index;
-    current_contour.end_posn = i;
-    current_contour.index = num_contours;
-    current_contour.dotted_edges = std::vector<unsigned int> ();
-    current_contour.solid_edges = std::vector<unsigned int> ();
-    
-    contours.push_back (current_contour);
-    num_contours++;
-    previous_index = i;     
+   while (i < num_endpoints) { 
+     
+     /* Find the next contour and create its corresponding vertex. */
+     while (i + 1 < num_endpoints && endpoints[i + 1].d != GLYPHY_INFINITY) {
+       i++;
+     }    
+     i++;
+     glyphy_contour_vertex_t current_contour;
+   
+     current_contour.start_posn = previous_index;
+     current_contour.end_posn = i;
+     current_contour.index = num_contours;
+     current_contour.dotted_edges = std::vector<unsigned int> ();
+     current_contour.solid_edges = std::vector<unsigned int> ();
+     
+     contours.push_back (current_contour);
+     num_contours++;
+     previous_index = i;     
   }
   
   /* Set up edges for vertices, based on intersections and inclusions. */
@@ -343,8 +349,8 @@ rearrange_contours2 (const glyphy_arc_endpoint_t *endpoints,
   // TODO: Is there a better way to initialize the array to all false?
   for (int j = 0; j < contours.size(); j++) {
     contours_seen[j] = false;
-    printf("%s", contours_seen[j] ? "O" : ".");
   }
+
   unsigned int current_end = 0;
   std::vector<glyphy_contour_vertex_t> new_contours;
   unsigned int num_new_contours = 0;
@@ -416,23 +422,17 @@ rearrange_contours2 (const glyphy_arc_endpoint_t *endpoints,
   }
   
   
-  printf("new_contours_size:%d\n", int (new_contours.size()));
-  
-/* Print out a list of contours and the contours they intersect. */
+/* Print out a list of contours and the contours they intersect. 
   for (int j = 0; j < new_contours.size (); j++) {
-    printf ("Contour %d spans from %d to %d. ", j, new_contours[j].start_posn, new_contours[j].end_posn);
+    printf ("Contour %d: ", j);
     for (int k = 0; k < new_contours[j].solid_edges.size (); k++) 
       printf("It intersects contour #%d. ", new_contours[j].solid_edges[k]);
     printf("\n"); 
     for (int k = 0; k < new_contours[j].dotted_edges.size (); k++)
-      printf("It includes the old contour #%d. ", new_contours[j].dotted_edges[k]);
+      printf("   It includes the old contour #%d. ", new_contours[j].dotted_edges[k]);
     printf("\n"); 
     
- //   printf("Contour Endpoint List:\n");
- //   for (unsigned int k = new_contours[j].start_posn; k < new_contours[j].end_posn; k++) {
- //     printf("#%2d. (%f,%f) with d=%f.\n", k, rearranged_endpoints[k].p.x, rearranged_endpoints[k].p.y, rearranged_endpoints[k].d);
- //   }
-  }
+  }*/
   
   /* Time to bipartition the graph, which should contain only solid edges at this point. */
   
@@ -440,7 +440,6 @@ rearrange_contours2 (const glyphy_arc_endpoint_t *endpoints,
   // TODO: Is there a better way to initialize the array to all -1?
   for (int j = 0; j < new_contours.size(); j++) {
     contour_levels [j] = -1;
-    printf("%s", contour_levels [j] != -1 ? "O" : ".");
   }
   
   for (unsigned int j = 0; j < new_contours.size (); j++) {
@@ -468,12 +467,11 @@ rearrange_contours2 (const glyphy_arc_endpoint_t *endpoints,
        }
        bottom = bottom - (new_contours [i].end_posn - new_contours [i].start_posn);
      }
-     
+   }    
    
-   }
-
-   
-     
+  /* Now "top" represents the partition index in the endpoint list, 
+   * separating endpoints of contour group 1 and contour group 2.
+   */
   return top;
 
 }
@@ -550,7 +548,7 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
 
   /* Here is where we divide the arc list into two, based on intersecting contours. */  
   glyphy_arc_endpoint_t rearranged_endpoints [num_endpoints];
-  unsigned int cutoff = rearrange_contours2 (endpoints, num_endpoints, rearranged_endpoints);
+  unsigned int cutoff = rearrange_contours (endpoints, num_endpoints, rearranged_endpoints);
   endpoints = rearranged_endpoints;
   
   for (int row = 0; row < grid_h; row++)
