@@ -398,7 +398,7 @@ rearrange_contours (const glyphy_arc_endpoint_t *endpoints,
   
   for (unsigned int j = 0; j < new_contours.size (); j++) 
 
-  /* Merge the lists of solid edges.  TODO This should happen outside, and use new contour references.*/
+  /* Merge the lists of solid edges. */
   for (unsigned int j = 0; j < new_contours.size (); j++) {
     new_contours[j].solid_edges.clear ();
     

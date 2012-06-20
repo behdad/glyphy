@@ -56,15 +56,22 @@ float
 glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS /*, vec2 min_dist_vector*/)
 {
   glyphy_arc_list_t arc_list = glyphy_arc_list (p, nominal_size  GLYPHY_SDF_TEXTURE1D_EXTRA_ARGS);
+  
+  /* TODO: Make these returned parameter/global variables/etc so that it is returned from the function.*/
+  vec2 min_dist_vector;
+  vec2 min_dist_vector2;
 
   /* Short-circuits: 0 to 1 arcs near cell*/
   if (arc_list.num_endpoints == 0) {
     /* far-away cell */
+    min_dist_vector = vec2 (GLYPHY_INFINITY, GLYPHY_INFINITY);
     return GLYPHY_INFINITY * float(arc_list.side);
   } if (arc_list.num_endpoints == -1) {
     /* single-line */
     float angle = arc_list.line_angle;
     vec2 n = vec2 (cos (angle), sin (angle));
+    
+    /* TODO: Update min_dist_vector in this case. What should it be? */
     return dot (p - (vec2(nominal_size) * .5), n) - arc_list.line_distance;
   }
 
@@ -102,14 +109,26 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS /*, vec2
 	min_dist = udist;
 	side = (sdist <= 0. ? -1. : +1.);
 	side = (float(arc_list.side) == -1. ? -1. : side);
+	
+	/* TODO: Handle case where d=0 (and a has no center) */
+	min_dist_vector = udist * glyphy_unit_vector (glyphy_arc_center (a) - p);
+	
       }
       
     } else {
-      float udist = min (distance (p, a.p0), distance (p, a.p1));
+      float dist0 = distance (p, a.p0);
+      float dist1 = distance (p, a.p1);
+      float udist = min (dist0, dist1);
       if (udist < min_dist) {
 	min_dist = udist;
 	side = 0.; /* unsure */
 	closest_arc = a;
+	if (dist0 < dist1)
+	  min_dist_vector = glyphy_unit_vector (a.p0 - p) * udist ;
+	else  
+	  min_dist_vector = glyphy_unit_vector (a.p1 - p) * udist ;
+	  
+	  
       } else if (side == 0. && udist == min_dist) {
 	/* If this new distance is the same as the current minimum,
 	 * compare extended distances.  Take the sign from the arc
@@ -125,8 +144,20 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS /*, vec2
 	min_dist = abs (ext_dist);
 #endif
 	side = sign (ext_dist);
+	
+	if (abs (old_ext_dist) < abs (new_ext_dist)) {
+	  float dist0 = distance (p, a.p0);
+      	  float dist1 = distance (p, a.p1);
+	  if (dist0 < dist1)
+	    min_dist_vector = glyphy_unit_vector (a.p0 - p) * udist ;
+	  else  
+	    min_dist_vector = glyphy_unit_vector (a.p1 - p) * udist ;
+	}
+	
+	 
       }
     }
+    
   }  
   if (side == 0. && arc_list.first_contours_length > 0) {
     // Technically speaking this should not happen, but it does.  So try to fix it.
@@ -134,7 +165,7 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS /*, vec2
     side = sign (ext_dist);
   }
     
-    
+
     
   /* Check arcs on the second contour group. 
    * Second contour group is non-empty IFF arc_list.num_endpoints > arc_list.first_contours_length 
@@ -161,13 +192,21 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS /*, vec2
       if (udist <= min_dist2) {
 	min_dist2 = udist;
 	side2 = sdist <= 0. ? -1. : +1.;
+	/* TODO: Handle case where d=0 (and a has no center) */
+	min_dist_vector2 = udist * glyphy_unit_vector (glyphy_arc_center (a) - p);
       }
     } else {
-      float udist = min (distance (p, a.p0), distance (p, a.p1));
+      float dist0 = distance (p, a.p0);
+      float dist1 = distance (p, a.p1);
+      float udist = min (dist0, dist1);
       if (udist < min_dist2) {
 	min_dist2 = udist;
 	side2 = 0.; /* unsure */
 	closest_arc2 = a;
+	if (dist0 < dist1)
+	  min_dist_vector2 = glyphy_unit_vector (a.p0 - p) * udist ;
+	else   
+	  min_dist_vector2 = glyphy_unit_vector (a.p1 - p) * udist ;
       } else if (side2 == 0. && udist == min_dist2) {
 	/* If this new distance is the same as the current minimum,
 	 * compare extended distances.  Take the sign from the arc
@@ -183,8 +222,20 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS /*, vec2
 	min_dist2 = abs (ext_dist);
 #endif
 	side2 = sign (ext_dist);
+	
+	if (abs (old_ext_dist) < abs (new_ext_dist)) {
+	  float dist0 = distance (p, a.p0);
+      	  float dist1 = distance (p, a.p1);
+	  if (dist0 < dist1)
+	    min_dist_vector2 = (a.p0 - p) * udist / length (a.p0 - p);
+	  else  
+	    min_dist_vector2 = (a.p1 - p) * udist / length (a.p1 - p);
+	}
+	
       }
     }
+    
+    
   }  
   if (side2 == 0.) {
     // Technically speaking this should not happen, but it does.  So try to fix it.
@@ -192,27 +243,38 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS /*, vec2
     side2 = sign (ext_dist); 
   }  
   
-  
-  
-  /* If the two minimum distances are the same, but the sides are different, don't anti-alias. */
+  /** If the two minimum distances are the same, but the sides are different, don't anti-alias. 
+    * We are fully contained in one contour region. 
+    */
   if (glyphy_iszero (min_dist - min_dist2) && side * side2 == -1.)
     return -1. * GLYPHY_INFINITY;
 
   /* Update the distance to use as min_dist to outline, based on which contours we are in. */    
-  if (side == 0. || (side == 1. && side2 == -1.))
+  if (side == 0. || (side == 1. && side2 == -1.)) {
     min_dist = min_dist2;
+    min_dist_vector = min_dist_vector2;
+  }
   else if (side == 1. && side2 == 1.)
-    min_dist = min (min_dist, min_dist2);
+    if (min_dist2 < min_dist) {
+      min_dist = min_dist2;
+      min_dist_vector = min_dist_vector2;
+    }
   else if (side == -1. && side2 == -1.)
-    min_dist = max (min_dist, min_dist2);
-  
+    if (min_dist < min_dist2) {
+      min_dist = min_dist2;
+      min_dist_vector = min_dist_vector2;
+    }
     
   /* Update side to reflect which side of the overall outline we are at: inside or outside the glyph. */  
   if (side2 < 0. || side == 0.) {
     side = side2;
   } 
   
-
+//  min_dist = length (min_dist_vector);
+  
+  
+//   if (!glyphy_iszero (abs (min_dist) - length (min_dist_vector)))
+//     return 0.;  
   return min_dist * side;
 }
 

@@ -640,8 +640,6 @@ inline Point Arc::intersects_segment (const Segment &s) const {
     Segment arc_segment (p0, p1);
     return s.intersects_segment (arc_segment);
   }
-//  if (fabs(d) > 1e5)
-//    printf("WEIRDNESS. Arc from (%f,%f) to (%f,%f) with d=%f.\n", p0.x, p0.y, p1.x, p1.y, d);
 
   if (s.contains_point (p0))
     return p0;
@@ -649,28 +647,25 @@ inline Point Arc::intersects_segment (const Segment &s) const {
     return p1;
   
   Point c1 = center ();
-//  printf("Centre at (%f,%f), radius is %f, depth is %f.\n", c1.x, c1.y, radius (), d);
   double a = (s.p0.x - s.p1.x) * (s.p0.x - s.p1.x) + (s.p0.y - s.p1.y) * (s.p0.y - s.p1.y);
   double b = 2 * ((s.p1.x - s.p0.x) * (s.p0.x - c1.x) + (s.p1.y - s.p0.y) * (s.p0.y - c1.y));
   double c = (c1.x * c1.x) + (c1.y * c1.y) + (s.p0.x * s.p0.x) + (s.p0.y * s.p0.y) - 2 * (c1.x * s.p0.x + c1.y * s.p0.y) - radius () * radius ();
   double disc = b * b - 4 * a * c;
   if (disc < 0)
-    return Point (GLYPHY_INFINITY, GLYPHY_INFINITY); //false;
-
-  /* Sometimes, u = nan. Can't explain that. */
+    return Point (GLYPHY_INFINITY, GLYPHY_INFINITY); 
   
   double u = /* W... get it?! */ (-1 * b + sqrt (disc)) / (2 * a);
-//  printf("a=%f, b=%f, c=%f, disc=%f\n  u=%f\n", a, b, c, disc, u);
+
   Point p (s.p0.x + u * (s.p1.x - s.p0.x), s.p0.y + u * (s.p1.y - s.p0.y));
   if ((0 <= u && u <= 1) && wedge_contains_point(p))
-    return p; //true;
+    return p; 
   
-  u = -1 * b / a - u; //(-1 * b - sqrt (d)) / (2 * a);
+  u = -1 * b / a - u; 
   p = Point (s.p0.x + u * (s.p1.x - s.p0.x), s.p0.y + u * (s.p1.y - s.p0.y));
   if ((0 <= u && u <= 1) && wedge_contains_point(p))
-    return p; //true;
+    return p; 
   
-  return Point (GLYPHY_INFINITY, GLYPHY_INFINITY); //((0 <= u && u <= 1) && wedge_contains_point(p));
+  return Point (GLYPHY_INFINITY, GLYPHY_INFINITY); 
 }
 
 /* TODO: Handle possibility that there are two intersection points. */
@@ -699,7 +694,7 @@ inline Point Arc::intersects_arc (const Arc &a) const {
     return p1;
   if (wedge_contains_point (p2) && a.wedge_contains_point (p2))
     return p2;
-  return Point (GLYPHY_INFINITY, GLYPHY_INFINITY); //(wedge_contains_point (p1) && a.wedge_contains_point (p1)) || (wedge_contains_point (p2) && a.wedge_contains_point (p2));
+  return Point (GLYPHY_INFINITY, GLYPHY_INFINITY); 
 }
 
 inline void Arc::extents (glyphy_extents_t &extents) const {

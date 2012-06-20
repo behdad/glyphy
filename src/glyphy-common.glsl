@@ -66,9 +66,7 @@ struct glyphy_arc_list_t {
    * Will be -1 if this arc-list encodes a single line, in which case line_* are set. */
   int num_endpoints;
   
-  /* Number of endpoints corresponding to the arcs in the first set of contours in the list.
-   * Will be zero if we're far away inside or outside, in which case side is set.
-   * Will be -1 if this arc-list encodes a single line, in which case line_* are set. */
+  /* Number of endpoints corresponding to the arcs in the first set of contours in the list. */
   int first_contours_length;
 
   /* If num_endpoints is zero, this specifies whether we are inside (-1)
@@ -126,6 +124,13 @@ glyphy_tan2atan (float d)
   return 2. * d / (1. - d * d);
 }
 
+/* returns sin (2 * atan (d)) */
+float
+glyphy_sin2atan (float d)
+{
+  return 2. * d / (1. + d * d);
+}
+
 glyphy_arc_endpoint_t
 glyphy_arc_endpoint_decode (const vec4 v, ivec2 nominal_size)
 {
@@ -145,6 +150,12 @@ glyphy_arc_center (glyphy_arc_t a)
 {
   return mix (a.p0, a.p1, .5) +
 	 glyphy_perpendicular (a.p1 - a.p0) / (2. * glyphy_tan2atan (a.d));
+}
+
+float
+glyphy_arc_radius (glyphy_arc_t a)
+{
+  return distance (a.p0, a.p1) / (2. * glyphy_sin2atan (a.d));
 }
 
 bool
@@ -185,11 +196,9 @@ glyphy_arc_wedge_signed_dist (const glyphy_arc_t a, const vec2 p)
 }
 
 vec2
-glyphy_point_to_point_vector (const vec2 p, const vec2 q)
+glyphy_unit_vector (const vec2 v)
 {
-  vec2 v = p - q;
-  return v;
-
+  return v / length (v);
 }
 
 float
