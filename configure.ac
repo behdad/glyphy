@@ -67,12 +67,10 @@ AC_DEFUN([GLYPHY_CHECK_PACKAGE],
 	AM_CONDITIONAL([HAVE_]PKG, [$HAVE_]PKG)
 ])
 
-GLYPHY_CHECK_PACKAGE(freetype2, FT_Init_FreeType)
-GLYPHY_CHECK_PACKAGE(cairo, cairo_create)
-GLYPHY_CHECK_PACKAGE(cairo-ft, cairo_ft_scaled_font_lock_face)
 GLYPHY_CHECK_PACKAGE(gl, glCreateShader, OpenGL)
 GLYPHY_CHECK_PACKAGE(glew, glewInit)
 GLYPHY_CHECK_PACKAGE(glut, glutInit, GLUT)
+GLYPHY_CHECK_PACKAGE(freetype2, FT_Init_FreeType)
 
 dnl ===========================================================================
 
