@@ -379,7 +379,7 @@ inline const Point Line::operator+ (const Line &l) const {
 
 inline const SignedVector Line::operator- (const Point &p) const {
   double mag = -(n * Vector (p) - c) / n.len ();
-  return SignedVector (n.normalized () * mag, mag < 0); /******************************************************************************************* FIX. *************************************/
+  return SignedVector (n.normalized () * mag, mag < 0); /******************************************************* FIX. *************************************/
 }
 
 inline const SignedVector operator- (const Point &p, const Line &l) {
@@ -397,7 +397,7 @@ inline const Vector Line::normal (void) const {
 /* Segment */
 inline const SignedVector Segment::operator- (const Point &p) const {
   /* shortest vector from point to line */
-  return p - Line (p1, p0); /************************************************************************************************** Should the order (p1, p0) depend on d?? ***********************/
+  return p - Line (p1, p0); /*********************************************************************** Should the order (p1, p0) depend on d?? ***********************/
 }
 
 /* Segment */

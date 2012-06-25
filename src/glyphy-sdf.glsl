@@ -52,15 +52,17 @@ glyphy_arc_list (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 }
 
 
+
+
+
+
+
+
 float
-glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS /*, vec2 min_dist_vector*/)
+glyphy_sdf (vec2 p, ivec2 nominal_size, out vec2 min_dist_vector GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 {
   glyphy_arc_list_t arc_list = glyphy_arc_list (p, nominal_size  GLYPHY_SDF_TEXTURE1D_EXTRA_ARGS);
   
-  /* TODO: Make these returned parameter/global variables/etc so that it is returned from the function.*/
-  vec2 min_dist_vector;
-  vec2 min_dist_vector2;
-
   /* Short-circuits: 0 to 1 arcs near cell*/
   if (arc_list.num_endpoints == 0) {
     /* far-away cell */
@@ -70,14 +72,17 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS /*, vec2
     /* single-line */
     float angle = arc_list.line_angle;
     vec2 n = vec2 (cos (angle), sin (angle));
+    float dist = dot (p - (vec2(nominal_size) * .5), n) - arc_list.line_distance;
+    min_dist_vector = n * dist;
     
-    /* TODO: Update min_dist_vector in this case. What should it be? */
-    return dot (p - (vec2(nominal_size) * .5), n) - arc_list.line_distance;
+    return dist;
   }
 
   float side = float(arc_list.side);
   float min_dist = GLYPHY_INFINITY;
-  glyphy_arc_t closest_arc;  
+  glyphy_arc_t closest_arc; 
+  
+ // float answer = shortest_dist_to_contours (arc_list, p, true, glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset), nominal_size) )   
 
   float side2 = float(arc_list.side);
   float min_dist2 = GLYPHY_INFINITY;
@@ -110,9 +115,17 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS /*, vec2
 	side = (sdist <= 0. ? -1. : +1.);
 	side = (float(arc_list.side) == -1. ? -1. : side);
 	
-	/* TODO: Handle case where d=0 (and a has no center) */
-	min_dist_vector = udist * glyphy_unit_vector (glyphy_arc_center (a) - p);
-	
+	/* TODO: Handle case where d=0 (and a has no center). CHECK VECTOR DIRECTION (+/-) */
+	if (a.d == 0.) {
+	  min_dist_vector = udist * glyphy_unit_vector (glyphy_segment_normal (a));
+	  if (distance (p + min_dist_vector, a.p0) > distance (p, a.p0))
+	    return 0.;
+	}
+	else {
+	  vec2 center = glyphy_arc_center (a);
+	  min_dist_vector = udist * glyphy_unit_vector (center - p) 
+	  		* (distance (center, p) < glyphy_arc_radius (a) ? -1. : 1.);
+	}
       }
       
     } else {
@@ -145,13 +158,17 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS /*, vec2
 #endif
 	side = sign (ext_dist);
 	
+	
+	float dist0 = distance (p, a.p0);
+      	float dist1 = distance (p, a.p1);
+	if (dist0 < dist1)
+	  min_dist_vector = udist * glyphy_unit_vector (a.p0 - p);
+	else  
+	  min_dist_vector = udist * glyphy_unit_vector (a.p1 - p);
+	    
+	    
 	if (abs (old_ext_dist) < abs (new_ext_dist)) {
-	  float dist0 = distance (p, a.p0);
-      	  float dist1 = distance (p, a.p1);
-	  if (dist0 < dist1)
-	    min_dist_vector = glyphy_unit_vector (a.p0 - p) * udist ;
-	  else  
-	    min_dist_vector = glyphy_unit_vector (a.p1 - p) * udist ;
+	  
 	}
 	
 	 
@@ -171,6 +188,7 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS /*, vec2
    * Second contour group is non-empty IFF arc_list.num_endpoints > arc_list.first_contours_length 
    *				       IFF min_dist2 == GLYPHY_INFINITY after this loop
    */
+  vec2 min_dist_vector2;
   endpoint_prev = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D 
   		(arc_list.offset + arc_list.first_contours_length), nominal_size);
 
@@ -192,8 +210,17 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS /*, vec2
       if (udist <= min_dist2) {
 	min_dist2 = udist;
 	side2 = sdist <= 0. ? -1. : +1.;
-	/* TODO: Handle case where d=0 (and a has no center) */
-	min_dist_vector2 = udist * glyphy_unit_vector (glyphy_arc_center (a) - p);
+	/* TODO: Handle case where d=0 (and a has no center). CHECK VECTOR DIRECTION (+/-) */
+	if (a.d == 0.) {
+	  min_dist_vector2 = udist * glyphy_unit_vector (glyphy_segment_normal (a));
+	  if (distance (p + min_dist_vector2, a.p0) >= distance (p, a.p0))
+	    return 0.;
+	}
+	else {
+	  vec2 center = glyphy_arc_center (a);
+	  min_dist_vector2 = udist * glyphy_unit_vector (center - p) 
+	  		* (distance (center, p) < glyphy_arc_radius (a) ? -1. : 1.);
+	}
       }
     } else {
       float dist0 = distance (p, a.p0);

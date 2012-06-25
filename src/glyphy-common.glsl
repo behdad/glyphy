@@ -158,6 +158,13 @@ glyphy_arc_radius (glyphy_arc_t a)
   return distance (a.p0, a.p1) / (2. * glyphy_sin2atan (a.d));
 }
 
+vec2
+glyphy_segment_normal (glyphy_arc_t a)
+{
+  float unit = sign (a.d);
+  return vec2 (unit * (a.p0.y - a.p1.y), unit * (a.p1.x - a.p0.x));
+}
+
 bool
 glyphy_arc_wedge_contains (const glyphy_arc_t a, const vec2 p)
 {

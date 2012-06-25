@@ -62,8 +62,9 @@ main()
   float w = abs (normalize (dpdx).x) + abs (normalize (dpdy).x);
 
   vec4 color = vec4 (0,0,0,1);
+  vec2 hi;
 
-  float gsdist = glyphy_sdf (p, gi.nominal_size GLYPHY_DEMO_EXTRA_ARGS);
+  float gsdist = glyphy_sdf (p, gi.nominal_size, hi GLYPHY_DEMO_EXTRA_ARGS);
   float sdist = gsdist / m * u_contrast;
 
   if (!u_debug) {
@@ -97,6 +98,11 @@ main()
     glyphy_arc_list_t arc_list = glyphy_arc_list (p, gi.nominal_size GLYPHY_DEMO_EXTRA_ARGS);
     // Color the number of endpoints per cell blue
     color += vec4 (0,0,1,.1) * float(arc_list.num_endpoints) * 32./255.;
+    
+ //   if (hi.x >= 0. && hi.y >= 0.)
+      color = vec4 (GLYPHY_INFINITY*abs(hi.x), GLYPHY_INFINITY*abs(hi.y), 0.3, 1);
+ //   else
+ //     color = vec4 (0,0,0,1);
   }
 
   gl_FragColor = color;
