@@ -161,7 +161,7 @@ glyphy_arc_radius (glyphy_arc_t a)
 vec2
 glyphy_segment_normal (glyphy_arc_t a)
 {
-  float unit = sign (a.d);
+  float unit = -1.;//sign (a.d);
   return vec2 (unit * (a.p0.y - a.p1.y), unit * (a.p1.x - a.p0.x));
 }
 

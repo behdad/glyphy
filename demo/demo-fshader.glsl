@@ -62,9 +62,9 @@ main()
   float w = abs (normalize (dpdx).x) + abs (normalize (dpdy).x);
 
   vec4 color = vec4 (0,0,0,1);
-  vec2 hi;
+  vec2 sdf_vector;
 
-  float gsdist = glyphy_sdf (p, gi.nominal_size, hi GLYPHY_DEMO_EXTRA_ARGS);
+  float gsdist = glyphy_sdf (p, gi.nominal_size, sdf_vector GLYPHY_DEMO_EXTRA_ARGS);
   float sdist = gsdist / m * u_contrast;
 
   if (!u_debug) {
@@ -99,8 +99,8 @@ main()
     // Color the number of endpoints per cell blue
     color += vec4 (0,0,1,.1) * float(arc_list.num_endpoints) * 32./255.;
     
- //   if (hi.x >= 0. && hi.y >= 0.)
-      color = vec4 (GLYPHY_INFINITY*abs(hi.x), GLYPHY_INFINITY*abs(hi.y), 0.3, 1);
+ //   if (sdf_vector.x >= 0. && sdf_vector.y >= 0.)
+      color = vec4 (abs(sdf_vector.x), abs(sdf_vector.y), 0.3, 1);
  //   else
  //     color = vec4 (0,0,0,1);
   }

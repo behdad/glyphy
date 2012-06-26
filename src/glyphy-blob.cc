@@ -139,7 +139,7 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
   double radius_squared = (min_dist + half_diagonal) * (min_dist + half_diagonal);
   unsigned int main_contour_arcs = 0;
   
-  if (0 || (min_dist - half_diagonal <= faraway &&              /// RANDOM FUN. Change 0 to 1 to get cooler debug images. ///
+  if (0 || (min_dist - half_diagonal <= faraway &&              /// RANDOM FUN. 0 for correct. Change 0 to 1 to get cooler debug images. ///
       (min_dist1 > -1 * half_diagonal && min_dist2 > -1 * half_diagonal)) ) {
     Point p0 (0, 0);
     
