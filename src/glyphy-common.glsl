@@ -202,11 +202,6 @@ glyphy_arc_wedge_signed_dist (const glyphy_arc_t a, const vec2 p)
   return sign (a.d) * (distance (a.p0, c) - distance (p, c));
 }
 
-vec2
-glyphy_unit_vector (const vec2 v)
-{
-  return v / length (v);
-}
 
 float
 glyphy_arc_extended_dist (const glyphy_arc_t a, const vec2 p)
