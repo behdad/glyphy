@@ -62,7 +62,7 @@ float find_min_dist (glyphy_arc_list_t arc_list, vec2 p, bool isContourGroup1,
   
   endpoint_prev = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D 
   		(arc_list.offset + (isContourGroup1 ? 0 : arc_list.first_contours_length)), nominal_size);
-  int start_index = (isContourGroup1 ? 1 : arc_list.first_contours_length + 1);
+  int start_index = (isContourGroup1 ? 1 : arc_list.first_contours_length + 1); /*TODO: Should we subtract 0? #uncertain */
   
   for (int i = start_index; i < GLYPHY_MAX_NUM_ENDPOINTS; i++)
   {
@@ -82,18 +82,24 @@ float find_min_dist (glyphy_arc_list_t arc_list, vec2 p, bool isContourGroup1,
       if (udist <= min_dist) {
 	min_dist = udist;
 	side = (sdist <= 0. ? -1. : +1.);
-//	side = (float(arc_list.side) == -1. ? -1. : side);
+	side = (float(arc_list.side) == -1. ? -1. : side);
 	
 	/* TODO: Handle case where d=0 (and a has no center). CHECK VECTOR DIRECTION (+/-) */
 	if (a.d == 0.) {
 	  min_dist_vector = udist * normalize (glyphy_segment_normal (a));
-	  if (distance (p + min_dist_vector, a.p0) >= distance (p, a.p0))
-	    min_dist_vector = -1. * min_dist_vector; /* TODO: please make glyphy_segment_normal point the correct way to begin with.. */
+	  if (distance (p + min_dist_vector, mix(a.p0, a.p1, 0.5)) >= distance (p - min_dist_vector, mix(a.p0, a.p1, 0.5)))
+	    min_dist_vector = -1. * min_dist_vector; 
+	    /* TODO: please make glyphy_segment_normal point the correct way to begin with.. */
 	}
 	else {
 	  vec2 center = glyphy_arc_center (a);
-	  min_dist_vector = udist * normalize (center - p) 
-	  		* (distance (center, p) < glyphy_arc_radius (a) ? -1. : 1.);
+	  min_dist_vector = udist * normalize (center - p);
+	 /** Is there no better way to do this?
+	   * I would like to have // if (distance (center, p) < glyphy_arc_radius (a)) //
+	   * but that doesn't work.
+	   */
+	  if (abs(glyphy_arc_wedge_signed_dist(a, p + min_dist_vector)) >= abs(glyphy_arc_wedge_signed_dist(a, p - min_dist_vector)))
+	    min_dist_vector = -1. * min_dist_vector;
 	}
       }
       
@@ -163,7 +169,7 @@ glyphy_sdf (vec2 p, ivec2 nominal_size, out vec2 min_dist_vector GLYPHY_SDF_TEXT
     float angle = arc_list.line_angle;
     vec2 n = vec2 (cos (angle), sin (angle));
     float dist = dot (p - (vec2(nominal_size) * .5), n) - arc_list.line_distance;
-    min_dist_vector = n * dist;
+    min_dist_vector = -1. * n * dist;
     return dist;
   }
 

@@ -99,10 +99,10 @@ main()
     // Color the number of endpoints per cell blue
     color += vec4 (0,0,1,.1) * float(arc_list.num_endpoints) * 32./255.;
     
- //   if (sdf_vector.x >= 0. && sdf_vector.y >= 0.)
-      color = vec4 (abs(sdf_vector.x), abs(sdf_vector.y), 0.3, 1);
- //   else
- //     color = vec4 (0,0,0,1);
+  //  if (sdf_vector.x >= 0. && sdf_vector.y >= 0.)
+      color = vec4 (0.5*(sdf_vector.x)+0.5, 0.5*(sdf_vector.y)+0.5, 0.0, 1);
+  //  else
+  //    color = vec4 (0,0,0,1);
   }
 
   gl_FragColor = color;
