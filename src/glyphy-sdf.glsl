@@ -192,21 +192,19 @@ glyphy_sdf (vec2 p, ivec2 nominal_size, out vec2 min_dist_vector GLYPHY_SDF_TEXT
   if (side == 0. || (side == 1. && side2 == -1.)) {
     min_dist = min_dist2;
     min_dist_vector = min_dist_vector2;
- //   return -1.;  
- }
-  else if (side == 1. && side2 == 1.)
+  }  
+  else if (side == 1. && side2 == 1.) {
     if (min_dist2 < min_dist) {
       min_dist = min_dist2;
       min_dist_vector = min_dist_vector2;
-//      return 1.;
     }
-  else if (side == -1. && side2 == -1.) // /************************************************************************Is this not getting run???????
+  }
+  else if (side == -1. && side2 == -1.) { 
     if (min_dist < min_dist2) {
       min_dist = min_dist2;
       min_dist_vector = min_dist_vector2;
-      
     }
- //   return 1.;
+  }  
   /* Update side to reflect which side of the overall outline we are at: inside or outside the glyph. */  
   if (side2 < 0. || side == 0.) {
     side = side2;
