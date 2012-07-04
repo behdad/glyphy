@@ -85,22 +85,30 @@ main()
 
     float udist = abs (sdist);
     float gudist = abs (gsdist);
-    // Color the outline red
+    float pdist = glyphy_point_dist (p, gi.nominal_size GLYPHY_DEMO_EXTRA_ARGS);
+/*    // Color the outline red
     color += vec4 (1,0,0,1) * smoothstep (2., 1., udist);
     // Color the distance field in green
     if (!glyphy_isinf (udist))
       color += vec4 (0,.3,0,(1. + sin (sdist)) * abs(1. - gsdist * 3.) / 3.);
 
-    float pdist = glyphy_point_dist (p, gi.nominal_size GLYPHY_DEMO_EXTRA_ARGS);
+    
     // Color points green
     color = mix (vec4 (0,1,0,.5), color, smoothstep (.05, .06, pdist));
 
     glyphy_arc_list_t arc_list = glyphy_arc_list (p, gi.nominal_size GLYPHY_DEMO_EXTRA_ARGS);
     // Color the number of endpoints per cell blue
     color += vec4 (0,0,1,.1) * float(arc_list.num_endpoints) * 32./255.;
+*/    
+    if (glyphy_isinf (sdf_vector.x) || glyphy_isinf (sdf_vector.y))
+      color = vec4 (0, 0, 0, 1);
     
-  //  if (sdf_vector.x >= 0. && sdf_vector.y >= 0.)
-      color = vec4 (0.5*(sdf_vector.x)+0.5, 0.5*(sdf_vector.y)+0.5, 0.0, 1);
+    else
+      color = vec4 (0.5*(sdf_vector.x)+0.5, 0.5*(sdf_vector.y)+0.5, 0.4, 1);
+      
+      
+    color += vec4 (1,1,1,1) * smoothstep (1.6, 1.4, udist);
+    color = mix (vec4 (0,0.2,0.2,.5), color, smoothstep (.04, .06, pdist));
   //  else
   //    color = vec4 (0,0,0,1);
   }
