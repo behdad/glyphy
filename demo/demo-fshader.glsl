@@ -59,34 +59,26 @@ main()
   vec2 dpdx = dFdx (p);
   vec2 dpdy = dFdy (p);
   
-  float x1 = (dpdx.x - p.x) * (dpdx.x - p.x);
-  float y1 = (dpdx.y - p.y) * (dpdx.y - p.y);
-  float x2 = (dpdy.x - p.x) * (dpdy.x - p.x);
-  float y2 = (dpdy.y - p.y) * (dpdy.y - p.y);
-  
-  float a2 = y1 * ((x1 - x2) / (y2 - y1)) + x1;
-  float b2 = x1 * ((y2 - y1) / (x1 - x2)) + y1;
-  
-  
-  /*** We have (glyphy_iszero (abs (x1 / a2 + y1 / b2 - 1.) + abs (x2 / a2 + y2 / b2 - 1.)))  ***/
+  float det = dpdx.x * dpdy.y - dpdx.y * dpdy.x;
+  mat2 P_inv = mat2(dpdy.y, -dpdx.y, -dpdy.x, dpdx.x) * (1. / det);
   vec2 sdf_vector;
-
+  
+  /* gdist is signed distance to nearest contour; sdf_vector is the shortest vector version. */
   float gsdist = glyphy_sdf (p, gi.nominal_size, sdf_vector GLYPHY_DEMO_EXTRA_ARGS);
   
   
-  float t = (sdf_vector.x * sdf_vector.x) / a2 + (sdf_vector.y * sdf_vector.y) / b2;
-  t = 1. / sqrt (t);  
-   /** At this point, the intersection of the ellipse (centre p, through dpdx and dpdy)
-    * and the line (along sdf_vector, through p)
-    * is [p + t * sdf_vector].
-    */
-    
-  float m = length (vec2 (length (dpdx), length (dpdy))) * SQRT2_2;
   
-  float w = abs (normalize (dpdx).x) + abs (normalize (dpdy).x);
+  
+  if (glyphy_iszero (det)) {
+    gl_FragColor = vec4(1,0,0,1);
+    return;
+  }
+  
+  float m = 1.;//SQRT2;//length (vec2 (length (dpdx), length (dpdy))); //1.0;
+  gsdist = sign (gsdist) * length (P_inv * sdf_vector);
 
-  vec4 color = vec4 (0,0,0,1);
-  
+  float w = abs (normalize (dpdx).x) + abs (normalize (dpdy).x);
+  vec4 color = vec4 (0,0,0,1);  
   float sdist = gsdist / m * u_contrast;
 
   if (!u_debug) {
