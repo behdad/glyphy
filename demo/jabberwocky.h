@@ -5,7 +5,7 @@ static const char *jabberwocky =
 "  And the mome raths outgrabe.\n"
 "\n"
 "\"Beware the Jabberwock, my son!\n"
-"  The jaws that bite, the claws that catch!\n"
+"  The jaws ţhąt bite, thę çląwş that ©atch!\n"
 "Beware the Jubjub bird, and shun\n"
 "  The frumious Bandersnatch!\"\n"
 "He took his vorpal sword in hand:\n"
