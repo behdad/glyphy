@@ -409,12 +409,12 @@ inline bool Segment::contains_in_span (const Point &p) const {
   // Check if z is between p0 and p1.
 
   if (fabs (p1.y - p0.y) > fabs (p1.x - p0.x)) {
-    return ((z.y - p0.y > 0 && p1.y - p0.y > z.y - p0.y) ||
-            (z.y - p0.y < 0 && p1.y - p0.y < z.y - p0.y));
+    return ((z.y - p0.y >= 0 && p1.y - p0.y >= z.y - p0.y) ||
+            (z.y - p0.y <= 0 && p1.y - p0.y <= z.y - p0.y));
   }
   else {
-    return ((0 < z.x - p0.x && z.x - p0.x < p1.x - p0.x) ||
-            (0 > z.x - p0.x && z.x - p0.x > p1.x - p0.x));
+    return ((0 <= z.x - p0.x && z.x - p0.x <= p1.x - p0.x) ||
+            (0 >= z.x - p0.x && z.x - p0.x >= p1.x - p0.x));
   }
 }
 
@@ -531,6 +531,9 @@ inline Bezier Arc::approximate_bezier (double *error) const
 inline bool Arc::wedge_contains_point (const Point &p) const
 {
   // TODO this doesn't handle fabs(d) > 1.
+  if (p == p0 || p == p1)
+    return true;
+   
   Pair<Vector> t = tangents ();
   return (p - p0) * t.first  >= 0 &&
 	 (p - p1) * t.second <= 0;
