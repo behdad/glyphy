@@ -163,6 +163,52 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
 }
 
 
+/** Rearranges contours into two groups that don't intersect, 
+  * based on a bipartite graph partition. 
+  * Updates the endpoint array "rearranged_endpoints", and returns the index
+  * that separates this list into two groups of contours for proper rendering.
+  * Currently in progress.
+  */
+ unsigned int
+ rearrange_contours (const glyphy_arc_endpoint_t *endpoints,
+		     unsigned int	  	 num_endpoints,
+		     glyphy_arc_endpoint_t 	 *rerearranged_endpoints)
+{
+  
+  if (num_endpoints == 0)
+    return 0;
+      
+  std::vector<glyphy_contour_vertex_t> contours;
+  unsigned int previous_index = 0;
+    
+  /* Create a list of vertices, where each vertex is a contour. 
+   * Edges are still empty for now. */
+  unsigned int i = 0;
+  unsigned int num_contours = 0;
+   while (i < num_endpoints) { 
+     
+     /* Find the next contour and create its corresponding vertex. */
+     while (i + 1 < num_endpoints && endpoints[i + 1].d != GLYPHY_INFINITY) {
+       i++;
+     }    
+     i++;
+     glyphy_contour_vertex_t current_contour;
+   
+     current_contour.start_posn = previous_index;
+     current_contour.end_posn = i;
+     current_contour.index = num_contours;
+     current_contour.dotted_edges = std::vector<unsigned int> ();
+     current_contour.solid_edges = std::vector<unsigned int> ();
+     
+     contours.push_back (current_contour);
+     num_contours++;
+     previous_index = i;     
+  }
+
+  return 0; // for now.
+}
+
+
 glyphy_bool_t
 glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
 			     unsigned int                 num_endpoints,
