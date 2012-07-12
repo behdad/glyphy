@@ -175,7 +175,8 @@ struct Arc {
   inline double squared_distance_to_point (const Point &p) const;
   inline double extended_dist (const Point &p) const;
 
-  inline void extents (glyphy_extents_t &extents) const;
+  inline void extents (glyphy_extents_t &extents) const;  
+  inline Point intersects_segment (const Segment &s) const;
 
   Point p0, p1;
   double d; /* Depth */
@@ -649,6 +650,52 @@ inline void Arc::extents (glyphy_extents_t &extents) const {
       glyphy_extents_add (&extents, &p[i]);
 }
 
+
+/** Checks if a given arc and segment ever intersect each other.
+  * If they do, then return one such point of intersection (but there may be more).
+  * Otherwise, return the point (GLYPHY_INFINITY, GLYPHY_INFINITY).
+  */
+ inline Point Arc::intersects_segment (const Segment &s) const {
+   if (fabs(d) < 1e-5) {
+    Segment arc_segment (p0, p1);
+    return s.intersects_segment (arc_segment);
+  }
+ 
+  /* Check for endpoint intersections. */
+   if (s.contains_point (p0))
+     return p0;
+   if (s.contains_point (p1))
+     return p1;
+    
+  /* Degenerate case: the arc is also a segment. */
+  if (fabs(d) < 1e-5) {
+    Segment arc_segment (p0, p1);
+    return s.intersects_segment (arc_segment);
+  }
+   
+  /* Perform some analytic geometry calculations. */
+   Point c1 = center ();
+   double a = (s.p0.x - s.p1.x) * (s.p0.x - s.p1.x) + (s.p0.y - s.p1.y) * (s.p0.y - s.p1.y);
+   double b = 2 * ((s.p1.x - s.p0.x) * (s.p0.x - c1.x) + (s.p1.y - s.p0.y) * (s.p0.y - c1.y));
+   double c = (c1.x * c1.x) + (c1.y * c1.y) + (s.p0.x * s.p0.x) + (s.p0.y * s.p0.y) - 2 * (c1.x * s.p0.x + c1.y * s.p0.y) - radius () * radius ();
+   double disc = b * b - 4 * a * c;
+   if (disc < 0)
+     return Point (GLYPHY_INFINITY, GLYPHY_INFINITY); 
+   
+  double u = /* w... get it?? */ (-1 * b + sqrt (disc)) / (2 * a);
+ 
+  /* There are two possible intersection points. Check both, if necessary. */
+   Point p (s.p0.x + u * (s.p1.x - s.p0.x), s.p0.y + u * (s.p1.y - s.p0.y));
+   if ((0 <= u && u <= 1) && wedge_contains_point(p))
+     return p; 
+
+  u = -1 * b / a - u; 
+  p = Point (s.p0.x + u * (s.p1.x - s.p0.x), s.p0.y + u * (s.p1.y - s.p0.y));
+  if ((0 <= u && u <= 1) && wedge_contains_point(p))
+    return p; 
+
+   return Point (GLYPHY_INFINITY, GLYPHY_INFINITY); 
+ }
 
 /* Bezier */
 
