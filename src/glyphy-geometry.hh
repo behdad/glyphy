@@ -137,7 +137,7 @@ struct Segment {
   inline double squared_distance_to_point (const Point &p) const; /* shortest distance squared from point to segment */
   inline bool contains_in_span (const Point &p) const; /* is p in the stripe formed by sliding this segment? */
   inline double max_distance_to_arc (const Arc &a) const;
-
+  inline bool contains_point (const Point &p) const;
 
   Point p0;
   Point p1;
@@ -453,6 +453,9 @@ inline double Segment::max_distance_to_arc (const Arc &a) const {
   return  max_distance >  fabs(a.distance_to_point(p1)) ? max_distance : fabs(a.distance_to_point(p1)) ;
 }
 
+inline bool Segment::contains_point (const Point &p) const {
+  return (distance_to_point (p) == 0);
+}
 
 
 /* Arc */
