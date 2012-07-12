@@ -377,7 +377,7 @@ inline const Point Line::operator+ (const Line &l) const {
 }
 inline const SignedVector Line::operator- (const Point &p) const {
   double mag = -(n * Vector (p) - c) / n.len ();
-  return SignedVector (n.normalized () * mag, mag < 0); /******************************************************************************************* FIX. *************************************/
+  return SignedVector (n.normalized () * mag, mag < 0); /* TODO: Is this correct? */
 }
 
 inline const SignedVector operator- (const Point &p, const Line &l) {
@@ -395,7 +395,7 @@ inline const Vector Line::normal (void) const {
 /* Segment */
 inline const SignedVector Segment::operator- (const Point &p) const {
   /* shortest vector from point to line */
-  return p - Line (p1, p0); /************************************************************************************************** Should the order (p1, p0) depend on d?? ***********************/
+  return p - Line (p1, p0); /* TODO: Is this correct? Should the order (p1, p0) depend on d?? */
 }
 
 /* Segment */
@@ -584,7 +584,7 @@ inline bool Arc::wedge_contains_point (const Point &p) const
   // TODO this doesn't handle fabs(d) > 1.
   if (p == p0 || p == p1)
     return true;
-   
+  
   Pair<Vector> t = tangents ();
   return (p - p0) * t.first  >= 0 &&
 	 (p - p1) * t.second <= 0;
