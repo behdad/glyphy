@@ -126,7 +126,7 @@ is_zero (double v)
   return fabs (v) < GLYPHY_EPSILON;
 }
 
-static bool
+glyphy_bool_t
 even_odd (const glyphy_arc_endpoint_t *c_endpoints,
 	  unsigned int                 num_c_endpoints,
 	  const glyphy_arc_endpoint_t *endpoints,
