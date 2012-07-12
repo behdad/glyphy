@@ -27,6 +27,14 @@
 
 using namespace GLyphy::Geometry;
 
+typedef struct vertex glyphy_contour_vertex_t;
+struct vertex {
+  unsigned int start_posn;
+  unsigned int end_posn;
+  unsigned int index; /* index in whichever list of contours is most currently relevant */
+  std::vector<unsigned int> dotted_edges; /* in the contour relationship graph */
+  std::vector<unsigned int> solid_edges; /* in the contour relationship graph */
+};
 
 #define UPPER_BITS(v,bits,total_bits) ((v) >> ((total_bits) - (bits)))
 #define LOWER_BITS(v,bits,total_bits) ((v) & ((1 << (bits)) - 1))
