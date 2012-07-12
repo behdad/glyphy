@@ -345,6 +345,15 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
   tex_data.resize (header_length);
   Point origin = Point (extents.min_x, extents.min_y);
   unsigned int total_arcs = 0;
+  
+  /* Here is where we divide the arc list into two, based on intersecting contours. 
+   * For now, this is just to make sure rearrange_contours runs - it doesn't work yet.
+   */  
+  glyphy_arc_endpoint_t rearranged_endpoints [num_endpoints];
+  unsigned int cutoff = rearrange_contours (endpoints, num_endpoints, rearranged_endpoints);
+  /* Once rearrange_contours works, we can uncomment this. */
+//  endpoints = rearranged_endpoints;
+  
 
   for (int row = 0; row < grid_h; row++)
     for (int col = 0; col < grid_w; col++)
