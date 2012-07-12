@@ -177,6 +177,7 @@ struct Arc {
 
   inline void extents (glyphy_extents_t &extents) const;  
   inline Point intersects_segment (const Segment &s) const;
+  inline Point intersects_arc (const Arc &a) const;
 
   Point p0, p1;
   double d; /* Depth */
@@ -696,6 +697,43 @@ inline void Arc::extents (glyphy_extents_t &extents) const {
 
    return Point (GLYPHY_INFINITY, GLYPHY_INFINITY); 
  }
+ 
+/** Checks if two given arcs ever intersect each other.
+  * If they do, then return one such point of intersection (but there may be more).
+  * Otherwise, return the point (GLYPHY_INFINITY, GLYPHY_INFINITY).
+  */
+ inline Point Arc::intersects_arc (const Arc &a) const {
+
+  /* Check if at least one of the arcs is actually a segment; if so, degenerate. */
+  if (fabs (d) < 1e-5) {
+    Segment arc_segment (p0, p1);
+    return a.intersects_segment (arc_segment);
+  }
+  
+  if (fabs (a.d) < 1e-5) {
+    Segment arc_segment (a.p0, a.p1);
+    return intersects_segment (arc_segment);
+  }
+ 
+  /* Some more analytic geometry to find arc-to-arc intersections. */
+  Point c1 = center ();
+  Point c2 = a.center ();
+  double d = c1.distance_to_point (c2);
+  double b = (radius () * radius () - a.radius () * a.radius () + d * d) / (2 * d);
+  double h = sqrt( radius () * radius () - b * b);   
+  Point p (c1.x + b * (c2.x - c1.x) / d, c1.y + b * (c2.y - c1.y) / d);
+  Point p1 (p.x + h * (c2.y - c1.y) / d, p.y - h * (c2.x - c1.x) / d);
+  Point p2 (p.x - h * (c2.y - c1.y) / d, p.y + h * (c2.x - c1.x) / d);
+ 
+  if (wedge_contains_point (p1) && a.wedge_contains_point (p1))
+    return p1;
+  if (wedge_contains_point (p2) && a.wedge_contains_point (p2))
+    return p2;
+    
+  return Point (GLYPHY_INFINITY, GLYPHY_INFINITY); 
+}
+
+ 
 
 /* Bezier */
 
