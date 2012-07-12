@@ -248,6 +248,35 @@ contours_intersect (const glyphy_arc_endpoint_t    *endpoints,
      previous_index = i;     
   }
 
+  /* Set up edges for vertices, based on intersections and inclusions. */
+  for (unsigned int k = 0; k < num_contours; k++) {
+    for (unsigned int j = 0; j < k; j++) {
+    
+    
+      /* If contours intersect, we place a solid edge between them. */
+      if (contours_intersect (endpoints, &contours[k], &contours[j])) {
+        contours[k].solid_edges.push_back (j);
+        contours[j].solid_edges.push_back (k);
+      }
+      else 
+      /** If one contour contains the other, we place a dotted edge between them. 
+        * To check if a contour contains another, it is sufficient to check 
+        * if contour_1 contains a point from contour_2, or vice versa, since we already
+        * know that these contours don't intersect. (For the same reason, we can be sure that
+        * the point from the first contour will not lie on the second contour.)
+        * Here we can use some code from glyphy-outline::even_odd.
+        */
+      
+      if (!even_odd (endpoints + contours[k].start_posn, 1, 
+      		    endpoints + contours[j].start_posn, contours[j].end_posn - contours[j].start_posn) ||
+      	  !even_odd (endpoints + contours[j].start_posn, 1, 
+      		    endpoints + contours[k].start_posn, contours[k].end_posn - contours[k].start_posn)) {
+	contours[k].dotted_edges.push_back (j);
+        contours[j].dotted_edges.push_back (k);
+      }
+    }
+  }
+
   return 0; // for now.
 }
 
