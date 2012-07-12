@@ -162,6 +162,49 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
   }
 }
 
+/* Returns true if an arc in contour1 intersects any arc in contour2. */
+glyphy_bool_t
+contours_intersect (const glyphy_arc_endpoint_t    *endpoints,
+		    const glyphy_contour_vertex_t  *contour_1,
+		    const glyphy_contour_vertex_t  *contour_2)
+{
+  /* Find the smallest box around these contours. */
+  glyphy_extents_t extents_1;
+  glyphy_extents_clear (&extents_1);
+  glyphy_arc_list_extents (endpoints + contour_1->start_posn, contour_1->end_posn - contour_1->start_posn, &extents_1);
+  
+  glyphy_extents_t extents_2;
+  glyphy_extents_clear (&extents_2);
+  glyphy_arc_list_extents (endpoints + contour_2->start_posn, contour_2->end_posn - contour_2->start_posn, &extents_2);
+  
+  glyphy_bool_t feasible = false;
+  feasible = (extents_1.min_x <= extents_2.max_x && 
+  	      extents_1.max_x >= extents_2.min_x && 
+ 	      extents_1.max_y >= extents_2.min_y && 
+  	      extents_1.min_y <= extents_2.max_y);
+  	      
+  if (!feasible)
+    return false;
+    
+  /* If it seems feasible that these contours might intersect, then check carefully. */
+  for (unsigned int j = contour_1->start_posn + 1; j < contour_1->end_posn; j++) {
+      const glyphy_arc_endpoint_t ethis1 = endpoints[j - 1];
+      const glyphy_arc_endpoint_t enext1 = endpoints[j];    
+      Arc a1 (ethis1.p, enext1.p, enext1.d);
+        
+      for (unsigned int i = contour_2->start_posn + 1; i < contour_2->end_posn; i++) {
+        const glyphy_arc_endpoint_t ethis2 = endpoints[i - 1];
+        const glyphy_arc_endpoint_t enext2 = endpoints[i];    
+        Arc a2 (ethis2.p, enext2.p, enext2.d);
+      
+        if (a1.intersects_arc (a2) != Point (GLYPHY_INFINITY, GLYPHY_INFINITY)) {
+          return true;     
+        } 
+      } 
+  } 
+  return false; 
+}
+
 
 /** Rearranges contours into two groups that don't intersect, 
   * based on a bipartite graph partition. 
