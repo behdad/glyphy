@@ -138,6 +138,7 @@ struct Segment {
   inline bool contains_in_span (const Point &p) const; /* is p in the stripe formed by sliding this segment? */
   inline double max_distance_to_arc (const Arc &a) const;
   inline bool contains_point (const Point &p) const;
+  inline Point intersects_segment (const Segment &s) const;
 
   Point p0;
   Point p1;
@@ -455,6 +456,51 @@ inline double Segment::max_distance_to_arc (const Arc &a) const {
 
 inline bool Segment::contains_point (const Point &p) const {
   return (distance_to_point (p) == 0);
+}
+
+/** Checks if two segments ever intersect each other.
+  * If they do, then return one such point of intersection (but there may be more).
+  * Otherwise, return the point (GLYPHY_INFINITY, GLYPHY_INFINITY).
+  */
+inline Point Segment::intersects_segment (const Segment &s) const {
+  /* Try intersecting the lines that these segments are part of.
+   * However, we can't make lines if segments are degenerate. 
+   * So, check this first. 
+   */
+  if (s.contains_point (p0)) // Includes case p0 == p1
+    return p0; 
+  if (contains_point (s.p0)) // Includes case s.p0 == s.p1
+    return s.p0;
+  if (p0 == p1 || s.p0 == s.p1)
+    return Point (GLYPHY_INFINITY, GLYPHY_INFINITY);
+    
+  Line line1 (p0, p1);
+  Line line2 (s.p0, s.p1);    
+  Vector normal = line1.normal ();  
+  
+  /* If segments are parallel, we have another special case. */ 
+  if (normal * line2.normal ().perpendicular () == 0) {
+      
+    /* The lines are non-coincident. */
+    if (normal.dx * p0.x + normal.dy + p0.y != normal.dx + s.p0.x + normal.dy + s.p0.y)  /* TODO: Can we write using dot product? */
+      return Point (GLYPHY_INFINITY, GLYPHY_INFINITY); 
+    
+    /* The lines are coincident, and the segments overlap. */
+    if (contains_point (s.p0))
+      return s.p0;
+    if (contains_point (s.p1))
+      return s.p1;
+    if (s.contains_point (p0))
+      return p0;
+    if (s.contains_point (p1)) // Is this case necessary? I don't think so.
+      return p1;
+    return Point (GLYPHY_INFINITY, GLYPHY_INFINITY); 
+  }  
+  
+  Point p = line1 + line2;
+  if (contains_in_span (p) && s.contains_in_span (p))
+    return p;
+  return Point (GLYPHY_INFINITY, GLYPHY_INFINITY); 
 }
 
 
