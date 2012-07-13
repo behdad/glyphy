@@ -300,6 +300,81 @@ populate_connected_component (const std::vector<glyphy_contour_vertex_t> contour
         contours[j].dotted_edges.push_back (k);
       }
     }
+  } 
+ 
+  /* Collapse all dotted edges by "merging" vertices together.
+   * Note: We are assuming quite a bit about the graph structure here.
+   * Hopefully it all works in the cases that ever come up. */
+  bool contours_seen [contours.size ()];
+  /* TODO: Is there a better way to initialize the array to all false? */
+  for (int j = 0; j < contours.size(); j++) {
+    contours_seen[j] = false;
+  }
+
+  std::vector<glyphy_contour_vertex_t> new_contours;
+  unsigned int num_new_contours = 0;
+  unsigned int new_endpoint_list_index = 0;
+  
+  /* For each entry in the vector of contour vertices, make a list of contours that it has a dot-line connection with. */
+  std::vector<unsigned int> connected_contours;
+  glyphy_arc_endpoint_t rearranged_endpoints [num_endpoints];
+  
+  
+  for (unsigned int j = 0; j < contours.size (); j++) {
+    if (contours_seen [j])
+      continue;
+      
+    connected_contours.clear ();
+    populate_connected_component (contours, j, &connected_contours, contours_seen);
+
+    /* Create a new vertex representing the merged contours. */
+    glyphy_contour_vertex_t merged_contour;
+    merged_contour.start_posn = new_endpoint_list_index;
+    merged_contour.index = num_new_contours;
+    merged_contour.dotted_edges = std::vector<unsigned int> ();
+    merged_contour.solid_edges = std::vector<unsigned int> ();
+    
+    
+    for (unsigned int k = 0; k < connected_contours.size (); k++) {
+      
+      merged_contour.dotted_edges.push_back (contours [connected_contours [k]].index);
+      
+      /* Update the old contour vertex to tell us which new vertex it is now part of. */
+      contours [connected_contours [k]].index = merged_contour.index;
+      
+      
+      /* Add all the endpoints to the rearranged endpoint array. */
+      for (unsigned int m = contours [connected_contours [k]].start_posn; m < contours [connected_contours [k]].end_posn; m++) {
+        rearranged_endpoints [new_endpoint_list_index] = endpoints [m];
+        new_endpoint_list_index++;
+      }
+    }
+    merged_contour.end_posn = new_endpoint_list_index;
+    new_contours.push_back (merged_contour);
+    num_new_contours++;
+    
+  }
+  
+  /* Merge the lists of solid edges. */
+  for (unsigned int j = 0; j < new_contours.size (); j++) {
+    new_contours[j].solid_edges.clear ();
+    
+    /* Iterate through every solid edge between vertices.
+     * Careful: don't add duplicate solid edges between new merged vertices.
+     */
+    for (unsigned int m = 0; m < new_contours[j].dotted_edges.size (); m++) {  
+      for (unsigned int k = 0; k < contours[new_contours[j].dotted_edges[m]].solid_edges.size (); k++) {        
+        unsigned int solid_edge_to_add = contours[contours[new_contours[j].dotted_edges[m]].solid_edges[k]].index;
+        bool is_original_edge = true;
+        for (unsigned int existing_edge = 0; existing_edge < new_contours[j].solid_edges.size (); existing_edge++)  {
+          if (solid_edge_to_add == new_contours[j].solid_edges [existing_edge])
+            is_original_edge = false;
+   	}
+        if (is_original_edge) {
+          new_contours[j].solid_edges.push_back (solid_edge_to_add);
+        }
+      }
+    }
   }
 
   return 0; // for now.
