@@ -206,6 +206,31 @@ contours_intersect (const glyphy_arc_endpoint_t    *endpoints,
 }
 
 
+/** Used to generate a list of contours that have dotted line 
+  * connections in the contour relationship graph; that is, 
+  * these contours surround each other, but do not intersect.
+  * NOTE: the contours may not all be nested, as in the contours
+  * that outline the letter B (all three contours are returned).
+  */
+void
+populate_connected_component (const std::vector<glyphy_contour_vertex_t> contours, 
+			      const unsigned int			 current_contour, 
+			      std::vector<unsigned int>  		 *connected_contours,
+			      bool					 *contours_seen)
+{
+  if (contours_seen [current_contour])
+    return;
+  contours_seen [current_contour] = true;
+  
+  /* Depth-first search, essentially. */
+  connected_contours->push_back (current_contour);
+  for (unsigned int k = 0; k < contours[current_contour].dotted_edges.size (); k++)
+    populate_connected_component (contours, 
+    				  contours[contours[current_contour].dotted_edges[k]].index, /* o_O */
+    				  connected_contours, contours_seen);
+}
+
+
 /** Rearranges contours into two groups that don't intersect, 
   * based on a bipartite graph partition. 
   * Updates the endpoint array "rearranged_endpoints", and returns the index
