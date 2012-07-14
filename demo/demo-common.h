@@ -55,7 +55,7 @@
 #endif
 
 #if defined(__APPLE__)
-#  include <Glut/glut.h>
+#  include <GLUT/glut.h>
 #  include <OpenGL/OpenGL.h>
 #else
 #  ifdef HAVE_GLEW
