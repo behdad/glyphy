@@ -415,7 +415,31 @@ assign_contour_levels (const std::vector<glyphy_contour_vertex_t> new_contours,
     assign_contour_levels (new_contours, j, 0, contour_levels);
   }
 
-  return 0; // for now.
+  /* Add new contours one-by-one.
+   * If the new contour has an even level, add it to the top of the list.
+   * Otherwise, add it to the bottom.
+   */
+   unsigned int top = 0;
+   unsigned int bottom = num_endpoints;
+   
+   for (i = 0; i < new_contours.size (); i++) {
+     if (contour_levels [i] % 2 == 0) {
+       for (unsigned int j = new_contours [i].start_posn; j < new_contours [i].end_posn; j++) {
+        rerearranged_endpoints[top + j - new_contours [i].start_posn] = rearranged_endpoints[j];
+       }
+       top = top + (new_contours [i].end_posn - new_contours [i].start_posn);
+     } else {
+       for (unsigned int j = new_contours [i].start_posn; j < new_contours [i].end_posn; j++) {
+         rerearranged_endpoints[bottom + j - new_contours [i].end_posn] = rearranged_endpoints[j];
+       }
+       bottom = bottom - (new_contours [i].end_posn - new_contours [i].start_posn);
+     }
+   }
+   
+  /* Now "top" represents the partition index in the endpoint list,
+   * separating endpoints of contour group 1 and contour group 2.
+   */
+  return top;
 }
 
 
