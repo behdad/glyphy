@@ -231,6 +231,27 @@ populate_connected_component (const std::vector<glyphy_contour_vertex_t> contour
 }
 
 
+/** To form a bipartition of the contour relationship graph, 
+  * assign each vertex a "level" based on DFS reachability,
+  * and derive the bipartition using parities of these levels.
+  */
+void 
+assign_contour_levels (const std::vector<glyphy_contour_vertex_t> new_contours,
+		       const unsigned int			  current_contour,
+		       const unsigned int			  projected_level,
+		       int*					  contour_levels)
+{
+  if (contour_levels [current_contour] != -1)
+    return;
+    
+  contour_levels [current_contour] = projected_level;
+  for (unsigned int i = 0; i < new_contours [current_contour].solid_edges.size (); i++)
+    assign_contour_levels (new_contours, 
+    			   new_contours [current_contour].solid_edges [i],
+    			   projected_level + 1, contour_levels);
+}     
+
+
 /** Rearranges contours into two groups that don't intersect, 
   * based on a bipartite graph partition. 
   * Updates the endpoint array "rearranged_endpoints", and returns the index
@@ -375,6 +396,23 @@ populate_connected_component (const std::vector<glyphy_contour_vertex_t> contour
         }
       }
     }
+  }
+  
+  /* Bipartition the graph, which should now contain only solid edges.
+   * Essentially, perform DFS to assign levels of depth to each vertex.
+   * The bipartition is the same as the partition based on level parity.
+   */  
+  int contour_levels [new_contours.size ()];
+  
+  // TODO: Is there a better way to initialize the array to all -1?
+  for (int j = 0; j < new_contours.size(); j++) {
+    contour_levels [j] = -1;
+  }
+
+  for (unsigned int j = 0; j < new_contours.size (); j++) {
+    if (contour_levels [j] != -1)
+      continue;
+    assign_contour_levels (new_contours, j, 0, contour_levels);
   }
 
   return 0; // for now.
