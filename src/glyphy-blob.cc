@@ -67,10 +67,12 @@ arc_endpoint_encode (unsigned int ix, unsigned int iy, double d)
 }
 
 static inline glyphy_rgba_t
-arc_list_encode (unsigned int offset, unsigned int num_points, int side)
+arc_list_encode (unsigned int first_contours_length, unsigned int offset, unsigned int num_points, int side)
 {
   glyphy_rgba_t v;
-  v.r = 0; // unused for arc-list encoding
+  
+  /* store the number of contours in the first part of the partition */
+  v.r = LOWER_BITS (first_contours_length, 7, 8);
   v.g = UPPER_BITS (offset, 8, 16);
   v.b = LOWER_BITS (offset, 8, 16);
   v.a = LOWER_BITS (num_points, 8, 8);
@@ -482,7 +484,7 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
     *pextents = extents;
     if (!blob_size)
       return false;
-    *blob = arc_list_encode (0, 0, +1);
+    *blob = arc_list_encode (0, 0, 0, +1);
     *avg_fetch_achieved = 1;
     *output_len = 1;
     *nominal_width = *nominal_height = 1;
@@ -614,7 +616,7 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
 	offset = haystack - &tex_data[0];
       }
 
-      tex_data[row * grid_w + col] = arc_list_encode (offset, current_endpoints, side);
+      tex_data[row * grid_w + col] = arc_list_encode (num_group_1_arcs, offset, current_endpoints, side);
       offset = tex_data.size ();
 
       total_arcs += current_endpoints;
