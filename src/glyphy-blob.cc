@@ -112,23 +112,32 @@ line_encode (const Line &line)
 static void
 closest_arcs_to_cell (Point c0, Point c1, /* corners */
 		      double faraway,
-		      const glyphy_arc_endpoint_t *endpoints,
-		      unsigned int num_endpoints,
-		      std::vector<glyphy_arc_endpoint_t> &near_endpoints,
-		      int *side)
+ 		      const glyphy_arc_endpoint_t *endpoints,
+ 		      unsigned int num_endpoints,
+		      unsigned int cutoff, /* how many endpoints are from the first contour group? */
+		      unsigned int *num_group_1_arcs,
+ 		      std::vector<glyphy_arc_endpoint_t> &near_endpoints,
+ 		      int *side)
 {
-  // Find distance between cell center
+  /* Find distance between arcs and cell center */
   Point c = c0.midpoint (c1);
-  double min_dist = glyphy_sdf_from_arc_list (endpoints, num_endpoints, &c, NULL);
+  double min_dist1 = glyphy_sdf_from_arc_list (endpoints, cutoff, &c, NULL);
+  double min_dist2 = glyphy_sdf_from_arc_list (endpoints + cutoff, num_endpoints - cutoff, &c, NULL);
+  double min_dist = fabs (glyphy_sdf_from_arc_list (endpoints, num_endpoints, &c, NULL));
 
-  *side = min_dist >= 0 ? +1 : -1;
-  min_dist = fabs (min_dist);
+  *side = min_dist1 >= 0 ? +1 : -1;
+  if (min_dist2 < 0)
+    *side = -1;
+
   std::vector<Arc> near_arcs;
 
-  // If d is the distance from the center of the square to the nearest arc, then
-  // all nearest arcs to the square must be at most almost [d + half_diagonal] from the center.
+  /* If d is the distance from the center of the square to the nearest arc, then
+   * all nearest arcs to the square must be at most almost [d + half_diagonal] from the center.
+   */
   double half_diagonal = (c - c0).len ();
-  double radius_squared = pow (min_dist + half_diagonal, 2);
+  double radius_squared = (min_dist + half_diagonal) * (min_dist + half_diagonal);
+  unsigned int main_contour_arcs = 0;
+
   if (min_dist - half_diagonal <= faraway) {
     Point p0 (0, 0);
     for (unsigned int i = 0; i < num_endpoints; i++) {
@@ -140,17 +149,22 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
       Arc arc (p0, endpoint.p, endpoint.d);
       p0 = endpoint.p;
 
-      if (arc.squared_distance_to_point (c) <= radius_squared)
+      if (arc.squared_distance_to_point (c) <= radius_squared) {
         near_arcs.push_back (arc);
+        if (i < cutoff) {
+          main_contour_arcs++;
+        } 
+      }
     }
   }
 
+  *num_group_1_arcs = main_contour_arcs;
   Point p1 = Point (0, 0);
   for (unsigned i = 0; i < near_arcs.size (); i++)
   {
     Arc arc = near_arcs[i];
 
-    if (i == 0 || p1 != arc.p0) {
+    if (i == 0 || p1 != arc.p0 || i == main_contour_arcs) {
       glyphy_arc_endpoint_t endpoint = {arc.p0, GLYPHY_INFINITY};
       near_endpoints.push_back (endpoint);
       p1 = arc.p0;
@@ -159,6 +173,9 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
     glyphy_arc_endpoint_t endpoint = {arc.p1, arc.d};
     near_endpoints.push_back (endpoint);
     p1 = arc.p1;
+    if (i < main_contour_arcs) {
+      (*num_group_1_arcs)++;
+    }
   }
 }
 
@@ -525,10 +542,11 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
       near_endpoints.clear ();
 
       int side;
+      unsigned int num_group_1_arcs = 0;
       closest_arcs_to_cell (cp0, cp1,
 			    faraway,
-			    endpoints, num_endpoints,
-			    near_endpoints,
+			    endpoints, num_endpoints, cutoff,
+			    &num_group_1_arcs, near_endpoints,
 			    &side);
 
 #define QUANTIZE_X(X) (lround (MAX_X * ((X - extents.min_x) / glyph_width )))
