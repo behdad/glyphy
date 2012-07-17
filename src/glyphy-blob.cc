@@ -322,7 +322,7 @@ assign_contour_levels (const std::vector<glyphy_contour_vertex_t> new_contours,
       }
     }
   } 
- 
+
   /* Collapse all dotted edges by "merging" vertices together.
    * Note: We are assuming quite a bit about the graph structure here.
    * Hopefully it all works in the cases that ever come up. */
@@ -508,13 +508,13 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
   Point origin = Point (extents.min_x, extents.min_y);
   unsigned int total_arcs = 0;
   
-  /* Here is where we divide the arc list into two, based on intersecting contours. 
-   * For now, this is just to make sure rearrange_contours runs - it doesn't work yet.
+  /* Here is where we divide the arc list into two, based on intersecting contours.
+   * The endpoints list is now sorted so group 1 contours are at the top and 
+   * group 2 contours are at the bottom, where cutoff is the index of the split.
    */  
   glyphy_arc_endpoint_t rearranged_endpoints [num_endpoints];
   unsigned int cutoff = rearrange_contours (endpoints, num_endpoints, rearranged_endpoints);
-  /* Once rearrange_contours works, we can uncomment this. */
-//  endpoints = rearranged_endpoints;
+  endpoints = rearranged_endpoints;
   
 
   for (int row = 0; row < grid_h; row++)
