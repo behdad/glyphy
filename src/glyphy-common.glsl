@@ -145,6 +145,12 @@ glyphy_arc_center (glyphy_arc_t a)
 	 glyphy_perpendicular (a.p1 - a.p0) / (2. * glyphy_tan2atan (a.d));
 }
 
+vec2
+glyphy_segment_normal (glyphy_arc_t a)
+{
+  return vec2 (a.p1.y - a.p0.y, a.p0.x - a.p1.x);
+}
+
 bool
 glyphy_arc_wedge_contains (const glyphy_arc_t a, const vec2 p)
 {
