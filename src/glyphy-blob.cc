@@ -139,7 +139,8 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
   double radius_squared = (min_dist + half_diagonal) * (min_dist + half_diagonal);
   unsigned int main_contour_arcs = 0;
 
-  if (min_dist - half_diagonal <= faraway) {
+  if (min_dist - half_diagonal <= faraway &&
+     (min_dist1 > -1 * half_diagonal && min_dist2 > -1 * half_diagonal)) {
     Point p0 (0, 0);
     for (unsigned int i = 0; i < num_endpoints; i++) {
       const glyphy_arc_endpoint_t &endpoint = endpoints[i];
