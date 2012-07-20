@@ -58,12 +58,14 @@ main()
   /* isotropic antialiasing */
   vec2 dpdx = dFdx (p);
   vec2 dpdy = dFdy (p);
+  vec2 sdf_vector;
+  
   float m = length (vec2 (length (dpdx), length (dpdy))) * SQRT2_2;
   float w = abs (normalize (dpdx).x) + abs (normalize (dpdy).x);
 
   vec4 color = vec4 (0,0,0,1);
 
-  float gsdist = glyphy_sdf (p, gi.nominal_size GLYPHY_DEMO_EXTRA_ARGS);
+  float gsdist = glyphy_sdf (p, gi.nominal_size, sdf_vector GLYPHY_DEMO_EXTRA_ARGS);
   float sdist = gsdist / m * u_contrast;
 
   if (!u_debug) {
