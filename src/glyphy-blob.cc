@@ -70,7 +70,6 @@ static inline glyphy_rgba_t
 arc_list_encode (unsigned int first_contours_length, unsigned int offset, unsigned int num_points, int side)
 {
   glyphy_rgba_t v;
-  
   /* store the number of contours in the first part of the partition */
   v.r = LOWER_BITS (first_contours_length, 7, 8);
   v.g = UPPER_BITS (offset, 8, 16);
@@ -170,14 +169,14 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
       glyphy_arc_endpoint_t endpoint = {arc.p0, GLYPHY_INFINITY};
       near_endpoints.push_back (endpoint);
       p1 = arc.p0;
+    if (i < main_contour_arcs) {
+      (*num_group_1_arcs)++;
+      }
     }
 
     glyphy_arc_endpoint_t endpoint = {arc.p1, arc.d};
     near_endpoints.push_back (endpoint);
     p1 = arc.p1;
-    if (i < main_contour_arcs) {
-      (*num_group_1_arcs)++;
-    }
   }
 }
 
