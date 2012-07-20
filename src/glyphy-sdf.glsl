@@ -54,21 +54,21 @@ glyphy_arc_list (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 /** Given a list of arcs and a point p, find and return the minimum
   * distance from p to an arc in the list. 
   */
-float find_min_dist (glyphy_arc_list_t arc_list, vec2 p,
+float find_min_dist (glyphy_arc_list_t arc_list, vec2 p, bool isContourGroup1, 
 		     ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 {
   float side = float(arc_list.side);
   float min_dist = GLYPHY_INFINITY;
-
   glyphy_arc_t closest_arc;
   glyphy_arc_endpoint_t endpoint_prev, endpoint;
-
-  endpoint_prev = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset), nominal_size);
-  int start_index = 1;
+  
+  endpoint_prev = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D 
+  		(arc_list.offset + (isContourGroup1 ? 0 : arc_list.first_contours_length)), nominal_size);
+  int start_index = (isContourGroup1 ? 1 : arc_list.first_contours_length + 1); /*TODO: Should we subtract 0? #uncertain */
   
   for (int i = start_index; i < GLYPHY_MAX_NUM_ENDPOINTS; i++)
   {
-    if (i >= arc_list.num_endpoints) {
+    if (i >= arc_list.num_endpoints || (isContourGroup1 && i > arc_list.first_contours_length)) {
       break;
     }
 
@@ -86,7 +86,6 @@ float find_min_dist (glyphy_arc_list_t arc_list, vec2 p,
 	 side = (sdist <= 0. ? -1. : +1.);
 	 side = (float(arc_list.side) == -1. ? -1. : side);
        }
-
     } else {
       float dist0 = distance (p, a.p0);
       float dist1 = distance (p, a.p1);
@@ -114,15 +113,14 @@ float find_min_dist (glyphy_arc_list_t arc_list, vec2 p,
       }
     }
   }  
-  
-  if (side == 0.) {
+  if (side == 0. && (isContourGroup1 && arc_list.first_contours_length > 0 || !isContourGroup1)) {
     // Technically speaking this should not happen, but it does.  So try to fix it.
     float ext_dist = glyphy_arc_extended_dist (closest_arc, p);
     side = sign (ext_dist);
   } 
-
   return min_dist * side;
 }
+
 
 /** Find and return the signed distance field value at the given point p. 
   */
@@ -131,7 +129,7 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 {
   glyphy_arc_list_t arc_list = glyphy_arc_list (p, nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_ARGS);
   
-  /* Short-circuits: 0 or 1 arcs near cell*/
+  /* Short-circuits: 0 to 1 arcs near cell*/
   if (arc_list.num_endpoints == 0) {
     /* far-away cell */
     return GLYPHY_INFINITY * float(arc_list.side);
@@ -144,8 +142,49 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
     return dot (p - (vec2(nominal_size) * .5), n) - arc_list.line_distance;
   }
 
-  return find_min_dist (arc_list, p, nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_ARGS);
+  float min_dist_first = find_min_dist (arc_list, p, true, nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_ARGS);
+  float min_dist_last = find_min_dist (arc_list, p, false, nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_ARGS);  
+  float min_dist = abs (min_dist_first);
+  float min_dist2 = abs (min_dist_last);
+  float side = sign (min_dist_first);
+  float side2 = sign (min_dist_last);
+  
+  /** If the two minimum distances are the same, but the sides are different, don't anti-alias. 
+    * We are fully contained in one contour region. 
+    */
+  if (glyphy_iszero (min_dist - min_dist2) && side * side2 == -1.) {
+    return -1. * GLYPHY_INFINITY;
+  }
+
+  /* Update the distance to use as min_dist to outline, based on which contours we are in. */    
+  if (side == 0. || (side == 1. && side2 == -1.)) {
+    min_dist = min_dist2;
+  }  
+  else if (side == 1. && side2 == 1.) {
+    if (min_dist2 < min_dist) {
+      min_dist = min_dist2;
+    }
+  }
+  else if (side == -1. && side2 == -1.) { 
+    if (min_dist < min_dist2) {
+      min_dist = min_dist2;
+    }
+  }  
+  /* Update side to reflect which side of the overall outline we are at: inside or outside the glyph. */  
+  if (side2 < 0. || side == 0.) {
+    side = side2;
+  } 
+  
+  return min_dist * side; 
+
 }
+
+
+
+
+
+
+
 
 float
 glyphy_point_dist (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
