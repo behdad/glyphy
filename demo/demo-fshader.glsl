@@ -55,18 +55,29 @@ main()
   vec2 p = v_glyph.xy;
   glyph_info_t gi = glyph_info_decode (v_glyph);
 
-  /* isotropic antialiasing */
+  /* anisotropic antialiasing */
   vec2 dpdx = dFdx (p);
   vec2 dpdy = dFdy (p);
+  float det = dpdx.x * dpdy.y - dpdx.y * dpdy.x;
+  mat2 P_inv = mat2(dpdy.y, -dpdx.y, -dpdy.x, dpdx.x) * (1. / det);
   vec2 sdf_vector;
   
-  float m = length (vec2 (length (dpdx), length (dpdy))) * SQRT2_2;
-  float w = abs (normalize (dpdx).x) + abs (normalize (dpdy).x);
-
-  vec4 color = vec4 (0,0,0,1);
-
+  /* gdist is signed distance to nearest contour; 
+   * sdf_vector is the shortest vector version. 
+   */
   float gsdist = glyphy_sdf (p, gi.nominal_size, sdf_vector GLYPHY_DEMO_EXTRA_ARGS);
-  float sdist = gsdist / m * u_contrast;
+  
+  /* Visually check if det ever equals 0 (it should never be the case). */
+  if (glyphy_iszero (det)) {
+    gl_FragColor = vec4(1,0,0,1);
+    return;
+  }
+  
+  gsdist = sign (gsdist) * length (P_inv * sdf_vector);
+  float w = abs (normalize (dpdx).x) + abs (normalize (dpdy).x);
+  float sdist = gsdist * u_contrast;
+  
+  vec4 color = vec4 (0,0,0,1);
 
   if (!u_debug) {
     sdist -= u_boldness * 10.;
