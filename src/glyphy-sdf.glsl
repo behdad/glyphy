@@ -79,14 +79,13 @@ float find_min_dist (glyphy_arc_list_t arc_list, vec2 p, bool isContourGroup1,
 
     if (glyphy_arc_wedge_contains (a, p))
     {
-       float sdist = glyphy_arc_wedge_signed_dist (a, p);
-       float udist = abs (sdist) * (1. - GLYPHY_EPSILON);
-       if (udist <= min_dist) {
-	 min_dist = udist;
-	 side = (sdist <= 0. ? -1. : +1.);
-	 side = (float(arc_list.side) == -1. ? -1. : side);
-       }
-       
+      float sdist = glyphy_arc_wedge_signed_dist (a, p);
+      float udist = abs (sdist) * (1. - GLYPHY_EPSILON);
+      if (udist <= min_dist) {
+	min_dist = udist;
+	side = (sdist <= 0. ? -1. : +1.);
+	side = (float(arc_list.side) == -1. ? -1. : side);
+              
 	/* TODO: Handle case where d=0 (and a has no center). 
 	 * TODO: Check vector direction (+/-) for both min_dist_vector and 
 	 *       for the glyphy_segment_normal function.
@@ -94,20 +93,21 @@ float find_min_dist (glyphy_arc_list_t arc_list, vec2 p, bool isContourGroup1,
 	if (a.d == 0.) {
 	  min_dist_vector = udist * normalize (glyphy_segment_normal (a));
 	  if (distance (p + min_dist_vector, mix(a.p0, a.p1, 0.5)) 
-	      >= distance (p - min_dist_vector, mix(a.p0, a.p1, 0.5)))
+	     >= distance (p - min_dist_vector, mix(a.p0, a.p1, 0.5)))
 	    min_dist_vector = -1. * min_dist_vector;
 	}
 	else {
 	  vec2 center = glyphy_arc_center (a);
 	  min_dist_vector = udist * normalize (center - p);
-	 /** Is there no better way to do this?
-	   * I would like to have // if (distance (center, p) < glyphy_arc_radius (a)) //
-	   * but that doesn't work.
-	   */
+	  /** Is there no better way to do this?
+	    * I would like to have // if (distance (center, p) < glyphy_arc_radius (a)) //
+	    * but that doesn't work.
+	    */
 	  if (abs(glyphy_arc_wedge_signed_dist(a, p + min_dist_vector)) 
-	      >= abs(glyphy_arc_wedge_signed_dist(a, p - min_dist_vector)))
+	     >= abs(glyphy_arc_wedge_signed_dist(a, p - min_dist_vector)))
 	    min_dist_vector = -1. * min_dist_vector;
 	}
+      }
     } else {
       float dist0 = distance (p, a.p0);
       float dist1 = distance (p, a.p1);
