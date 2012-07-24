@@ -62,12 +62,12 @@ main()
   mat2 P_inv = mat2(dpdy.y, -dpdx.y, -dpdy.x, dpdx.x) * (1. / det);
   vec2 sdf_vector;
   
-  /* gdist is signed distance to nearest contour; 
-   * sdf_vector is the shortest vector version. 
-   */
+  /** gdist is signed distance to nearest contour; 
+    * sdf_vector is the shortest vector version. 
+    */
   float gsdist = glyphy_sdf (p, gi.nominal_size, sdf_vector GLYPHY_DEMO_EXTRA_ARGS);
   
-  /* Visually check if det ever equals 0 (it should never be the case). */
+  /* Visually check if det ever equals 0 (this should never be the case). */
   if (glyphy_iszero (det)) {
     gl_FragColor = vec4(1,0,0,1);
     return;
@@ -90,12 +90,17 @@ main()
       alpha = pow (alpha, 1./u_gamma_adjust);
     color = vec4 (color.rgb,color.a * alpha);
   } else {
+    float udist = abs (sdist);
+    float pdist = glyphy_point_dist (p, gi.nominal_size GLYPHY_DEMO_EXTRA_ARGS);
+    
+#if 0
+    /* Original debug colour scheme: ripple lines around countours. */
     color = vec4 (0,0,0,0);
 
     // Color the inside of the glyph a light red
     color += vec4 (.5,0,0,.5) * smoothstep (1., -1., sdist);
 
-    float udist = abs (sdist);
+    
     float gudist = abs (gsdist);
     // Color the outline red
     color += vec4 (1,0,0,1) * smoothstep (2., 1., udist);
@@ -110,6 +115,17 @@ main()
     glyphy_arc_list_t arc_list = glyphy_arc_list (p, gi.nominal_size GLYPHY_DEMO_EXTRA_ARGS);
     // Color the number of endpoints per cell blue
     color += vec4 (0,0,1,.1) * float(arc_list.num_endpoints) * 32./255.;
+#else    
+    /* Colour the debug mode glyph to show the direction of the sdf vector. */
+    if (glyphy_isinf (sdf_vector.x) || glyphy_isinf (sdf_vector.y))
+      color = vec4 (0, 0, 0, 1);
+    else
+      color = vec4 (0.5*(sdf_vector.x)+0.5, 0.5*(sdf_vector.y)+0.5, 0.4, 1);
+
+    color += vec4 (1,1,1,1) * smoothstep (1.6, 1.4, udist);
+    color = mix (vec4 (0,0.2,0.2,.5), color, smoothstep (.04, .06, pdist));    
+#endif    
+
   }
 
   gl_FragColor = color;
