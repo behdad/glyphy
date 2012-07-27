@@ -52,26 +52,34 @@ antialias (float d, float w)
 void
 main()
 {
+ 
   vec2 p = v_glyph.xy;
   glyph_info_t gi = glyph_info_decode (v_glyph);
-
+  
   /* anisotropic antialiasing */
   vec2 dpdx = dFdx (p);
   vec2 dpdy = dFdy (p);
-  float det = dpdx.x * dpdy.y - dpdx.y * dpdy.x;
-  mat2 P_inv = mat2(dpdy.y, -dpdx.y, -dpdy.x, dpdx.x) * (1. / det);
+  float det_inv = dpdx.x * dpdy.y - dpdx.y * dpdy.x;  
+  
+  /* Visually check if det ever equals 0 (this should never be the case).
+   * This check slows down the program considerably,
+   * and does not seem to be required.
+   */ 
+#if 0
+  if (glyphy_iszero (det_inv)) {
+    gl_FragColor = vec4(1,0,0,1);
+    return;
+  }
+#endif
+  det_inv = 1. / det_inv;
+  
+  mat2 P_inv = mat2(1.*dpdy.y, 1.*-dpdx.y, -dpdy.x, dpdx.x) * det_inv;
   vec2 sdf_vector;
   
   /** gdist is signed distance to nearest contour; 
     * sdf_vector is the shortest vector version. 
     */
   float gsdist = glyphy_sdf (p, gi.nominal_size, sdf_vector GLYPHY_DEMO_EXTRA_ARGS);
-  
-  /* Visually check if det ever equals 0 (this should never be the case). */
-  if (glyphy_iszero (det)) {
-    gl_FragColor = vec4(1,0,0,1);
-    return;
-  }
   
   gsdist = sign (gsdist) * length (P_inv * sdf_vector);
   float w = abs (normalize (dpdx).x) + abs (normalize (dpdy).x);
@@ -89,6 +97,7 @@ main()
     if (u_gamma_adjust != 1.)
       alpha = pow (alpha, 1./u_gamma_adjust);
     color = vec4 (color.rgb,color.a * alpha);
+    }   
   } else {
     float udist = abs (sdist);
     float pdist = glyphy_point_dist (p, gi.nominal_size GLYPHY_DEMO_EXTRA_ARGS);
