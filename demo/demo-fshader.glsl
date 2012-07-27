@@ -9,6 +9,7 @@ varying vec4 v_glyph;
 
 #define SQRT2_2 0.70710678118654757 /* 1 / sqrt(2.) */
 #define SQRT2   1.4142135623730951
+#define SUBPIXEL_RENDER 1
 
 struct glyph_info_t {
   ivec2 nominal_size;
@@ -81,7 +82,10 @@ main()
     */
   float gsdist = glyphy_sdf (p, gi.nominal_size, sdf_vector GLYPHY_DEMO_EXTRA_ARGS);
   
-  gsdist = sign (gsdist) * length (P_inv * sdf_vector);
+  vec2 P_inv_sdf_vector = P_inv * sdf_vector;
+  vec2 P_inv_nudge = P_inv * (normalize(sdf_vector) * (dot (sdf_vector, dpdx) / (3. * length (sdf_vector))));
+  
+  gsdist = sign (gsdist) * length (P_inv_sdf_vector);
   float w = abs (normalize (dpdx).x) + abs (normalize (dpdy).x);
   float sdist = gsdist * u_contrast;
   
@@ -96,7 +100,43 @@ main()
     float alpha = antialias (-sdist, w);
     if (u_gamma_adjust != 1.)
       alpha = pow (alpha, 1./u_gamma_adjust);
+      
+#if SUBPIXEL_RENDER == 1           
+    float g = alpha; 
+
+    gsdist = sign (gsdist) * length (P_inv_sdf_vector - P_inv_nudge);
+    sdist = gsdist * u_contrast;
+      sdist -= u_boldness * 10.;
+    if (u_outline)
+      sdist = abs (sdist) - u_outline_thickness * .5;
+    if (sdist > 1.)
+      discard;
+    float alpha2 = antialias (-sdist, w);
+    if (u_gamma_adjust != 1.)
+      alpha = pow (alpha2, 1./u_gamma_adjust);
+    float r = alpha2;
+    
+    gsdist = sign (gsdist) * length (P_inv_sdf_vector + P_inv_nudge);
+    sdist = gsdist * u_contrast;
+   sdist -= u_boldness * 10.;
+    if (u_outline)
+      sdist = abs (sdist) - u_outline_thickness * .5;
+    if (sdist > 1.)
+      discard;
+    float alpha3 = antialias (-sdist, w);
+    if (u_gamma_adjust != 1.)
+      alpha3 = pow (alpha, 1./u_gamma_adjust);
     color = vec4 (color.rgb,color.a * alpha);
+    float b = alpha3;
+    
+    
+    if (!u_outline) {   
+      color = vec4 (1.-r,1.-g,1.-b,1.);
+    }
+#else
+    color = vec4 (color.rgb,color.a * alpha);
+#endif
+   
   } else {
     float udist = abs (sdist);
     float pdist = glyphy_point_dist (p, gi.nominal_size GLYPHY_DEMO_EXTRA_ARGS);
