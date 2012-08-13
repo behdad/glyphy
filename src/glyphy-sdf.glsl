@@ -44,7 +44,7 @@
 #endif
 
 glyphy_arc_list_t
-glyphy_arc_list (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
+glyphy_arc_list (const vec2 p, const ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 {
   int cell_offset = glyphy_arc_list_offset (p, nominal_size);
   vec4 arc_list_data = GLYPHY_SDF_TEXTURE1D (cell_offset);
@@ -52,7 +52,7 @@ glyphy_arc_list (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 }
 
 float
-glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
+glyphy_sdf (const vec2 p, const ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 {
   glyphy_arc_list_t arc_list = glyphy_arc_list (p, nominal_size  GLYPHY_SDF_TEXTURE1D_EXTRA_ARGS);
 
@@ -126,7 +126,7 @@ glyphy_sdf (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 }
 
 float
-glyphy_point_dist (vec2 p, ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
+glyphy_point_dist (const vec2 p, const ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DECLS)
 {
   glyphy_arc_list_t arc_list = glyphy_arc_list (p, nominal_size  GLYPHY_SDF_TEXTURE1D_EXTRA_ARGS);
 

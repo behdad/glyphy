@@ -33,13 +33,13 @@
 #endif
 
 vec4
-glyphy_rgba (vec4 v)
+glyphy_rgba (const vec4 v)
 {
   return v.rgba;
 }
 
 vec4
-glyphy_bgra (vec4 v)
+glyphy_bgra (const vec4 v)
 {
   return v.bgra;
 }
@@ -78,13 +78,13 @@ struct glyphy_arc_list_t {
 };
 
 bool
-glyphy_isinf (float v)
+glyphy_isinf (const float v)
 {
   return abs (v) >= GLYPHY_INFINITY * .5;
 }
 
 bool
-glyphy_iszero (float v)
+glyphy_iszero (const float v)
 {
   return abs (v) <= GLYPHY_EPSILON * 2.;
 }
@@ -116,13 +116,13 @@ glyphy_float_to_two_nimbles (const float v)
 
 /* returns tan (2 * atan (d)) */
 float
-glyphy_tan2atan (float d)
+glyphy_tan2atan (const float d)
 {
   return 2. * d / (1. - d * d);
 }
 
 glyphy_arc_endpoint_t
-glyphy_arc_endpoint_decode (const vec4 v, ivec2 nominal_size)
+glyphy_arc_endpoint_decode (const vec4 v, const ivec2 nominal_size)
 {
   vec2 p = (vec2 (glyphy_float_to_two_nimbles (v.a)) + v.gb) / 16.;
   float d = v.r;
@@ -136,7 +136,7 @@ glyphy_arc_endpoint_decode (const vec4 v, ivec2 nominal_size)
 }
 
 vec2
-glyphy_arc_center (glyphy_arc_t a)
+glyphy_arc_center (const glyphy_arc_t a)
 {
   return mix (a.p0, a.p1, .5) +
 	 glyphy_perpendicular (a.p1 - a.p0) / (2. * glyphy_tan2atan (a.d));
@@ -192,14 +192,14 @@ glyphy_arc_extended_dist (const glyphy_arc_t a, const vec2 p)
 }
 
 int
-glyphy_arc_list_offset (const vec2 p, ivec2 nominal_size)
+glyphy_arc_list_offset (const vec2 p, const ivec2 nominal_size)
 {
   ivec2 cell = ivec2 (clamp (vec2(floor (p)), vec2 (0.,0.), vec2(nominal_size - 1)));
   return cell.y * nominal_size.x + cell.x;
 }
 
 glyphy_arc_list_t
-glyphy_arc_list_decode (const vec4 v, ivec2 nominal_size)
+glyphy_arc_list_decode (const vec4 v, const ivec2 nominal_size)
 {
   glyphy_arc_list_t l;
   ivec4 iv = glyphy_vec4_to_bytes (v);
