@@ -139,7 +139,7 @@ glyphy_arc_endpoint_decode (const vec4 v, ivec2 nominal_size)
 }
 
 vec2
-glyphy_arc_center (glyphy_arc_t a)
+glyphy_arc_center (const glyphy_arc_t a)
 {
   return mix (a.p0, a.p1, .5) +
 	 glyphy_perpendicular (a.p1 - a.p0) / (2. * glyphy_tan2atan (a.d));
