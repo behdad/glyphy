@@ -113,14 +113,14 @@ main()
     }
       
 #if SUBPIXEL_RENDER == 1
-    gsdist = sign_sdf * length (P_inv_sdf_vector - P_inv_nudge);
+    gsdist = sdf_sign * length (P_inv_sdf_vector - P_inv_nudge);
     sdist = gsdist * u_contrast;
     sdist -= u_boldness * 10.;
     if (sdist > 1.)
       discard;
     r = antialias (sdist);
    
-    gsdist = sign_sdf * length (P_inv_sdf_vector + P_inv_nudge);
+    gsdist = sdf_sign * length (P_inv_sdf_vector + P_inv_nudge);
     sdist = gsdist * u_contrast;
     sdist -= u_boldness * 10.;
     if (sdist > 1.)
