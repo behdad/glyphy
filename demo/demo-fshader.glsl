@@ -84,11 +84,11 @@ main()
     */
   float gsdist = glyphy_sdf (p, gi.nominal_size, sdf_vector GLYPHY_DEMO_EXTRA_ARGS);
   float sdf_sign = sign (gsdist);
-  float sdf_length = length (sdf_vector); // TODO: Should this equal gsdist?
-  sdf_vector *= sdf_sign;
+  
   
   vec2 P_inv_sdf_vector = P_inv * sdf_vector;
-  vec2 P_inv_nudge = (P_inv * sdf_vector) * (sdf_vector.x / (3. * sdf_length * sdf_length));
+  float P_inv_sdf_length = length (P_inv_sdf_vector); 
+  float nudge_length = P_inv_sdf_vector.x / (3. * P_inv_sdf_length);
   
   gsdist = sdf_sign * length (P_inv_sdf_vector);
   float sdist = gsdist * u_contrast;
@@ -113,14 +113,14 @@ main()
     }
       
 #if SUBPIXEL_RENDER == 1
-    gsdist = sdf_sign * length (P_inv_sdf_vector - P_inv_nudge);
+    gsdist = sdf_sign * (P_inv_sdf_length + nudge_length);
     sdist = gsdist * u_contrast;
     sdist -= u_boldness * 10.;
     if (sdist > 1.)
       discard;
     r = antialias (sdist);
    
-    gsdist = sdf_sign * length (P_inv_sdf_vector + P_inv_nudge);
+    gsdist = sdf_sign * (P_inv_sdf_length - nudge_length);
     sdist = gsdist * u_contrast;
     sdist -= u_boldness * 10.;
     if (sdist > 1.)
