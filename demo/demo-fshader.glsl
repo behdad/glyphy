@@ -46,9 +46,6 @@ float
 antialias (float d)
 {
   return smoothstep (-1., +1., d);
-  /* w is 1.0 for axisaligned pixels, and SQRT2 for diagonal pixels,
-   * and something in between otherwise... */
-  //return mix (antialias_axisaligned (d), antialias_diagonal (d), clamp ((w - 1.) / (SQRT2 - 1.), 0., 1.));
 }
 
 void
@@ -157,7 +154,7 @@ main()
     color += vec4 (0,0,1,.1) * float(arc_list.num_endpoints) * 32./255.;
 #else    
     /* Colour the debug mode glyph to show the direction of the sdf vector. */
-    if (glyphy_isinf (sdf_vector.x) || glyphy_isinf (sdf_vector.y))
+    if (glyphy_isinf (P_inv_sdf_length))
       color = vec4 (0, 0, 0, 1);
     else
       color = vec4 (0.5*(sdf_vector.x)+0.5, 0.5*(sdf_vector.y)+0.5, 0.4, 1);
