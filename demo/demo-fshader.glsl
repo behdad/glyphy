@@ -51,8 +51,10 @@ antialias (float d)
 void
 main()
 {
+  
   vec2 p = v_glyph.xy;
   glyph_info_t gi = glyph_info_decode (v_glyph);
+  
   
   /* anisotropic antialiasing */
   float r = 0.;
@@ -60,7 +62,7 @@ main()
   float b = 0.;
   vec2 dpdx = dFdx (p);
   vec2 dpdy = dFdy (p);
-  float det_inv = dpdx.x * dpdy.y - dpdx.y * dpdy.x;  
+  float det = dpdx.x * dpdy.y - dpdx.y * dpdy.x;  
 #if 0  
   /* Visually check if det ever equals 0 (this should never be the case).
    * This check slows down the program considerably,
@@ -71,63 +73,62 @@ main()
     return;
   }
 #endif
-  det_inv = 1. / det_inv;
-  
-  mat2 P_inv = mat2(dpdy.y, -dpdx.y, -dpdy.x, dpdx.x) * det_inv;
-  vec2 sdf_vector;
+  mat2 P_inv = mat2(dpdy.y, -dpdx.y, -dpdy.x, dpdx.x) * (1. / det);  
   
   /** gsdist is signed distance to nearest contour; 
     * sdf_vector is the shortest vector version. 
     */
+  vec2 sdf_vector;
   float gsdist = glyphy_sdf (p, gi.nominal_size, sdf_vector GLYPHY_DEMO_EXTRA_ARGS);
   float sdf_sign = sign (gsdist);
-  
-  
+    
   vec2 P_inv_sdf_vector = P_inv * sdf_vector;
   float P_inv_sdf_length = length (P_inv_sdf_vector); 
   float nudge_length = P_inv_sdf_vector.x / (3. * P_inv_sdf_length);
   
-  gsdist = sdf_sign * length (P_inv_sdf_vector);
+  gsdist = sdf_sign * P_inv_sdf_length;
   float sdist = gsdist * u_contrast;
   
   vec4 color = vec4 (r, g, b, 1);
-
-  if (!u_debug) {
-    sdist -= u_boldness * 10.;
-    if (u_outline)
-      sdist = abs (sdist) - u_outline_thickness * .5;
-    if (sdist > 1.)
-      discard;
-    g = antialias (sdist);
+  
+  sdist -= u_boldness * 10.;
+  if (u_outline)
+    sdist = abs (sdist) - u_outline_thickness * .5;
+  if (sdist > 1.)
+    discard;
+  
+  g = antialias (sdist);
     
-    if (u_outline) {
-      float alpha = antialias (-sdist);    
-      if (u_gamma_adjust != 1.)
-        alpha = pow (alpha, 1./u_gamma_adjust);
-      color = vec4 (color.rgb, alpha);
-      gl_FragColor = color;
-      return;
-    }
+  if (u_outline) {
+    float alpha = antialias (-sdist);    
+    if (u_gamma_adjust != 1.)
+      alpha = pow (alpha, 1./u_gamma_adjust);
+    color = vec4 (color.rgb, alpha);
+    gl_FragColor = color;
+    return;
+  }
       
 #if SUBPIXEL_RENDER == 1
-    gsdist = sdf_sign * (P_inv_sdf_length + nudge_length);
-    sdist = gsdist * u_contrast;
-    sdist -= u_boldness * 10.;
-    if (sdist > 1.)
-      discard;
-    r = antialias (sdist);
-   
-    gsdist = sdf_sign * (P_inv_sdf_length - nudge_length);
-    sdist = gsdist * u_contrast;
-    sdist -= u_boldness * 10.;
-    if (sdist > 1.)
-      discard;
-    b = antialias (sdist);
-#endif   
- 
-    color = vec4 (r, g, b, 1.);
+  gsdist = sdf_sign * (P_inv_sdf_length + nudge_length);
+  sdist = gsdist * u_contrast;
+  sdist -= u_boldness * 10.;
+  r = antialias (sdist);
+
+  gsdist = sdf_sign * (P_inv_sdf_length - nudge_length);
+  sdist = gsdist * u_contrast;
+  sdist -= u_boldness * 10.;
+  b = antialias (sdist);
+  
+  color = vec4 (r, g, b, 1.);
+#else
+  float alpha = antialias (-sdist);    
+  if (u_gamma_adjust != 1.)
+    alpha = pow (alpha, 1./u_gamma_adjust);
     
-  } else {
+  color = vec4 (0, 0, 0, alpha);
+#endif       
+    
+  if (u_debug) {
     float udist = abs (sdist);
     float pdist = glyphy_point_dist (p, gi.nominal_size GLYPHY_DEMO_EXTRA_ARGS);
     
