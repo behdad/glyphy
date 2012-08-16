@@ -30,6 +30,7 @@ struct demo_glstate_t {
 
   /* Uniforms */
   double u_debug;
+  double u_subpixel;
   double u_contrast;
   double u_gamma_adjust;
   double u_outline;
@@ -47,6 +48,7 @@ demo_glstate_create (void)
   st->atlas = demo_atlas_create (2048, 1024, 64, 8);
 
   st->u_debug = false;
+  st->u_subpixel = true;
   st->u_contrast = 1.0;
   st->u_gamma_adjust = 1.0;
   st->u_outline = false;
@@ -94,6 +96,7 @@ demo_glstate_setup (demo_glstate_t *st)
   demo_atlas_set_uniforms (st->atlas);
 
   SET_UNIFORM (u_debug, st->u_debug);
+  SET_UNIFORM (u_subpixel, st->u_subpixel);
   SET_UNIFORM (u_contrast, st->u_contrast);
   SET_UNIFORM (u_gamma_adjust, st->u_gamma_adjust);
   SET_UNIFORM (u_outline, st->u_outline);
@@ -126,6 +129,12 @@ void
 demo_glstate_toggle_debug (demo_glstate_t *st)
 {
   SET_UNIFORM (u_debug, 1 - st->u_debug);
+}
+
+void
+demo_glstate_toggle_subpixel (demo_glstate_t *st)
+{
+  SET_UNIFORM (u_subpixel, 1 - st->u_subpixel);
 }
 
 void

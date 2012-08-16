@@ -53,6 +53,9 @@ void
 demo_glstate_toggle_debug (demo_glstate_t *st);
 
 void
+demo_glstate_toggle_subpixel (demo_glstate_t *st);
+
+void
 demo_glstate_set_matrix (demo_glstate_t *st, float mat[16]);
 
 void

@@ -340,6 +340,12 @@ demo_view_toggle_debug (demo_view_t *vu)
   demo_glstate_toggle_debug (vu->st);
 }
 
+static void
+demo_view_toggle_subpixel (demo_view_t *vu)
+{
+  demo_glstate_toggle_subpixel (vu->st);
+}
+
 
 void
 demo_view_reshape_func (demo_view_t *vu, int width, int height)
@@ -372,6 +378,10 @@ demo_view_keyboard_func (demo_view_t *vu, unsigned char key, int x, int y)
 
     case 'd':
       demo_view_toggle_debug (vu);
+      break;
+      
+    case 's':
+      demo_view_toggle_subpixel (vu);
       break;
 
     case 'o':

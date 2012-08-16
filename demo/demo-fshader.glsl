@@ -4,6 +4,7 @@ uniform float u_outline_thickness;
 uniform bool  u_outline;
 uniform float u_boldness;
 uniform bool  u_debug;
+uniform bool  u_subpixel;
 
 varying vec4 v_glyph;
 
@@ -54,7 +55,6 @@ main()
   
   vec2 p = v_glyph.xy;
   glyph_info_t gi = glyph_info_decode (v_glyph);
-  
   
   /* anisotropic antialiasing */
   float r = 0.;
@@ -108,7 +108,7 @@ main()
     return;
   }
       
-#if SUBPIXEL_RENDER == 1
+if (u_subpixel) {
   gsdist = sdf_sign * (P_inv_sdf_length + nudge_length);
   sdist = gsdist * u_contrast;
   sdist -= u_boldness * 10.;
@@ -120,13 +120,13 @@ main()
   b = antialias (sdist);
   
   color = vec4 (r, g, b, 1.);
-#else
+} else {
   float alpha = antialias (-sdist);    
   if (u_gamma_adjust != 1.)
     alpha = pow (alpha, 1./u_gamma_adjust);
     
   color = vec4 (0, 0, 0, alpha);
-#endif       
+}       
     
   if (u_debug) {
     float udist = abs (sdist);
