@@ -68,7 +68,7 @@ main()
    * This check slows down the program considerably,
    * and does not seem to be required.
    */ 
-  if (glyphy_iszero (det_inv)) {
+  if (glyphy_iszero (det)) {
     gl_FragColor = vec4(1,0,0,1);
     return;
   }
@@ -158,9 +158,8 @@ if (u_subpixel) {
     if (glyphy_isinf (P_inv_sdf_length))
       color = vec4 (0, 0, 0, 1);
     else
-      color = vec4 (0.5*(sdf_vector.x)+0.5, 0.5*(sdf_vector.y)+0.5, 0.4, 1);
+      color = vec4 (0.5*(P_inv_sdf_vector.x)+0.5, 0.5*(P_inv_sdf_vector.y)+0.5, 0.4, 1);
 
-    color += vec4 (1,1,1,1) * smoothstep (1.6, 1.4, udist);
     color = mix (vec4 (0,0.2,0.2,.5), color, smoothstep (.04, .06, pdist));    
 #endif    
   }
