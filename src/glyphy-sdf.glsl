@@ -92,8 +92,7 @@ float find_min_dist (glyphy_arc_list_t arc_list, vec2 p, bool isContourGroup1,
 	 */
 	if (a.d == 0.) {
 	  min_dist_vector = udist * normalize (glyphy_segment_normal (a));
-	  if (distance (p + min_dist_vector, mix(a.p0, a.p1, 0.5)) 
-	     >= distance (p - min_dist_vector, mix(a.p0, a.p1, 0.5)))
+	  if (abs(glyphy_arc_wedge_signed_dist_shallow(a, p + min_dist_vector)) >= abs(glyphy_arc_wedge_signed_dist_shallow(a, p - min_dist_vector)))
 	    min_dist_vector = -1. * min_dist_vector;
 	}
 	else {
