@@ -40,6 +40,37 @@
  * Written by Gavin Bell for Silicon Graphics, November 1988.
  */
 
+void
+vzero(float *v);
+
+void
+vset(float *v, float x, float y, float z);
+
+void
+vsub(const float *src1, const float *src2, float *dst);
+
+void
+vcopy(const float *v1, float *v2);
+
+void
+vcross(const float *v1, const float *v2, float *cross);
+
+float
+vlength(const float *v);
+
+void
+vscale(float *v, float div);
+
+void
+vnormal(float *v);
+
+float
+vdot(const float *v1, const float *v2);
+
+void
+vadd(const float *src1, const float *src2, float *dst);
+
+
 /*
  * Pass the x and y coordinates of the last and current positions of
  * the mouse, scaled so they are from (-1.0 ... 1.0).

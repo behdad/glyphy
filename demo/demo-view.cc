@@ -51,12 +51,13 @@ struct demo_view_t {
 
   /* Transformation */
   float quat[4];
-  float dquat[4];
   double scale;
   glyphy_point_t translate;
   double perspective;
 
   /* Animation */
+  float rot_axis[3];
+  float rot_speed;
   bool animate;
   int num_frames;
   long fps_start_time;
@@ -107,7 +108,7 @@ demo_view_destroy (demo_view_t *vu)
 }
 
 
-#define ANIMATION_SPEED .007
+#define ANIMATION_SPEED 1. /* Default speed, in radians second. */
 void
 demo_view_reset (demo_view_t *vu)
 {
@@ -115,8 +116,8 @@ demo_view_reset (demo_view_t *vu)
   vu->scale = 1;
   vu->translate.x = vu->translate.y = 0;
   trackball (vu->quat , 0.0, 0.0, 0.0, 0.0);
-  float a[3] = {0, 0, 1};
-  axis_to_quat (a, ANIMATION_SPEED, vu->dquat);
+  vset (vu->rot_axis, 0., 0., 1.);
+  vu->rot_speed = ANIMATION_SPEED / 1000.;
 }
 
 
@@ -213,10 +214,6 @@ current_time (void)
 static void
 next_frame (demo_view_t *vu)
 {
-  // TODO rotate depending on time elapsed (current_time () - vu->last_frame_time)
-  add_quats (vu->dquat, vu->quat, vu->quat);
-
-  vu->num_frames++;
   glutPostRedisplay ();
 }
 
@@ -549,7 +546,8 @@ demo_view_motion_func (demo_view_t *vu, int x, int y)
       demo_view_scale_perspective (vu, 1 - ((y - vu->lasty) / height) * 5);
     } else {
       /* rotate */
-      trackball (vu->dquat,
+      float dquat[4];
+      trackball (dquat,
 		 (2.0*vu->lastx -         width) / width,
 		 (       height - 2.0*vu->lasty) / height,
 		 (        2.0*x -         width) / width,
@@ -559,7 +557,13 @@ demo_view_motion_func (demo_view_t *vu, int x, int y)
       vu->dy = y - vu->lasty;
       vu->dt = current_time () - vu->lastt;
 
-      add_quats (vu->dquat, vu->quat, vu->quat);
+      add_quats (dquat, vu->quat, vu->quat);
+
+      if (vu->dt) {
+        vcopy (dquat, vu->rot_axis);
+	vnormal (vu->rot_axis);
+	vu->rot_speed = 2 * acos (dquat[3]) / vu->dt;
+      }
     }
   }
 
@@ -588,9 +592,24 @@ demo_view_print_help (demo_view_t *vu)
 }
 
 
+static void
+advance_frame (demo_view_t *vu, long dtime)
+{
+  if (vu->animate) {
+    float dquat[4];
+    axis_to_quat (vu->rot_axis, vu->rot_speed * dtime, dquat);
+    add_quats (dquat, vu->quat, vu->quat);
+    vu->num_frames++;
+  }
+}
+
 void
 demo_view_display (demo_view_t *vu, demo_buffer_t *buffer)
 {
+  long new_time = current_time ();
+  advance_frame (vu, new_time - vu->last_frame_time);
+  vu->last_frame_time = new_time;
+
   int viewport[4];
   glGetIntegerv (GL_VIEWPORT, viewport);
   GLint width  = viewport[2];
@@ -620,6 +639,7 @@ demo_view_display (demo_view_t *vu, demo_buffer_t *buffer)
   glClear (GL_COLOR_BUFFER_BIT);
 
   demo_buffer_draw (buffer);
+
   glutSwapBuffers ();
 }
 
