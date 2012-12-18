@@ -41,6 +41,7 @@ glyphy_freetype(move_to) (FT_Vector *to,
 			  glyphy_arc_accumulator_t *acc)
 {
   glyphy_point_t p1 = {to->x, to->y};
+  glyphy_arc_accumulator_close_path (acc);
   glyphy_arc_accumulator_move_to (acc, &p1);
   return glyphy_arc_accumulator_successful (acc) ? FT_Err_Ok : FT_Err_Out_Of_Memory;
 }

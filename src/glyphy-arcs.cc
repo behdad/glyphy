@@ -43,6 +43,7 @@ struct glyphy_arc_accumulator_t {
   glyphy_arc_endpoint_accumulator_callback_t  callback;
   void                                       *user_data;
 
+  glyphy_point_t start_point;
   glyphy_point_t current_point;
   bool           need_moveto;
   unsigned int   num_endpoints;
@@ -71,7 +72,7 @@ glyphy_arc_accumulator_create (void)
 void
 glyphy_arc_accumulator_reset (glyphy_arc_accumulator_t *acc)
 {
-  acc->current_point = Point (0, 0);
+  acc->start_point = acc->current_point = Point (0, 0);
   acc->need_moveto = true;
   acc->num_endpoints = 0;
   acc->max_error = 0;
@@ -195,8 +196,10 @@ accumulate (glyphy_arc_accumulator_t *acc, const Point &p, double d)
   }
   if (acc->need_moveto) {
     emit (acc, acc->current_point, GLYPHY_INFINITY);
-    if (acc->success)
+    if (acc->success) {
+      acc->start_point = acc->current_point;
       acc->need_moveto = false;
+    }
   }
   emit (acc, p, d);
 }
@@ -230,6 +233,13 @@ bezier (glyphy_arc_accumulator_t *acc, const Bezier &b)
   move_to (acc, b.p0);
   for (unsigned int i = 0; i < arcs.size (); i++)
     arc_to (acc, arcs[i].p1, arcs[i].d);
+}
+
+static void
+close_path (glyphy_arc_accumulator_t *acc)
+{
+  if (!acc->need_moveto && Point (acc->current_point) != Point (acc->start_point))
+    arc_to (acc, acc->start_point, 0);
 }
 
 void
@@ -272,6 +282,12 @@ glyphy_arc_accumulator_arc_to (glyphy_arc_accumulator_t *acc,
 			       double         d)
 {
   arc_to (acc, *p1, d);
+}
+
+void
+glyphy_arc_accumulator_close_path (glyphy_arc_accumulator_t *acc)
+{
+  close_path (acc);
 }
 
 

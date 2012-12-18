@@ -248,6 +248,8 @@ glyphy_arc_accumulator_arc_to (glyphy_arc_accumulator_t *acc,
 			       const glyphy_point_t *p1,
 			       double                d);
 
+void
+glyphy_arc_accumulator_close_path (glyphy_arc_accumulator_t *acc);
 
 void
 glyphy_arc_list_extents (const glyphy_arc_endpoint_t *endpoints,
