@@ -30,10 +30,13 @@ void
 glyphy_outline_reverse (glyphy_arc_endpoint_t *endpoints,
 			unsigned int           num_endpoints)
 {
+  if (!num_endpoints)
+    return;
+
   // Shift the d's first
   double d0 = endpoints[0].d;
   for (unsigned int i = 0; i < num_endpoints - 1; i++)
-    endpoints[i].d = -endpoints[i + 1].d;
+    endpoints[i].d = endpoints[i + 1].d == GLYPHY_INFINITY ? GLYPHY_INFINITY : -endpoints[i + 1].d;
   endpoints[num_endpoints - 1].d = d0;
 
   // Reverse
