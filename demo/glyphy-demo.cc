@@ -16,6 +16,9 @@
  * Google Author(s): Behdad Esfahbod, Maysum Panju, Wojciech Baranowski
  */
 
+#include <iostream>
+#include <fstream>
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -30,6 +33,8 @@ static demo_buffer_t *buffer;
 
 #define WINDOW_W 700
 #define WINDOW_H 700
+
+using namespace std;
 
 static void
 reshape_func (int width, int height)
@@ -99,12 +104,20 @@ main (int argc, char** argv)
   else
     font_path = DEFAULT_FONT;
 
-  const char *text = NULL;
+  string text = "";
   if (argc >= 3)
     text = argv[2];
   else {
-#   include "jabberwocky.h"
-    text = jabberwocky;
+
+    /* Read text from file */
+    ifstream in_stream;
+    in_stream.open("demo-text.txt");
+    string line;
+    while (getline(in_stream,line)){
+  
+      text += line + "\n";
+    }
+    in_stream.close();
   }
 
   st = demo_glstate_create ();
@@ -128,7 +141,7 @@ main (int argc, char** argv)
   buffer = demo_buffer_create ();
   glyphy_point_t top_left = {0, 0};
   demo_buffer_move_to (buffer, &top_left);
-  demo_buffer_add_text (buffer, text, font, 1);
+  demo_buffer_add_text (buffer, text.c_str(), font, 1);
 
   demo_font_print_stats (font);
 
