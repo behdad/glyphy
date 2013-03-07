@@ -40,6 +40,8 @@ struct demo_glstate_t {
 demo_glstate_t *
 demo_glstate_create (void)
 {
+  TRACE();
+
   demo_glstate_t *st = (demo_glstate_t *) calloc (1, sizeof (demo_glstate_t));
   st->refcount = 1;
 

@@ -116,4 +116,24 @@ T clamp (T v, T m, T M)
 }
 
 
+#if defined(_MSC_VER)
+#define DEMO_FUNC __FUNCSIG__
+#else
+#define DEMO_FUNC __func__
+#endif
+
+struct auto_trace_t
+{
+  auto_trace_t (const char *func_) : func (func_)
+  { printf ("Enter: %s\n", func); }
+
+  ~auto_trace_t (void)
+  { printf ("Leave: %s\n", func); }
+
+  private:
+  const char * const func;
+};
+
+#define TRACE() auto_trace_t trace(DEMO_FUNC)
+
 #endif /* DEMO_COMMON_H */

@@ -43,6 +43,8 @@ demo_atlas_create (unsigned int w,
 		   unsigned int item_w,
 		   unsigned int item_h_quantum)
 {
+  TRACE();
+
   demo_atlas_t *at = (demo_atlas_t *) calloc (1, sizeof (demo_atlas_t));
   at->refcount = 1;
 

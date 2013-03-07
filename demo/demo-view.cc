@@ -76,6 +76,8 @@ demo_view_t *static_vu;
 demo_view_t *
 demo_view_create (demo_glstate_t *st)
 {
+  TRACE();
+
   demo_view_t *vu = (demo_view_t *) calloc (1, sizeof (demo_view_t));
   vu->refcount = 1;
 
