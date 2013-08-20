@@ -52,5 +52,8 @@ iszero (double v)
 #define _ASSERT_STATIC0(_line, _cond) _ASSERT_STATIC1 (_line, (_cond))
 #define ASSERT_STATIC(_cond) _ASSERT_STATIC0 (__LINE__, (_cond))
 
+#ifdef __ANDROID__
+#define log2(x) (log(x) / log(2.0))
+#endif
 
 #endif /* GLYPHY_COMMON_HH */
