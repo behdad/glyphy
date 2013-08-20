@@ -560,7 +560,7 @@ inline double Arc::squared_distance_to_point (const Point &p) const {
     return arc_segment.squared_distance_to_point (p);
   }
 
-  SignedVector difference = *this - p;
+  //SignedVector difference = *this - p;
 
   if (wedge_contains_point (p) && fabs(d) > 1e-5) {
     double answer = p.distance_to_point (center ()) - radius ();

@@ -220,8 +220,8 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
   Point origin = Point (extents.min_x, extents.min_y);
   unsigned int total_arcs = 0;
 
-  for (int row = 0; row < grid_h; row++)
-    for (int col = 0; col < grid_w; col++)
+  for (unsigned int row = 0; row < grid_h; row++)
+    for (unsigned int col = 0; col < grid_w; col++)
     {
       Point cp0 = origin + Vector ((col + 0) * cell_unit, (row + 0) * cell_unit);
       Point cp1 = origin + Vector ((col + 1) * cell_unit, (row + 1) * cell_unit);

@@ -198,7 +198,7 @@ class ArcBezierApproximatorQuantized
     /* Error introduced by arc quantization */
     double ed = fabs (a.d - orig_a.d) * (a.p1 - a.p0).len () * .5;
 
-    Arc t = ArcBezierApproximatorMidpointTwoPart<ArcBezierErrorApproximator>
+    ArcBezierApproximatorMidpointTwoPart<ArcBezierErrorApproximator>
 	    ::approximate_bezier_with_arc (b, error, mid_t);
 
     if (ed) {
