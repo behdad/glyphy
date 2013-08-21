@@ -30,44 +30,62 @@
 #include <algorithm>
 #include <vector>
 
+/* Tailor config for various platforms. */
 
 #ifdef EMSCRIPTEN
 /* https://github.com/kripken/emscripten/issues/340 */
-#undef HAVE_GLEW
-/* WebGL shaders are ES2 */
-#define GL_ES_VERSION_2_0
+#  undef HAVE_GLEW
+   /* WebGL shaders are ES2 */
+#  define GL_ES_VERSION_2_0 1
 #endif
 
-#if defined(HAVE_GL) && defined(HAVE_GLUT)
+#if defined(__ANDROID__)
+#  define HAVE_GLES2 1
+#  define HAVE_GLUT 1
+#endif
 
+/* Get Glew out of the way. */
 #ifdef HAVE_GLEW
 #  include <GL/glew.h>
 #else
-#define GLEW_OK 0
+#  define GLEW_OK 0
    static inline int glewInit (void) { return GLEW_OK; }
-   static inline int glewIsSupported (const char *s) { return 0 == strcmp ("GL_VERSION_2_0", s); }
-#  define GL_GLEXT_PROTOTYPES 1
-#  if defined(__APPLE__)
-#    include <OpenGL/gl.h>
-#  else
-#    include <GL/gl.h>
-#  endif
-#endif
+   static inline int glewIsSupported (const char *s)
+   { return 0 == strcmp ("GL_VERSION_2_0", s); }
+#endif /* HAVE_GLEW */
 
-#if defined(__APPLE__)
-#  include <GLUT/glut.h>
-#  include <OpenGL/OpenGL.h>
-#else
-#  ifdef HAVE_GLEW
-#    if defined(_WIN32)
-#      include <GL/wglew.h>
+/* WTF this block?! */
+#if defined(HAVE_GL)
+#  ifndef HAVE_GLEW
+#    define GL_GLEXT_PROTOTYPES 1
+#    if defined(__APPLE__)
+#      include <OpenGL/gl.h>
 #    else
-#      include <GL/glxew.h>
+#      include <GL/gl.h>
 #    endif
 #  endif
-#  include <GL/glut.h>
-#endif
+#  if defined(__APPLE__)
+#    include <OpenGL/OpenGL.h>
+#  else
+#    ifdef HAVE_GLEW
+#      ifdef _WIN32
+#	 include <GL/wglew.h>
+#      else
+#	include <GL/glxew.h>
+#      endif
+#    endif
+#  endif
+#elif defined(HAVE_GLES2)
+#  include <GLES2/gl2.h>
+#endif /* HAVE_GLES2 */
 
+/* Finally, Glut. */
+#ifdef HAVE_GLUT
+#  if defined(__APPLE__)
+#    include <GLUT/glut.h>
+#  else
+#    include <GL/glut.h>
+#  endif
 #endif
 
 
