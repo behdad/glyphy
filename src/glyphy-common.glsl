@@ -194,7 +194,7 @@ glyphy_arc_extended_dist (const glyphy_arc_t a, const vec2 p)
 int
 glyphy_arc_list_offset (const vec2 p, const ivec2 nominal_size)
 {
-  ivec2 cell = ivec2 (clamp (vec2(floor (p)), vec2 (0.,0.), vec2(nominal_size - 1)));
+  ivec2 cell = ivec2 (clamp (floor (p), vec2 (0.,0.), vec2(nominal_size - 1)));
   return cell.y * nominal_size.x + cell.x;
 }
 
