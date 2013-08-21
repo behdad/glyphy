@@ -247,7 +247,7 @@ print_fps (int ms)
   if (vu->animate) {
     glutTimerFunc (ms, print_fps, ms);
     long t = current_time ();
-    printf ("%gfps\n", vu->num_frames * 1000. / (t - vu->fps_start_time));
+    LOGI ("%gfps\n", vu->num_frames * 1000. / (t - vu->fps_start_time));
     vu->num_frames = 0;
     vu->fps_start_time = t;
   } else
@@ -280,21 +280,21 @@ static void
 demo_view_toggle_vsync (demo_view_t *vu)
 {
   vu->vsync = !vu->vsync;
-  printf ("Setting vsync %s.\n", vu->vsync ? "on" : "off");
+  LOGI ("Setting vsync %s.\n", vu->vsync ? "on" : "off");
 #if defined(__APPLE__)
   CGLSetParameter(CGLGetCurrentContext(), kCGLCPSwapInterval, &vu->vsync);
 #elif defined(__WGLEW__)
   if (wglewIsSupported ("WGL_EXT_swap_control"))
     wglSwapIntervalEXT (vu->vsync);
   else
-    printf ("WGL_EXT_swal_control not supported; failed to set vsync\n");
+    LOGW ("WGL_EXT_swal_control not supported; failed to set vsync\n");
 #elif defined(__GLXEW_H__)
   if (glxewIsSupported ("GLX_SGI_swap_control"))
     glXSwapIntervalSGI (vu->vsync);
   else
-    printf ("GLX_SGI_swap_control not supported; failed to set vsync\n");
+    LOGW ("GLX_SGI_swap_control not supported; failed to set vsync\n");
 #else
-    printf ("No vsync extension found; failed to set vsync\n");
+    LOGW ("No vsync extension found; failed to set vsync\n");
 #endif
 }
 
@@ -302,7 +302,7 @@ static void
 demo_view_toggle_srgb (demo_view_t *vu)
 {
   vu->srgb = !vu->srgb;
-  printf ("Setting sRGB framebuffer %s.\n", vu->srgb ? "on" : "off");
+  LOGI ("Setting sRGB framebuffer %s.\n", vu->srgb ? "on" : "off");
 #if defined(GL_FRAMEBUFFER_SRGB) && defined(GL_FRAMEBUFFER_SRGB_CAPABLE_EXT)
   GLboolean available = false;
   if ((glewIsSupported ("GL_ARB_framebuffer_sRGB") || glewIsSupported ("GL_EXT_framebuffer_sRGB")) &&
@@ -313,8 +313,7 @@ demo_view_toggle_srgb (demo_view_t *vu)
       glDisable (GL_FRAMEBUFFER_SRGB);
   } else
 #endif
-    printf ("No sRGB framebuffer extension found; failed to set sRGB framebuffer\n");
-
+    LOGW ("No sRGB framebuffer extension found; failed to set sRGB framebuffer\n");
 }
 
 static void
@@ -590,7 +589,7 @@ demo_view_motion_func (demo_view_t *vu, int x, int y)
 void
 demo_view_print_help (demo_view_t *vu)
 {
-  printf ("Welcome to GLyphy demo\n");
+  LOGI ("Welcome to GLyphy demo\n");
 }
 
 

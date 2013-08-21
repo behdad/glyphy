@@ -83,7 +83,7 @@ set_uniform (GLuint program, const char *name, double *p, double value)
 {
   *p = value;
   glUniform1f (glGetUniformLocation (program, name), value);
-  printf ("Setting %s to %g\n", name + 2, value);
+  LOGI ("Setting %s to %g\n", name + 2, value);
 }
 
 #define SET_UNIFORM(name, value) set_uniform (st->program, #name, &st->name, value)

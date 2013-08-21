@@ -192,7 +192,7 @@ encode_ft_glyph (demo_font_t      *font,
   *advance = face->glyph->metrics.horiAdvance / (double) upem;
 
   if (0)
-  printf ("gid%3u: endpoints%3d; err%3g%%; tex fetch%4.1f; mem%4.1fkb\n",
+    LOGI ("gid%3u: endpoints%3d; err%3g%%; tex fetch%4.1f; mem%4.1fkb\n",
 	  glyph_index,
 	  (unsigned int) glyphy_arc_accumulator_get_num_endpoints (font->acc),
 	  round (100 * glyphy_arc_accumulator_get_error (font->acc) / tolerance),
@@ -245,10 +245,10 @@ demo_font_lookup_glyph (demo_font_t  *font,
 void
 demo_font_print_stats (demo_font_t *font)
 {
-  printf ("%3d glyphs; avg num endpoints%6.2f; avg error%5.1f%%; avg tex fetch%5.2f; avg %5.2fkb per glyph\n",
-	  font->num_glyphs,
-	  (double) font->sum_endpoints / font->num_glyphs,
-	  100. * font->sum_error / font->num_glyphs,
-	  font->sum_fetch / font->num_glyphs,
-	  font->sum_bytes / 1024. / font->num_glyphs);
+  LOGI ("%3d glyphs; avg num endpoints%6.2f; avg error%5.1f%%; avg tex fetch%5.2f; avg %5.2fkb per glyph\n",
+	font->num_glyphs,
+	(double) font->sum_endpoints / font->num_glyphs,
+	100. * font->sum_error / font->num_glyphs,
+	font->sum_fetch / font->num_glyphs,
+	font->sum_bytes / 1024. / font->num_glyphs);
 }

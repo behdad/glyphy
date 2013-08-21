@@ -71,6 +71,22 @@
 #endif
 
 
+
+
+/* Logging. */
+#ifdef __ANDROID__
+#  include <android/log.h>
+#  define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "glyphy-demo", __VA_ARGS__))
+#  define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "glyphy-demo", __VA_ARGS__))
+#  define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "glyphy-demo", __VA_ARGS__))
+#else /* !__ANDROID__ */
+#  define LOGI(...) ((void) fprintf (stdout, __VA_ARGS__))
+#  define LOGW(...) ((void) fprintf (stderr, __VA_ARGS__))
+#  define LOGE(...) ((void) fprintf (stderr, __VA_ARGS__), abort ())
+#endif
+
+
+
 #define STRINGIZE1(Src) #Src
 #define STRINGIZE(Src) STRINGIZE1(Src)
 

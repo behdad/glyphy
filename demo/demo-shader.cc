@@ -126,7 +126,7 @@ compile_shader (GLenum         type,
   glGetShaderiv (shader, GL_COMPILE_STATUS, &compiled);
   if (!compiled) {
     GLint info_len = 0;
-    fprintf (stderr, "%s shader failed to compile\n",
+    LOGW ("%s shader failed to compile\n",
 	     type == GL_VERTEX_SHADER ? "Vertex" : "Fragment");
     glGetShaderiv (shader, GL_INFO_LOG_LENGTH, &info_len);
 
@@ -134,7 +134,7 @@ compile_shader (GLenum         type,
       char *info_log = (char*) malloc (info_len);
       glGetShaderInfoLog (shader, info_len, NULL, info_log);
 
-      fprintf (stderr, "%s\n", info_log);
+      LOGW ("%s\n", info_log);
       free (info_log);
     }
 
@@ -163,14 +163,14 @@ link_program (GLuint vshader,
   glGetProgramiv (program, GL_LINK_STATUS, &linked);
   if (!linked) {
     GLint info_len = 0;
-    fprintf (stderr, "Program failed to link\n");
+    LOGW ("Program failed to link\n");
     glGetProgramiv (program, GL_INFO_LOG_LENGTH, &info_len);
 
     if (info_len > 0) {
       char *info_log = (char*) malloc (info_len);
       glGetProgramInfoLog (program, info_len, NULL, info_log);
 
-      fprintf (stderr, "%s\n", info_log);
+      LOGW ("%s\n", info_log);
       free (info_log);
     }
 
