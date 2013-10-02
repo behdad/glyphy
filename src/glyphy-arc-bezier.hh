@@ -120,7 +120,8 @@ class ArcBezierErrorApproximatorBehdad
     double c2 = (b1.p3 - b1.p0).len () / 2;
     double r = c2 * (a.d * a.d + 1) / (2 * fabs (a.d));
 
-    eb = fabs (Vector (c2 / tan_half_alpha + v.dy, c2 + v.dx).len () - r);
+    eb = Vector (c2 / tan_half_alpha + v.dy, c2 + v.dx).len () - r;
+    assert (eb >= 0);
 
     return ea + eb;
   }
