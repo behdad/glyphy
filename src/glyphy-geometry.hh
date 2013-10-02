@@ -342,7 +342,7 @@ inline double Vector::angle (void) const {
 }
 
 inline const Vector Vector::rebase (const Vector &bx,
-						  const Vector &by) const {
+				    const Vector &by) const {
   return Vector (*this * bx, *this * by);
 }
 inline const Vector Vector::rebase (const Vector &bx) const {
