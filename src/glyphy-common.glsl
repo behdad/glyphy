@@ -90,7 +90,7 @@ glyphy_iszero (const float v)
 }
 
 vec2
-glyphy_perpendicular (const vec2 v)
+glyphy_ortho (const vec2 v)
 {
   return vec2 (-v.y, v.x);
 }
@@ -139,7 +139,7 @@ vec2
 glyphy_arc_center (const glyphy_arc_t a)
 {
   return mix (a.p0, a.p1, .5) +
-	 glyphy_perpendicular (a.p1 - a.p0) / (2. * glyphy_tan2atan (a.d));
+	 glyphy_ortho (a.p1 - a.p0) / (2. * glyphy_tan2atan (a.d));
 }
 
 bool
@@ -154,7 +154,7 @@ float
 glyphy_arc_wedge_signed_dist_shallow (const glyphy_arc_t a, const vec2 p)
 {
   vec2 v = normalize (a.p1 - a.p0);
-  float line_d = dot (p - a.p0, glyphy_perpendicular (v));
+  float line_d = dot (p - a.p0, glyphy_ortho (v));
   if (a.d == 0.)
     return line_d;
 

@@ -95,8 +95,8 @@ struct Vector {
   inline double len (void) const;
   inline double len2 (void) const;
   inline const Vector normalized (void) const;
-  inline const Vector perpendicular (void) const;
-  inline const Vector normal (void) const; /* perpendicular().normalized() */
+  inline const Vector ortho (void) const;
+  inline const Vector normal (void) const; /* ortho().normalized() */
   inline double angle (void) const;
 
   inline const Vector rebase (const Vector &bx, const Vector &by) const;
@@ -119,7 +119,7 @@ struct Line {
   inline Line (double a_, double b_, double c_) : n (a_, b_), c (c_) {}
   inline Line (Vector n_, double c_) : n (n_), c (c_) {}
   inline Line (const Point &p0, const Point &p1) :
-               n ((p1 - p0).perpendicular ()), c (n * Vector (p0)) {}
+               n ((p1 - p0).ortho ()), c (n * Vector (p0)) {}
 
   inline const Point operator+ (const Line &l) const; /* line intersection! */
   inline const SignedVector operator- (const Point &p) const; /* shortest vector from point to line */
@@ -335,11 +335,11 @@ inline const Vector Vector::normalized (void) const {
   double d = len ();
   return d ? *this / d : *this;
 }
-inline const Vector Vector::perpendicular (void) const {
+inline const Vector Vector::ortho (void) const {
   return Vector (-dy, dx);
 }
 inline const Vector Vector::normal (void) const {
-  return perpendicular ().normalized ();
+  return ortho ().normalized ();
 }
 inline double Vector::angle (void) const {
   return atan2 (dy, dx);
@@ -350,7 +350,7 @@ inline const Vector Vector::rebase (const Vector &bx,
   return Vector (*this * bx, *this * by);
 }
 inline const Vector Vector::rebase (const Vector &bx) const {
-  return rebase (bx, bx.perpendicular ());
+  return rebase (bx, bx.ortho ());
 }
 
 
@@ -505,13 +505,13 @@ inline double Arc::radius (void) const
 
 inline const Point Arc::center (void) const
 {
-  return (p0.midpoint (p1)) + (p1 - p0).perpendicular () / (2 * tan2atan (d));
+  return (p0.midpoint (p1)) + (p1 - p0).ortho () / (2 * tan2atan (d));
 }
 
 inline const Pair<Vector> Arc::tangents (void) const
 {
   Vector dp = (p1 - p0) * .5;
-  Vector pp = dp.perpendicular () * -sin2atan (d);
+  Vector pp = dp.ortho () * -sin2atan (d);
   dp = dp * cos2atan (d);
   return Pair<Vector> (dp + pp, dp - pp);
 }
@@ -521,7 +521,7 @@ inline const Pair<Vector> Arc::tangents (void) const
 inline Bezier Arc::approximate_bezier (double *error) const
 {
   Vector dp = p1 - p0;
-  Vector pp = dp.perpendicular ();
+  Vector pp = dp.ortho ();
 
   if (error)
     *error = dp.len () * pow (fabs (d), 5) / (54 * (1 + d*d));
@@ -583,7 +583,7 @@ inline double Arc::squared_distance_to_point (const Point &p) const {
 inline double Arc::extended_dist (const Point &p) const {
   Point m = p0.lerp (.5, p1);
   Vector dp = p1 - p0;
-  Vector pp = dp.perpendicular ();
+  Vector pp = dp.ortho ();
   float d2 = tan2atan (d);
   if ((p - m) * (p1 - m) < 0)
     return (p - p0) * (pp + dp * d2).normalized ();
@@ -654,7 +654,7 @@ inline const Vector Bezier::d_tangent (const double &t) const {
 }
 
 inline double Bezier::curvature (const double &t) const {
-  Vector dpp = tangent (t).perpendicular ();
+  Vector dpp = tangent (t).ortho ();
   Vector ddp = d_tangent (t);
   /* normal vector len squared */
   double len = dpp.len ();
