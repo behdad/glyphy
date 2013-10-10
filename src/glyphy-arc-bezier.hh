@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 Google, Inc. All Rights Reserved.
+ * Copyright 2012,2013 Google, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -97,30 +97,31 @@ class ArcBezierErrorApproximatorBehdad
     Vector v (MaxDeviationApproximator::approximate_deviation (v0.dx, v1.dx),
 	      MaxDeviationApproximator::approximate_deviation (v0.dy, v1.dy));
 
-    /* Edge cases: If d*d is too close to being 1 default to a weak bound. */
-    if (fabs(a.d * a.d - 1) < 1e-4)
+    /* Edge cases: If d*d is too close too large default to a weak bound. */
+    if (a.d * a.d > 1. - 1e-4)
       return ea + v.len ();
 
-    /* We made sure that fabs(a.d) != 1 */
-    double tan_half_alpha = 2 * fabs (a.d) / (1 - a.d*a.d);
-    double tan_v;
+    /* If the wedge doesn't contain control points, default to weak bound. */
+    if (!a.wedge_contains_point (b0.p1) || !a.wedge_contains_point (b0.p2))
+      return ea + v.len ();
 
-    /* If v.dy == 0, perturb just a bit. */
-    if (fabs(v.dy) < 1e-6) {
-       /* TODO Figure this one out. */
-       v.dy = 1e-6;
-    }
-    tan_v = v.dx / v.dy;
+    /* If straight line, return the max ortho deviation. */
+    if (fabs (a.d) < 1e-6)
+      return ea + v.dy;
+
+    /* We made sure that fabs(a.d) < 1 */
+    double tan_half_alpha = fabs (tan2atan (a.d));
+
+    double tan_v = v.dx / v.dy;
+
     double eb;
-    /* TODO Double check and simplify these checks */
-    if (fabs (a.d) < 1e-6 || tan_half_alpha < 0 ||
-	(-tan_half_alpha <= tan_v && tan_v <= tan_half_alpha))
+    if (fabs (tan_v) <= tan_half_alpha)
       return ea + v.len ();
 
-    double c2 = (b1.p3 - b1.p0).len () / 2;
-    double r = c2 * (a.d * a.d + 1) / (2 * fabs (a.d));
+    double c2 = (a.p1 - a.p0).len () * .5;
+    double r = a.radius ();
 
-    eb = Vector (c2 / tan_half_alpha + v.dy, c2 + v.dx).len () - r;
+    eb = Vector (c2 + v.dx, c2 / tan_half_alpha + v.dy).len () - r;
     assert (eb >= 0);
 
     return ea + eb;

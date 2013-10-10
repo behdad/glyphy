@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 Google, Inc. All Rights Reserved.
+ * Copyright 2012,2013 Google, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,8 +35,12 @@ struct Bezier;
 
 /* returns tan (2 * atan (d)) */
 inline double tan2atan (double d) { return 2 * d / (1 - d*d); }
+
 /* returns sin (2 * atan (d)) */
 inline double sin2atan (double d) { return 2 * d / (1 + d*d); }
+
+/* returns cos (2 * atan (d)) */
+inline double cos2atan (double d) { return (1 - d*d) / (1 + d*d); }
 
 template <typename Type>
 struct Pair {
@@ -507,7 +511,8 @@ inline const Point Arc::center (void) const
 inline const Pair<Vector> Arc::tangents (void) const
 {
   Vector dp = (p1 - p0) * .5;
-  Vector pp = -tan2atan (d) * dp.perpendicular ();
+  Vector pp = dp.perpendicular () * -sin2atan (d);
+  dp = dp * cos2atan (d);
   return Pair<Vector> (dp + pp, dp - pp);
 }
 
@@ -521,8 +526,11 @@ inline Bezier Arc::approximate_bezier (double *error) const
   if (error)
     *error = dp.len () * pow (fabs (d), 5) / (54 * (1 + d*d));
 
-  Point p0s = p0 + ((1 - d*d) / 3) * dp - (2 * d / 3) * pp;
-  Point p1s = p1 - ((1 - d*d) / 3) * dp - (2 * d / 3) * pp;
+  dp *= ((1 - d*d) / 3);
+  pp *= (2 * d / 3);
+
+  Point p0s = p0 + dp - pp;
+  Point p1s = p1 - dp - pp;
 
   return Bezier (p0, p0s, p1s, p1);
 }
@@ -530,10 +538,11 @@ inline Bezier Arc::approximate_bezier (double *error) const
 
 inline bool Arc::wedge_contains_point (const Point &p) const
 {
-  // TODO this doesn't handle fabs(d) > 1.
   Pair<Vector> t = tangents ();
-  return (p - p0) * t.first  >= 0 &&
-	 (p - p1) * t.second <= 0;
+  if (fabs (d) <= 1)
+    return (p - p0) * t.first  >= 0 && (p - p1) * t.second <= 0;
+  else
+    return (p - p0) * t.first  >= 0 || (p - p1) * t.second <= 0;
 }
 
 
