@@ -92,7 +92,7 @@ main()
     color += vec4 (1,0,0,1) * smoothstep (2., 1., udist);
     // Color the distance field in green
     if (!glyphy_isinf (udist))
-      color += vec4(0,.3,0,.3 - abs(gsdist) / float(max(gi.nominal_size.x, gi.nominal_size.y)));
+      color += vec4(0,.3,0,.3 - abs(gsdist) / max(float(gi.nominal_size.x), float(gi.nominal_size.y)));
 
     float pdist = glyphy_point_dist (p, gi.nominal_size GLYPHY_DEMO_EXTRA_ARGS);
     // Color points green
