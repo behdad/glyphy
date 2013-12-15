@@ -81,7 +81,6 @@ glyphy_validate_LDADD = \
 	$(FREETYPE2_LIBS) \
 	$(NULL)
 glyphy_validate_SOURCES = \
-	demo-common.h \
 	glyphy-validate.cc \
 	$(NULL)
 

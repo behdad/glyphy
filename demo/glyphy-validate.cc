@@ -20,13 +20,24 @@
 #include <config.h>
 #endif
 
-#include "demo-common.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <assert.h>
+
+#define TOLERANCE (1./2048)
 
 #include <glyphy-freetype.h>
 
 #include <vector>
 
 using namespace std;
+
+static inline void
+die (const char *msg)
+{
+  fprintf (stderr, "%s\n", msg);
+  exit (1);
+}
 
 static glyphy_bool_t
 accumulate_endpoint (glyphy_arc_endpoint_t         *endpoint,
