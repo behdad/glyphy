@@ -1,4 +1,5 @@
 NULL =
+SUBDIRS =
 EXTRA_DIST =
 CLEANFILES =
 DISTCLEANFILES =
@@ -11,8 +12,10 @@ if HAVE_FREETYPE2
 if HAVE_GL
 if HAVE_GLUT
 
+if ANDROID
+SUBDIRS += android
+else
 noinst_PROGRAMS += glyphy-demo
-
 glyphy_demo_CPPFLAGS = \
 	-I $(top_srcdir)/src \
 	$(FREETYPE2_CFLAGS) \
@@ -50,6 +53,7 @@ glyphy_demo_SOURCES = \
 	trackball.c \
 	$(SHADERHEADERS) \
 	$(NULL)
+endif
 SHADERS = \
 	demo-atlas.glsl \
 	demo-fshader.glsl \

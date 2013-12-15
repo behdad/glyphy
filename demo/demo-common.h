@@ -55,7 +55,9 @@
 #endif /* HAVE_GLEW */
 
 /* WTF this block?! */
-#if defined(HAVE_GL)
+#if defined(HAVE_GLES2)
+#  include <GLES2/gl2.h>
+#elif defined(HAVE_GL)
 #  ifndef HAVE_GLEW
 #    define GL_GLEXT_PROTOTYPES 1
 #    if defined(__APPLE__)
@@ -75,9 +77,7 @@
 #      endif
 #    endif
 #  endif
-#elif defined(HAVE_GLES2)
-#  include <GLES2/gl2.h>
-#endif /* HAVE_GLES2 */
+#endif /* HAVE_GL */
 
 /* Finally, Glut. */
 #ifdef HAVE_GLUT
