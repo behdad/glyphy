@@ -27,27 +27,9 @@ glyph_info_decode (vec4 v)
 
 
 float
-antialias_axisaligned (float d)
+antialias (float d)
 {
-  return clamp (d + .5, 0., 1.);
-}
-
-float
-antialias_diagonal (float d)
-{
-  /* TODO optimize this */
-  if (d <= -SQRT2_2) return 0.;
-  if (d >= +SQRT2_2) return 1.;
-  if (d <= 0.) return pow (d + SQRT2_2, 2.);
-  return 1. - pow (SQRT2_2 - d, 2.);
-}
-
-float
-antialias (float d, float w)
-{
-  /* w is 1.0 for axisaligned pixels, and SQRT2 for diagonal pixels,
-   * and something in between otherwise... */
-  return mix (antialias_axisaligned (d), antialias_diagonal (d), clamp ((w - 1.) / (SQRT2 - 1.), 0., 1.));
+  return smoothstep (-.75, +.75, d);
 }
 
 void
@@ -60,7 +42,6 @@ main()
   vec2 dpdx = dFdx (p);
   vec2 dpdy = dFdy (p);
   float m = length (vec2 (length (dpdx), length (dpdy))) * SQRT2_2;
-  float w = abs (normalize (dpdx).x) + abs (normalize (dpdy).x);
 
   vec4 color = vec4 (0,0,0,1);
 
@@ -73,7 +54,7 @@ main()
       sdist = abs (sdist) - u_outline_thickness * .5;
     if (sdist > 1.)
       discard;
-    float alpha = antialias (-sdist, w);
+    float alpha = antialias (-sdist);
     if (u_gamma_adjust != 1.)
       alpha = pow (alpha, 1./u_gamma_adjust);
     color = vec4 (color.rgb,color.a * alpha);
