@@ -7,9 +7,6 @@ uniform bool  u_debug;
 
 varying vec4 v_glyph;
 
-#ifdef GLES2
-#  extension GL_OES_standard_derivatives : enable
-#endif
 
 #define SQRT2_2 0.70710678118654757 /* 1 / sqrt(2.) */
 #define SQRT2   1.4142135623730951
