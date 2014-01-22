@@ -7,5 +7,5 @@ Name: GLyphy
 Description: High-quality glyph rendering library using OpenGL ES2 shaders
 URL: http://code.google.com/p/glyphy/
 Version: @PACKAGE_VERSION@
-Libs: -L${libdir} -lglyphy-0.1
+Libs: -L${libdir} -lglyphy
 Cflags: -I${includedir}/glyphy
