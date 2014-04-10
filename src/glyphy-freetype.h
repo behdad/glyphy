@@ -20,6 +20,11 @@
 
 #include "glyphy.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_OUTLINE_H
@@ -91,3 +96,7 @@ glyphy_freetype(outline_decompose) (const FT_Outline         *outline,
 
   return FT_Outline_Decompose ((FT_Outline *) outline, &outline_funcs, acc);
 }
+
+#ifdef __cplusplus
+}
+#endif
