@@ -65,7 +65,7 @@ m4Multiply (float *mat, const float *right);
 float *
 m4MultMatrix (float *mat, const float *left);
 
-inline float
+float
 m4Get (float *mat, unsigned int row, unsigned int col);
 
 float *

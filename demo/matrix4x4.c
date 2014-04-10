@@ -112,7 +112,7 @@ m4Multiply (float *mat, const float *right) {
   return m4Copy (mat, tmp);
 }
 
-inline float
+float
 m4Get (float *mat, unsigned int row, unsigned int col) {
   return mat[4*row+col];
 }
