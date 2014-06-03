@@ -273,14 +273,15 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
 
       unsigned int current_endpoints = tex_data.size () - offset;
 
-      /* See if we can fulfill this cell by using already-encoded arcs */
-      const glyphy_rgba_t *needle = &tex_data[offset];
-      unsigned int needle_len = current_endpoints;
-      const glyphy_rgba_t *haystack = &tex_data[header_length];
-      unsigned int haystack_len = offset - header_length;
+      if (current_endpoints)
+      {
+	/* See if we can fulfill this cell by using already-encoded arcs */
+	const glyphy_rgba_t *needle = &tex_data[offset];
+	unsigned int needle_len = current_endpoints;
+	const glyphy_rgba_t *haystack = &tex_data[header_length];
+	unsigned int haystack_len = offset - header_length;
 
-      bool found = false;
-      if (needle_len)
+	bool found = false;
 	while (haystack_len >= needle_len) {
 	  /* Trick: we don't care about first endpoint's d value, so skip one
 	   * byte in comparison.  This works because arc_encode() packs the
@@ -294,10 +295,13 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
 	  haystack++;
 	  haystack_len--;
 	}
-      if (found) {
-	tex_data.resize (offset);
-	offset = haystack - &tex_data[0];
+	if (found) {
+	  tex_data.resize (offset);
+	  offset = haystack - &tex_data[0];
+	}
       }
+      else
+	offset = 0;
 
       tex_data[row * grid_w + col] = arc_list_encode (offset, current_endpoints, side);
       offset = tex_data.size ();
