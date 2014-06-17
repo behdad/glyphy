@@ -136,9 +136,8 @@ glyphy_point_dist (const vec2 p, const ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_E
   if (arc_list.num_endpoints == 0)
     return min_dist;
 
-  glyphy_arc_endpoint_t endpoint_prev, endpoint;
-  endpoint_prev = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset), nominal_size);
-  for (int i = 1; i < GLYPHY_MAX_NUM_ENDPOINTS; i++)
+  glyphy_arc_endpoint_t endpoint;
+  for (int i = 0; i < GLYPHY_MAX_NUM_ENDPOINTS; i++)
   {
     if (i >= arc_list.num_endpoints) {
       break;
