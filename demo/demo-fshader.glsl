@@ -32,6 +32,14 @@ antialias (float d)
   return smoothstep (-.75, +.75, d);
 }
 
+vec4
+source_over (const vec4 src, const vec4 dst)
+{
+  // http://dev.w3.org/fxtf/compositing-1/#porterduffcompositingoperators_srcover
+  float alpha = src.a + (dst.a * (1. - src.a));
+  return vec4 (((src.rgb * src.a) + (dst.rgb * dst.a * (1. - src.a))) / alpha, alpha);
+}
+
 void
 main()
 {
@@ -59,26 +67,19 @@ main()
       alpha = pow (alpha, 1./u_gamma_adjust);
     color = vec4 (color.rgb,color.a * alpha);
   } else {
-    color = vec4 (0,0,0,0);
-
-    // Color the inside of the glyph a light red
-    color += vec4 (.5,0,0,.5) * smoothstep (1., -1., sdist);
-
-    float udist = abs (sdist);
     float gudist = abs (gsdist);
-    // Color the outline red
-    color += vec4 (1,0,0,1) * smoothstep (2., 1., udist);
-    // Color the distance field in green
-    if (!glyphy_isinf (udist))
-      color += vec4(0,.4,0,.4 - (abs(gsdist) / max(float(gi.nominal_size.x), float(gi.nominal_size.y))) * 4.);
-
-    float pdist = glyphy_point_dist (p, gi.nominal_size GLYPHY_DEMO_EXTRA_ARGS);
-    // Color points green
-    color = mix (vec4 (0,1,0,.5), color, smoothstep (.05, .06, pdist));
+    float debug_color = 0.4;
+    // Color the distance field red inside and green outside
+    if (!glyphy_isinf (gudist))
+      color = source_over (vec4 (debug_color * smoothstep (1., -1., sdist), debug_color * smoothstep (-1., 1., sdist), 0, 1. - gudist), color);
 
     glyphy_arc_list_t arc_list = glyphy_arc_list (p, gi.nominal_size GLYPHY_DEMO_EXTRA_ARGS);
     // Color the number of endpoints per cell blue
-    color += vec4 (0,0,1,.1) * float(arc_list.num_endpoints) * 32./255.;
+    color = source_over (vec4 (0, 0, debug_color, float(arc_list.num_endpoints) / float(GLYPHY_MAX_NUM_ENDPOINTS)), color);
+
+    float pdist = glyphy_point_dist (p, gi.nominal_size GLYPHY_DEMO_EXTRA_ARGS);
+    // Color points yellow
+    color = source_over (vec4 (1, 1, 0, smoothstep (.06, .05, pdist)), color);
   }
 
   gl_FragColor = color;
