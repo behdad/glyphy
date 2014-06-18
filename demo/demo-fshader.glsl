@@ -7,10 +7,6 @@ uniform bool  u_debug;
 
 varying vec4 v_glyph;
 
-
-#define SQRT2_2 0.70710678118654757 /* 1 / sqrt(2.) */
-#define SQRT2   1.4142135623730951
-
 struct glyph_info_t {
   ivec2 nominal_size;
   ivec2 atlas_pos;
@@ -29,7 +25,8 @@ glyph_info_decode (vec4 v)
 float
 antialias (float d)
 {
-  return smoothstep (-.75, +.75, d);
+  // anti alias by 1 pixel
+  return smoothstep (.5, -.5, d);
 }
 
 void
@@ -41,12 +38,11 @@ main()
   /* isotropic antialiasing */
   vec2 dpdx = dFdx (p);
   vec2 dpdy = dFdy (p);
-  float m = length (vec2 (length (dpdx), length (dpdy))) * SQRT2_2;
+  float scale_screen_to_nominal = length (vec2 (length (dpdx), length (dpdy)));
+  float gsdist = glyphy_sdf (p, gi.nominal_size GLYPHY_DEMO_EXTRA_ARGS);
+  float sdist = gsdist / scale_screen_to_nominal * u_contrast;
 
   vec4 color = vec4 (0,0,0,1);
-
-  float gsdist = glyphy_sdf (p, gi.nominal_size GLYPHY_DEMO_EXTRA_ARGS);
-  float sdist = gsdist / m * u_contrast;
 
   if (!u_debug) {
     sdist -= u_boldness * 10.;
@@ -54,7 +50,7 @@ main()
       sdist = abs (sdist) - u_outline_thickness * .5;
     if (sdist > 1.)
       discard;
-    float alpha = antialias (-sdist);
+    float alpha = antialias (sdist);
     if (u_gamma_adjust != 1.)
       alpha = pow (alpha, 1./u_gamma_adjust);
     color = vec4 (color.rgb,color.a * alpha);
