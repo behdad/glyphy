@@ -296,8 +296,10 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
 	  haystack_len--;
 	}
 	if (found) {
+	  unsigned int new_offset = haystack - &tex_data[0];
 	  tex_data.resize (offset);
-	  offset = haystack - &tex_data[0];
+	  haystack = needle = NULL; /* Invalidated by the resize. */
+	  offset = new_offset;
 	}
       }
       else
