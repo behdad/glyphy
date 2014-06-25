@@ -177,7 +177,7 @@ encode_ft_glyph (demo_font_t      *font,
     }
 
   double avg_fetch_achieved;
-  if (!glyphy_arc_list_encode_blob (&endpoints[0], endpoints.size (),
+  if (!glyphy_arc_list_encode_blob (endpoints.size () ? &endpoints[0] : NULL, endpoints.size (),
 				    buffer,
 				    buffer_len,
 				    faraway / SCALE,
