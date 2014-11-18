@@ -45,7 +45,7 @@ static int
 glyphy_freetype(move_to) (FT_Vector *to,
 			  glyphy_arc_accumulator_t *acc)
 {
-  glyphy_point_t p1 = {to->x, to->y};
+  glyphy_point_t p1 = {static_cast<double>(to->x), static_cast<double>(to->y)};
   glyphy_arc_accumulator_close_path (acc);
   glyphy_arc_accumulator_move_to (acc, &p1);
   return glyphy_arc_accumulator_successful (acc) ? FT_Err_Ok : FT_Err_Out_Of_Memory;
@@ -55,7 +55,7 @@ static int
 glyphy_freetype(line_to) (FT_Vector *to,
 			  glyphy_arc_accumulator_t *acc)
 {
-  glyphy_point_t p1 = {to->x, to->y};
+  glyphy_point_t p1 = {static_cast<double>(to->x), static_cast<double>(to->y)};
   glyphy_arc_accumulator_line_to (acc, &p1);
   return glyphy_arc_accumulator_successful (acc) ? FT_Err_Ok : FT_Err_Out_Of_Memory;
 }
@@ -64,8 +64,8 @@ static int
 glyphy_freetype(conic_to) (FT_Vector *control, FT_Vector *to,
 			   glyphy_arc_accumulator_t *acc)
 {
-  glyphy_point_t p1 = {control->x, control->y};
-  glyphy_point_t p2 = {to->x, to->y};
+  glyphy_point_t p1 = {static_cast<double>(control->x), static_cast<double>(control->y)};
+  glyphy_point_t p2 = {static_cast<double>(to->x), static_cast<double>(to->y)};
   glyphy_arc_accumulator_conic_to (acc, &p1, &p2);
   return glyphy_arc_accumulator_successful (acc) ? FT_Err_Ok : FT_Err_Out_Of_Memory;
 }
@@ -74,9 +74,9 @@ static int
 glyphy_freetype(cubic_to) (FT_Vector *control1, FT_Vector *control2, FT_Vector *to,
 			   glyphy_arc_accumulator_t *acc)
 {
-  glyphy_point_t p1 = {control1->x, control1->y};
-  glyphy_point_t p2 = {control2->x, control2->y};
-  glyphy_point_t p3 = {to->x, to->y};
+  glyphy_point_t p1 = {static_cast<double>(control1->x), static_cast<double>(control1->y)};
+  glyphy_point_t p2 = {static_cast<double>(control2->x), static_cast<double>(control2->y)};
+  glyphy_point_t p3 = {static_cast<double>(to->x), static_cast<double>(to->y)};
   glyphy_arc_accumulator_cubic_to (acc, &p1, &p2, &p3);
   return glyphy_arc_accumulator_successful (acc) ? FT_Err_Ok : FT_Err_Out_Of_Memory;
 }
