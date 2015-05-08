@@ -20,6 +20,14 @@
 #include <config.h>
 #endif
 
+#include <libgen.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <ctype.h>
+#include <stdlib.h>
+
+
 #include "demo-buffer.h"
 #include "demo-font.h"
 #include "demo-view.h"
@@ -67,9 +75,70 @@ display_func (void)
   demo_view_display (vu, buffer);
 }
 
+static void
+show_usage(const char *path)
+{
+
+  char *name, *p = strdup(path);
+
+  name = basename(p);
+
+  printf("Usage:\n"
+	 "  %s [fontfile [text]]\n"
+	 "or:\n"
+	 "  %s [-h] [-f fontfile] [-t text]\n"
+	 "\n"
+	 "  -h             show this help message and exit;\n"
+	 "  -t text        the text string to be rendered;     \n"
+	 "  -f fontfile    the font file (e.g. /Library/Fonts/Microsoft/Verdana.ttf)\n"
+	 "\n", name, name);
+
+  free(p);
+}
+
 int
 main (int argc, char** argv)
 {
+  /* Process received parameters */
+#   include "jabberwocky.h"
+  const char *text = NULL;
+  const char *font_path = NULL;
+  char arg;
+  while ((arg = getopt(argc, argv, "t:f:h")) != -1) {
+    switch (arg) {
+    case 't':
+      text = optarg;
+      break;
+    case 'f':
+      font_path = optarg;
+      break;
+    case 'h':
+      show_usage(argv[0]);
+      return 0;
+    default:
+      return 1;
+    }
+  }
+  if (!font_path)
+  {
+    if (optind < argc)
+      font_path = argv[optind++];
+    else
+      font_path = DEFAULT_FONT;
+  }
+  if (!text)
+  {
+    if (optind < argc)
+      text = argv[optind++];
+    else
+      text = jabberwocky;
+  }
+  if (!font_path || !text || optind < argc)
+  {
+    show_usage(argv[0]);
+    return 1;
+  }
+
   /* Setup glut */
   glutInit (&argc, argv);
   glutInitWindowSize (WINDOW_W, WINDOW_H);
@@ -88,28 +157,8 @@ main (int argc, char** argv)
   if (!glewIsSupported ("GL_VERSION_2_0"))
     die ("OpenGL 2.0 not supported");
 
-  if ((argc > 1 && 0 == strcmp (argv[1], "--help")) || argc > 3) {
-    fprintf (stderr, "Usage: %s [FONTFILE [TEXT]]\n", argv[0]);
-    exit (1);
-  }
-
-  const char *font_path = NULL;
-  if (argc >= 2)
-    font_path = argv[1];
-  else
-    font_path = DEFAULT_FONT;
-
-  const char *text = NULL;
-  if (argc >= 3)
-    text = argv[2];
-  else {
-#   include "jabberwocky.h"
-    text = jabberwocky;
-  }
-
   st = demo_glstate_create ();
   vu = demo_view_create (st);
-
   demo_view_print_help (vu);
 
   FT_Library ft_library;
