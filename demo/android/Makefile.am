@@ -1,3 +1,4 @@
+if ANDROID
 
 all:
 	NDK_PROJECT_PATH=$(srcdir) ndk-build NDK_DEBUG=1
@@ -6,6 +7,8 @@ all:
 clean-local:
 	NDK_PROJECT_PATH=$(srcdir) ndk-build clean
 	ant -buildfile $(srcdir)/build.xml clean
+
+endif
 
 GITIGNOREFILES = bin libs obj
 
