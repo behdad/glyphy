@@ -64,6 +64,7 @@ class ArcsBezierApproximatorSpringSystem
 			     unsigned int &n_jiggle)
   {
     unsigned int n = t.size () - 1;
+    double conditioner = tolerance * .01;
     //fprintf (stderr, "candidate n %d max_e %g min_e %g\n", n, max_e, min_e);
     unsigned int max_jiggle = log2 (n) + 1;
     unsigned int s;
@@ -72,7 +73,7 @@ class ArcsBezierApproximatorSpringSystem
       double total = 0;
       for (unsigned int i = 0; i < n; i++) {
 	double l = t[i + 1] - t[i];
-	double k_inv = l * pow (e[i], -.3);
+	double k_inv = l * pow (e[i] + conditioner, -.3);
 	total += k_inv;
 	e[i] = k_inv;
       }
