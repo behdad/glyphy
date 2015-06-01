@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <vector>
 #include <algorithm>
+#include <iostream>
 
 #ifndef GLYPHY_EPSILON
 #  define GLYPHY_EPSILON  1e-5

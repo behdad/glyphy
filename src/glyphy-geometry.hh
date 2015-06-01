@@ -707,6 +707,31 @@ inline const Bezier Bezier::segment (const double &t0, const double &t1) const
 		 q0123);
 }
 
+
+/* insertion operator */
+
+
+static inline std::ostream& operator<<(std::ostream& os, const Point& p)
+{
+  os << "Point(" << p.x << "," << p.y << ")";
+  return os;
+}
+static inline std::ostream& operator<<(std::ostream& os, const Vector& v)
+{
+  os << "Vector(" << v.dx << "," << v.dy << ")";
+  return os;
+}
+static inline std::ostream& operator<<(std::ostream& os, const Arc& a)
+{
+  os << "Arc(" << a.p0 << ", " << a.p1 << ", " << a.d << ")";
+  return os;
+}
+static inline std::ostream& operator<<(std::ostream& os, const Bezier& b)
+{
+  os << "Bezier(" << b.p0 << ", " << b.p1 << ", " << b.p2 << ", " << b.p3 << ")";
+  return os;
+}
+
 } /* namespace Geometry */
 } /* namespace GLyphy */
 
