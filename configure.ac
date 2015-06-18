@@ -8,7 +8,7 @@ AC_INIT([glyphy],
 AC_CONFIG_SRCDIR([glyphy.pc.in])
 AC_CONFIG_HEADERS([config.h])
 
-AM_INIT_AUTOMAKE([1.11.1 gnu dist-bzip2 no-dist-gzip -Wall])
+AM_INIT_AUTOMAKE([1.11.1 foreign dist-bzip2 no-dist-gzip -Wall])
 AM_SILENT_RULES([yes])
 
 AC_CANONICAL_HOST
