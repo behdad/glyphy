@@ -8,6 +8,10 @@ See this video for insight to how GLyphy works:
 
 http://vimeo.com/behdad/glyphy
 
+Dicussions happen on:
+
+https://groups.google.com/forum/#!forum/glyphy
+
 ----------------------------------------------------------------------
 
 On GNOME3 and possibly other systems, if the vsync extension is not working (ie. pressing v in the demo doesn't have any effect), try running with `vblank_mode=0` env var.
