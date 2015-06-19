@@ -10,6 +10,8 @@ http://vimeo.com/behdad/glyphy
 
 ----------------------------------------------------------------------
 
+On GNOME3 and possibly other systems, if the vsync extension is not working (ie. pressing v in the demo doesn't have any effect), try running with `vblank_mode=0` env var.
+
 Compilation instructions on Mac OS X:
 
 1) Install Xcode and command line tools (as of Xcode 4.3.x, from
