@@ -108,7 +108,14 @@ class ArcsBezierApproximatorSpringSystem
     Vector v2 (b.p2 - b.p0);
     Vector v3 (b.p3 - b.p0);
     if (fabs (v1.cross(v2)) < GLYPHY_EPSILON && fabs (v2.cross(v3)) < GLYPHY_EPSILON)
-      ;//TODO
+    {
+      /* Curve has no area.  If endpoints are NOT the same, replace with single
+       * line segment.  Otherwise fully skip. */
+      arcs.clear ();
+      if (b.p0 != b.p1)
+	arcs.push_back (Arc (b.p0, b.p1, 0));
+      return;
+    }
 
     std::vector<double> t;
     std::vector<double> e;
