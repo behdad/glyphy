@@ -69,8 +69,8 @@ winding (const glyphy_arc_endpoint_t *endpoints,
 
     assert (d != GLYPHY_INFINITY);
 
-    area += p0.x*p1.y - p0.y*p1.x;
-    area -= .5 * d * ((p1.x-p0.x)*(p1.x-p0.x) + (p1.y-p0.y)*(p1.y-p0.y));
+    area += Vector(p0).cross (Vector(p1));
+    area -= .5 * d * (Point(p1) - Point(p0)).len2 ();
   }
   return area < 0;
 }
