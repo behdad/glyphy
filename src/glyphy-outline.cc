@@ -55,65 +55,24 @@ winding (const glyphy_arc_endpoint_t *endpoints,
   /*
    * Algorithm:
    *
-   * - Find the lowest-x part of the contour,
-   * - If the point is an endpoint:
-   *   o compare the angle of the incoming and outgoing edges of that point
-   *     to find out whether it's CW or CCW,
-   * - Otherwise, compare the y of the two endpoints of the arc with lowest-x point.
-   *
-   * Note:
-   *
-   * We can use a simpler algorithm here: Act as if arcs are lines, then use the
-   * triangle method to calculate the signed area of the contour and get the sign.
-   * It should work for all cases we care about.  The only case failing would be
-   * that of two endpoints and two arcs.  But we can even special-case that.
+   * - Approximate arcs with triangles passing through the mid- and end-points,
+   * - Calculate the area of the contour,
+   * - Return sign.
    */
 
-  unsigned int corner = 1;
-  for (unsigned int i = 2; i < num_endpoints; i++)
-    if (endpoints[i].p.x < endpoints[corner].p.x ||
-	(endpoints[i].p.x == endpoints[corner].p.x &&
-	 endpoints[i].p.y < endpoints[corner].p.y))
-      corner = i;
-
-  double min_x = endpoints[corner].p.x;
-  int winner = -1;
-  Point p0 (0, 0);
-  for (unsigned int i = 0; i < num_endpoints; i++) {
-    const glyphy_arc_endpoint_t &endpoint = endpoints[i];
-    if (endpoint.d == GLYPHY_INFINITY || endpoint.d == 0 /* arcs only, not lines */) {
-      p0 = endpoint.p;
-      continue;
-    }
-    Arc arc (p0, endpoint.p, endpoint.d);
-    p0 = endpoint.p;
-
-    Point c = arc.center ();
-    double r = arc.radius ();
-    if (c.x - r < min_x && arc.wedge_contains_point (c - Vector (r, 0))) {
-      min_x = c.x - r;
-      winner = i;
-    }
-  }
-
-  if (winner == -1)
+  double area = 0;
+  for (unsigned int i = 1; i < num_endpoints; i++)
   {
-    // Corner is lowest-x.  Find the tangents of the two arcs connected to the
-    // corner and compare the tangent angles to get contour direction.
-    const glyphy_arc_endpoint_t ethis = endpoints[corner];
-    const glyphy_arc_endpoint_t eprev = endpoints[corner - 1];
-    const glyphy_arc_endpoint_t enext = endpoints[corner < num_endpoints - 1 ? corner + 1 : 1];
-    double in  = (-Arc (eprev.p, ethis.p, ethis.d).tangents ().second).angle ();
-    double out = (+Arc (ethis.p, enext.p, enext.d).tangents ().first ).angle ();
-    return out > in;
-  }
-  else
-  {
-    // Easy.
-    return endpoints[winner].d < 0;
-  }
+    const glyphy_point_t &p0 = endpoints[i - 1].p;
+    const glyphy_point_t &p1 = endpoints[i].p;
+    double d = endpoints[i].d;
 
-  return false;
+    assert (d != GLYPHY_INFINITY);
+
+    area += p0.x*p1.y - p0.y*p1.x;
+    area -= .5 * d * ((p1.x-p0.x)*(p1.x-p0.x) + (p1.y-p0.y)*(p1.y-p0.y));
+  }
+  return area < 0;
 }
 
 
