@@ -103,6 +103,13 @@ class ArcsBezierApproximatorSpringSystem
 					    double *perror,
 					    unsigned int max_segments = 100)
   {
+    /* Handle fully-degenerate cases. */
+    Vector v1 (b.p1 - b.p0);
+    Vector v2 (b.p2 - b.p0);
+    Vector v3 (b.p3 - b.p0);
+    if (fabs (v1.cross(v2)) < GLYPHY_EPSILON && fabs (v2.cross(v3)) < GLYPHY_EPSILON)
+      ;//TODO
+
     std::vector<double> t;
     std::vector<double> e;
     double max_e, min_e;

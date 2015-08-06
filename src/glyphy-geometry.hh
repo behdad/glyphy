@@ -99,6 +99,7 @@ struct Vector {
   inline const Vector normal (void) const; /* ortho().normalized() */
   inline double angle (void) const;
 
+  inline double cross (const Vector &other) const;
   inline const Vector rebase (const Vector &bx, const Vector &by) const;
   inline const Vector rebase (const Vector &bx) const;
 
@@ -345,6 +346,9 @@ inline double Vector::angle (void) const {
   return atan2 (dy, dx);
 }
 
+inline double Vector::cross (const Vector &other) const {
+  return dx * other.dy - dy * other.dx;
+}
 inline const Vector Vector::rebase (const Vector &bx,
 				    const Vector &by) const {
   return Vector (*this * bx, *this * by);
