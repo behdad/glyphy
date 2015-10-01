@@ -18,9 +18,9 @@ On GNOME3 and possibly other systems, if the vsync extension is not working (ie.
 
 Compilation instructions on Mac OS X:
 
-1) Install Xcode and command line tools (as of Xcode 4.3.x, from
+1. Install Xcode and command line tools (as of Xcode 4.3.x, from
    within Preferences -> Downloads).
-2) Install MacPorts.
-3) sudo port install automake autoconf libtool pkgconfig freetype
-4) ./autogen.sh
-5) make
+2. Install MacPorts.
+3. `sudo port install automake autoconf libtool pkgconfig freetype`
+4. `./autogen.sh`
+5. `make`
