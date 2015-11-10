@@ -212,8 +212,6 @@ encode_glyph (demo_font_t      *font,
   double faraway = double (upem) / (MIN_FONT_SIZE * M_SQRT2);
   std::vector<glyphy_arc_endpoint_t> endpoints;
 
-  fprintf(stderr, "upem=%u tolerance=%f faraway=%f\n", upem, tolerance, faraway);
-
   glyphy_arc_accumulator_reset (font->acc);
   glyphy_arc_accumulator_set_tolerance (font->acc, tolerance);
   glyphy_arc_accumulator_set_callback (font->acc,
@@ -270,7 +268,6 @@ encode_glyph (demo_font_t      *font,
 
 #ifdef _WIN32
   *advance = glyph_metrics.gmCellIncX / (double) upem; /* ??? */
-  fprintf(stderr, "======> Advance: %f\n", *advance);
 #endif
 
   if (0)
