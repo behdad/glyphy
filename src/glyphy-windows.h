@@ -79,7 +79,6 @@ glyphy_windows(outline_decompose) (const TTPOLYGONHEADER    *outline,
   const TTPOLYGONHEADER *polygon = outline;
   const TTPOLYGONHEADER *outline_end = (const TTPOLYGONHEADER*) ((char *)outline + outline_size);
 
-  int polygon_count = 0;
   while (polygon < outline_end)
   {
     if (((char *)polygon + polygon->cb) > (char *) outline_end)
@@ -92,7 +91,6 @@ glyphy_windows(outline_decompose) (const TTPOLYGONHEADER    *outline,
 
     const TTPOLYCURVE *curve = (const TTPOLYCURVE*) (polygon + 1);
     const TTPOLYCURVE *curve_end = (const TTPOLYCURVE*) ((char *)polygon + polygon->cb);
-    int curve_count = 0;
     while (curve < curve_end)
     {
       if (((char *) &curve->apfx[curve->cpfx]) > (char *) curve_end)
