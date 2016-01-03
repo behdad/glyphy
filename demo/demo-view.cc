@@ -496,7 +496,10 @@ demo_view_mouse_func (demo_view_t *vu, int button, int state, int x, int y)
       }
       break;
 
-#if defined(GLUT_WHEEL_UP)
+#if !defined(GLUT_WHEEL_UP)
+#define GLUT_WHEEL_UP 3
+#define GLUT_WHEEL_DOWN 4
+#endif
 
     case GLUT_WHEEL_UP:
       demo_view_scale (vu, STEP);
@@ -505,8 +508,6 @@ demo_view_mouse_func (demo_view_t *vu, int button, int state, int x, int y)
     case GLUT_WHEEL_DOWN:
       demo_view_scale (vu, 1. / STEP);
       break;
-
-#endif
   }
 
   vu->beginx = vu->lastx = x;
