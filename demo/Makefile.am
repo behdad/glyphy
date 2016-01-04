@@ -7,10 +7,16 @@ MAINTAINERCLEANFILES =
 BUILT_SOURCES =
 noinst_PROGRAMS =
 
-#BUILT_SOURCES += default-text.h
-EXTRA_DIST += default-text.txt default-text.h
-default-text.h: default-text.txt
-	$(top_srcdir)/src/stringize "static const char default_text[]" $^ > $@
+BUILT_SOURCES += default-text.h default-font.h
+EXTRA_DIST += default-text.txt default-font.ttf
+default-text.h: default-text.txt $(top_srcdir)/src/stringize
+	$(AM_V_GEN) $(top_srcdir)/src/stringize "static const char default_text[]" $< > $@
+default-font.h: default-font.ttf
+	$(AM_V_GEN) { \
+		echo "static const unsigned char default_font[] = {"; \
+		hexdump -v -e '"x" 1/1 "%02X" " "' < $< | fmt | sed 's/ *x/\\x/g;s/^/"/;s/$$/"/'; \
+		echo '};'; \
+	} > $@
 
 if HAVE_FREETYPE2
 if HAVE_GL
@@ -36,6 +42,7 @@ glyphy_demo_LDADD = \
 	$(GLUT_LIBS) \
 	$(NULL)
 glyphy_demo_SOURCES = \
+	default-font.h \
 	default-text.h \
 	demo-atlas.h \
 	demo-atlas.cc \

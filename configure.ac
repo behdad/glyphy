@@ -90,16 +90,6 @@ fi
 
 dnl ===========================================================================
 
-# Find default font, for the demo
-AC_MSG_CHECKING([for default font])
-DEFAULT_FONT="`fc-match -v 2>/dev/null | grep 'file:' | cut -d'\"' -f2`"
-if test "x$DEFAULT_FONT" = x; then :; else
-	AC_DEFINE_UNQUOTED([DEFAULT_FONT], ["$DEFAULT_FONT"], [Default font file.])
-fi
-AC_MSG_RESULT($DEFAULT_FONT)
-
-dnl ===========================================================================
-
 AC_DEFINE_DIR([PKGDATADIR], [$pkgdatadir], [Define to the directory containing package data.])
 
 AC_CONFIG_FILES([

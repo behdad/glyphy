@@ -123,8 +123,6 @@ main (int argc, char** argv)
   {
     if (optind < argc)
       font_path = argv[optind++];
-    else
-      font_path = DEFAULT_FONT;
   }
   if (!text)
   {
@@ -133,7 +131,7 @@ main (int argc, char** argv)
     else
       text = default_text;
   }
-  if (!font_path || !text || optind < argc)
+  if (!text || optind < argc)
   {
     show_usage(argv[0]);
     return 1;
@@ -164,12 +162,15 @@ main (int argc, char** argv)
   FT_Library ft_library;
   FT_Init_FreeType (&ft_library);
   FT_Face ft_face = NULL;
-#ifdef EMSCRIPTEN
-# include "DroidSans.c"
-  FT_New_Memory_Face (ft_library, (const FT_Byte *) DroidSans, sizeof (DroidSans), 0/*face_index*/, &ft_face);
-#else
-  FT_New_Face (ft_library, font_path, 0/*face_index*/, &ft_face);
-#endif
+  if (font_path)
+  {
+    FT_New_Face (ft_library, font_path, 0/*face_index*/, &ft_face);
+  }
+  else
+  {
+    #include "default-font.h"
+    FT_New_Memory_Face (ft_library, (const FT_Byte *) default_font, sizeof (default_font), 0/*face_index*/, &ft_face);
+  }
   if (!ft_face)
     die ("Failed to open font file");
   demo_font_t *font = demo_font_create (ft_face, demo_glstate_get_atlas (st));
