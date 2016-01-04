@@ -7,6 +7,10 @@ MAINTAINERCLEANFILES =
 BUILT_SOURCES =
 noinst_PROGRAMS =
 
+#BUILT_SOURCES += default-text.h
+EXTRA_DIST += default-text.txt default-text.h
+default-text.h: default-text.txt
+	$(top_srcdir)/src/stringize "static const char default_text[]" $^ > $@
 
 if HAVE_FREETYPE2
 if HAVE_GL
@@ -32,6 +36,7 @@ glyphy_demo_LDADD = \
 	$(GLUT_LIBS) \
 	$(NULL)
 glyphy_demo_SOURCES = \
+	default-text.h \
 	demo-atlas.h \
 	demo-atlas.cc \
 	demo-buffer.h \
@@ -46,7 +51,6 @@ glyphy_demo_SOURCES = \
 	demo-view.h \
 	demo-view.cc \
 	glyphy-demo.cc \
-	jabberwocky.h \
 	matrix4x4.h \
 	matrix4x4.c \
 	trackball.h \
