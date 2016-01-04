@@ -163,7 +163,7 @@ main (int argc, char** argv)
 
   FT_Library ft_library;
   FT_Init_FreeType (&ft_library);
-  FT_Face ft_face;
+  FT_Face ft_face = NULL;
 #ifdef EMSCRIPTEN
 # include "DroidSans.c"
   FT_New_Memory_Face (ft_library, (const FT_Byte *) DroidSans, sizeof (DroidSans), 0/*face_index*/, &ft_face);
