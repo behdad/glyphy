@@ -32,6 +32,7 @@ libglyphy_la_SOURCES = \
 PUBLICHEADERS = \
 	glyphy.h \
 	glyphy-freetype.h \
+	glyphy-windows.h \
 	$(NULL)
 SHADERS = \
 	glyphy-common.glsl \
