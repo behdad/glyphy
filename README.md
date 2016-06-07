@@ -39,7 +39,8 @@ Compilation instructions on Mac OS X:
 
 Compilation instructions on Windows:
 
-(originally developed by: https://github.com/tml1024/glyphy )
+( originally developed by: https://github.com/tml1024/glyphy )
+
 1. Install msvc2012/2013/2015 (comunity edition should be OK) if needed
 2. Extact sed.exe from https://sourceforge.net/projects/unxutils/ and make sure it is on the PATH.
 3. Open any of glyphy/demo/windows/msvc201x/glyphy.sln
