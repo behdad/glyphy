@@ -20,13 +20,14 @@
 #include <config.h>
 #endif
 
+#ifndef _WIN32
 #include <libgen.h>
+#include <unistd.h>
+#endif
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 #include <ctype.h>
 #include <stdlib.h>
-
 
 #include "demo-buffer.h"
 #include "demo-font.h"
@@ -38,6 +39,95 @@ static demo_buffer_t *buffer;
 
 #define WINDOW_W 700
 #define WINDOW_H 700
+
+#ifdef _WIN32
+#       pragma comment (lib, "glu32.lib")    /* link OpenGL Utility lib     */
+#       pragma comment (lib, "opengl32.lib") /* link Microsoft OpenGL lib   */
+#       pragma comment (lib, "gdi32.lib")    /* link Windows GDI lib        */
+#       pragma comment (lib, "winmm.lib")    /* link Windows MultiMedia lib */
+#       pragma comment (lib, "user32.lib")   /* link Windows user lib       */
+
+static int isroot(const char *path)
+{
+  return ((strlen(path) == 1 && path[0] == '/') ||
+	  (strlen(path) == 3 && isalpha(path[0]) && path[1] == ':' && (path[2] == '/' || path[2] == '\\')));
+}
+
+static char *basename(char *path)
+{
+  if (path == NULL || *path == '\0')
+    return ".";
+
+  while ((path[strlen(path)-1] == '/' ||
+	  path[strlen(path)-1] == '\\') &&
+	 !isroot(path))
+    path[strlen(path)-1] = '\0';
+
+  if (isroot(path))
+    return path;
+
+  char *slash = strrchr(path, '/');
+  char *backslash = strrchr(path, '\\');
+
+  if (slash != NULL && (backslash == NULL || backslash < slash))
+    return slash + 1;
+  else if (backslash != NULL && (slash == NULL || slash < backslash))
+    return backslash + 1;
+  else
+    return path;
+}
+
+static int opterr = 1;
+static int optind = 1;
+static int optopt;
+static char *optarg;
+
+static int getopt(int argc, char *argv[], char *opts)
+{
+    static int sp = 1;
+    int c;
+    char *cp;
+
+    if (sp == 1) {
+        if (optind >= argc ||
+            argv[optind][0] != '-' || argv[optind][1] == '\0')
+            return EOF;
+        else if (!strcmp(argv[optind], "--")) {
+            optind++;
+            return EOF;
+        }
+    }
+    optopt = c = argv[optind][sp];
+    if (c == ':' || !(cp = strchr(opts, c))) {
+        fprintf(stderr, ": illegal option -- %c\n", c);
+        if (argv[optind][++sp] == '\0') {
+            optind++;
+            sp = 1;
+        }
+        return '?';
+    }
+    if (*++cp == ':') {
+        if (argv[optind][sp+1] != '\0')
+            optarg = &argv[optind++][sp+1];
+        else if(++optind >= argc) {
+            fprintf(stderr, ": option requires an argument -- %c\n", c);
+            sp = 1;
+            return '?';
+        } else
+            optarg = argv[optind++];
+        sp = 1;
+    } else {
+        if (argv[optind][++sp] == '\0') {
+            sp = 1;
+            optind++;
+        }
+        optarg = NULL;
+    }
+
+    return c;
+}
+
+#endif
 
 static void
 reshape_func (int width, int height)
@@ -100,7 +190,7 @@ int
 main (int argc, char** argv)
 {
   /* Process received parameters */
-#   include "default-text.h"
+#   include "jabberwocky.h"
   const char *text = NULL;
   const char *font_path = NULL;
   char arg;
@@ -123,15 +213,18 @@ main (int argc, char** argv)
   {
     if (optind < argc)
       font_path = argv[optind++];
+    else
+      font_path = DEFAULT_FONT;
   }
   if (!text)
   {
     if (optind < argc)
       text = argv[optind++];
     else
-      text = default_text;
+//    text = jabberwocky;
+      text = usage;
   }
-  if (!text || optind < argc)
+  if (!font_path || !text || optind < argc)
   {
     show_usage(argv[0]);
     return 1;
@@ -159,21 +252,55 @@ main (int argc, char** argv)
   vu = demo_view_create (st);
   demo_view_print_help (vu);
 
+#ifndef _WIN32
   FT_Library ft_library;
   FT_Init_FreeType (&ft_library);
-  FT_Face ft_face = NULL;
-  if (font_path)
-  {
-    FT_New_Face (ft_library, font_path, 0/*face_index*/, &ft_face);
-  }
-  else
-  {
-    #include "default-font.h"
-    FT_New_Memory_Face (ft_library, (const FT_Byte *) default_font, sizeof (default_font), 0/*face_index*/, &ft_face);
-  }
+  FT_Face ft_face;
+#ifdef EMSCRIPTEN
+# include "DroidSans.c"
+  FT_New_Memory_Face (ft_library, (const FT_Byte *) DroidSans, sizeof (DroidSans), 0/*face_index*/, &ft_face);
+#else
+  FT_New_Face (ft_library, font_path, 0/*face_index*/, &ft_face);
+#endif
   if (!ft_face)
     die ("Failed to open font file");
   demo_font_t *font = demo_font_create (ft_face, demo_glstate_get_atlas (st));
+#endif
+
+#ifdef _WIN32
+  HDC hdc = CreateCompatibleDC (GetDC (NULL));
+  if (hdc == NULL)
+    die ("GetDC or CreateCompatibleDC failed");
+
+  /* First create an instance of the font at size 10 to get the OUTLINETEXTMETRIC from which to get
+   * the font's em unit. Then, to get an unmodified not grid-fitted glyph outline, create it anew at
+   * that size. That is  as the doc for GetGlyphOutline() suggests.
+   */
+  HFONT hfont = CreateFontA(10, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_TT_ONLY_PRECIS, CLIP_DEFAULT_PRECIS, PROOF_QUALITY, FF_DONTCARE, font_path);
+  if (hfont == NULL)
+    die ("CreateFontA failed");
+
+  HFONT old_hfont = (HFONT) SelectObject (hdc, hfont);
+  if (old_hfont == NULL)
+    die ("SelectObject failed");
+
+  OUTLINETEXTMETRICW outline_text_metric;
+  if (!GetOutlineTextMetricsW (hdc, sizeof (OUTLINETEXTMETRICW), &outline_text_metric))
+    die ("GetOutlineTextMetricsW failed");
+
+  SelectObject (hdc, old_hfont);
+
+  hfont = CreateFontA (outline_text_metric.otmEMSquare, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_TT_ONLY_PRECIS, CLIP_DEFAULT_PRECIS, PROOF_QUALITY, FF_DONTCARE, font_path);
+  if (hfont == NULL)
+    die ("CreateFontA failed");
+
+  old_hfont = (HFONT) SelectObject (hdc, hfont);
+  if (old_hfont == NULL)
+    die ("SelectObject failed");
+
+  demo_font_t *font = demo_font_create (hdc, demo_glstate_get_atlas (st));
+
+#endif
 
   buffer = demo_buffer_create ();
   glyphy_point_t top_left = {0, 0};
@@ -188,8 +315,16 @@ main (int argc, char** argv)
   demo_buffer_destroy (buffer);
   demo_font_destroy (font);
 
+#ifndef _WIN32
   FT_Done_Face (ft_face);
   FT_Done_FreeType (ft_library);
+#endif
+
+#ifdef _WIN32
+  SelectObject (hdc, old_hfont);
+  DeleteObject (hfont);
+  DeleteDC (hdc);
+#endif
 
   demo_view_destroy (vu);
   demo_glstate_destroy (st);

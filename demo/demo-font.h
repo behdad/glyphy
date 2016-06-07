@@ -22,9 +22,15 @@
 #include "demo-common.h"
 #include "demo-atlas.h"
 
+#ifndef _WIN32
 #include <ft2build.h>
 #include FT_FREETYPE_H
-
+#else
+#include <windows.h>
+#define DEFAULT_FONT "Calibri"
+#undef near
+#undef far
+#endif
 
 typedef struct {
   glyphy_extents_t extents;
@@ -40,7 +46,13 @@ typedef struct {
 typedef struct demo_font_t demo_font_t;
 
 demo_font_t *
-demo_font_create (FT_Face       face,
+demo_font_create (
+#ifndef _WIN32
+		  FT_Face       face,
+#endif
+#ifdef _WIN32
+		  HDC           hdc,
+#endif
 		  demo_atlas_t *atlas);
 
 demo_font_t *
@@ -50,7 +62,11 @@ void
 demo_font_destroy (demo_font_t *font);
 
 
+#ifndef _WIN32
 FT_Face
+#else
+HDC
+#endif
 demo_font_get_face (demo_font_t *font);
 
 demo_atlas_t *
