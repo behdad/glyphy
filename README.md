@@ -12,6 +12,10 @@ Dicussions happen on:
 
 https://groups.google.com/forum/#!forum/glyphy
 
+----------------------------------------------------------------------
+
+Original Chris Green / Valve Corporation paper is here:
+http://www.valvesoftware.com/publications/2007/SIGGRAPH2007_AlphaTestedMagnification.pdf
 
 ----------------------------------------------------------------------
 
