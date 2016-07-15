@@ -190,7 +190,7 @@ int
 main (int argc, char** argv)
 {
   /* Process received parameters */
-#   include "jabberwocky.h"
+#   include "default-text.h"
   const char *text = NULL;
   const char *font_path = NULL;
   char arg;
@@ -222,7 +222,7 @@ main (int argc, char** argv)
       text = argv[optind++];
     else
 //    text = jabberwocky;
-      text = usage;
+      text = default_text;
   }
   if (!font_path || !text || optind < argc)
   {
