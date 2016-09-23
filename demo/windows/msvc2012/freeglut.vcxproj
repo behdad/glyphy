@@ -1,0 +1,208 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\freeglut\inc\GL\freeglut.h" />
+    <ClInclude Include="..\freeglut\inc\GL\freeglut_ext.h" />
+    <ClInclude Include="..\freeglut\inc\GL\freeglut_std.h" />
+    <ClInclude Include="..\freeglut\inc\GL\glut.h" />
+    <ClInclude Include="..\freeglut\src\fg_gl2.h" />
+    <ClInclude Include="..\freeglut\src\fg_init.h" />
+    <ClInclude Include="..\freeglut\src\fg_internal.h" />
+    <ClInclude Include="..\freeglut\src\fg_teapot_data.h" />
+    <ClInclude Include="..\freeglut\src\mswin\fg_internal_mswin.h" />
+    <ClInclude Include="..\freeglut\src\util\xparsegeometry_repl.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\freeglut\src\fg_callbacks.c" />
+    <ClCompile Include="..\freeglut\src\fg_cursor.c" />
+    <ClCompile Include="..\freeglut\src\fg_display.c" />
+    <ClCompile Include="..\freeglut\src\fg_ext.c" />
+    <ClCompile Include="..\freeglut\src\fg_font.c" />
+    <ClCompile Include="..\freeglut\src\fg_font_data.c" />
+    <ClCompile Include="..\freeglut\src\fg_gamemode.c" />
+    <ClCompile Include="..\freeglut\src\fg_geometry.c" />
+    <ClCompile Include="..\freeglut\src\fg_gl2.c" />
+    <ClCompile Include="..\freeglut\src\fg_init.c" />
+    <ClCompile Include="..\freeglut\src\fg_input_devices.c" />
+    <ClCompile Include="..\freeglut\src\fg_joystick.c" />
+    <ClCompile Include="..\freeglut\src\fg_main.c" />
+    <ClCompile Include="..\freeglut\src\fg_menu.c" />
+    <ClCompile Include="..\freeglut\src\fg_misc.c" />
+    <ClCompile Include="..\freeglut\src\fg_overlay.c" />
+    <ClCompile Include="..\freeglut\src\fg_spaceball.c" />
+    <ClCompile Include="..\freeglut\src\fg_state.c" />
+    <ClCompile Include="..\freeglut\src\fg_stroke_mono_roman.c" />
+    <ClCompile Include="..\freeglut\src\fg_stroke_roman.c" />
+    <ClCompile Include="..\freeglut\src\fg_structure.c" />
+    <ClCompile Include="..\freeglut\src\fg_teapot.c" />
+    <ClCompile Include="..\freeglut\src\fg_videoresize.c" />
+    <ClCompile Include="..\freeglut\src\fg_window.c" />
+    <ClCompile Include="..\freeglut\src\mswin\fg_cursor_mswin.c" />
+    <ClCompile Include="..\freeglut\src\mswin\fg_display_mswin.c" />
+    <ClCompile Include="..\freeglut\src\mswin\fg_ext_mswin.c" />
+    <ClCompile Include="..\freeglut\src\mswin\fg_gamemode_mswin.c" />
+    <ClCompile Include="..\freeglut\src\mswin\fg_init_mswin.c" />
+    <ClCompile Include="..\freeglut\src\mswin\fg_input_devices_mswin.c" />
+    <ClCompile Include="..\freeglut\src\mswin\fg_joystick_mswin.c" />
+    <ClCompile Include="..\freeglut\src\mswin\fg_main_mswin.c" />
+    <ClCompile Include="..\freeglut\src\mswin\fg_menu_mswin.c" />
+    <ClCompile Include="..\freeglut\src\mswin\fg_spaceball_mswin.c" />
+    <ClCompile Include="..\freeglut\src\mswin\fg_state_mswin.c" />
+    <ClCompile Include="..\freeglut\src\mswin\fg_structure_mswin.c" />
+    <ClCompile Include="..\freeglut\src\mswin\fg_window_mswin.c" />
+    <ClCompile Include="..\freeglut\src\util\xparsegeometry_repl.c" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{16458488-1C9D-4EF1-8311-A5E80ECD25D0}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>freeglut</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)..\lib\msvc2012\$(ProjectName)\$(PlatformShortName)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)..\obj\msvc2012\$(ProjectName)\$(PlatformShortName)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IntDir>$(SolutionDir)..\obj\msvc2012\$(ProjectName)\$(PlatformShortName)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)..\lib\msvc2012\$(ProjectName)\$(PlatformShortName)\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)..\lib\msvc2012\$(ProjectName)\$(PlatformShortName)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)..\obj\msvc2012\$(ProjectName)\$(PlatformShortName)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IntDir>$(SolutionDir)..\obj\msvc2012\$(ProjectName)\$(PlatformShortName)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)..\lib\msvc2012\$(ProjectName)\$(PlatformShortName)\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;_WIN32_WINNT=0x0601;WINVER=0x0601;;FREEGLUT_STATIC;FREEGLUT_LIB_PRAGMAS=0;HAVE_CONFIG_H;_DEBUG;_LIB;HAVE_CONFIG_H;_USE_MATH_DEFINES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\freeglut\inc;..\freeglut\src\mswin;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4244;4056;4800;4312</DisableSpecificWarnings>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+      <MinimalRebuild>false</MinimalRebuild>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;_WIN32_WINNT=0x0601;WINVER=0x0601;;FREEGLUT_STATIC;FREEGLUT_LIB_PRAGMAS=0;HAVE_CONFIG_H;_DEBUG;_LIB;HAVE_CONFIG_H;_USE_MATH_DEFINES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\freeglut\inc;..\freeglut\src\mswin;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4244;4056;4800;4312</DisableSpecificWarnings>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+      <MinimalRebuild>false</MinimalRebuild>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;_WIN32_WINNT=0x0601;WINVER=0x0601;;FREEGLUT_STATIC;FREEGLUT_LIB_PRAGMAS=0;HAVE_CONFIG_H;NDEBUG;_LIB;HAVE_CONFIG_H;_USE_MATH_DEFINES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\freeglut\inc;..\freeglut\src\mswin;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4244;4056;4800;4312</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;_WIN32_WINNT=0x0601;WINVER=0x0601;;FREEGLUT_STATIC;FREEGLUT_LIB_PRAGMAS=0;HAVE_CONFIG_H;NDEBUG;_LIB;HAVE_CONFIG_H;_USE_MATH_DEFINES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\freeglut\inc;..\freeglut\src\mswin;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4244;4056;4800;4312</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

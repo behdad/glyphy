@@ -1,0 +1,159 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="h">
+      <UniqueIdentifier>{22bfcbb7-ea46-4d99-8d16-fa9f0e6cee1a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{0727bbf3-02a9-4f74-8f57-6f59f92b8aaa}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\freeglut\inc\GL\freeglut.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="..\freeglut\inc\GL\freeglut_ext.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="..\freeglut\inc\GL\freeglut_std.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="..\freeglut\inc\GL\glut.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="..\freeglut\src\fg_internal.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="..\freeglut\src\fg_teapot_data.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="..\freeglut\src\mswin\fg_internal_mswin.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="..\freeglut\src\util\xparsegeometry_repl.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="..\freeglut\src\fg_gl2.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\freeglut\src\fg_init.h">
+      <Filter>src</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\freeglut\src\fg_gl2.c">
+      <Filter>h</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\fg_init.c">
+      <Filter>h</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\util\xparsegeometry_repl.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\mswin\fg_cursor_mswin.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\mswin\fg_display_mswin.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\mswin\fg_ext_mswin.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\mswin\fg_gamemode_mswin.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\mswin\fg_init_mswin.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\mswin\fg_input_devices_mswin.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\mswin\fg_joystick_mswin.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\mswin\fg_main_mswin.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\mswin\fg_menu_mswin.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\mswin\fg_spaceball_mswin.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\mswin\fg_state_mswin.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\mswin\fg_structure_mswin.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\mswin\fg_window_mswin.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\fg_callbacks.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\fg_cursor.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\fg_display.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\fg_ext.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\fg_font.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\fg_font_data.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\fg_gamemode.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\fg_geometry.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\fg_input_devices.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\fg_joystick.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\fg_main.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\fg_menu.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\fg_misc.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\fg_overlay.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\fg_spaceball.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\fg_state.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\fg_stroke_mono_roman.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\fg_stroke_roman.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\fg_structure.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\fg_teapot.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\fg_videoresize.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\freeglut\src\fg_window.c">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

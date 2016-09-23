@@ -1,0 +1,86 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\..\demo-atlas.cc">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\demo-buffer.cc">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\demo-font.cc">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\demo-glstate.cc">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\demo-shader.cc">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\demo-view.cc">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\glyphy-demo.cc">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\matrix4x4.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\trackball.c">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="h">
+      <UniqueIdentifier>{04dca291-27af-4084-a335-f3086f074ad8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{f2a3278f-9b0b-4f90-b69e-3efe122542fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="glsl">
+      <UniqueIdentifier>{6415ab4a-38e5-440e-b29a-cc4e85f1ad88}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\demo-atlas.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\demo-buffer.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\demo-common.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\demo-font.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\demo-glstate.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\demo-shader.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\demo-view.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\jabberwocky.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\matrix4x4.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\trackball.h">
+      <Filter>h</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\demo-atlas.glsl">
+      <Filter>glsl</Filter>
+    </None>
+    <None Include="..\..\demo-fshader.glsl">
+      <Filter>glsl</Filter>
+    </None>
+    <None Include="..\..\demo-vshader.glsl">
+      <Filter>glsl</Filter>
+    </None>
+  </ItemGroup>
+</Project>

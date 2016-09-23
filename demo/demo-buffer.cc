@@ -106,7 +106,11 @@ demo_buffer_add_text (demo_buffer_t        *buffer,
 		      demo_font_t          *font,
 		      double                font_size)
 {
+#ifndef _WIN32
   FT_Face face = demo_font_get_face (font);
+#else
+  HDC hdc = demo_font_get_face (font);
+#endif
   glyphy_point_t top_left = buffer->cursor;
   buffer->cursor.y += font_size /* * font->ascent */;
   unsigned int unicode;
@@ -138,7 +142,14 @@ demo_buffer_add_text (demo_buffer_t        *buffer,
       continue;
     }
 
+#ifndef _WIN32
     unsigned int glyph_index = FT_Get_Char_Index (face, unicode);
+#else
+    wchar_t wc = unicode; /* FIXME: What about non-BMP chars? */
+    WORD glyph_index;
+    if (GetGlyphIndicesW (hdc, &wc, 1, &glyph_index, GGI_MARK_NONEXISTING_GLYPHS) == GDI_ERROR)
+      die ("GetGlyphIndicesW failed");
+#endif
     glyph_info_t gi;
     demo_font_lookup_glyph (font, glyph_index, &gi);
 

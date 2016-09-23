@@ -1,0 +1,72 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\..\..\src\glyphy-arc.cc">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\glyphy-arcs.cc">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\glyphy-blob.cc">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\glyphy-extents.cc">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\glyphy-outline.cc">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\glyphy-sdf.cc">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\glyphy-shaders.cc">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\config.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\glyphy-freetype.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\glyphy-windows.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\glyphy.h">
+      <Filter>h</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{d31606e9-48f6-4c10-8b9f-1bff3da062d8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="h">
+      <UniqueIdentifier>{c4e24586-7fe5-4b19-bca7-e38b1073bd82}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="glsl">
+      <UniqueIdentifier>{d040e0f4-da01-4905-b528-144beb9582a8}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\src\glyphy-arc-bezier.hh">
+      <Filter>h</Filter>
+    </None>
+    <None Include="..\..\..\src\glyphy-arcs-bezier.hh">
+      <Filter>h</Filter>
+    </None>
+    <None Include="..\..\..\src\glyphy-common.hh">
+      <Filter>h</Filter>
+    </None>
+    <None Include="..\..\..\src\glyphy-geometry.hh">
+      <Filter>h</Filter>
+    </None>
+    <None Include="..\..\..\src\glyphy-common.glsl">
+      <Filter>glsl</Filter>
+    </None>
+    <None Include="..\..\..\src\glyphy-sdf.glsl">
+      <Filter>glsl</Filter>
+    </None>
+    <None Include="..\stringize.bat" />
+  </ItemGroup>
+</Project>

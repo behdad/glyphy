@@ -16,25 +16,39 @@
  * Google Author(s): Behdad Esfahbod
  */
 
+#undef _USE_MATH_DEFINES
+#define _USE_MATH_DEFINES
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
 
 #include "demo-font.h"
 
+#ifndef _WIN32
 #include <glyphy-freetype.h>
+#endif
 
-#include <ext/hash_map>
+#ifdef _WIN32
+#include <glyphy-windows.h>
+#endif
 
-using namespace __gnu_cxx; /* This is ridiculous */
+#include <map>
+#include <vector>
 
-
-typedef hash_map<unsigned int, glyph_info_t> glyph_cache_t;
+typedef std::map<unsigned int, glyph_info_t> glyph_cache_t;
 
 struct demo_font_t {
   unsigned int   refcount;
 
+#ifndef _WIN32
   FT_Face        face;
+#endif
+
+#ifdef _WIN32
+  HDC            face; /* A memory DC that has the font instance selected into it */
+#endif
+
   glyph_cache_t *glyph_cache;
   demo_atlas_t  *atlas;
   glyphy_arc_accumulator_t *acc;
@@ -48,7 +62,13 @@ struct demo_font_t {
 };
 
 demo_font_t *
-demo_font_create (FT_Face       face,
+demo_font_create (
+#ifndef _WIN32
+		  FT_Face       face,
+#endif
+#ifdef _WIN32
+		  HDC           face,
+#endif
 		  demo_atlas_t *atlas)
 {
   demo_font_t *font = (demo_font_t *) calloc (1, sizeof (demo_font_t));
@@ -88,7 +108,12 @@ demo_font_destroy (demo_font_t *font)
 }
 
 
+#ifndef _WIN32
 FT_Face
+#endif
+#ifdef _WIN32
+HDC
+#endif
 demo_font_get_face (demo_font_t *font)
 {
   return font->face;
@@ -103,27 +128,28 @@ demo_font_get_atlas (demo_font_t *font)
 
 static glyphy_bool_t
 accumulate_endpoint (glyphy_arc_endpoint_t         *endpoint,
-		     vector<glyphy_arc_endpoint_t> *endpoints)
+		     std::vector<glyphy_arc_endpoint_t> *endpoints)
 {
   endpoints->push_back (*endpoint);
   return true;
 }
 
 static void
-encode_ft_glyph (demo_font_t      *font,
-		 unsigned int      glyph_index,
-		 double            tolerance_per_em,
-		 glyphy_rgba_t    *buffer,
-		 unsigned int      buffer_len,
-		 unsigned int     *output_len,
-		 unsigned int     *nominal_width,
-		 unsigned int     *nominal_height,
-		 glyphy_extents_t *extents,
-		 double           *advance)
+encode_glyph (demo_font_t      *font,
+	      unsigned int      glyph_index,
+	      double            tolerance_per_em,
+	      glyphy_rgba_t    *buffer,
+	      unsigned int      buffer_len,
+	      unsigned int     *output_len,
+	      unsigned int     *nominal_width,
+	      unsigned int     *nominal_height,
+	      glyphy_extents_t *extents,
+	      double           *advance)
 {
 /* Used for testing only */
 #define SCALE  (1. * (1 << 0))
 
+#ifndef _WIN32
   FT_Face face = font->face;
   if (FT_Err_Ok != FT_Load_Glyph (face,
 				  glyph_index,
@@ -141,7 +167,7 @@ encode_ft_glyph (demo_font_t      *font,
   unsigned int upem = face->units_per_EM;
   double tolerance = upem * tolerance_per_em; /* in font design units */
   double faraway = double (upem) / (MIN_FONT_SIZE * M_SQRT2);
-  vector<glyphy_arc_endpoint_t> endpoints;
+  std::vector<glyphy_arc_endpoint_t> endpoints;
 
   glyphy_arc_accumulator_reset (font->acc);
   glyphy_arc_accumulator_set_tolerance (font->acc, tolerance);
@@ -151,6 +177,53 @@ encode_ft_glyph (demo_font_t      *font,
 
   if (FT_Err_Ok != glyphy_freetype(outline_decompose) (&face->glyph->outline, font->acc))
     die ("Failed converting glyph outline to arcs");
+#endif
+
+#ifdef _WIN32
+  HDC hdc = font->face;
+
+  GLYPHMETRICS glyph_metrics;
+  MAT2 matrix;
+
+  matrix.eM11.value = 1;
+  matrix.eM11.fract = 0;
+  matrix.eM12.value = 0;
+  matrix.eM12.fract = 0;
+  matrix.eM21.value = 0;
+  matrix.eM21.fract = 0;
+  matrix.eM22.value = 1;
+  matrix.eM22.fract = 0;
+
+  DWORD size = GetGlyphOutlineW (hdc, glyph_index, GGO_NATIVE|GGO_GLYPH_INDEX, &glyph_metrics, 0, NULL, &matrix);
+  if (size == GDI_ERROR)
+    die ("GetGlyphOutlineW failed");
+  std::vector<char> buf(size);
+  size = GetGlyphOutlineW (hdc, glyph_index, GGO_NATIVE|GGO_GLYPH_INDEX, &glyph_metrics, size, buf.data(), &matrix);
+  if (size == GDI_ERROR)
+    die ("GetGlyphOutlineW failed");
+
+  size = GetGlyphOutlineW (hdc, glyph_index, GGO_METRICS|GGO_GLYPH_INDEX, &glyph_metrics, 0, NULL, &matrix);
+  if (size == GDI_ERROR)
+    die ("GetGlyphOutlineW failed");
+
+  OUTLINETEXTMETRICW outline_text_metric;
+  if (!GetOutlineTextMetricsW (hdc, sizeof (OUTLINETEXTMETRICW), &outline_text_metric))
+    die ("GetOutlineTextMetricsW failed");
+
+  unsigned int upem = outline_text_metric.otmEMSquare;
+  double tolerance = upem * tolerance_per_em; /* in font design units */
+  double faraway = double (upem) / (MIN_FONT_SIZE * M_SQRT2);
+  std::vector<glyphy_arc_endpoint_t> endpoints;
+
+  glyphy_arc_accumulator_reset (font->acc);
+  glyphy_arc_accumulator_set_tolerance (font->acc, tolerance);
+  glyphy_arc_accumulator_set_callback (font->acc,
+				       (glyphy_arc_endpoint_accumulator_callback_t) accumulate_endpoint,
+				       &endpoints);
+
+  if (0 != glyphy_windows(outline_decompose) ((TTPOLYGONHEADER *) buf.data(), buf.size(), font->acc))
+    die ("Failed converting glyph outline to arcs");
+#endif
 
   assert (glyphy_arc_accumulator_get_error (font->acc) <= tolerance);
 
@@ -192,16 +265,22 @@ encode_ft_glyph (demo_font_t      *font,
   glyphy_extents_scale (extents, 1. / upem, 1. / upem);
   glyphy_extents_scale (extents, SCALE, SCALE);
 
+#ifndef _WIN32
   *advance = face->glyph->metrics.horiAdvance / (double) upem;
+#endif
 
-  if (0)
+#ifdef _WIN32
+  *advance = glyph_metrics.gmCellIncX / (double) upem; /* ??? */
+#endif
+
+#if (0)
     LOGI ("gid%3u: endpoints%3d; err%3g%%; tex fetch%4.1f; mem%4.1fkb\n",
 	  glyph_index,
 	  (unsigned int) glyphy_arc_accumulator_get_num_endpoints (font->acc),
 	  round (100 * glyphy_arc_accumulator_get_error (font->acc) / tolerance),
 	  avg_fetch_achieved,
 	  (*output_len * sizeof (glyphy_rgba_t)) / 1024.);
-
+#endif
   font->num_glyphs++;
   font->sum_error += glyphy_arc_accumulator_get_error (font->acc) / tolerance;
   font->sum_endpoints += glyphy_arc_accumulator_get_num_endpoints (font->acc);
@@ -217,15 +296,15 @@ _demo_font_upload_glyph (demo_font_t *font,
   glyphy_rgba_t buffer[4096 * 16];
   unsigned int output_len;
 
-  encode_ft_glyph (font,
-		   glyph_index,
-		   TOLERANCE,
-		   buffer, ARRAY_LEN (buffer),
-		   &output_len,
-		   &glyph_info->nominal_w,
-		   &glyph_info->nominal_h,
-		   &glyph_info->extents,
-		   &glyph_info->advance);
+  encode_glyph (font,
+		glyph_index,
+		TOLERANCE,
+		buffer, ARRAY_LEN (buffer),
+		&output_len,
+		&glyph_info->nominal_w,
+		&glyph_info->nominal_h,
+		&glyph_info->extents,
+		&glyph_info->advance);
 
   glyph_info->is_empty = glyphy_extents_is_empty (&glyph_info->extents);
   if (!glyph_info->is_empty)
