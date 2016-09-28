@@ -24,12 +24,10 @@
 
 #include <glyphy-freetype.h>
 
-#include <ext/hash_map>
+#include <map>
+#include <vector>
 
-using namespace __gnu_cxx; /* This is ridiculous */
-
-
-typedef hash_map<unsigned int, glyph_info_t> glyph_cache_t;
+typedef std::map<unsigned int, glyph_info_t> glyph_cache_t;
 
 struct demo_font_t {
   unsigned int   refcount;
@@ -103,7 +101,7 @@ demo_font_get_atlas (demo_font_t *font)
 
 static glyphy_bool_t
 accumulate_endpoint (glyphy_arc_endpoint_t         *endpoint,
-		     vector<glyphy_arc_endpoint_t> *endpoints)
+		     std::vector<glyphy_arc_endpoint_t> *endpoints)
 {
   endpoints->push_back (*endpoint);
   return true;
@@ -141,7 +139,7 @@ encode_ft_glyph (demo_font_t      *font,
   unsigned int upem = face->units_per_EM;
   double tolerance = upem * tolerance_per_em; /* in font design units */
   double faraway = double (upem) / (MIN_FONT_SIZE * M_SQRT2);
-  vector<glyphy_arc_endpoint_t> endpoints;
+  std::vector<glyphy_arc_endpoint_t> endpoints;
 
   glyphy_arc_accumulator_reset (font->acc);
   glyphy_arc_accumulator_set_tolerance (font->acc, tolerance);

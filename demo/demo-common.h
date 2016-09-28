@@ -44,6 +44,13 @@
 #  define HAVE_GLUT 1
 #endif
 
+#ifdef _WIN32
+#  define HAVE_GL 1
+#  define HAVE_GLEW 1
+#  define HAVE_GLUT 1
+#  define HAVE_FREETYPE2 1
+#endif
+
 /* Get Glew out of the way. */
 #ifdef HAVE_GLEW
 #  include <GL/glew.h>
