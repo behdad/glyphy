@@ -27,8 +27,9 @@ extern "C" {
 #include "matrix4x4.h"
 }
 
+#ifndef _WIN32
 #include <sys/time.h>
-
+#endif
 
 struct demo_view_t {
   unsigned int   refcount;

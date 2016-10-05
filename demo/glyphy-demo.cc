@@ -20,10 +20,12 @@
 #include <config.h>
 #endif
 
+#ifndef _WIN32
 #include <libgen.h>
+#include <unistd.h>
+#endif
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 #include <ctype.h>
 #include <stdlib.h>
 
@@ -38,6 +40,90 @@ static demo_buffer_t *buffer;
 
 #define WINDOW_W 700
 #define WINDOW_H 700
+
+#ifdef _WIN32
+
+static int isroot(const char *path)
+{
+  return ((strlen(path) == 1 && path[0] == '/') ||
+	  (strlen(path) == 3 && isalpha(path[0]) && path[1] == ':' && (path[2] == '/' || path[2] == '\\')));
+}
+
+static char *basename(char *path)
+{
+  if (path == NULL || *path == '\0')
+    return ".";
+
+  while ((path[strlen(path)-1] == '/' ||
+	  path[strlen(path)-1] == '\\') &&
+	 !isroot(path))
+    path[strlen(path)-1] = '\0';
+
+  if (isroot(path))
+    return path;
+
+  char *slash = strrchr(path, '/');
+  char *backslash = strrchr(path, '\\');
+
+  if (slash != NULL && (backslash == NULL || backslash < slash))
+    return slash + 1;
+  else if (backslash != NULL && (slash == NULL || slash < backslash))
+    return backslash + 1;
+  else
+    return path;
+}
+
+static int opterr = 1;
+static int optind = 1;
+static int optopt;
+static char *optarg;
+
+static int getopt(int argc, char *argv[], char *opts)
+{
+    static int sp = 1;
+    int c;
+    char *cp;
+
+    if (sp == 1) {
+        if (optind >= argc ||
+            argv[optind][0] != '-' || argv[optind][1] == '\0')
+            return EOF;
+        else if (!strcmp(argv[optind], "--")) {
+            optind++;
+            return EOF;
+        }
+    }
+    optopt = c = argv[optind][sp];
+    if (c == ':' || !(cp = strchr(opts, c))) {
+        fprintf(stderr, ": illegal option -- %c\n", c);
+        if (argv[optind][++sp] == '\0') {
+            optind++;
+            sp = 1;
+        }
+        return '?';
+    }
+    if (*++cp == ':') {
+        if (argv[optind][sp+1] != '\0')
+            optarg = &argv[optind++][sp+1];
+        else if(++optind >= argc) {
+            fprintf(stderr, ": option requires an argument -- %c\n", c);
+            sp = 1;
+            return '?';
+        } else
+            optarg = argv[optind++];
+        sp = 1;
+    } else {
+        if (argv[optind][++sp] == '\0') {
+            sp = 1;
+            optind++;
+        }
+        optarg = NULL;
+    }
+
+    return c;
+}
+
+#endif
 
 static void
 reshape_func (int width, int height)
@@ -168,8 +254,12 @@ main (int argc, char** argv)
   }
   else
   {
+#ifdef _WIN32
+    FT_New_Face(ft_library, "C:\\Windows\\Fonts\\calibri.ttf", 0/*face_index*/, &ft_face);
+#elif
     #include "default-font.h"
     FT_New_Memory_Face (ft_library, (const FT_Byte *) default_font, sizeof (default_font), 0/*face_index*/, &ft_face);
+#endif
   }
   if (!ft_face)
     die ("Failed to open font file");

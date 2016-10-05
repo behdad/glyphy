@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "glyphy-demo", "glyphy-demo.vcxproj", "{0C6D51DA-FFD8-4835-A6DC-8FB6FAE65D35}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "glyphy", "glyphy.vcxproj", "{16458488-1C9D-4EF0-8311-A5E80ECD25D0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0C6D51DA-FFD8-4835-A6DC-8FB6FAE65D35}.Debug|Win32.ActiveCfg = Debug|Win32
+		{0C6D51DA-FFD8-4835-A6DC-8FB6FAE65D35}.Debug|Win32.Build.0 = Debug|Win32
+		{0C6D51DA-FFD8-4835-A6DC-8FB6FAE65D35}.Release|Win32.ActiveCfg = Release|Win32
+		{0C6D51DA-FFD8-4835-A6DC-8FB6FAE65D35}.Release|Win32.Build.0 = Release|Win32
+		{16458488-1C9D-4EF0-8311-A5E80ECD25D0}.Debug|Win32.ActiveCfg = Debug|Win32
+		{16458488-1C9D-4EF0-8311-A5E80ECD25D0}.Debug|Win32.Build.0 = Debug|Win32
+		{16458488-1C9D-4EF0-8311-A5E80ECD25D0}.Release|Win32.ActiveCfg = Release|Win32
+		{16458488-1C9D-4EF0-8311-A5E80ECD25D0}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
