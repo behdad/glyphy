@@ -58,10 +58,10 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>cscript $(MSBuildStartupDirectory)\stringize.js "$(MSBuildStartupDirectory)\..\demo"</Command>
+      <Command>cscript "$(MSBuildProjectDirectory)\stringize.js" "$(MSBuildProjectDirectory)\..\demo"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -81,7 +81,7 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <PreBuildEvent>
-      <Command>cscript $(MSBuildStartupDirectory)\stringize.js "$(MSBuildStartupDirectory)\..\demo"</Command>
+      <Command>cscript "$(MSBuildProjectDirectory)\stringize.js" "$(MSBuildProjectDirectory)\..\demo"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
