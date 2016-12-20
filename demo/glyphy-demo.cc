@@ -256,7 +256,7 @@ main (int argc, char** argv)
   {
 #ifdef _WIN32
     FT_New_Face(ft_library, "C:\\Windows\\Fonts\\calibri.ttf", 0/*face_index*/, &ft_face);
-#elif
+#else
     #include "default-font.h"
     FT_New_Memory_Face (ft_library, (const FT_Byte *) default_font, sizeof (default_font), 0/*face_index*/, &ft_face);
 #endif
