@@ -14,13 +14,13 @@ https://groups.google.com/forum/#!forum/glyphy
 
 ----------------------------------------------------------------------
 
-On GNOME3 and possibly other systems, if the vsync extension is not working (ie. pressing v in the demo doesn't have any effect), try running with `vblank_mode=0` env var.
+On GNOME3 and possibly other systems, if the vsync extension is not working (ie. pressing `v` in the demo doesn't have any effect), try running with `vblank_mode=0` env var.
 
-Compilation instructions on Mac OS X:
+### Compilation instructions on Mac OS X: ###
 
 1. Install Xcode and command line tools (as of Xcode 4.3.x, from
-   within Preferences -> Downloads).
-2. Install MacPorts.
+   within `Preferences` -> `Downloads`).
+2. Install [MacPorts](https://www.macports.org/install.php).
 3. `sudo port install automake autoconf libtool pkgconfig freetype`
 4. `./autogen.sh`
 5. `make`
