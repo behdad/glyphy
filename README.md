@@ -34,6 +34,6 @@ with Visual Studio.
 
 Assuming you have installed emscripten and have its tools on path,
 
-1. NOCONFIGURE=1 ./autogen.sh
-2. CPPFLAGS='-s USE_FREETYPE=1' LDFLAGS='-s USE_FREETYPE=1' emconfigure ./configure
-3. make EXEEXT=.html GL_LIBS= GLUT_LIBS=
+1. `NOCONFIGURE=1 ./autogen.sh`
+2. `CPPFLAGS='-s USE_FREETYPE=1' LDFLAGS='-s USE_FREETYPE=1' emconfigure ./configure`
+3. `make EXEEXT=.html GL_LIBS= GLUT_LIBS=`
