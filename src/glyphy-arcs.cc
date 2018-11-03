@@ -220,7 +220,7 @@ arc_to (glyphy_arc_accumulator_t *acc, const Point &p1, double d)
 static void
 bezier (glyphy_arc_accumulator_t *acc, const Bezier &b)
 {
-  double e;
+  double e = 0;
 
   std::vector<Arc> arcs;
   typedef ArcBezierApproximatorQuantizedDefault _ArcBezierApproximator;
