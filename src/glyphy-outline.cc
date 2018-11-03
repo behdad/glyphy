@@ -282,11 +282,11 @@ process_contour (glyphy_arc_endpoint_t       *endpoints,
     return false;
 
   if (num_endpoints < 3) {
-    //abort (); // Don't expect this
+    abort (); // Don't expect this
     return false; // Need at least two arcs
   }
   if (Point (endpoints[0].p) != Point (endpoints[num_endpoints-1].p)) {
-    //abort (); // Don't expect this
+    abort (); // Don't expect this
     return false; // Need a closed contour
    }
 
