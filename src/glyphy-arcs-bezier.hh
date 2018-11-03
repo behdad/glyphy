@@ -113,7 +113,7 @@ class ArcsBezierApproximatorSpringSystem
        * line segment.  Otherwise fully skip. */
       arcs.clear ();
       if (b.p0 != b.p1)
-	arcs.push_back (Arc (b.p0, b.p1, 0));
+	arcs.push_back (Arc (b.p0, b.p3, 0));
       return;
     }
 
