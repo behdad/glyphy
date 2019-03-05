@@ -80,7 +80,7 @@ glyphy_sdf (const vec2 p, const ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DE
     }
     endpoint = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset + i), nominal_size);
     glyphy_arc_t a = glyphy_arc_t (pp, endpoint.p, endpoint.d);
-        if (glyphy_isinf (a.d)) {
+    if (glyphy_isinf (a.d)) {
       pp = endpoint.p;
       continue;
     }
