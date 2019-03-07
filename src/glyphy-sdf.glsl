@@ -71,18 +71,20 @@ glyphy_sdf (const vec2 p, const ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DE
   float min_dist = GLYPHY_INFINITY;
   glyphy_arc_t closest_arc;
 
-  glyphy_arc_endpoint_t endpoint_prev, endpoint;
-  endpoint_prev = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset), nominal_size);
+  glyphy_arc_endpoint_t endpoint = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset), nominal_size);
+  vec2 pp = endpoint.p;
   for (int i = 1; i < GLYPHY_MAX_NUM_ENDPOINTS; i++)
   {
     if (i >= arc_list.num_endpoints) {
       break;
     }
     endpoint = glyphy_arc_endpoint_decode (GLYPHY_SDF_TEXTURE1D (arc_list.offset + i), nominal_size);
-    glyphy_arc_t a = glyphy_arc_t (endpoint_prev.p, endpoint.p, endpoint.d);
-    endpoint_prev = endpoint;
-    if (glyphy_isinf (a.d)) continue;
-
+    glyphy_arc_t a = glyphy_arc_t (pp, endpoint.p, endpoint.d);
+    if (glyphy_isinf (a.d)) {
+      pp = endpoint.p;
+      continue;
+    }
+    
     if (glyphy_arc_wedge_contains (a, p))
     {
       float sdist = glyphy_arc_wedge_signed_dist (a, p);
@@ -114,6 +116,7 @@ glyphy_sdf (const vec2 p, const ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DE
 	side = sign (ext_dist);
       }
     }
+    pp = endpoint.p;
   }
 
   if (side == 0.) {
