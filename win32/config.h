@@ -6,8 +6,8 @@
 /* Define to 1 if you have the <dlfcn.h> header file. */
 /* #undef HAVE_DLFCN_H */
 
-/* Have freetype2 library */
-#define HAVE_FREETYPE2
+/* Have harfbuzz library */
+#define HAVE_HARFBUZZ
 
 /* Have gl library */
 #define HAVE_GL 1

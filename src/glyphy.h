@@ -233,9 +233,9 @@ glyphy_arc_accumulator_line_to (glyphy_arc_accumulator_t *acc,
 				const glyphy_point_t *p1);
 
 void
-glyphy_arc_accumulator_conic_to (glyphy_arc_accumulator_t *acc,
-				 const glyphy_point_t *p1,
-				 const glyphy_point_t *p2);
+glyphy_arc_accumulator_quadratic_to (glyphy_arc_accumulator_t *acc,
+				     const glyphy_point_t *p1,
+				     const glyphy_point_t *p2);
 
 void
 glyphy_arc_accumulator_cubic_to (glyphy_arc_accumulator_t *acc,

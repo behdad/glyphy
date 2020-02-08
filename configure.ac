@@ -74,7 +74,7 @@ AC_DEFUN([GLYPHY_CHECK_PACKAGE],
 	AM_CONDITIONAL([HAVE_]PKG, [$HAVE_]PKG)
 ])
 
-GLYPHY_CHECK_PACKAGE(freetype2, FT_Init_FreeType)
+GLYPHY_CHECK_PACKAGE(harfbuzz, hb_shape)
 if $android; then
 	GLYPHY_CHECK_PACKAGE(gl, glCreateShader,, GLESv2)
 	GLYPHY_CHECK_PACKAGE(glew, glewInit)

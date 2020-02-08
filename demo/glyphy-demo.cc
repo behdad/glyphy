@@ -245,25 +245,25 @@ main (int argc, char** argv)
   vu = demo_view_create (st);
   demo_view_print_help (vu);
 
-  FT_Library ft_library;
-  FT_Init_FreeType (&ft_library);
-  FT_Face ft_face = NULL;
+  hb_blob_t *blob;
   if (font_path)
   {
-    FT_New_Face (ft_library, font_path, 0/*face_index*/, &ft_face);
+    blob = hb_blob_create_from_file (font_path);
   }
   else
   {
 #ifdef _WIN32
-    FT_New_Face(ft_library, "C:\\Windows\\Fonts\\calibri.ttf", 0/*face_index*/, &ft_face);
+    blob = hb_blob_create_from_file ("C:\\Windows\\Fonts\\calibri.ttf");
 #else
     #include "default-font.h"
-    FT_New_Memory_Face (ft_library, (const FT_Byte *) default_font, sizeof (default_font), 0/*face_index*/, &ft_face);
+    blob = hb_blob_create ((const char *) default_font, sizeof (default_font), HB_MEMORY_MODE_READONLY, nullptr, nullptr);
 #endif
   }
-  if (!ft_face)
-    die ("Failed to open font file");
-  demo_font_t *font = demo_font_create (ft_face, demo_glstate_get_atlas (st));
+  if (!hb_face_count (blob))
+    die ("Failed to open font file or invalid file");
+  hb_face_t *face = hb_face_create (blob, 0/*face index*/);
+  hb_blob_destroy (blob);
+  demo_font_t *font = demo_font_create (face, demo_glstate_get_atlas (st));
 
   buffer = demo_buffer_create ();
   glyphy_point_t top_left = {0, 0};
@@ -278,8 +278,7 @@ main (int argc, char** argv)
   demo_buffer_destroy (buffer);
   demo_font_destroy (font);
 
-  FT_Done_Face (ft_face);
-  FT_Done_FreeType (ft_library);
+  hb_face_destroy (face);
 
   demo_view_destroy (vu);
   demo_glstate_destroy (st);

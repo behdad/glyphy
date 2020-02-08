@@ -106,39 +106,28 @@ demo_buffer_add_text (demo_buffer_t        *buffer,
 		      demo_font_t          *font,
 		      double                font_size)
 {
-  FT_Face face = demo_font_get_face (font);
+  hb_face_t *face = demo_font_get_face (font);
+  hb_font_t *hb_font = hb_font_create (face);
   glyphy_point_t top_left = buffer->cursor;
   buffer->cursor.y += font_size /* * font->ascent */;
-  unsigned int unicode;
-  for (const unsigned char *p = (const unsigned char *) utf8; *p; p++) {
-    if (*p < 128) {
-      unicode = *p;
-    } else {
-      unsigned int j;
-      if (*p < 0xE0) {
-	unicode = *p & ~0xE0;
-	j = 1;
-      } else if (*p < 0xF0) {
-	unicode = *p & ~0xF0;
-	j = 2;
-      } else {
-	unicode = *p & ~0xF8;
-	j = 3;
-	continue;
-      }
-      p++;
-      for (; j && *p; j--, p++)
-	unicode = (unicode << 6) | (*p & ~0xC0);
-      p--;
-    }
 
-    if (unicode == '\n') {
-      buffer->cursor.y += font_size;
-      buffer->cursor.x = top_left.x;
-      continue;
-    }
+  hb_buffer_t *hb_buffer = hb_buffer_create ();
+  hb_buffer_add_utf8 (hb_buffer, utf8, -1, 0, -1);
+  hb_buffer_guess_segment_properties (hb_buffer);
+  hb_shape (hb_font, hb_buffer, NULL, 0);
+  unsigned length;
+  hb_glyph_info_t *infos = hb_buffer_get_glyph_infos (hb_buffer, &length);
+  hb_glyph_position_t *positions = hb_buffer_get_glyph_positions (hb_buffer, &length);
 
-    unsigned int glyph_index = FT_Get_Char_Index (face, unicode);
+  for (unsigned i = 0; i < length; ++i)
+  {
+//     if (unicode == '\n') {
+//       buffer->cursor.y += font_size;
+//       buffer->cursor.x = top_left.x;
+//       continue;
+//     }
+
+    unsigned int glyph_index = infos[i].codepoint;
     glyph_info_t gi;
     demo_font_lookup_glyph (font, glyph_index, &gi);
 
@@ -158,6 +147,9 @@ demo_buffer_add_text (demo_buffer_t        *buffer,
 
     buffer->cursor.x += font_size * gi.advance;
   }
+
+  hb_buffer_destroy (hb_buffer);
+  hb_font_destroy (hb_font);
 
   buffer->dirty = true;
 }

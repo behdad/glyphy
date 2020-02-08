@@ -18,7 +18,7 @@ default-font.h: default-font.ttf
 		echo '};'; \
 	} > $@
 
-if HAVE_FREETYPE2
+if HAVE_HARFBUZZ
 if HAVE_GL
 if HAVE_GLUT
 
@@ -28,7 +28,7 @@ else
 noinst_PROGRAMS += glyphy-demo
 glyphy_demo_CPPFLAGS = \
 	-I $(top_srcdir)/src \
-	$(FREETYPE2_CFLAGS) \
+	$(HARFBUZZ_CFLAGS) \
 	$(GL_CFLAGS) \
 	$(GLEW_CFLAGS) \
 	$(GLUT_CFLAGS) \
@@ -36,7 +36,7 @@ glyphy_demo_CPPFLAGS = \
 glyphy_demo_LDADD = \
 	$(top_builddir)/src/libglyphy.la \
 	-lm \
-	$(FREETYPE2_LIBS) \
+	$(top_builddir)/../harfbuzz/src/libharfbuzz.la \
 	$(GL_LIBS) \
 	$(GLEW_LIBS) \
 	$(GLUT_LIBS) \
@@ -84,16 +84,16 @@ endif
 endif
 
 
-if HAVE_FREETYPE2
+if HAVE_HARFBUZZ
 
 noinst_PROGRAMS += glyphy-validate
 glyphy_validate_CPPFLAGS = \
 	-I $(top_srcdir)/src \
-	$(FREETYPE2_CFLAGS) \
+	$(HARFBUZZ_CFLAGS) \
 	$(NULL)
 glyphy_validate_LDADD = \
 	$(top_builddir)/src/libglyphy.la \
-	$(FREETYPE2_LIBS) \
+	$(top_builddir)/../harfbuzz/src/libharfbuzz.la \
 	$(NULL)
 glyphy_validate_SOURCES = \
 	glyphy-validate.cc \

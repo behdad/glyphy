@@ -21,13 +21,13 @@ On GNOME3 and possibly other systems, if the vsync extension is not working (ie.
 1. Install Xcode and command line tools (as of Xcode 4.3.x, from
    within `Preferences` -> `Downloads`).
 2. Install [MacPorts](https://www.macports.org/install.php).
-3. `sudo port install automake autoconf libtool pkgconfig freetype`
+3. `sudo port install automake autoconf libtool pkgconfig harfbuzz`
 4. `./autogen.sh`
 5. `make`
 
 ### Compilation instructions on Windows
 
-See [appveyor.yml](https://github.com/behdad/glyphy/blob/master/appveyor.yml), basically first get [vcpkg](https://github.com/Microsoft/vcpkg) and install `glew`, `freetype` and `freeglut` on it, then open win32\glyphy.sln
+See [appveyor.yml](https://github.com/behdad/glyphy/blob/master/appveyor.yml), basically first get [vcpkg](https://github.com/Microsoft/vcpkg) and install `glew`, `harfbuzz` and `freeglut` on it, then open win32\glyphy.sln
 with Visual Studio.
 
 ### Compilation instructions for emscripten
@@ -35,6 +35,6 @@ with Visual Studio.
 Assuming you have installed emscripten and have its tools on path,
 
 1. `NOCONFIGURE=1 ./autogen.sh`
-2. `CPPFLAGS='-s USE_FREETYPE=1' LDFLAGS='-s USE_FREETYPE=1' emconfigure ./configure`
+2. `CPPFLAGS='-s USE_HARFBUZZ=1' LDFLAGS='-s USE_HARFBUZZ=1' emconfigure ./configure`
 3. `make EXEEXT=.html GL_LIBS= GLUT_LIBS=`
 4. The result will be located on `demo/.libs/glyphy-demo.html` (not `demo/glyphy-demo.html`)

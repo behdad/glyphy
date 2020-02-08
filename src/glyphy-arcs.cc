@@ -257,9 +257,9 @@ glyphy_arc_accumulator_line_to (glyphy_arc_accumulator_t *acc,
 }
 
 void
-glyphy_arc_accumulator_conic_to (glyphy_arc_accumulator_t *acc,
-				 const glyphy_point_t *p1,
-				 const glyphy_point_t *p2)
+glyphy_arc_accumulator_quadratic_to (glyphy_arc_accumulator_t *acc,
+				     const glyphy_point_t *p1,
+				     const glyphy_point_t *p2)
 {
   bezier (acc, Bezier (acc->current_point,
 		       Point (acc->current_point).lerp (2/3., *p1),

@@ -22,7 +22,7 @@
 
 #include "demo-font.h"
 
-#include <glyphy-freetype.h>
+#include <glyphy-harfbuzz.h>
 
 #include <map>
 #include <vector>
@@ -32,7 +32,7 @@ typedef std::map<unsigned int, glyph_info_t> glyph_cache_t;
 struct demo_font_t {
   unsigned int   refcount;
 
-  FT_Face        face;
+  hb_face_t     *face;
   glyph_cache_t *glyph_cache;
   demo_atlas_t  *atlas;
   glyphy_arc_accumulator_t *acc;
@@ -46,7 +46,7 @@ struct demo_font_t {
 };
 
 demo_font_t *
-demo_font_create (FT_Face       face,
+demo_font_create (hb_face_t    *face,
 		  demo_atlas_t *atlas)
 {
   demo_font_t *font = (demo_font_t *) calloc (1, sizeof (demo_font_t));
@@ -86,7 +86,7 @@ demo_font_destroy (demo_font_t *font)
 }
 
 
-FT_Face
+hb_face_t *
 demo_font_get_face (demo_font_t *font)
 {
   return font->face;
@@ -108,7 +108,7 @@ accumulate_endpoint (glyphy_arc_endpoint_t         *endpoint,
 }
 
 static void
-encode_ft_glyph (demo_font_t      *font,
+encode_hb_glyph (demo_font_t      *font,
 		 unsigned int      glyph_index,
 		 double            tolerance_per_em,
 		 glyphy_rgba_t    *buffer,
@@ -122,21 +122,9 @@ encode_ft_glyph (demo_font_t      *font,
 /* Used for testing only */
 #define SCALE  (1. * (1 << 0))
 
-  FT_Face face = font->face;
-  if (FT_Err_Ok != FT_Load_Glyph (face,
-				  glyph_index,
-				  FT_LOAD_NO_BITMAP |
-				  FT_LOAD_NO_HINTING |
-				  FT_LOAD_NO_AUTOHINT |
-				  FT_LOAD_NO_SCALE |
-				  FT_LOAD_LINEAR_DESIGN |
-				  FT_LOAD_IGNORE_TRANSFORM))
-    die ("Failed loading FreeType glyph");
+  hb_font_t *font_ = hb_font_create (font->face);
 
-  if (face->glyph->format != FT_GLYPH_FORMAT_OUTLINE)
-    die ("FreeType loaded glyph format is not outline");
-
-  unsigned int upem = face->units_per_EM;
+  unsigned int upem = hb_face_get_upem (font->face);
   double tolerance = upem * tolerance_per_em; /* in font design units */
   double faraway = double (upem) / (MIN_FONT_SIZE * M_SQRT2);
   std::vector<glyphy_arc_endpoint_t> endpoints;
@@ -147,7 +135,7 @@ encode_ft_glyph (demo_font_t      *font,
 				       (glyphy_arc_endpoint_accumulator_callback_t) accumulate_endpoint,
 				       &endpoints);
 
-  if (FT_Err_Ok != glyphy_freetype(outline_decompose) (&face->glyph->outline, font->acc))
+  if (!glyphy_harfbuzz(glyph_draw) (font_, glyph_index, font->acc))
     die ("Failed converting glyph outline to arcs");
 
   assert (glyphy_arc_accumulator_get_error (font->acc) <= tolerance);
@@ -190,7 +178,10 @@ encode_ft_glyph (demo_font_t      *font,
   glyphy_extents_scale (extents, 1. / upem, 1. / upem);
   glyphy_extents_scale (extents, SCALE, SCALE);
 
-  *advance = face->glyph->metrics.horiAdvance / (double) upem;
+  hb_glyph_extents_t extents_ = {0};
+  hb_font_get_glyph_extents (font_, glyph_index, &extents_);
+
+  *advance = extents_.width / (double) upem;
 
   if (0)
     LOGI ("gid%3u: endpoints%3d; err%3g%%; tex fetch%4.1f; mem%4.1fkb\n",
@@ -215,7 +206,7 @@ _demo_font_upload_glyph (demo_font_t *font,
   glyphy_rgba_t buffer[4096 * 16];
   unsigned int output_len;
 
-  encode_ft_glyph (font,
+  encode_hb_glyph (font,
 		   glyph_index,
 		   TOLERANCE,
 		   buffer, ARRAY_LEN (buffer),

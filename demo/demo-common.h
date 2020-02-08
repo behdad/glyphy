@@ -48,7 +48,7 @@
 #  define HAVE_GL 1
 #  define HAVE_GLEW 1
 #  define HAVE_GLUT 1
-#  define HAVE_FREETYPE2 1
+#  define HAVE_HARFBUZZ 1
 #endif
 
 /* Get Glew out of the way. */

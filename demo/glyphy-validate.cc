@@ -23,10 +23,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
 
 #define TOLERANCE (1./2048)
 
-#include <glyphy-freetype.h>
+#include "../../harfbuzz/src/hb.h"
+#include <glyphy-harfbuzz.h>
 
 #include <vector>
 
@@ -63,50 +65,33 @@ main (int argc, char** argv)
     exit (1);
   }
 
-  FT_Library ft_library;
-  FT_Init_FreeType (&ft_library);
-
   glyphy_arc_accumulator_t *acc = glyphy_arc_accumulator_create ();
 
   for (unsigned int arg = 1; (int) arg < argc; arg++)
   {
     const char *font_path = argv[arg];
+    hb_blob_t *blob = hb_blob_create_from_file (font_path);
 
-    unsigned int num_faces = 1;
+    unsigned int num_faces = hb_face_count (blob);
+    if (!num_faces)
+      die ("Failed to open font file or invalid file");
     for (unsigned int face_index = 0; face_index < num_faces; face_index++)
     {
-      FT_Face ft_face = NULL;
-      FT_New_Face (ft_library, font_path, face_index, &ft_face);
-      if (!ft_face)
-	die ("Failed to open font file");
-      /* FreeType's absurd.  You have to open a ft_face to get the number of
-       * faces in the font file. */
-      num_faces = ft_face->num_faces;
+      hb_face_t *face = hb_face_create (blob, face_index);
+      unsigned upem = hb_face_get_upem (face);
+      hb_font_t *font = hb_font_create (face);
+      unsigned num_glyphs = hb_face_get_glyph_count (face);
       printf ("Opened %s face index %d. Has %d glyphs\n",
-	      font_path, face_index, (int) ft_face->num_glyphs);
+	      font_path, face_index, num_glyphs);
 
-      for (unsigned int glyph_index = 0; glyph_index < ft_face->num_glyphs; glyph_index++)
+      for (unsigned int glyph_index = 0; glyph_index < num_glyphs; glyph_index++)
       {
 	char glyph_name[30];
-	if (FT_Get_Glyph_Name (ft_face, glyph_index, glyph_name, sizeof (glyph_name)))
+	if (hb_font_get_glyph_name (font, glyph_index, glyph_name, sizeof (glyph_name)))
 	  sprintf (glyph_name, "gid%u", glyph_index);
 
-	printf ("Processing glyph %d (%s)\n", glyph_index, glyph_name);
+	printf ("Processing glyph %d (%s)", glyph_index, glyph_name);
 
-	if (FT_Err_Ok != FT_Load_Glyph (ft_face,
-					glyph_index,
-					FT_LOAD_NO_BITMAP |
-					FT_LOAD_NO_HINTING |
-					FT_LOAD_NO_AUTOHINT |
-					FT_LOAD_NO_SCALE |
-					FT_LOAD_LINEAR_DESIGN |
-					FT_LOAD_IGNORE_TRANSFORM))
-	  die ("Failed loading FreeType glyph");
-
-	if (ft_face->glyph->format != FT_GLYPH_FORMAT_OUTLINE)
-	  die ("FreeType loaded glyph format is not outline");
-
-	unsigned int upem = ft_face->units_per_EM;
 	double tolerance = upem * TOLERANCE; /* in font design units */
 	vector<glyphy_arc_endpoint_t> endpoints;
 
@@ -116,8 +101,12 @@ main (int argc, char** argv)
 					     (glyphy_arc_endpoint_accumulator_callback_t) accumulate_endpoint,
 					     &endpoints);
 
-	if (FT_Err_Ok != glyphy_freetype(outline_decompose) (&ft_face->glyph->outline, acc))
-	  die ("Failed converting glyph outline to arcs");
+	if (!glyphy_harfbuzz(glyph_draw) (font, glyph_index, acc))
+	{
+	  printf (" Failed converting glyph outline to arcs\n");
+	  continue;
+	}
+	printf ("\n");
 
 	if (verbose) {
 	  printf ("Arc list has %d endpoints\n", (int) endpoints.size ());
@@ -131,8 +120,8 @@ main (int argc, char** argv)
 	if (ft_face->glyph->outline.flags & FT_OUTLINE_EVEN_ODD_FILL)
 	  glyphy_outline_winding_from_even_odd (&endpoints[0], endpoints.size (), false);
 #endif
-	if (ft_face->glyph->outline.flags & FT_OUTLINE_REVERSE_FILL)
-	  glyphy_outline_reverse (&endpoints[0], endpoints.size ());
+	// if (ft_face->glyph->outline.flags & FT_OUTLINE_REVERSE_FILL)
+	//   glyphy_outline_reverse (&endpoints[0], endpoints.size ());
 
 	if (glyphy_outline_winding_from_even_odd (&endpoints[0], endpoints.size (), false))
 	{
@@ -141,13 +130,13 @@ main (int argc, char** argv)
 	}
       }
 
-      FT_Done_Face (ft_face);
+      hb_font_destroy (font);
+      hb_face_destroy (face);
+      hb_blob_destroy (blob);
     }
   }
 
   glyphy_arc_accumulator_destroy (acc);
-
-  FT_Done_FreeType (ft_library);
 
   return 0;
 }
