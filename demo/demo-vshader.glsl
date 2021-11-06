@@ -1,8 +1,8 @@
 uniform mat4 u_matViewProjection;
 
-attribute vec4 a_glyph_vertex;
+layout (location = 0) in vec4 a_glyph_vertex;
 
-varying vec4 v_glyph;
+out vec4 v_glyph;
 
 vec4
 glyph_vertex_transcode (vec2 v)

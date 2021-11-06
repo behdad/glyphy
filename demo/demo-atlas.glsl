@@ -12,5 +12,5 @@ glyphy_texture1D_func (int offset GLYPHY_TEXTURE1D_EXTRA_DECLS)
   vec2 pos = (vec2 (_atlas_pos.xy * item_geom +
 		   ivec2 (mod (float (offset), float (item_geom.x)), offset / item_geom.x)) +
 	      + vec2 (.5, .5)) / vec2(_atlas_info.xy);
-  return texture2D (_tex, pos);
+  return texture (_tex, pos);
 }

@@ -5,7 +5,8 @@ uniform bool  u_outline;
 uniform float u_boldness;
 uniform bool  u_debug;
 
-varying vec4 v_glyph;
+in vec4 v_glyph;
+out vec4 FragColor;
 
 
 #define SQRT2_2 0.70710678118654757 /* 1 / sqrt(2.) */
@@ -81,5 +82,5 @@ main()
     color += vec4 (0,0,1,.1) * float(arc_list.num_endpoints) * 32./255.;
   }
 
-  gl_FragColor = color;
+  FragColor = color;
 }

@@ -182,12 +182,13 @@ link_program (GLuint vshader,
 
 #ifdef GL_ES_VERSION_2_0
 # define GLSL_HEADER_STRING \
+  "#version 320 es\n" \
   "#extension GL_OES_standard_derivatives : enable\n" \
   "precision highp float;\n" \
   "precision highp int;\n"
 #else
 # define GLSL_HEADER_STRING \
-  "#version 110\n"
+  "#version 330 core\n"
 #endif
 
 GLuint
