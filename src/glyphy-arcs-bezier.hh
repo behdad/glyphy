@@ -119,7 +119,7 @@ class ArcsBezierApproximatorSpringSystem
 
     std::vector<double> t;
     std::vector<double> e;
-    double max_e, min_e;
+    double max_e = 0., min_e = 0.;
     unsigned int n_jiggle = 0;
 
     /* Technically speaking we can bsearch for n. */
