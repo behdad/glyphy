@@ -468,7 +468,7 @@ demo_view_mouse_func (demo_view_t *vu, int button, int state, int x, int y)
     vu->buttons |= (1 << button);
     vu->click_handled = false;
   } else
-    vu->buttons &= !(1 << button);
+    vu->buttons &= ~(1 << button);
   vu->modifiers = glutGetModifiers ();
 
   switch (button)
