@@ -226,8 +226,9 @@ main (int argc, char** argv)
   /* Setup glut */
   glutInit (&argc, argv);
   glutInitWindowSize (WINDOW_W, WINDOW_H);
-  glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB);
+  glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB | GLUT_3_2_CORE_PROFILE);
   int window = glutCreateWindow ("GLyphy Demo");
+  printf("\nInitialized with Open GL version %s\n\n", glGetString(GL_VERSION));
   glutReshapeFunc (reshape_func);
   glutDisplayFunc (display_func);
   glutKeyboardFunc (keyboard_func);

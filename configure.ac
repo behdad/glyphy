@@ -96,8 +96,10 @@ AC_CONFIG_FILES([
 glyphy.pc
 Makefile
 src/Makefile
-demo/Makefile
-demo/android/Makefile
+demo-gl2/Makefile
+demo-gl2/android/Makefile
+demo-gl3/Makefile
+demo-gl3/android/Makefile
 ])
 
 AC_OUTPUT

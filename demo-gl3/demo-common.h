@@ -32,6 +32,41 @@
 
 /* Tailor config for various platforms. */
 
+// first include GL3 header
+#if defined(__APPLE__)
+    #define GL_SILENCE_DEPRECATION
+    #include <OpenGL/gl3.h>
+    #include <OpenGL/OpenGL.h>
+#else
+    #include <GL/gl3.h>
+#endif
+
+// next include GLUT header
+
+#ifdef HAVE_GLUT
+    #if defined(__APPLE__)
+        #define __gl_h_
+        #include <GLUT/glut.h>
+        #undef __gl_h_
+    #else
+        #include <GL/glut.h>
+    #endif
+#endif
+
+// include glew if we have it
+// otherwise emulate needed functionality
+#ifdef HAVE_GLEW
+#  include <GL/glew.h>
+#else
+#  define GLEW_OK 0
+   static inline int glewInit (void) { return GLEW_OK; }
+   static inline int glewIsSupported (const char *s)
+   { return 0 == strcmp ("GL_VERSION_2_0", s); }
+#endif
+
+
+#if 0
+
 #ifdef EMSCRIPTEN
 /* https://github.com/kripken/emscripten/issues/340 */
 #  undef HAVE_GLEW
@@ -93,6 +128,7 @@
 #  else
 #    include <GL/glut.h>
 #  endif
+#endif
 #endif
 
 

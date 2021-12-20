@@ -1,0 +1,57 @@
+To build GLyphy Demo app on Android, follow these steps:
+
+- Download and install Android SDK and NDK, for Android API version 18 or later.
+
+- Install a "standalone" toolchain with the NDK, and set PLATFORM_PREFIX env
+  var to point to it.  You can do this by running, eg:
+
+    ndk/build/tools/make-standalone-toolchain.sh \
+	--platform=android-18 \
+	--install-dir=/prefix
+
+  Adjust platform and install-dir.
+
+- Make sure the cross-compile tools from PLATFORM_PREFIX are in the path.
+  Ie. that you can run arm-linux-androideabi-gcc.
+
+- Configure and install FreeType.  Within the FreeType tarball run:
+
+  ./configure --host=arm-linux-androideabi --prefix=$PLATFORM_PREFIX --without-png
+  make install
+
+- Configure and install freeglut-gles2.  We want the pre-3.0 version of freeglut
+  which has native Android support.  Get from SVN and run:
+
+  cmake -D CMAKE_TOOLCHAIN_FILE=android_toolchain.cmake \
+	-D CMAKE_INSTALL_PREFIX=$PLATFORM_PREFIX \
+	-D CMAKE_BUILD_TYPE=Debug \
+	-D FREEGLUT_GLES2=ON \
+	-D FREEGLUT_BUILD_DEMOS=NO \
+	..
+  make install
+
+- Configure GLyphy:
+
+  ./configure \
+	--host=arm-linux-androideabi \
+	--prefix=$PLATFORM_PREFIX \
+	--enable-static \
+	PKG_CONFIG_LIBDIR=$PLATFORM_PREFIX/lib/pkgconfig
+
+- Make and install the GLyphy library (but not the demos):
+
+  make -C src install
+
+- Add a local.properties file to demo/android, with:
+
+	sdk.dir=/path/to/sdk
+
+  By default GLyphy Demo app builds against android-18 target.  If you want
+  to override that, you can add a target=android-XX line to the above file.
+
+- Finally, make the demo app:
+
+  make -C demo
+
+- If all goes well, you should now have demo/android/bin/GLyphyDemo-debug.apk
+

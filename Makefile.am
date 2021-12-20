@@ -22,7 +22,7 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/ChangeLog \
 	`find "$(srcdir)" -type f -name Makefile.in -print`
 
-SUBDIRS = src demo
+SUBDIRS = src demo-gl2 demo-gl3
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = glyphy.pc
