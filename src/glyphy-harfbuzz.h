@@ -88,10 +88,8 @@ glyphy_harfbuzz(cubic_to) (hb_draw_funcs_t *dfuncs,
   glyphy_arc_accumulator_cubic_to (acc, &p1, &p2, &p3);
 }
 
-static void
-glyphy_harfbuzz(font_get_glyph_shape) (hb_font_t *font,
-				       hb_codepoint_t glyph,
-				       glyphy_arc_accumulator_t *acc)
+static hb_draw_funcs_t *
+glyphy_harfbuzz(get_draw_funcs) ()
 {
   static hb_draw_funcs_t *dfuncs = NULL;
 
@@ -105,7 +103,15 @@ glyphy_harfbuzz(font_get_glyph_shape) (hb_font_t *font,
     hb_draw_funcs_make_immutable (dfuncs);
   }
 
-  hb_font_get_glyph_shape (font, glyph, dfuncs, acc);
+  return dfuncs;
+}
+
+static void
+glyphy_harfbuzz(font_get_glyph_shape) (hb_font_t *font,
+				       hb_codepoint_t glyph,
+				       glyphy_arc_accumulator_t *acc)
+{
+  hb_font_get_glyph_shape (font, glyph, glyphy_harfbuzz(get_draw_funcs) (), acc);
 }
 
 #ifdef __cplusplus
