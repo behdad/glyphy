@@ -106,7 +106,8 @@ demo_buffer_add_text (demo_buffer_t        *buffer,
 		      demo_font_t          *font,
 		      double                font_size)
 {
-  FT_Face face = demo_font_get_face (font);
+  hb_font_t *hb_font = demo_font_get_font (font);
+
   glyphy_point_t top_left = buffer->cursor;
   buffer->cursor.y += font_size /* * font->ascent */;
   unsigned int unicode;
@@ -138,7 +139,8 @@ demo_buffer_add_text (demo_buffer_t        *buffer,
       continue;
     }
 
-    unsigned int glyph_index = FT_Get_Char_Index (face, unicode);
+    unsigned int glyph_index = 0;
+    hb_font_get_nominal_glyph (hb_font, unicode, &glyph_index);
     glyph_info_t gi;
     demo_font_lookup_glyph (font, glyph_index, &gi);
 
