@@ -19,6 +19,8 @@
 #ifndef DEMO_COMMON_H
 #define DEMO_COMMON_H
 
+#include <config.h>
+
 #include <glyphy.h>
 
 #include <stdlib.h>

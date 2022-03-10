@@ -106,57 +106,60 @@ demo_buffer_add_text (demo_buffer_t        *buffer,
 		      demo_font_t          *font,
 		      double                font_size)
 {
-  FT_Face face = demo_font_get_face (font);
+  hb_face_t *hb_face = demo_font_get_face (font);
+  hb_font_t *hb_font = demo_font_get_font (font);
+  hb_buffer_t *hb_buffer = hb_buffer_create ();
+
   glyphy_point_t top_left = buffer->cursor;
   buffer->cursor.y += font_size /* * font->ascent */;
-  unsigned int unicode;
-  for (const unsigned char *p = (const unsigned char *) utf8; *p; p++) {
-    if (*p < 128) {
-      unicode = *p;
-    } else {
-      unsigned int j;
-      if (*p < 0xE0) {
-	unicode = *p & ~0xE0;
-	j = 1;
-      } else if (*p < 0xF0) {
-	unicode = *p & ~0xF0;
-	j = 2;
-      } else {
-	unicode = *p & ~0xF8;
-	j = 3;
-	continue;
-      }
-      p++;
-      for (; j && *p; j--, p++)
-	unicode = (unicode << 6) | (*p & ~0xC0);
-      p--;
+  double scale = font_size / hb_face_get_upem (hb_face);
+
+  while (utf8)
+  {
+    const char *end = strchr (utf8, '\n');
+
+    hb_buffer_clear_contents (hb_buffer);
+    hb_buffer_add_utf8 (hb_buffer, utf8, end ? end - utf8 : -1, 0, -1);
+    hb_buffer_guess_segment_properties (hb_buffer);
+    hb_shape (hb_font, hb_buffer, NULL, 0);
+
+    unsigned count;
+    hb_glyph_info_t *infos = hb_buffer_get_glyph_infos (hb_buffer, &count);
+    hb_glyph_position_t *pos = hb_buffer_get_glyph_positions (hb_buffer, NULL);
+    for (unsigned i = 0; i < count; i++)
+    {
+      unsigned int glyph_index = infos[i].codepoint;
+      glyph_info_t gi;
+      demo_font_lookup_glyph (font, glyph_index, &gi);
+
+      /* Update ink extents */
+      glyphy_extents_t ink_extents;
+      glyphy_point_t position = buffer->cursor;
+      position.x += scale * pos[i].x_offset;
+      position.y -= scale * pos[i].y_offset;
+      demo_shader_add_glyph_vertices (position, font_size, &gi, buffer->vertices, &ink_extents);
+      glyphy_extents_extend (&buffer->ink_extents, &ink_extents);
+
+      /* Update logical extents */
+      glyphy_point_t corner;
+      corner.x = buffer->cursor.x;
+      corner.y = buffer->cursor.y - font_size;
+      glyphy_extents_add (&buffer->logical_extents, &corner);
+      corner.x = buffer->cursor.x + font_size * gi.advance;
+      corner.y = buffer->cursor.y;
+      glyphy_extents_add (&buffer->logical_extents, &corner);
+
+      buffer->cursor.x += scale * pos[i].x_advance;
     }
 
-    if (unicode == '\n') {
+
+    if (end) {
       buffer->cursor.y += font_size;
       buffer->cursor.x = top_left.x;
-      continue;
+      utf8 = end + 1;
     }
-
-    unsigned int glyph_index = FT_Get_Char_Index (face, unicode);
-    glyph_info_t gi;
-    demo_font_lookup_glyph (font, glyph_index, &gi);
-
-    /* Update ink extents */
-    glyphy_extents_t ink_extents;
-    demo_shader_add_glyph_vertices (buffer->cursor, font_size, &gi, buffer->vertices, &ink_extents);
-    glyphy_extents_extend (&buffer->ink_extents, &ink_extents);
-
-    /* Update logical extents */
-    glyphy_point_t corner;
-    corner.x = buffer->cursor.x;
-    corner.y = buffer->cursor.y - font_size;
-    glyphy_extents_add (&buffer->logical_extents, &corner);
-    corner.x = buffer->cursor.x + font_size * gi.advance;
-    corner.y = buffer->cursor.y;
-    glyphy_extents_add (&buffer->logical_extents, &corner);
-
-    buffer->cursor.x += font_size * gi.advance;
+      else
+      utf8 = NULL;
   }
 
   buffer->dirty = true;
