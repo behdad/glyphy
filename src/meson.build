@@ -44,7 +44,7 @@ cpp_args = ['-DHAVE_CONFIG_H=1']
 libglyphy = library('glyphy', glyphy_sources + glyphy_headers + glyphy_shader_sources,
   include_directories: [confinc],
   cpp_args: cpp_args,
-  version: '0.1.0',
+  version: '0.0.0',
   install: true)
 
 install_headers(glyphy_headers, subdir: meson.project_name())

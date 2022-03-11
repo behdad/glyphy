@@ -1,0 +1,4 @@
+option('demo',
+       description: 'Build glyphy-demo',
+       type: 'feature',
+       value: 'enabled')
