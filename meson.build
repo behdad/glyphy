@@ -1,6 +1,6 @@
 project('glyphy', 'c', 'cpp',
   meson_version: '>= 0.55.0',
-  version: '1.0',
+  version: '0.2.0',
   default_options: [
     'cpp_rtti=false',
     'cpp_std=c++11',
@@ -49,7 +49,11 @@ gl_dep = dependency('gl', required: true)
 glew_dep = dependency('glew', required: false)
 glut_dep = dependency('glut', required: true)
 
-pkg_data_dir = join_paths(get_option ('prefix'), 'share', meson.project_name())
+prefix = get_option('prefix')
+libdir = join_paths(prefix, get_option('libdir'))
+includedir = join_paths(prefix, get_option('includedir'))
+datadir = join_paths(prefix, get_option('datadir'))
+pkgdatadir = join_paths(datadir, meson.project_name())
 
 if freetype_dep.found()
   glyphy_conf.set('HAVE_FREETYPE2', 1)
@@ -66,10 +70,29 @@ endif
 if glut_dep.found()
   glyphy_conf.set('HAVE_GLUT',  1)
 endif
-glyphy_conf.set_quoted('PKGDATADIR', pkg_data_dir)
+glyphy_conf.set_quoted('PKGDATADIR', pkgdatadir)
 
 configure_file(output: 'config.h', configuration: glyphy_conf)
 confinc = include_directories('.')
 
 subdir('src')
-subdir('demo')
+
+if get_option('demo').enabled()
+  subdir('demo')
+endif
+
+summary('Demo', get_option('demo').enabled(), section: 'Features')
+summary('Freetype', freetype_dep.found(), section: 'Features')
+summary('Harfbuzz', harfbuzz_dep.found(), section: 'Features')
+
+summary('Compiler', cpp.get_id(), section: 'Toolchain')
+summary('Linker', cpp.get_linker_id(), section: 'Toolchain')
+
+summary('Debugging', get_option('debug'), section: 'Build')
+summary('Optimization', get_option('optimization'), section: 'Build')
+
+summary('prefix', prefix, section: 'Directories')
+summary('includedir', includedir, section: 'Directories')
+summary('libdir', libdir, section: 'Directories')
+summary('datadir', datadir, section: 'Directories')
+
