@@ -52,7 +52,8 @@ struct demo_view_t {
 
   /* Transformation */
   float quat[4];
-  double scale;
+  double scalex;
+  double scaley;
   glyphy_point_t translate;
   double perspective;
 
@@ -116,7 +117,7 @@ void
 demo_view_reset (demo_view_t *vu)
 {
   vu->perspective = 4;
-  vu->scale = 1;
+  vu->scalex = vu->scaley = 1;
   vu->translate.x = vu->translate.y = 0;
   trackball (vu->quat , 0.0, 0.0, 0.0, 0.0);
   vset (vu->rot_axis, 0., 0., 1.);
@@ -161,18 +162,31 @@ demo_view_adjust_boldness (demo_view_t *vu, double factor)
   demo_glstate_adjust_boldness (vu->st, factor);
 }
 
+static void
+demo_view_scalex (demo_view_t *vu, double factor)
+{
+  vu->scalex *= factor;
+}
 
 static void
-demo_view_scale (demo_view_t *vu, double factor)
+demo_view_scaley (demo_view_t *vu, double factor)
 {
-  vu->scale *= factor;
+  vu->scaley *= factor;
+}
+
+
+static void
+demo_view_scale (demo_view_t *vu, double sx, double sy)
+{
+  vu->scalex *= sx;
+  vu->scaley *= sy;
 }
 
 static void
 demo_view_translate (demo_view_t *vu, double dx, double dy)
 {
-  vu->translate.x += dx / vu->scale;
-  vu->translate.y += dy / vu->scale;
+  vu->translate.x += dx / vu->scalex;
+  vu->translate.y += dy / vu->scaley;
 }
 
 static void
@@ -184,7 +198,7 @@ demo_view_apply_transform (demo_view_t *vu, float *mat)
   GLint height = viewport[3];
 
   // View transform
-  m4Scale (mat, vu->scale, vu->scale, 1);
+  m4Scale (mat, vu->scalex, vu->scaley, 1);
   m4Translate (mat, vu->translate.x, vu->translate.y, 0);
 
   // Perspective
@@ -408,10 +422,24 @@ demo_view_keyboard_func (demo_view_t *vu, unsigned char key, int x, int y)
       break;
 
     case '=':
-      demo_view_scale (vu, STEP);
+      demo_view_scale (vu, STEP, STEP);
       break;
     case '-':
-      demo_view_scale (vu, 1. / STEP);
+      demo_view_scale (vu, 1. / STEP, 1. / STEP);
+      break;
+
+    case '[':
+      demo_view_scalex (vu, STEP);
+      break;
+    case ']':
+      demo_view_scalex (vu, 1. / STEP);
+      break;
+
+    case '{':
+      demo_view_scaley (vu, STEP);
+      break;
+    case '}':
+      demo_view_scaley (vu, 1. / STEP);
       break;
 
     case 'k':
@@ -503,11 +531,11 @@ demo_view_mouse_func (demo_view_t *vu, int button, int state, int x, int y)
 #endif
 
     case GLUT_WHEEL_UP:
-      demo_view_scale (vu, STEP);
+      demo_view_scale (vu, STEP, STEP);
       break;
 
     case GLUT_WHEEL_DOWN:
-      demo_view_scale (vu, 1. / STEP);
+      demo_view_scale (vu, 1. / STEP, 1. / STEP);
       break;
   }
 
@@ -574,7 +602,7 @@ demo_view_motion_func (demo_view_t *vu, int x, int y)
   {
     /* scale */
     double factor = 1 - ((y - vu->lasty) / height) * 5;
-    demo_view_scale (vu, factor);
+    demo_view_scale (vu, factor, factor);
     /* adjust translate so we scale centered at the drag-begin mouse position */
     demo_view_translate (vu,
 			 +(2. * vu->beginx / width  - 1) * (1 - factor),
