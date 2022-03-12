@@ -15,6 +15,7 @@ glyphy_sources = [
 glyphy_headers = [
   'glyphy.h',
   'glyphy-freetype.h',
+  'glyphy-harfbuzz.h',
 ]
 
 glyphy_shaders = [
