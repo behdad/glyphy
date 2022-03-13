@@ -95,11 +95,11 @@ glyphy_sdf (const vec2 p, const ivec2 nominal_size GLYPHY_SDF_TEXTURE1D_EXTRA_DE
       }
     } else {
       float udist = min (distance (p, a.p0), distance (p, a.p1));
-      if (udist < min_dist) {
+      if (udist < min_dist - GLYPHY_EPSILON) {
 	min_dist = udist;
 	side = 0.; /* unsure */
 	closest_arc = a;
-      } else if (side == 0. && udist == min_dist) {
+      } else if (side == 0. && udist - min_dist <= GLYPHY_EPSILON) {
 	/* If this new distance is the same as the current minimum,
 	 * compare extended distances.  Take the sign from the arc
 	 * with larger extended distance. */
