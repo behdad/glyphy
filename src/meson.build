@@ -48,4 +48,10 @@ libglyphy = library('glyphy', glyphy_sources + glyphy_headers + glyphy_shader_so
   version: '0.0.0',
   install: true)
 
+libglyphy_dep = declare_dependency(
+  link_with: libglyphy,
+  include_directories: [confinc])
+
+meson.override_dependency('glyphy', libglyphy_dep)
+
 install_headers(glyphy_headers, subdir: meson.project_name())
