@@ -23,7 +23,7 @@
 #include "glyphy-common.hh"
 #include "glyphy-geometry.hh"
 
-#define GRID_SIZE 24
+#define GRID_SIZE 16
 
 using namespace GLyphy::Geometry;
 
