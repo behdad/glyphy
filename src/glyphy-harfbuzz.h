@@ -89,7 +89,7 @@ glyphy_harfbuzz(cubic_to) (hb_draw_funcs_t *dfuncs,
 }
 
 static hb_draw_funcs_t *
-glyphy_harfbuzz(get_draw_funcs) ()
+glyphy_harfbuzz(get_draw_funcs) (void)
 {
   static hb_draw_funcs_t *dfuncs = NULL;
 
