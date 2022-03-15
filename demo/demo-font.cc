@@ -149,10 +149,8 @@ encode_ft_glyph (demo_font_t      *font,
 
   assert (glyphy_arc_accumulator_get_error (font->acc) <= tolerance);
 
-#if 0
   if (endpoints.size ())
     glyphy_outline_winding_from_even_odd (&endpoints[0], endpoints.size (), false);
-#endif
 
   if (SCALE != 1.)
     for (unsigned int i = 0; i < endpoints.size (); i++)
