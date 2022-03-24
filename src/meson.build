@@ -40,7 +40,7 @@ endforeach
 
 srcinc = include_directories('.')
 
-cpp_args = ['-DHAVE_CONFIG_H=1']
+cpp_args = ['-DHAVE_CONFIG_H=1', '-DBUILDING_GLYPHY=1']
 
 libglyphy = library('glyphy', glyphy_sources + glyphy_headers + glyphy_shader_sources,
   include_directories: [confinc],
