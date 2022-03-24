@@ -31,18 +31,18 @@ if is_msvc
   # noseh_link_args = ['/SAFESEH:NO']
   # disable exception handling
   add_project_arguments(['/EHs-', '/EHc-'], language: 'cpp')
+else
+  add_project_link_arguments(cpp.get_supported_link_arguments([
+    '-Bsymbolic-functions'
+  ]), language: 'c')
+
+  add_project_arguments(cpp.get_supported_arguments([
+    '-fno-exceptions',
+    '-fno-rtti',
+    '-fno-threadsafe-statics',
+    '-fvisibility-inlines-hidden',
+  ]), language: 'cpp')
 endif
-
-add_project_link_arguments(cpp.get_supported_link_arguments([
-  '-Bsymbolic-functions'
-]), language: 'c')
-
-add_project_arguments(cpp.get_supported_arguments([
-  '-fno-exceptions',
-  '-fno-rtti',
-  '-fno-threadsafe-statics',
-  '-fvisibility-inlines-hidden',
-]), language: 'cpp')
 
 glyphy_conf = configuration_data()
 
