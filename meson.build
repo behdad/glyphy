@@ -44,6 +44,12 @@ else
   ]), language: 'cpp')
 endif
 
+if is_msvc_like
+  add_project_arguments(cpp.get_supported_arguments([
+    '-D_USE_MATH_DEFINES', # For using _M_SQRT* etc with MSVC headers
+  ]), language: ['c', 'cpp'])
+endif
+
 glyphy_conf = configuration_data()
 
 freetype_dep = dependency(is_msvc_like ? 'freetype': 'freetype2', required: true)
