@@ -24,6 +24,12 @@
 extern "C" {
 #endif
 
+#if defined (_MSC_VER) && defined (BUILDING_GLYPHY) && !defined (GLYPHY_STATIC)
+# define GLYPHY_API __declspec(dllexport)
+#else
+# define GLYPHY_API
+#endif
+
 
 #define GLYPHY_PASTE_ARGS(prefix, name) prefix ## name
 #define GLYPHY_PASTE(prefix, name) GLYPHY_PASTE_ARGS (prefix, name)
