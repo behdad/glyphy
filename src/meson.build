@@ -42,6 +42,10 @@ srcinc = include_directories('.')
 
 cpp_args = ['-DHAVE_CONFIG_H=1', '-DBUILDING_GLYPHY=1']
 
+if get_option('default_library') == 'static'
+  cpp_args += ['-DGLYPHY_STATIC']
+endif
+
 libglyphy = library('glyphy', glyphy_sources + glyphy_headers + glyphy_shader_sources,
   include_directories: [confinc],
   cpp_args: cpp_args,
