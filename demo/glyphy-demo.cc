@@ -52,7 +52,7 @@ static int isroot(const char *path)
 static char *basename(char *path)
 {
   if (path == NULL || *path == '\0')
-    return ".";
+    return (char *)".";
 
   while ((path[strlen(path)-1] == '/' ||
 	  path[strlen(path)-1] == '\\') &&
@@ -190,7 +190,7 @@ main (int argc, char** argv)
   const char *text = NULL;
   const char *font_path = NULL;
   char arg;
-  while ((arg = getopt(argc, argv, "t:f:h")) != -1) {
+  while ((arg = getopt(argc, argv, (char *)"t:f:h")) != -1) {
     switch (arg) {
     case 't':
       text = optarg;
