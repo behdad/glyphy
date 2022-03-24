@@ -11,7 +11,10 @@ project('glyphy', 'c', 'cpp',
 pkgmod = import('pkgconfig')
 cpp = meson.get_compiler('cpp')
 
-if cpp.get_id() == 'msvc'
+is_msvc = cpp.get_id() == 'msvc'
+is_msvc_like = is_msvc or cpp.get_argument_syntax() == 'msvc'
+
+if is_msvc
   # Ignore several spurious warnings for things HarfBuzz does very commonly.
   # If a warning is completely useless and spammy, use '/wdXXXX' to suppress it
   # If a warning is harmless but hard to fix, use '/woXXXX' so it's shown once
