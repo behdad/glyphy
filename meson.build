@@ -46,7 +46,7 @@ endif
 
 glyphy_conf = configuration_data()
 
-freetype_dep = dependency('freetype2', required: true)
+freetype_dep = dependency(is_msvc_like ? 'freetype': 'freetype2', required: true)
 harfbuzz_dep = dependency('harfbuzz', version: '>= 4.0.0', required: true)
 gl_dep = dependency('gl', required: true)
 glew_dep = dependency('glew', required: false)
