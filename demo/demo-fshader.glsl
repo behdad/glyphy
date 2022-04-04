@@ -46,9 +46,8 @@ main()
   vec4 color = vec4 (0,0,0,1);
 
   float gsdist = glyphy_sdf (p, gi.nominal_size GLYPHY_DEMO_EXTRA_ARGS);
+  gsdist -= u_boldness;
   float sdist = gsdist / m * u_contrast;
-
-  sdist -= u_boldness * 10.;
 
   if (!u_debug) {
     if (u_outline)
