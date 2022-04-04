@@ -23,7 +23,7 @@
 #include "glyphy-common.hh"
 #include "glyphy-geometry.hh"
 
-#define GRID_SIZE 16
+#define MAX_GRID_SIZE 63
 
 using namespace GLyphy::Geometry;
 
@@ -194,8 +194,9 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
   double glyph_height = extents.max_y - extents.min_y;
   double unit = std::max (glyph_width, glyph_height);
 
-  unsigned int grid_w = GRID_SIZE;
-  unsigned int grid_h = GRID_SIZE;
+  double mult = M_SQRT2;
+  unsigned int grid_w = std::min (MAX_GRID_SIZE, (int) std::ceil (glyph_width * mult / faraway));
+  unsigned int grid_h = std::min (MAX_GRID_SIZE, (int) std::ceil (glyph_height * mult / faraway));
 
   if (glyph_width > glyph_height) {
     while ((grid_h - 1) * unit / grid_w > glyph_height)
