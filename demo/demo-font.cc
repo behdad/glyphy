@@ -135,6 +135,9 @@ encode_ft_glyph (demo_font_t      *font,
   unsigned int upem = hb_face_get_upem (font->face);
   double tolerance = upem * tolerance_per_em; /* in font design units */
   double faraway = double (upem) / (MIN_FONT_SIZE * M_SQRT2);
+  double unit_size = double (upem) / GRID_SIZE;
+  double enlighten_max = double (upem) * ENLIGHTEN_MAX;
+  double embolden_max = double (upem) * EMBOLDEN_MAX;
   std::vector<glyphy_arc_endpoint_t> endpoints;
 
   glyphy_arc_accumulator_reset (font->acc);
@@ -160,11 +163,13 @@ encode_ft_glyph (demo_font_t      *font,
     }
 
   double avg_fetch_achieved;
-  if (!glyphy_arc_list_encode_blob (endpoints.size () ? &endpoints[0] : NULL, endpoints.size (),
+  if (!glyphy_arc_list_encode_blob2 (endpoints.size () ? &endpoints[0] : NULL, endpoints.size (),
 				    buffer,
 				    buffer_len,
 				    faraway / SCALE,
-				    4, /* UNUSED */
+				    unit_size / SCALE,
+				    enlighten_max / SCALE,
+				    embolden_max / SCALE,
 				    &avg_fetch_achieved,
 				    output_len,
 				    nominal_width,

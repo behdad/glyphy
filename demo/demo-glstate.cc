@@ -79,14 +79,15 @@ demo_glstate_destroy (demo_glstate_t *st)
 
 
 static void
-set_uniform (GLuint program, const char *name, double *p, double value)
+set_uniform (GLuint program, const char *name, double *p, double value, double scale=1.0)
 {
   *p = value;
-  glUniform1f (glGetUniformLocation (program, name), value);
+  glUniform1f (glGetUniformLocation (program, name), value * scale);
   LOGI ("Setting %s to %g\n", name + 2, value);
 }
 
 #define SET_UNIFORM(name, value) set_uniform (st->program, #name, &st->name, value)
+#define SET_UNIFORM_SCALE(name, value, scale) set_uniform (st->program, #name, &st->name, value, scale)
 
 void
 demo_glstate_setup (demo_glstate_t *st)
@@ -151,5 +152,5 @@ demo_glstate_scale_outline_thickness (demo_glstate_t *st, double factor)
 void
 demo_glstate_adjust_boldness (demo_glstate_t *st, double adjustment)
 {
-  SET_UNIFORM (u_boldness, clamp (st->u_boldness + adjustment, -.5, 1.0));
+  SET_UNIFORM_SCALE (u_boldness, clamp (st->u_boldness + adjustment, -ENLIGHTEN_MAX, EMBOLDEN_MAX), GRID_SIZE);
 }

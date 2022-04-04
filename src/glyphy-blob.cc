@@ -104,6 +104,8 @@ line_encode (const Line &line)
 static void
 closest_arcs_to_cell (Point c0, Point c1, /* corners */
 		      double faraway,
+		      double enlighten_max,
+		      double embolden_max,
 		      const glyphy_arc_endpoint_t *endpoints,
 		      unsigned int num_endpoints,
 		      std::vector<glyphy_arc_endpoint_t> &near_endpoints,
@@ -116,6 +118,9 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
   *side = min_dist >= 0 ? +1 : -1;
   min_dist = fabs (min_dist);
   std::vector<Arc> near_arcs;
+
+  // This can be improved:
+  faraway += std::max (enlighten_max, embolden_max);
 
   // If d is the distance from the center of the square to the nearest arc, then
   // all nearest arcs to the square must be at most almost [d + half_diagonal] from the center.
@@ -169,6 +174,38 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
 			     unsigned int                *nominal_height, /* 8bit */
 			     glyphy_extents_t            *pextents)
 {
+  return
+  glyphy_arc_list_encode_blob2 (endpoints,
+				num_endpoints,
+				blob,
+				blob_size,
+				faraway,
+				faraway,
+				0,
+				0,
+				avg_fetch_achieved,
+				output_len,
+				nominal_width,  /* 6bit */
+				nominal_height, /* 6bit */
+				pextents);
+}
+
+GLYPHY_API glyphy_bool_t
+glyphy_arc_list_encode_blob2 (const glyphy_arc_endpoint_t *endpoints,
+			      unsigned int                 num_endpoints,
+			      glyphy_rgba_t               *blob,
+			      unsigned int                 blob_size,
+			      double                       faraway,
+			      double                       grid_unit,
+			      double                       enlighten_max,
+			      double                       embolden_max,
+			      double                      *avg_fetch_achieved,
+			      unsigned int                *output_len,
+			      unsigned int                *nominal_width,  /* 6bit */
+			      unsigned int                *nominal_height, /* 6bit */
+			      glyphy_extents_t            *pextents)
+{
+  printf("faraway %g, embolden_max %g\n", faraway, embolden_max);
   glyphy_extents_t extents;
   glyphy_extents_clear (&extents);
 
@@ -196,8 +233,8 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
   double unit = std::max (glyph_width, glyph_height);
 
   double mult = M_SQRT2;
-  unsigned int grid_w = std::min (MAX_GRID_SIZE, (int) std::ceil (glyph_width * mult / faraway));
-  unsigned int grid_h = std::min (MAX_GRID_SIZE, (int) std::ceil (glyph_height * mult / faraway));
+  unsigned int grid_w = std::min (MAX_GRID_SIZE, (int) std::ceil (glyph_width * mult / grid_unit));
+  unsigned int grid_h = std::min (MAX_GRID_SIZE, (int) std::ceil (glyph_height * mult / grid_unit));
 
   if (glyph_width > glyph_height) {
     while ((grid_h - 1) * unit / grid_w > glyph_height)
@@ -232,6 +269,8 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
       int side;
       closest_arcs_to_cell (cp0, cp1,
 			    faraway,
+			    enlighten_max,
+			    embolden_max,
 			    endpoints, num_endpoints,
 			    near_endpoints,
 			    &side);

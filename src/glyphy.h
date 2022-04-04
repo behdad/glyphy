@@ -306,7 +306,22 @@ glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
 			     unsigned int                *output_len,
 			     unsigned int                *nominal_width,  /* 6bit */
 			     unsigned int                *nominal_height, /* 6bit */
-			     glyphy_extents_t            *extents);
+			     glyphy_extents_t            *pextents);
+
+GLYPHY_API glyphy_bool_t
+glyphy_arc_list_encode_blob2 (const glyphy_arc_endpoint_t *endpoints,
+			      unsigned int                 num_endpoints,
+			      glyphy_rgba_t               *blob,
+			      unsigned int                 blob_size,
+			      double                       faraway,
+			      double                       grid_unit,
+			      double                       enlighten_max,
+			      double                       embolden_max,
+			      double                      *avg_fetch_achieved,
+			      unsigned int                *output_len,
+			      unsigned int                *nominal_width,  /* 6bit */
+			      unsigned int                *nominal_height, /* 6bit */
+			      glyphy_extents_t            *pextents);
 
 /* TBD _decode_blob */
 

@@ -398,10 +398,10 @@ demo_view_keyboard_func (demo_view_t *vu, unsigned char key, int x, int y)
       break;
 
     case '0':
-      demo_view_adjust_boldness (vu, +.01);
+      demo_view_adjust_boldness (vu, +.002);
       break;
     case '9':
-      demo_view_adjust_boldness (vu, -.01);
+      demo_view_adjust_boldness (vu, -.002);
       break;
 
 
