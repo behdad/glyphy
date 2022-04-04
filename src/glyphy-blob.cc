@@ -205,7 +205,6 @@ glyphy_arc_list_encode_blob2 (const glyphy_arc_endpoint_t *endpoints,
 			      unsigned int                *nominal_height, /* 6bit */
 			      glyphy_extents_t            *pextents)
 {
-  printf("faraway %g, embolden_max %g\n", faraway, embolden_max);
   glyphy_extents_t extents;
   glyphy_extents_clear (&extents);
 
