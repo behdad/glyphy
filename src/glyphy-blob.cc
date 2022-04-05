@@ -20,6 +20,8 @@
 #include <config.h>
 #endif
 
+#include <cmath>
+
 #include "glyphy-common.hh"
 #include "glyphy-geometry.hh"
 
