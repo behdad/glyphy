@@ -113,6 +113,7 @@ closest_arcs_to_cell (Point c0, Point c1, /* corners */
 {
   // This can be improved:
   double synth_max = std::max (enlighten_max, embolden_max);
+  faraway = std::max (faraway, synth_max);
 
   // Find distance between cell center
   Point c = c0.midpoint (c1);
@@ -222,10 +223,10 @@ glyphy_arc_list_encode_blob2 (const glyphy_arc_endpoint_t *endpoints,
   }
 
   /* Add antialiasing padding */
-  extents.min_x -= faraway;
-  extents.min_y -= faraway;
-  extents.max_x += faraway;
-  extents.max_y += faraway;
+  extents.min_x -= faraway + embolden_max;
+  extents.min_y -= faraway + embolden_max;
+  extents.max_x += faraway + embolden_max;
+  extents.max_y += faraway + embolden_max;
 
   double glyph_width = extents.max_x - extents.min_x;
   double glyph_height = extents.max_y - extents.min_y;
