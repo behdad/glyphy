@@ -63,6 +63,10 @@
    { return 0 == strcmp ("GL_VERSION_2_0", s); }
 #endif /* HAVE_GLEW */
 
+#ifdef __APPLE__
+#  define GL_SILENCE_DEPRECATION
+#endif
+
 /* WTF this block?! */
 #if defined(HAVE_GLES2)
 #  include <GLES2/gl2.h>
