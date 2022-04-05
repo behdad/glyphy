@@ -235,13 +235,9 @@ glyphy_arc_list_encode_blob2 (const glyphy_arc_endpoint_t *endpoints,
   unsigned int grid_h = std::min (MAX_GRID_SIZE, (int) std::ceil (glyph_height / grid_unit));
 
   if (glyph_width > glyph_height) {
-    while ((grid_h - 1) * unit / grid_w > glyph_height)
-      grid_h--;
     glyph_height = grid_h * unit / grid_w;
     extents.max_y = extents.min_y + glyph_height;
   } else {
-    while ((grid_w - 1) * unit / grid_h > glyph_width)
-      grid_w--;
     glyph_width = grid_w * unit / grid_h;
     extents.max_x = extents.min_x + glyph_width;
   }
