@@ -53,7 +53,12 @@ endif
 
 glyphy_conf = configuration_data()
 
-freetype_dep = dependency(is_msvc_like ? 'freetype': 'freetype2', required: true)
+freetype_dep = dependency('freetype2', method: 'pkg-config', required: not is_msvc_like)
+
+# Merge into above line when we require Meson 0.60.0 or later
+if not freetype_dep.found()
+  freetype_dep = dependency('Freetype', method: 'cmake', required: true)
+endif
 harfbuzz_dep = dependency('harfbuzz', version: '>= 4.0.0', required: true)
 gl_dep = dependency('gl', required: true)
 glew_dep = dependency('glew', required: false)
