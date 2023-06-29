@@ -1,17 +1,17 @@
-#!/bin/sh
+#! /usr/bin/env python3
 
-if test "$#" = 0; then
-	echo "Usage: $0 DECL-SPEC FILE..."
-	exit 1
-fi
-decl="$1"
-shift
+import os, sys, re
 
-echo "$decl ="
-sed '
-s/\\/\\\\/g;
-s/"/\\"/g;
-s/^/"/;
-s/$/\\n"/;
-' "$@"
-echo ";"
+decl = sys.argv[1]
+filename = sys.argv[2]
+
+file = open(filename, 'r')
+
+print(f'{decl} = ')
+text = file.read(-1)
+lines = text.splitlines()
+for line in lines:
+    line.replace(r'\\', r'\\\\')
+    line.replace(r'"', r'\\"')
+    print(f'"{line}"')
+print(';')
