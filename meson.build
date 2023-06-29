@@ -45,10 +45,10 @@ else
 endif
 
 if is_msvc_like
-  add_project_arguments(cpp.get_supported_arguments([
+  add_project_arguments([
     '-D_USE_MATH_DEFINES', # For using _M_SQRT* etc with MSVC headers
     '-DNOMINMAX',          # We don't want min/max in windows.h to get in the way
-  ]), language: ['c', 'cpp'])
+  ], language: ['c', 'cpp'])
 endif
 
 glyphy_conf = configuration_data()
