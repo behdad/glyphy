@@ -62,7 +62,7 @@ endif
 harfbuzz_dep = dependency('harfbuzz', version: '>= 4.0.0', required: true)
 gl_dep = dependency('gl', required: true)
 glew_dep = dependency('glew', required: false)
-glut_dep = dependency('glut', required: true)
+glut_dep = dependency('glut', required: get_option('demo').enabled())
 
 prefix = get_option('prefix')
 libdir = join_paths(prefix, get_option('libdir'))
