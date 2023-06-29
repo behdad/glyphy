@@ -88,7 +88,7 @@ endif
 glyphy_conf.set_quoted('PKGDATADIR', pkgdatadir)
 
 configure_file(output: 'config.h', configuration: glyphy_conf)
-confinc = include_directories('.')
+confinc = include_directories('.', 'src')
 
 subdir('src')
 
