@@ -44,7 +44,7 @@ else
   ]), language: 'cpp')
 endif
 
-if is_msvc_like
+if host_machine.system() == 'windows'
   add_project_arguments([
     '-D_USE_MATH_DEFINES', # For using _M_SQRT* etc with MSVC headers
     '-DNOMINMAX',          # We don't want min/max in windows.h to get in the way
