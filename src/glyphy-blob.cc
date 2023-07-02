@@ -354,13 +354,14 @@ glyphy_arc_list_encode_blob2 (const glyphy_arc_endpoint_t *endpoints,
 
   *pextents = extents;
 
+  *output_len = tex_data.size ();
+  *nominal_width = grid_w;
+  *nominal_height = grid_h;
+
   if (tex_data.size () > blob_size)
     return false;
 
   memcpy (blob, &tex_data[0], tex_data.size () * sizeof(tex_data[0]));
-  *output_len = tex_data.size ();
-  *nominal_width = grid_w;
-  *nominal_height = grid_h;
 
   return true;
 }
