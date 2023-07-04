@@ -76,7 +76,7 @@ EXTRA_DIST += $(SHADERS)
 
 %-glsl.h: %.glsl $(top_srcdir)/src/stringize
 	$(AM_V_GEN) $(top_srcdir)/src/stringize "static const char *`echo "$<" | \
-	sed 's@.*/@@;s/[-.]/_/g'`" < "$<" > "$@.tmp" && \
+	sed 's@.*/@@;s/[-.]/_/g'`" "$<" > "$@.tmp" && \
 	mv "$@.tmp" "$@" || ($(RM) "$@.tmp"; false)
 
 endif
