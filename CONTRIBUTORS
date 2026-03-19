@@ -1,0 +1,19 @@
+# This is the official list of people who can contribute
+# (and typically have contributed) code to this repository.
+# The AUTHORS.txt file lists the copyright holders; this file
+# lists people.  For example, Google employees are listed here
+# but not in AUTHORS.txt, because Google holds the copyright.
+#
+# When adding J Random Contributor's name to this file,
+# either J's name or J's organization's name should be
+# added to the AUTHORS.txt file, depending on whether the
+# individual or corporate CLA was used.
+#
+# Names should be added to this file like so:
+#     Name <email address>
+#
+# Please keep the list sorted.
+# (first name; alphabetical order)
+
+Behdad Esfahbod <behdad@behdad.org>
+Maysum Panju <mhpanju@uwaterloo.ca>
