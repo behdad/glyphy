@@ -1,2 +1,20 @@
-Behdad Esfahbod
-Maysum Panju
+# This is the official list of GLyphy authors for copyright purposes.
+# This file is distinct from the CONTRIBUTORS.txt file.
+# See the latter for an explanation.
+#
+# Names should be added to this file as:
+# Name or Organization <email address or github @username>
+# The email address is not required for organizations.
+
+Google LLC
+Behdad Esfahbod <@behdad>
+Kjell Ahlstedt <@fanc999-1>
+Christian Hergert <@chergert>
+Bradley Erickson <@13rac1>
+Dongseong Hwang <@ds-hwang>
+Bernard Čupić <@TataMata>
+Khaled Hosny <@khaledhosny>
+Markus Mohrhard <@mmohrhard>
+Linus Unnebäck <@LinusU>
+Eddie Tamamu <@tamamu>
+Darío Hereñú <@kant>
