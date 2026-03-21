@@ -61,7 +61,7 @@ if not freetype_dep.found()
 endif
 harfbuzz_dep = dependency('harfbuzz', version: '>= 4.0.0', required: true)
 gl_dep = dependency('gl', required: true)
-glew_dep = dependency('glew', required: false)
+glew_dep = dependency('glew', required: get_option('demo').enabled())
 glut_dep = dependency('glut', method: 'pkg-config', required: false)
 
 if not glut_dep.found()
