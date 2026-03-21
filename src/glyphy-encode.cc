@@ -296,11 +296,32 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
    * All offsets are relative to blob start. */
   unsigned int index_offset = header_len + band_headers_len;
 
-  /* Split value: midpoint of glyph extent */
-  int16_t hband_split = quantize ((extents->min_x + extents->max_x) * 0.5);
-  int16_t vband_split = quantize ((extents->min_y + extents->max_y) * 0.5);
-
   for (unsigned int b = 0; b < num_hbands; b++) {
+    /* Per-band split: find x that minimizes max(left_count, right_count).
+     * Curves with max_x >= split are processed by rightward ray.
+     * Curves with min_x <= split are processed by leftward ray.
+     * Descending sort is by max_x, so try split at each max_x boundary. */
+    int16_t hband_split;
+    {
+      auto &bc = hband_curves[b];
+      unsigned int n = bc.size ();
+      unsigned int best_worst = n;
+      double best_split = (extents->min_x + extents->max_x) * 0.5;
+      for (unsigned int ci = 0; ci < n; ci++) {
+	double split = curve_max_x (&curves[bc[ci]]);
+	unsigned int right_count = ci + 1; /* curves with max_x >= split */
+	unsigned int left_count = 0;
+	for (unsigned int cj = 0; cj < n; cj++)
+	  if (curve_min_x (&curves[bc[cj]]) <= split)
+	    left_count++;
+	unsigned int worst = std::max (right_count, left_count);
+	if (worst < best_worst) {
+	  best_worst = worst;
+	  best_split = split;
+	}
+      }
+      hband_split = quantize (best_split);
+    }
     unsigned int hdr = header_len + b;
     unsigned int desc_off = index_offset;
 
@@ -329,6 +350,28 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
   }
 
   for (unsigned int b = 0; b < num_vbands; b++) {
+    int16_t vband_split;
+    {
+      auto &bc = vband_curves[b];
+      unsigned int n = bc.size ();
+      unsigned int best_worst = n;
+      double best_split = (extents->min_y + extents->max_y) * 0.5;
+      for (unsigned int ci = 0; ci < n; ci++) {
+	double split = curve_max_y (&curves[bc[ci]]);
+	unsigned int right_count = ci + 1;
+	unsigned int left_count = 0;
+	for (unsigned int cj = 0; cj < n; cj++)
+	  if (curve_min_y (&curves[bc[cj]]) <= split)
+	    left_count++;
+	unsigned int worst = std::max (right_count, left_count);
+	if (worst < best_worst) {
+	  best_worst = worst;
+	  best_split = split;
+	}
+      }
+      vband_split = quantize (best_split);
+    }
+
     unsigned int hdr = header_len + num_hbands + b;
     unsigned int desc_off = index_offset;
 
