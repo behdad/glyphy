@@ -8,32 +8,11 @@ on:
 
 jobs:
   build-test:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v2
-      - name: Cache Harfbuzz
-        uses: actions/cache@v3
-        with:
-          path: harfbuzz-7.3.0
-          key: ${{ runner.os }}-build
+      - uses: actions/checkout@v4
       - name: Install build dependencies
-        run: sudo apt install -y curl gcc g++ libfreetype6-dev libglib2.0-dev libcairo2-dev make cmake automake autoconf libtool libharfbuzz-dev meson freeglut3-dev libglew-dev
-      - name: Download a recent harfbuzz archive
-        # TODO: Ubuntu 22.04 has harfbuzz < 4.0.0. Ubuntu 24.04 will have harfbuzz >= 4.0.0.
-        # The harfbuzz build will not be required when Github updates the runners.
-        run: curl -L https://github.com/harfbuzz/harfbuzz/releases/download/7.3.0/harfbuzz-7.3.0.tar.xz -O
-      - name: Decompress harfbuzz archive
-        run: tar xvf harfbuzz-7.3.0.tar.xz
-      - name: Configure harfbuzz build
-        run: cd harfbuzz-7.3.0; meson setup build
-      - name: Build harfbuzz
-        run: cd harfbuzz-7.3.0; meson compile -C build
-      - name: Install harfbuzz
-        run: cd harfbuzz-7.3.0; sudo meson install -C build
-      - name: Configure glyphy
-        run: ./autogen.sh
-      - name: Make glyphy
-        run: make
+        run: sudo apt install -y gcc g++ libfreetype6-dev libharfbuzz-dev meson freeglut3-dev libglew-dev
       - name: Meson setup
         run: meson setup build
       - name: Meson compile
