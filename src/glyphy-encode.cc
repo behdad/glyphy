@@ -335,16 +335,17 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
     int16_t hband_split;
     {
       auto &bc = hband_curves[b];
+      auto &bc_asc = hband_curves_asc[b];
       unsigned int n = bc.size ();
       unsigned int best_worst = n;
       double best_split = (extents->min_x + extents->max_x) * 0.5;
+      unsigned int left_count = n;
       for (unsigned int ci = 0; ci < n; ci++) {
 	double split = curve_infos[bc[ci]].max_x;
 	unsigned int right_count = ci + 1; /* curves with max_x >= split */
-	unsigned int left_count = 0;
-	for (unsigned int cj = 0; cj < n; cj++)
-	  if (curve_infos[bc[cj]].min_x <= split)
-	    left_count++;
+	while (left_count &&
+	       curve_infos[bc_asc[left_count - 1]].min_x > split)
+	  left_count--;
 	unsigned int worst = std::max (right_count, left_count);
 	if (worst < best_worst) {
 	  best_worst = worst;
@@ -384,16 +385,17 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
     int16_t vband_split;
     {
       auto &bc = vband_curves[b];
+      auto &bc_asc = vband_curves_asc[b];
       unsigned int n = bc.size ();
       unsigned int best_worst = n;
       double best_split = (extents->min_y + extents->max_y) * 0.5;
+      unsigned int left_count = n;
       for (unsigned int ci = 0; ci < n; ci++) {
 	double split = curve_infos[bc[ci]].max_y;
 	unsigned int right_count = ci + 1;
-	unsigned int left_count = 0;
-	for (unsigned int cj = 0; cj < n; cj++)
-	  if (curve_infos[bc[cj]].min_y <= split)
-	    left_count++;
+	while (left_count &&
+	       curve_infos[bc_asc[left_count - 1]].min_y > split)
+	  left_count--;
 	unsigned int worst = std::max (right_count, left_count);
 	if (worst < best_worst) {
 	  best_worst = worst;
