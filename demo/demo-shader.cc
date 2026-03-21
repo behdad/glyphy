@@ -28,22 +28,12 @@ demo_shader_add_glyph_vertices (const glyphy_point_t        &p,
   if (gi->is_empty)
     return;
 
-  /* gi->extents are in normalized em-space (0..1).
-   * The blob stores curves in font design units.
-   * We need texcoords in font design units to match,
-   * so multiply back by upem.  Band transform also in font units. */
+  /* Texcoords in font design units (extents are normalized, scale back) */
   double upem = gi->upem;
   double min_x = gi->extents.min_x * upem;
   double max_x = gi->extents.max_x * upem;
   double min_y = gi->extents.min_y * upem;
   double max_y = gi->extents.max_y * upem;
-  double width = max_x - min_x;
-  double height = max_y - min_y;
-
-  float band_scale_x = (width > 0)  ? (float) (gi->num_vbands / width) : 0.f;
-  float band_scale_y = (height > 0) ? (float) (gi->num_hbands / height) : 0.f;
-  float band_offset_x = (float) (-min_x * band_scale_x);
-  float band_offset_y = (float) (-min_y * band_scale_y);
 
   glyph_vertex_t v[4];
 
@@ -54,20 +44,11 @@ demo_shader_add_glyph_vertices (const glyphy_point_t        &p,
     double vx = p.x + font_size * ((1 - cx) * gi->extents.min_x + cx * gi->extents.max_x);
     double vy = p.y - font_size * ((1 - cy) * gi->extents.min_y + cy * gi->extents.max_y);
 
-    double tx = (1 - cx) * min_x + cx * max_x;
-    double ty = (1 - cy) * min_y + cy * max_y;
-
     v[ci].x = (float) vx;
     v[ci].y = (float) vy;
-    v[ci].tx = (float) tx;
-    v[ci].ty = (float) ty;
-    v[ci].band_scale_x = band_scale_x;
-    v[ci].band_scale_y = band_scale_y;
-    v[ci].band_offset_x = band_offset_x;
-    v[ci].band_offset_y = band_offset_y;
+    v[ci].tx = (float) ((1 - cx) * min_x + cx * max_x);
+    v[ci].ty = (float) ((1 - cy) * min_y + cy * max_y);
     v[ci].atlas_offset = gi->atlas_offset;
-    v[ci].num_hbands = gi->num_hbands;
-    v[ci].num_vbands = gi->num_vbands;
   }
 
   /* Two triangles */

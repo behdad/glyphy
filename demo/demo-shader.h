@@ -22,16 +22,11 @@ struct glyph_vertex_t {
   /* Em-space texture coordinates */
   GLfloat tx;
   GLfloat ty;
-  /* Band transform (constant across glyph) */
-  GLfloat band_scale_x;
-  GLfloat band_scale_y;
-  GLfloat band_offset_x;
-  GLfloat band_offset_y;
-  /* Glyph data (constant across glyph) */
+  /* Glyph data (constant across glyph, opaque to client) */
   GLint atlas_offset;
-  GLint num_hbands;
-  GLint num_vbands;
-  GLint _padding;
+  GLint _reserved1;
+  GLint _reserved2;
+  GLint _reserved3;
 };
 
 void

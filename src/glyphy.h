@@ -197,8 +197,6 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
 			       glyphy_texel_t       *blob,
 			       unsigned int          blob_size,
 			       unsigned int         *output_len,
-			       unsigned int         *num_hbands,
-			       unsigned int         *num_vbands,
 			       glyphy_extents_t     *extents);
 
 

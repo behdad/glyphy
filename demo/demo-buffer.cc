@@ -182,13 +182,7 @@ demo_buffer_draw (demo_buffer_t *buffer)
   glVertexAttribPointer (loc_tex, 2, GL_FLOAT, GL_FALSE, stride,
 			 (const void *) offsetof (glyph_vertex_t, tx));
 
-  /* a_bandTransform: vec4 at offset 16 */
-  GLint loc_band = glGetAttribLocation (program, "a_bandTransform");
-  glEnableVertexAttribArray (loc_band);
-  glVertexAttribPointer (loc_band, 4, GL_FLOAT, GL_FALSE, stride,
-			 (const void *) offsetof (glyph_vertex_t, band_scale_x));
-
-  /* a_glyphData: ivec4 at offset 32 */
+  /* a_glyphData: ivec4 */
   GLint loc_glyph = glGetAttribLocation (program, "a_glyphData");
   glEnableVertexAttribArray (loc_glyph);
   glVertexAttribIPointer (loc_glyph, 4, GL_INT, stride,
@@ -198,6 +192,5 @@ demo_buffer_draw (demo_buffer_t *buffer)
 
   glDisableVertexAttribArray (loc_pos);
   glDisableVertexAttribArray (loc_tex);
-  glDisableVertexAttribArray (loc_band);
   glDisableVertexAttribArray (loc_glyph);
 }

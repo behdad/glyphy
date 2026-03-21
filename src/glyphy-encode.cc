@@ -108,16 +108,12 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
 			       glyphy_texel_t       *blob,
 			       unsigned int          blob_size,
 			       unsigned int         *output_len,
-			       unsigned int         *p_num_hbands,
-			       unsigned int         *p_num_vbands,
 			       glyphy_extents_t     *extents)
 {
   glyphy_curve_list_extents (curves, num_curves, extents);
 
   if (num_curves == 0) {
     *output_len = 0;
-    *p_num_hbands = 0;
-    *p_num_vbands = 0;
     return true;
   }
 
@@ -195,14 +191,27 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
   for (auto &band : hband_curves) total_curve_indices += band.size ();
   for (auto &band : vband_curves) total_curve_indices += band.size ();
 
+  unsigned int header_len = 2; /* blob header: extents + band counts */
   unsigned int band_headers_len = num_hbands + num_vbands;
   unsigned int curve_data_len = num_curves * 2;
-  unsigned int total_len = band_headers_len + total_curve_indices + curve_data_len;
+  unsigned int total_len = header_len + band_headers_len + total_curve_indices + curve_data_len;
 
   if (total_len > blob_size)
     return false;
 
-  unsigned int curve_data_offset = band_headers_len + total_curve_indices;
+  unsigned int curve_data_offset = header_len + band_headers_len + total_curve_indices;
+
+  /* Pack blob header:
+   * Texel 0: (min_x, min_y, max_x, max_y) - quantized extents
+   * Texel 1: (num_hbands, num_vbands, 0, 0) */
+  blob[0].r = quantize (extents->min_x);
+  blob[0].g = quantize (extents->min_y);
+  blob[0].b = quantize (extents->max_x);
+  blob[0].a = quantize (extents->max_y);
+  blob[1].r = (int16_t) num_hbands;
+  blob[1].g = (int16_t) num_vbands;
+  blob[1].b = 0;
+  blob[1].a = 0;
 
   /* Pack curve data.
    * Quantize p1 and p3 first, then compute p2 as the average of the
@@ -240,14 +249,15 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
     blob[off + 1].a = 0;
   }
 
-  /* Pack band headers and curve indices */
-  unsigned int index_offset = band_headers_len;
+  /* Pack band headers and curve indices.
+   * All offsets are relative to blob start (including header). */
+  unsigned int index_offset = header_len + band_headers_len;
 
   for (unsigned int b = 0; b < num_hbands; b++) {
-    blob[b].r = (int16_t) hband_curves[b].size ();
-    blob[b].g = (int16_t) index_offset;
-    blob[b].b = 0;
-    blob[b].a = 0;
+    blob[header_len + b].r = (int16_t) hband_curves[b].size ();
+    blob[header_len + b].g = (int16_t) index_offset;
+    blob[header_len + b].b = 0;
+    blob[header_len + b].a = 0;
 
     for (unsigned int ci = 0; ci < hband_curves[b].size (); ci++) {
       unsigned int curve_off = curve_data_offset + hband_curves[b][ci] * 2;
@@ -260,11 +270,10 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
   }
 
   for (unsigned int b = 0; b < num_vbands; b++) {
-    unsigned int header_off = num_hbands + b;
-    blob[header_off].r = (int16_t) vband_curves[b].size ();
-    blob[header_off].g = (int16_t) index_offset;
-    blob[header_off].b = 0;
-    blob[header_off].a = 0;
+    blob[header_len + num_hbands + b].r = (int16_t) vband_curves[b].size ();
+    blob[header_len + num_hbands + b].g = (int16_t) index_offset;
+    blob[header_len + num_hbands + b].b = 0;
+    blob[header_len + num_hbands + b].a = 0;
 
     for (unsigned int ci = 0; ci < vband_curves[b].size (); ci++) {
       unsigned int curve_off = curve_data_offset + vband_curves[b][ci] * 2;
@@ -277,8 +286,6 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
   }
 
   *output_len = total_len;
-  *p_num_hbands = num_hbands;
-  *p_num_vbands = num_vbands;
 
   return true;
 }

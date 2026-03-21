@@ -80,20 +80,34 @@ float glyphy_calc_coverage (float xcov, float ycov, float xwgt, float ywgt)
   return clamp (coverage, 0.0, 1.0);
 }
 
-float glyphy_slug_render (vec2 renderCoord, vec4 bandTransform,
-			  int glyphLoc, int numHBands, int numVBands)
+float glyphy_slug_render (vec2 renderCoord, int glyphLoc)
 {
   vec2 emsPerPixel = fwidth (renderCoord);
   vec2 pixelsPerEm = 1.0 / emsPerPixel;
 
-  ivec2 bandIndex = clamp (ivec2 (renderCoord * bandTransform.xy + bandTransform.zw),
+  /* Read blob header */
+  ivec4 header0 = texelFetch (u_atlas, glyphLoc);
+  ivec4 header1 = texelFetch (u_atlas, glyphLoc + 1);
+  vec4 ext = vec4 (header0) * GLYPHY_INV_UNITS; /* min_x, min_y, max_x, max_y */
+  int numHBands = header1.r;
+  int numVBands = header1.g;
+
+  /* Compute band transform from extents */
+  vec2 extSize = ext.zw - ext.xy; /* (width, height) */
+  vec2 bandScale = vec2 (float (numVBands), float (numHBands)) / max (extSize, vec2 (1.0 / 65536.0));
+  vec2 bandOffset = -ext.xy * bandScale;
+
+  ivec2 bandIndex = clamp (ivec2 (renderCoord * bandScale + bandOffset),
 			   ivec2 (0, 0),
 			   ivec2 (numVBands - 1, numHBands - 1));
+
+  /* Skip past header (2 texels) */
+  int bandBase = glyphLoc + 2;
 
   float xcov = 0.0;
   float xwgt = 0.0;
 
-  ivec4 hbandData = texelFetch (u_atlas, glyphLoc + bandIndex.y);
+  ivec4 hbandData = texelFetch (u_atlas, bandBase + bandIndex.y);
   int hCurveCount = hbandData.r;
   int hDataOffset = hbandData.g;
 
@@ -132,7 +146,7 @@ float glyphy_slug_render (vec2 renderCoord, vec4 bandTransform,
   float ycov = 0.0;
   float ywgt = 0.0;
 
-  ivec4 vbandData = texelFetch (u_atlas, glyphLoc + numHBands + bandIndex.x);
+  ivec4 vbandData = texelFetch (u_atlas, bandBase + numHBands + bandIndex.x);
   int vCurveCount = vbandData.r;
   int vDataOffset = vbandData.g;
 

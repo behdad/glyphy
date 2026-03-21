@@ -106,8 +106,6 @@ encode_glyph (demo_font_t      *font,
 	      glyphy_texel_t   *buffer,
 	      unsigned int      buffer_len,
 	      unsigned int     *output_len,
-	      unsigned int     *num_hbands,
-	      unsigned int     *num_vbands,
 	      glyphy_extents_t *extents,
 	      double           *advance)
 {
@@ -125,7 +123,6 @@ encode_glyph (demo_font_t      *font,
   if (!glyphy_curve_list_encode_blob (curves.size () ? &curves[0] : NULL, curves.size (),
 				      buffer, buffer_len,
 				      output_len,
-				      num_hbands, num_vbands,
 				      extents))
     die ("Failed encoding blob");
 
@@ -151,8 +148,6 @@ _demo_font_upload_glyph (demo_font_t *font,
 		glyph_index,
 		buffer, ARRAY_LEN (buffer),
 		&output_len,
-		&glyph_info->num_hbands,
-		&glyph_info->num_vbands,
 		&glyph_info->extents,
 		&glyph_info->advance);
 
