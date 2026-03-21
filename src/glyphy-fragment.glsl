@@ -80,7 +80,7 @@ float glyphy_calc_coverage (float xcov, float ycov, float xwgt, float ywgt)
   return clamp (coverage, 0.0, 1.0);
 }
 
-float glyphy_slug_render (vec2 renderCoord, uint glyphLoc_)
+float glyphy_render (vec2 renderCoord, uint glyphLoc_)
 {
   vec2 emsPerPixel = fwidth (renderCoord);
   vec2 pixelsPerEm = 1.0 / emsPerPixel;

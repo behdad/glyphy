@@ -22,12 +22,12 @@ struct glyph_vertex_t {
   /* Em-space texture coordinates */
   GLfloat tx;
   GLfloat ty;
-  /* Object-space normal for dilation (corner direction * scale) */
-  GLfloat nx;
-  GLfloat ny;
-  /* Inverse Jacobian: maps object-space to em-space (constant across glyph) */
-  GLfloat jx;
-  GLfloat jy;
+  /* Corner direction for dilation (-1 or +1 per axis) */
+  GLfloat cx;
+  GLfloat cy;
+  /* Texcoord-per-position ratio (constant across glyph) */
+  GLfloat tpx;
+  GLfloat tpy;
   /* Atlas offset (constant across glyph) */
   GLuint atlas_offset;
   GLuint _padding;

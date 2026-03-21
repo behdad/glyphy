@@ -45,12 +45,10 @@ demo_shader_add_glyph_vertices (const glyphy_point_t        &p,
     v[ci].y = (float) (p.y - scale * ey);
     v[ci].tx = (float) ex;
     v[ci].ty = (float) ey;
-    /* Normal points outward from glyph center, length = 1 in object space */
-    v[ci].nx = cx ? 1.f : -1.f;
-    v[ci].ny = cy ? -1.f : 1.f; /* y is flipped: screen y = -object y */
-    /* Inverse Jacobian: d(texcoord) = d(position) * jac */
-    v[ci].jx = (float) (1.0 / scale);
-    v[ci].jy = (float) (-1.0 / scale);
+    v[ci].cx = cx ? 1.f : -1.f;
+    v[ci].cy = cy ? -1.f : 1.f; /* y flipped: screen y = -object y */
+    v[ci].tpx = (float) (1.0 / scale);
+    v[ci].tpy = (float) (-1.0 / scale);
     v[ci].atlas_offset = gi->atlas_offset;
   }
 
@@ -152,10 +150,12 @@ demo_shader_create_program (void)
   TRACE();
 
   GLuint vshader, fshader, program;
-  const GLchar *vshader_sources[] = {demo_vshader_glsl};
+  const GLchar *vshader_sources[] = {"#version 330\n",
+				     glyphy_vertex_shader_source (),
+				     demo_vshader_glsl};
   vshader = compile_shader (GL_VERTEX_SHADER, ARRAY_LEN (vshader_sources), vshader_sources);
   const GLchar *fshader_sources[] = {"#version 330\n",
-				     glyphy_slug_shader_source (),
+				     glyphy_fragment_shader_source (),
 				     demo_fshader_glsl};
   fshader = compile_shader (GL_FRAGMENT_SHADER, ARRAY_LEN (fshader_sources), fshader_sources);
 

@@ -185,10 +185,16 @@ typedef struct {
  */
 
 GLYPHY_API const char *
-glyphy_slug_shader_source (void);
+glyphy_fragment_shader_source (void);
 
 GLYPHY_API const char *
-glyphy_slug_shader_source_path (void);
+glyphy_fragment_shader_source_path (void);
+
+GLYPHY_API const char *
+glyphy_vertex_shader_source (void);
+
+GLYPHY_API const char *
+glyphy_vertex_shader_source_path (void);
 
 
 GLYPHY_API glyphy_bool_t

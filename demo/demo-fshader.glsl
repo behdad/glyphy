@@ -5,7 +5,7 @@ out vec4 fragColor;
 
 void main ()
 {
-  float coverage = glyphy_slug_render (v_texcoord, v_glyphLoc);
+  float coverage = glyphy_render (v_texcoord, v_glyphLoc);
 
   fragColor = vec4 (0.0, 0.0, 0.0, coverage);
 }

@@ -12,7 +12,8 @@ glyphy_headers = [
 ]
 
 glyphy_shaders = [
-  [ 'glyphy-slug.glsl', 'glyphy-slug-glsl.h', 'glyphy_slug_glsl' ],
+  [ 'glyphy-fragment.glsl', 'glyphy-fragment-glsl.h', 'glyphy_fragment_glsl' ],
+  [ 'glyphy-vertex.glsl', 'glyphy-vertex-glsl.h', 'glyphy_vertex_glsl' ],
 ]
 
 stringize = find_program('stringize')
