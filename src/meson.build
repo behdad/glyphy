@@ -52,7 +52,7 @@ libglyphy_dep = declare_dependency(
 meson.override_dependency('glyphy', libglyphy_dep)
 
 libglyphy_pc = pkgmod.generate(libglyphy,
-  description: 'High-quality glyph rendering library using OpenGL ES2 shaders',
+  description: 'High-quality GPU glyph rendering library',
   subdirs: meson.project_name())
 
 install_headers(glyphy_headers, subdir: meson.project_name())

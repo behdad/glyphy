@@ -46,7 +46,7 @@ demo_shader_add_glyph_vertices (const glyphy_point_t        &p,
     v[ci].tx = (float) ex;
     v[ci].ty = (float) ey;
     v[ci].cx = cx ? 1.f : -1.f;
-    v[ci].cy = cy ? -1.f : 1.f; /* y flipped: screen y = -object y */
+    v[ci].cy = cy ? 1.f : -1.f; /* top dilates up, bottom dilates down */
     v[ci].tpx = (float) (1.0 / scale);
     v[ci].tpy = (float) (-1.0 / scale);
     v[ci].atlas_offset = gi->atlas_offset;
