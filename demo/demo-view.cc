@@ -308,6 +308,9 @@ demo_view_keyboard_func (demo_view_t *vu, unsigned char key, int x, int y)
     case '?':
       demo_view_print_help (vu);
       break;
+    case 's':
+      demo_view_toggle_srgb (vu);
+      break;
     case 'v':
       demo_view_toggle_vsync (vu);
       break;
@@ -516,6 +519,7 @@ demo_view_print_help (demo_view_t *vu)
   LOGI ("  Esc, q                    Quit\n");
   LOGI ("  Space                     Toggle animation\n");
   LOGI ("  f                         Toggle fullscreen\n");
+  LOGI ("  s                         Toggle sRGB framebuffer\n");
   LOGI ("  v                         Toggle vsync\n");
   LOGI ("  =, -                      Zoom in or out\n");
   LOGI ("  [, ]                      Stretch or shrink horizontally\n");
