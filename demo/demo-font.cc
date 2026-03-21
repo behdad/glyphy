@@ -152,8 +152,14 @@ demo_font_lookup_glyph (demo_font_t  *font,
 void
 demo_font_print_stats (demo_font_t *font)
 {
-  LOGI ("%3d glyphs; avg curves%6.2f; avg %5.2fkb per glyph\n",
+  double atlas_used_kb = demo_atlas_get_used (font->atlas) * sizeof (glyphy_texel_t) / 1024.;
+
+  if (!font->num_glyphs)
+    return;
+
+  LOGI ("%3d glyphs; avg curves%6.2f; avg %5.2fkb per glyph; atlas used %5.2fkb\n",
 	font->num_glyphs,
 	(double) font->sum_curves / font->num_glyphs,
-	font->sum_bytes / 1024. / font->num_glyphs);
+	font->sum_bytes / 1024. / font->num_glyphs,
+	atlas_used_kb);
 }

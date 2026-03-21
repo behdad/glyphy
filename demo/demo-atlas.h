@@ -27,6 +27,9 @@ demo_atlas_alloc (demo_atlas_t    *at,
 		  glyphy_texel_t  *data,
 		  unsigned int     len);
 
+unsigned int
+demo_atlas_get_used (demo_atlas_t *at);
+
 void
 demo_atlas_set_uniforms (demo_atlas_t *at);
 

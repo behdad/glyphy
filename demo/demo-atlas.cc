@@ -98,3 +98,9 @@ demo_atlas_alloc (demo_atlas_t    *at,
 
   return offset;
 }
+
+unsigned int
+demo_atlas_get_used (demo_atlas_t *at)
+{
+  return at->cursor;
+}
