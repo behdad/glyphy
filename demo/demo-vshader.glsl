@@ -1,22 +1,24 @@
+#version 130
+
 uniform mat4 u_matViewProjection;
 
-attribute vec4 a_glyph_vertex;
+/* Per-vertex attributes */
+in vec2 a_position;         /* Object-space vertex position */
+in vec2 a_texcoord;         /* Em-space sample coordinates */
 
-varying vec4 v_glyph;
+/* Per-vertex but constant across glyph (flat) */
+in vec4 a_bandTransform;    /* (scale_x, scale_y, offset_x, offset_y) */
+in ivec4 a_glyphData;      /* (atlas_x, atlas_y, num_hbands, num_vbands) */
 
-vec4
-glyph_vertex_transcode (vec2 v)
+/* Outputs to fragment shader */
+out vec2 v_texcoord;
+flat out vec4 v_bandTransform;
+flat out ivec4 v_glyphData;
+
+void main ()
 {
-  ivec2 g = ivec2 (v);
-  ivec2 corner = ivec2 (mod (v, 2.));
-  g /= 2;
-  ivec2 nominal_size = ivec2 (mod (vec2(g), 64.));
-  return vec4 (corner * nominal_size, g * 4);
-}
-
-void
-main()
-{
-  gl_Position = u_matViewProjection * vec4 (a_glyph_vertex.xy, 0, 1);
-  v_glyph = glyph_vertex_transcode (a_glyph_vertex.zw);
+  gl_Position = u_matViewProjection * vec4 (a_position, 0.0, 1.0);
+  v_texcoord = a_texcoord;
+  v_bandTransform = a_bandTransform;
+  v_glyphData = a_glyphData;
 }
