@@ -66,7 +66,6 @@ glyphy_demo_SOURCES = \
 	$(NULL)
 endif
 SHADERS = \
-	demo-atlas.glsl \
 	demo-fshader.glsl \
 	demo-vshader.glsl \
 	$(NULL)

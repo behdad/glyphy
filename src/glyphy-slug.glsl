@@ -10,7 +10,7 @@
  */
 
 
-/* Requires GLSL 1.30 / ES 3.00 */
+/* Requires GLSL 3.30 / ES 3.00 */
 
 
 #ifndef GLYPHY_ATLAS_WIDTH

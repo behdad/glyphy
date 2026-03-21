@@ -1,5 +1,3 @@
-#version 130
-
 in vec2 v_texcoord;
 flat in vec4 v_bandTransform;
 flat in ivec4 v_glyphData;

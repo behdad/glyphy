@@ -171,7 +171,8 @@ demo_shader_create_program (void)
   GLuint vshader, fshader, program;
   const GLchar *vshader_sources[] = {demo_vshader_glsl};
   vshader = compile_shader (GL_VERTEX_SHADER, ARRAY_LEN (vshader_sources), vshader_sources);
-  const GLchar *fshader_sources[] = {glyphy_slug_shader_source (),
+  const GLchar *fshader_sources[] = {"#version 330\n",
+				     glyphy_slug_shader_source (),
 				     demo_fshader_glsl};
   fshader = compile_shader (GL_FRAGMENT_SHADER, ARRAY_LEN (fshader_sources), fshader_sources);
 

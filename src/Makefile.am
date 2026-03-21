@@ -15,16 +15,9 @@ libglyphy_la_LDFLAGS = \
 	-version-info @GLYPHY_LIBTOOL_VERSION_INFO@ \
 	$(NULL)
 libglyphy_la_SOURCES = \
-	glyphy-arc.cc \
-	glyphy-arc-bezier.hh \
-	glyphy-arcs.cc \
-	glyphy-arcs-bezier.hh \
-	glyphy-blob.cc \
-	glyphy-common.hh \
+	glyphy-curves.cc \
+	glyphy-encode.cc \
 	glyphy-extents.cc \
-	glyphy-geometry.hh \
-	glyphy-outline.cc \
-	glyphy-sdf.cc \
 	glyphy-shaders.cc \
 	$(PUBLICHEADERS) \
 	$(SHADERHEADERS) \
@@ -35,8 +28,7 @@ PUBLICHEADERS = \
 	glyphy-harfbuzz.h \
 	$(NULL)
 SHADERS = \
-	glyphy-common.glsl \
-	glyphy-sdf.glsl \
+	glyphy-slug.glsl \
 	$(NULL)
 SHADERHEADERS = $(patsubst %.glsl,%-glsl.h, $(SHADERS))
 BUILT_SOURCES += $(SHADERHEADERS)
