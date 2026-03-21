@@ -179,21 +179,28 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
     }
   }
 
-  /* Assign curves to bands */
-  std::vector<std::vector<unsigned int>> hband_curves (num_hbands);
-  std::vector<std::vector<unsigned int>> hband_curves_asc (num_hbands);
-  std::vector<std::vector<unsigned int>> vband_curves (num_vbands);
-  std::vector<std::vector<unsigned int>> vband_curves_asc (num_vbands);
+  std::vector<unsigned int> hband_offsets (num_hbands);
+  std::vector<unsigned int> vband_offsets (num_vbands);
+  unsigned int total_hband_indices = 0;
+  unsigned int total_vband_indices = 0;
 
   for (unsigned int b = 0; b < num_hbands; b++) {
-    hband_curves[b].reserve (hband_curve_counts[b]);
-    hband_curves_asc[b].reserve (hband_curve_counts[b]);
+    hband_offsets[b] = total_hband_indices;
+    total_hband_indices += hband_curve_counts[b];
   }
 
   for (unsigned int b = 0; b < num_vbands; b++) {
-    vband_curves[b].reserve (vband_curve_counts[b]);
-    vband_curves_asc[b].reserve (vband_curve_counts[b]);
+    vband_offsets[b] = total_vband_indices;
+    total_vband_indices += vband_curve_counts[b];
   }
+
+  /* Assign curves to bands */
+  std::vector<unsigned int> hband_curves (total_hband_indices);
+  std::vector<unsigned int> hband_curves_asc (total_hband_indices);
+  std::vector<unsigned int> vband_curves (total_vband_indices);
+  std::vector<unsigned int> vband_curves_asc (total_vband_indices);
+  std::vector<unsigned int> hband_cursors = hband_offsets;
+  std::vector<unsigned int> vband_cursors = vband_offsets;
 
   for (unsigned int i = 0; i < num_curves; i++) {
     const curve_info_t &info = curve_infos[i];
@@ -202,13 +209,15 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
      * vertical lines never intersect vertical rays. */
 
     for (int b = info.hband_lo; b <= info.hband_hi; b++) {
-      hband_curves[b].push_back (i);
-      hband_curves_asc[b].push_back (i);
+      unsigned int index = hband_cursors[b]++;
+      hband_curves[index] = i;
+      hband_curves_asc[index] = i;
     }
 
     for (int b = info.vband_lo; b <= info.vband_hi; b++) {
-      vband_curves[b].push_back (i);
-      vband_curves_asc[b].push_back (i);
+      unsigned int index = vband_cursors[b]++;
+      vband_curves[index] = i;
+      vband_curves_asc[index] = i;
     }
   }
 
@@ -216,31 +225,33 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
    * Descending max: for rightward/upward ray (current behavior).
    * Ascending min: for leftward/downward ray. */
   for (unsigned int b = 0; b < num_hbands; b++) {
-    std::sort (hband_curves[b].begin (), hband_curves[b].end (),
+    unsigned int off = hband_offsets[b];
+    unsigned int count = hband_curve_counts[b];
+    std::sort (hband_curves.begin () + off, hband_curves.begin () + off + count,
 	       [&] (unsigned int a, unsigned int b) {
 		 return curve_infos[a].max_x > curve_infos[b].max_x;
 	       });
-    std::sort (hband_curves_asc[b].begin (), hband_curves_asc[b].end (),
+    std::sort (hband_curves_asc.begin () + off, hband_curves_asc.begin () + off + count,
 	       [&] (unsigned int a, unsigned int b) {
 		 return curve_infos[a].min_x < curve_infos[b].min_x;
 	       });
   }
 
   for (unsigned int b = 0; b < num_vbands; b++) {
-    std::sort (vband_curves[b].begin (), vband_curves[b].end (),
+    unsigned int off = vband_offsets[b];
+    unsigned int count = vband_curve_counts[b];
+    std::sort (vband_curves.begin () + off, vband_curves.begin () + off + count,
 	       [&] (unsigned int a, unsigned int b) {
 		 return curve_infos[a].max_y > curve_infos[b].max_y;
 	       });
-    std::sort (vband_curves_asc[b].begin (), vband_curves_asc[b].end (),
+    std::sort (vband_curves_asc.begin () + off, vband_curves_asc.begin () + off + count,
 	       [&] (unsigned int a, unsigned int b) {
 		 return curve_infos[a].min_y < curve_infos[b].min_y;
 	       });
   }
 
   /* Compute sizes -- two index lists per band */
-  unsigned int total_curve_indices = 0;
-  for (auto count : hband_curve_counts) total_curve_indices += count * 2;
-  for (auto count : vband_curve_counts) total_curve_indices += count * 2;
+  unsigned int total_curve_indices = (total_hband_indices + total_vband_indices) * 2;
 
   unsigned int header_len = 2; /* blob header: extents + band counts */
   /* Compute curve data size with shared endpoints.
@@ -337,17 +348,16 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
      * Descending sort is by max_x, so try split at each max_x boundary. */
     int16_t hband_split;
     {
-      auto &bc = hband_curves[b];
-      auto &bc_asc = hband_curves_asc[b];
-      unsigned int n = bc.size ();
+      unsigned int off = hband_offsets[b];
+      unsigned int n = hband_curve_counts[b];
       unsigned int best_worst = n;
       double best_split = (extents->min_x + extents->max_x) * 0.5;
       unsigned int left_count = n;
       for (unsigned int ci = 0; ci < n; ci++) {
-	double split = curve_infos[bc[ci]].max_x;
+	double split = curve_infos[hband_curves[off + ci]].max_x;
 	unsigned int right_count = ci + 1; /* curves with max_x >= split */
 	while (left_count &&
-	       curve_infos[bc_asc[left_count - 1]].min_x > split)
+	       curve_infos[hband_curves_asc[off + left_count - 1]].min_x > split)
 	  left_count--;
 	unsigned int worst = std::max (right_count, left_count);
 	if (worst < best_worst) {
@@ -360,8 +370,8 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
     unsigned int hdr = header_len + b;
     unsigned int desc_off = index_offset;
 
-    for (unsigned int ci = 0; ci < hband_curves[b].size (); ci++) {
-      blob[index_offset].r = (int16_t) curve_texel_offset[hband_curves[b][ci]];
+    for (unsigned int ci = 0; ci < hband_curve_counts[b]; ci++) {
+      blob[index_offset].r = (int16_t) curve_texel_offset[hband_curves[hband_offsets[b] + ci]];
       blob[index_offset].g = 0;
       blob[index_offset].b = 0;
       blob[index_offset].a = 0;
@@ -370,15 +380,15 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
 
     unsigned int asc_off = index_offset;
 
-    for (unsigned int ci = 0; ci < hband_curves_asc[b].size (); ci++) {
-      blob[index_offset].r = (int16_t) curve_texel_offset[hband_curves_asc[b][ci]];
+    for (unsigned int ci = 0; ci < hband_curve_counts[b]; ci++) {
+      blob[index_offset].r = (int16_t) curve_texel_offset[hband_curves_asc[hband_offsets[b] + ci]];
       blob[index_offset].g = 0;
       blob[index_offset].b = 0;
       blob[index_offset].a = 0;
       index_offset++;
     }
 
-    blob[hdr].r = (int16_t) hband_curves[b].size ();
+    blob[hdr].r = (int16_t) hband_curve_counts[b];
     blob[hdr].g = (int16_t) desc_off;
     blob[hdr].b = (int16_t) asc_off;
     blob[hdr].a = hband_split;
@@ -387,17 +397,16 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
   for (unsigned int b = 0; b < num_vbands; b++) {
     int16_t vband_split;
     {
-      auto &bc = vband_curves[b];
-      auto &bc_asc = vband_curves_asc[b];
-      unsigned int n = bc.size ();
+      unsigned int off = vband_offsets[b];
+      unsigned int n = vband_curve_counts[b];
       unsigned int best_worst = n;
       double best_split = (extents->min_y + extents->max_y) * 0.5;
       unsigned int left_count = n;
       for (unsigned int ci = 0; ci < n; ci++) {
-	double split = curve_infos[bc[ci]].max_y;
+	double split = curve_infos[vband_curves[off + ci]].max_y;
 	unsigned int right_count = ci + 1;
 	while (left_count &&
-	       curve_infos[bc_asc[left_count - 1]].min_y > split)
+	       curve_infos[vband_curves_asc[off + left_count - 1]].min_y > split)
 	  left_count--;
 	unsigned int worst = std::max (right_count, left_count);
 	if (worst < best_worst) {
@@ -411,8 +420,8 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
     unsigned int hdr = header_len + num_hbands + b;
     unsigned int desc_off = index_offset;
 
-    for (unsigned int ci = 0; ci < vband_curves[b].size (); ci++) {
-      blob[index_offset].r = (int16_t) curve_texel_offset[vband_curves[b][ci]];
+    for (unsigned int ci = 0; ci < vband_curve_counts[b]; ci++) {
+      blob[index_offset].r = (int16_t) curve_texel_offset[vband_curves[vband_offsets[b] + ci]];
       blob[index_offset].g = 0;
       blob[index_offset].b = 0;
       blob[index_offset].a = 0;
@@ -421,15 +430,15 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
 
     unsigned int asc_off = index_offset;
 
-    for (unsigned int ci = 0; ci < vband_curves_asc[b].size (); ci++) {
-      blob[index_offset].r = (int16_t) curve_texel_offset[vband_curves_asc[b][ci]];
+    for (unsigned int ci = 0; ci < vband_curve_counts[b]; ci++) {
+      blob[index_offset].r = (int16_t) curve_texel_offset[vband_curves_asc[vband_offsets[b] + ci]];
       blob[index_offset].g = 0;
       blob[index_offset].b = 0;
       blob[index_offset].a = 0;
       index_offset++;
     }
 
-    blob[hdr].r = (int16_t) vband_curves[b].size ();
+    blob[hdr].r = (int16_t) vband_curve_counts[b];
     blob[hdr].g = (int16_t) desc_off;
     blob[hdr].b = (int16_t) asc_off;
     blob[hdr].a = vband_split;
