@@ -14,6 +14,8 @@ extern "C" {
 #endif
 
 
+#include <stdlib.h>
+#include <stdio.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_OUTLINE_H
@@ -63,11 +65,10 @@ static int
 glyphy_freetype(cubic_to) (FT_Vector *control1, FT_Vector *control2, FT_Vector *to,
 			   glyphy_curve_accumulator_t *acc)
 {
-  /* TODO: cubics not supported yet; need cu2qu converter */
   (void) control1; (void) control2;
-  glyphy_point_t p1 = {(double) to->x, (double) to->y};
-  glyphy_curve_accumulator_line_to (acc, &p1);
-  return glyphy_curve_accumulator_successful (acc) ? FT_Err_Ok : FT_Err_Out_Of_Memory;
+  (void) to; (void) acc;
+  fprintf (stderr, "glyphy: cubic outlines are unsupported currently\n");
+  abort ();
 }
 
 static FT_Error
