@@ -216,7 +216,11 @@ main (int argc, char** argv)
   /* Setup glut */
   glutInit (&argc, argv);
   glutInitWindowSize (WINDOW_W, WINDOW_H);
-  glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB);
+  unsigned int display_mode = GLUT_DOUBLE | GLUT_RGB;
+#ifdef GLUT_SRGB
+  display_mode |= GLUT_SRGB;
+#endif
+  glutInitDisplayMode (display_mode);
   int window = glutCreateWindow ("GLyphy Demo");
   glutReshapeFunc (reshape_func);
   glutDisplayFunc (display_func);

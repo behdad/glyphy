@@ -230,34 +230,45 @@ demo_view_toggle_animation (demo_view_t *vu)
 static void
 demo_view_toggle_vsync (demo_view_t *vu)
 {
-  vu->vsync = !vu->vsync;
-  LOGI ("Setting vsync %s.\n", vu->vsync ? "on" : "off");
+  GLint vsync = !vu->vsync;
 #if defined(__APPLE__)
-  CGLSetParameter(CGLGetCurrentContext(), kCGLCPSwapInterval, &vu->vsync);
+  CGLSetParameter (CGLGetCurrentContext (), kCGLCPSwapInterval, &vsync);
+#elif defined(FREEGLUT)
+  glutSwapInterval (vsync);
 #elif defined(__WGLEW__)
   if (wglewIsSupported ("WGL_EXT_swap_control"))
-    wglSwapIntervalEXT (vu->vsync);
+    wglSwapIntervalEXT (vsync);
   else
-    LOGW ("WGL_EXT_swal_control not supported; failed to set vsync\n");
+    {
+      LOGW ("WGL_EXT_swap_control not supported; failed to set vsync\n");
+      return;
+    }
 #elif defined(__GLXEW_H__)
   if (glxewIsSupported ("GLX_SGI_swap_control"))
-    glXSwapIntervalSGI (vu->vsync);
+    glXSwapIntervalSGI (vsync);
   else
-    LOGW ("GLX_SGI_swap_control not supported; failed to set vsync\n");
+    {
+      LOGW ("GLX_SGI_swap_control not supported; failed to set vsync\n");
+      return;
+    }
 #else
-    LOGW ("No vsync extension found; failed to set vsync\n");
+  LOGW ("No vsync extension found; failed to set vsync\n");
+  return;
 #endif
+  vu->vsync = vsync;
+  LOGI ("Setting vsync %s.\n", vu->vsync ? "on" : "off");
 }
 
 static void
 demo_view_toggle_srgb (demo_view_t *vu)
 {
-  vu->srgb = !vu->srgb;
-  LOGI ("Setting sRGB framebuffer %s.\n", vu->srgb ? "on" : "off");
+  glyphy_bool_t srgb = !vu->srgb;
 #if defined(GL_FRAMEBUFFER_SRGB) && defined(GL_FRAMEBUFFER_SRGB_CAPABLE_EXT)
   GLboolean available = false;
   if ((glewIsSupported ("GL_ARB_framebuffer_sRGB") || glewIsSupported ("GL_EXT_framebuffer_sRGB")) &&
       (glGetBooleanv (GL_FRAMEBUFFER_SRGB_CAPABLE_EXT, &available), available)) {
+    vu->srgb = srgb;
+    LOGI ("Setting sRGB framebuffer %s.\n", vu->srgb ? "on" : "off");
     if (vu->srgb)
       glEnable (GL_FRAMEBUFFER_SRGB);
     else

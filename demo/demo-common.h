@@ -51,6 +51,11 @@
 #    include <GLUT/glut.h>
 #  else
 #    include <GL/glut.h>
+#    ifdef __has_include
+#      if __has_include(<GL/freeglut_ext.h>)
+#        include <GL/freeglut_ext.h>
+#      endif
+#    endif
 #  endif
 #endif
 
