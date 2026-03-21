@@ -83,22 +83,6 @@ endif
 endif
 
 
-if HAVE_FREETYPE2
-
-noinst_PROGRAMS += glyphy-validate
-glyphy_validate_CPPFLAGS = \
-	-I $(top_srcdir)/src \
-	$(FREETYPE2_CFLAGS) \
-	$(NULL)
-glyphy_validate_LDADD = \
-	$(top_builddir)/src/libglyphy.la \
-	$(FREETYPE2_LIBS) \
-	$(NULL)
-glyphy_validate_SOURCES = \
-	glyphy-validate.cc \
-	$(NULL)
-
-endif
 
 
 -include $(top_srcdir)/git.mk
