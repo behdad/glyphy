@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install build dependencies
-        run: sudo apt update && sudo apt install -y gcc g++ libfreetype6-dev libharfbuzz-dev meson freeglut3-dev libglew-dev
+        run: sudo apt update && sudo apt install -y gcc g++ libfreetype6-dev libharfbuzz-dev meson freeglut3-dev libglew-dev libglfw3-dev
       - name: Meson setup
         run: meson setup build
       - name: Meson compile
