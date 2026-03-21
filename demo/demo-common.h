@@ -125,10 +125,6 @@
 
 
 #define MIN_FONT_SIZE 14
-#define GRID_SIZE 20 /* Per EM */
-#define TOLERANCE (1./1024)
-#define ENLIGHTEN_MAX .01 /* Per EM */
-#define EMBOLDEN_MAX .024 /* Per EM */
 
 
 #define gl(name) \

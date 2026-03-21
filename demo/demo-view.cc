@@ -126,40 +126,9 @@ demo_view_reset (demo_view_t *vu)
 
 
 static void
-demo_view_scale_gamma_adjust (demo_view_t *vu, double factor)
-{
-  demo_glstate_scale_gamma_adjust (vu->st, factor);
-}
-
-static void
-demo_view_scale_contrast (demo_view_t *vu, double factor)
-{
-  demo_glstate_scale_contrast (vu->st, factor);
-}
-
-static void
 demo_view_scale_perspective (demo_view_t *vu, double factor)
 {
   vu->perspective = clamp (vu->perspective * factor, .01, 100.);
-}
-
-static void
-demo_view_toggle_outline (demo_view_t *vu)
-{
-  demo_glstate_toggle_outline (vu->st);
-}
-
-static void
-demo_view_scale_outline_thickness (demo_view_t *vu, double factor)
-{
-  demo_glstate_scale_outline_thickness (vu->st, factor);
-}
-
-
-static void
-demo_view_adjust_boldness (demo_view_t *vu, double factor)
-{
-  demo_glstate_adjust_boldness (vu->st, factor);
 }
 
 static void
@@ -347,11 +316,6 @@ demo_view_toggle_fullscreen (demo_view_t *vu)
   }
 }
 
-static void
-demo_view_toggle_debug (demo_view_t *vu)
-{
-  demo_glstate_toggle_debug (vu->st);
-}
 
 
 void
@@ -381,44 +345,6 @@ demo_view_keyboard_func (demo_view_t *vu, unsigned char key, int x, int y)
 
     case 'f':
       demo_view_toggle_fullscreen (vu);
-      break;
-
-    case 'd':
-      demo_view_toggle_debug (vu);
-      break;
-
-    case 'o':
-      demo_view_toggle_outline (vu);
-      break;
-    case 'p':
-      demo_view_scale_outline_thickness (vu, STEP);
-      break;
-    case 'i':
-      demo_view_scale_outline_thickness (vu, 1. / STEP);
-      break;
-
-    case '0':
-      demo_view_adjust_boldness (vu, +.002);
-      break;
-    case '9':
-      demo_view_adjust_boldness (vu, -.002);
-      break;
-
-
-    case 'a':
-      demo_view_scale_contrast (vu, STEP);
-      break;
-    case 'z':
-      demo_view_scale_contrast (vu, 1. / STEP);
-      break;
-    case 'g':
-      demo_view_scale_gamma_adjust (vu, STEP);
-      break;
-    case 'b':
-      demo_view_scale_gamma_adjust (vu, 1. / STEP);
-      break;
-    case 'c':
-      demo_view_toggle_srgb (vu);
       break;
 
     case '=':
@@ -558,12 +484,7 @@ demo_view_motion_func (demo_view_t *vu, int x, int y)
 
   if (vu->buttons & (1 << GLUT_LEFT_BUTTON))
   {
-    if (vu->modifiers & GLUT_ACTIVE_SHIFT) {
-      /* adjust contrast/gamma */
-      demo_view_scale_gamma_adjust (vu, 1 - ((y - vu->lasty) / height));
-      demo_view_scale_contrast (vu, 1 + ((x - vu->lastx) / width));
-    } else {
-      /* translate */
+    {
       demo_view_translate (vu,
 			   +2 * (x - vu->lastx) / width,
 			   -2 * (y - vu->lasty) / height);

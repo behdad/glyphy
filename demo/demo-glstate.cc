@@ -72,43 +72,8 @@ demo_glstate_get_atlas (demo_glstate_t *st)
 }
 
 void
-demo_glstate_scale_gamma_adjust (demo_glstate_t *st, double factor)
-{
-  (void) st; (void) factor;
-}
-
-void
-demo_glstate_scale_contrast (demo_glstate_t *st, double factor)
-{
-  (void) st; (void) factor;
-}
-
-void
-demo_glstate_toggle_debug (demo_glstate_t *st)
-{
-  (void) st;
-}
-
-void
 demo_glstate_set_matrix (demo_glstate_t *st, float mat[16])
 {
   glUniformMatrix4fv (glGetUniformLocation (st->program, "u_matViewProjection"), 1, GL_FALSE, mat);
 }
 
-void
-demo_glstate_toggle_outline (demo_glstate_t *st)
-{
-  (void) st;
-}
-
-void
-demo_glstate_scale_outline_thickness (demo_glstate_t *st, double factor)
-{
-  (void) st; (void) factor;
-}
-
-void
-demo_glstate_adjust_boldness (demo_glstate_t *st, double adjustment)
-{
-  (void) st; (void) adjustment;
-}
