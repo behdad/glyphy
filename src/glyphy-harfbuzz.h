@@ -83,6 +83,15 @@ glyphy_harfbuzz(cubic_to) (hb_draw_funcs_t *dfuncs,
   glyphy_curve_accumulator_line_to (acc, &p1);
 }
 
+static void
+glyphy_harfbuzz(close_path) (hb_draw_funcs_t *dfuncs,
+			     glyphy_curve_accumulator_t *acc,
+			     hb_draw_state_t *st,
+			     void *user_data)
+{
+  glyphy_curve_accumulator_close_path (acc);
+}
+
 static hb_draw_funcs_t *
 glyphy_harfbuzz(get_draw_funcs) (void)
 {
@@ -95,6 +104,7 @@ glyphy_harfbuzz(get_draw_funcs) (void)
     hb_draw_funcs_set_line_to_func (dfuncs, (hb_draw_line_to_func_t) glyphy_harfbuzz(line_to), NULL, NULL);
     hb_draw_funcs_set_quadratic_to_func (dfuncs, (hb_draw_quadratic_to_func_t) glyphy_harfbuzz(quadratic_to), NULL, NULL);
     hb_draw_funcs_set_cubic_to_func (dfuncs, (hb_draw_cubic_to_func_t) glyphy_harfbuzz(cubic_to), NULL, NULL);
+    hb_draw_funcs_set_close_path_func (dfuncs, (hb_draw_close_path_func_t) glyphy_harfbuzz(close_path), NULL, NULL);
     hb_draw_funcs_make_immutable (dfuncs);
   }
 

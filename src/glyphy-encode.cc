@@ -148,8 +148,8 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
       if (height > 0) {
 	double min_y, max_y;
 	curve_y_range (&curves[i], &min_y, &max_y);
-	int band_lo = (int) ((min_y - extents->min_y) / hband_size);
-	int band_hi = (int) ((max_y - extents->min_y) / hband_size);
+	int band_lo = (int) floor ((min_y - extents->min_y) / hband_size);
+	int band_hi = (int) floor ((max_y - extents->min_y) / hband_size);
 	band_lo = std::max (band_lo, 0);
 	band_hi = std::min (band_hi, (int) num_hbands - 1);
 	for (int b = band_lo; b <= band_hi; b++)
@@ -163,8 +163,8 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
       if (width > 0) {
 	double min_x, max_x;
 	curve_x_range (&curves[i], &min_x, &max_x);
-	int band_lo = (int) ((min_x - extents->min_x) / vband_size);
-	int band_hi = (int) ((max_x - extents->min_x) / vband_size);
+	int band_lo = (int) floor ((min_x - extents->min_x) / vband_size);
+	int band_hi = (int) floor ((max_x - extents->min_x) / vband_size);
 	band_lo = std::max (band_lo, 0);
 	band_hi = std::min (band_hi, (int) num_vbands - 1);
 	for (int b = band_lo; b <= band_hi; b++)
