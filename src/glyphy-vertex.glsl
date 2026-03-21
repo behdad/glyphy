@@ -1,6 +1,6 @@
 /*
  * Copyright 2026 Behdad Esfahbod. All Rights Reserved.
- * Based on the Slug algorithm by Eric Lengyel (MIT license).
+ * Based on the Slug algorithm by Eric Lengyel.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.

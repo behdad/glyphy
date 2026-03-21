@@ -14,13 +14,8 @@
 
 #include "glyphy.h"
 
-#define SHADER_PATH(File) PKGDATADIR "/" File
-
 #include "glyphy-fragment-glsl.h"
 #include "glyphy-vertex-glsl.h"
 
 const char * glyphy_fragment_shader_source (void) { return glyphy_fragment_glsl; }
 const char * glyphy_vertex_shader_source (void) { return glyphy_vertex_glsl; }
-
-const char * glyphy_fragment_shader_source_path (void) { return SHADER_PATH ("glyphy-fragment.glsl"); }
-const char * glyphy_vertex_shader_source_path (void) { return SHADER_PATH ("glyphy-vertex.glsl"); }
