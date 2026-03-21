@@ -221,6 +221,7 @@ static void
 demo_view_toggle_animation (demo_view_t *vu)
 {
   vu->animate = !vu->animate;
+  LOGI ("Setting animation %s.\n", vu->animate ? "on" : "off");
   if (vu->animate)
     start_animation (vu);
 }
