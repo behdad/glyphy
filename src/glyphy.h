@@ -54,20 +54,20 @@ glyphy_extents_is_empty (const glyphy_extents_t *extents);
 
 GLYPHY_API void
 glyphy_extents_add (glyphy_extents_t     *extents,
-		    const glyphy_point_t *p);
+                    const glyphy_point_t *p);
 
 GLYPHY_API void
 glyphy_extents_extend (glyphy_extents_t       *extents,
-		       const glyphy_extents_t *other);
+                       const glyphy_extents_t *other);
 
 GLYPHY_API glyphy_bool_t
 glyphy_extents_includes (const glyphy_extents_t *extents,
-			 const glyphy_point_t   *p);
+                         const glyphy_point_t   *p);
 
 GLYPHY_API void
 glyphy_extents_scale (glyphy_extents_t *extents,
-		      double            x_scale,
-		      double            y_scale);
+                      double            x_scale,
+                      double            y_scale);
 
 
 
@@ -89,7 +89,7 @@ typedef struct {
 
 
 typedef glyphy_bool_t (*glyphy_curve_accumulator_callback_t) (const glyphy_curve_t *curve,
-							      void                 *user_data);
+                                                              void                 *user_data);
 
 typedef struct glyphy_curve_accumulator_t glyphy_curve_accumulator_t;
 
@@ -110,13 +110,13 @@ glyphy_curve_accumulator_reset (glyphy_curve_accumulator_t *acc);
 
 GLYPHY_API void
 glyphy_curve_accumulator_set_callback (glyphy_curve_accumulator_t *acc,
-				       glyphy_curve_accumulator_callback_t callback,
-				       void                       *user_data);
+                                       glyphy_curve_accumulator_callback_t callback,
+                                       void                       *user_data);
 
 GLYPHY_API void
 glyphy_curve_accumulator_get_callback (glyphy_curve_accumulator_t  *acc,
-				       glyphy_curve_accumulator_callback_t *callback,
-				       void                       **user_data);
+                                       glyphy_curve_accumulator_callback_t *callback,
+                                       void                       **user_data);
 
 
 /* Accumulation results */
@@ -132,24 +132,24 @@ glyphy_curve_accumulator_successful (glyphy_curve_accumulator_t *acc);
 
 GLYPHY_API void
 glyphy_curve_accumulator_move_to (glyphy_curve_accumulator_t *acc,
-				  const glyphy_point_t *p0);
+                                  const glyphy_point_t *p0);
 
 GLYPHY_API void
 glyphy_curve_accumulator_line_to (glyphy_curve_accumulator_t *acc,
-				  const glyphy_point_t *p1);
+                                  const glyphy_point_t *p1);
 
 GLYPHY_API void
 glyphy_curve_accumulator_conic_to (glyphy_curve_accumulator_t *acc,
-				   const glyphy_point_t *p1,
-				   const glyphy_point_t *p2);
+                                   const glyphy_point_t *p1,
+                                   const glyphy_point_t *p2);
 
 GLYPHY_API void
 glyphy_curve_accumulator_close_path (glyphy_curve_accumulator_t *acc);
 
 GLYPHY_API void
 glyphy_curve_list_extents (const glyphy_curve_t *curves,
-			   unsigned int          num_curves,
-			   glyphy_extents_t     *extents);
+                           unsigned int          num_curves,
+                           glyphy_extents_t     *extents);
 
 
 
@@ -190,12 +190,12 @@ glyphy_encoder_destroy (glyphy_encoder_t *encoder);
 
 GLYPHY_API glyphy_bool_t
 glyphy_encoder_encode (glyphy_encoder_t      *encoder,
-		       const glyphy_curve_t *curves,
-		       unsigned int          num_curves,
-		       glyphy_texel_t       *blob,
-		       unsigned int          blob_size,
-		       unsigned int         *output_len,
-		       glyphy_extents_t     *extents);
+                       const glyphy_curve_t *curves,
+                       unsigned int          num_curves,
+                       glyphy_texel_t       *blob,
+                       unsigned int          blob_size,
+                       unsigned int         *output_len,
+                       glyphy_extents_t     *extents);
 
 
 #ifdef __cplusplus

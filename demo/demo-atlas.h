@@ -24,8 +24,8 @@ demo_atlas_destroy (demo_atlas_t *at);
 /* Returns the 1D offset where the data was placed. */
 unsigned int
 demo_atlas_alloc (demo_atlas_t    *at,
-		  glyphy_texel_t  *data,
-		  unsigned int     len);
+                  glyphy_texel_t  *data,
+                  unsigned int     len);
 
 unsigned int
 demo_atlas_get_used (demo_atlas_t *at);

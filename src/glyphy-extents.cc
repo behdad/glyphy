@@ -32,7 +32,7 @@ glyphy_extents_is_empty (const glyphy_extents_t *extents)
 
 void
 glyphy_extents_add (glyphy_extents_t     *extents,
-		    const glyphy_point_t *p)
+                    const glyphy_point_t *p)
 {
   if (glyphy_extents_is_empty (extents)) {
     extents->min_x = extents->max_x = p->x;
@@ -47,7 +47,7 @@ glyphy_extents_add (glyphy_extents_t     *extents,
 
 void
 glyphy_extents_extend (glyphy_extents_t       *extents,
-		       const glyphy_extents_t *other)
+                       const glyphy_extents_t *other)
 {
   if (glyphy_extents_is_empty (other))
     return;
@@ -63,16 +63,16 @@ glyphy_extents_extend (glyphy_extents_t       *extents,
 
 glyphy_bool_t
 glyphy_extents_includes (const glyphy_extents_t *extents,
-			 const glyphy_point_t   *p)
+                         const glyphy_point_t   *p)
 {
   return extents->min_x <= p->x && p->x <= extents->max_x &&
-	 extents->min_y <= p->y && p->y <= extents->max_y;
+         extents->min_y <= p->y && p->y <= extents->max_y;
 }
 
 void
 glyphy_extents_scale (glyphy_extents_t *extents,
-		      double            x_scale,
-		      double            y_scale)
+                      double            x_scale,
+                      double            y_scale)
 {
   extents->min_x *= x_scale;
   extents->max_x *= x_scale;

@@ -15,10 +15,10 @@
 
 void
 demo_shader_add_glyph_vertices (const glyphy_point_t        &p,
-				double                       font_size,
-				glyph_info_t                *gi,
-				std::vector<glyph_vertex_t> *vertices,
-				glyphy_extents_t            *extents)
+                                double                       font_size,
+                                glyph_info_t                *gi,
+                                std::vector<glyph_vertex_t> *vertices,
+                                glyphy_extents_t            *extents)
 {
   if (gi->is_empty)
     return;
@@ -68,8 +68,8 @@ demo_shader_add_glyph_vertices (const glyphy_point_t        &p,
 
 static GLuint
 compile_shader (GLenum         type,
-		GLsizei        count,
-		const GLchar** sources)
+                GLsizei        count,
+                const GLchar** sources)
 {
   GLuint shader;
   GLint compiled;
@@ -84,7 +84,7 @@ compile_shader (GLenum         type,
   if (!compiled) {
     GLint info_len = 0;
     LOGW ("%s shader failed to compile\n",
-	     type == GL_VERTEX_SHADER ? "Vertex" : "Fragment");
+             type == GL_VERTEX_SHADER ? "Vertex" : "Fragment");
     glGetShaderiv (shader, GL_INFO_LOG_LENGTH, &info_len);
 
     if (info_len > 0) {
@@ -103,7 +103,7 @@ compile_shader (GLenum         type,
 
 static GLuint
 link_program (GLuint vertex_shader,
-	      GLuint fragment_shader)
+              GLuint fragment_shader)
 {
   GLuint program;
   GLint linked;
@@ -140,17 +140,17 @@ demo_shader_create_program (void)
 {
   GLuint vertex_shader, fragment_shader, program;
   const GLchar *vertex_shader_sources[] = {"#version 330\n",
-					   glyphy_vertex_shader_source (),
-					   demo_vertex_glsl};
+                                           glyphy_vertex_shader_source (),
+                                           demo_vertex_glsl};
   vertex_shader = compile_shader (GL_VERTEX_SHADER,
-				  ARRAY_LEN (vertex_shader_sources),
-				  vertex_shader_sources);
+                                  ARRAY_LEN (vertex_shader_sources),
+                                  vertex_shader_sources);
   const GLchar *fragment_shader_sources[] = {"#version 330\n",
-					     glyphy_fragment_shader_source (),
-					     demo_fragment_glsl};
+                                             glyphy_fragment_shader_source (),
+                                             demo_fragment_glsl};
   fragment_shader = compile_shader (GL_FRAGMENT_SHADER,
-				    ARRAY_LEN (fragment_shader_sources),
-				    fragment_shader_sources);
+                                    ARRAY_LEN (fragment_shader_sources),
+                                    fragment_shader_sources);
 
   program = link_program (vertex_shader, fragment_shader);
   return program;

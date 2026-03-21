@@ -298,13 +298,13 @@ m4Invert (float *mat) {
   float tmp_23 = m4Get(mat,1,0) * m4Get(mat,0,1);
 
   float t0 = ((tmp_0 * m4Get(mat,1,1) + tmp_3 * m4Get(mat,2,1) + tmp_4 * m4Get(mat,3,1)) -
-	    (tmp_1 * m4Get(mat,1,1) + tmp_2 * m4Get(mat,2,1) + tmp_5 * m4Get(mat,3,1)));
+            (tmp_1 * m4Get(mat,1,1) + tmp_2 * m4Get(mat,2,1) + tmp_5 * m4Get(mat,3,1)));
   float t1 = ((tmp_1 * m4Get(mat,0,1) + tmp_6 * m4Get(mat,2,1) + tmp_9 * m4Get(mat,3,1)) -
-	    (tmp_0 * m4Get(mat,0,1) + tmp_7 * m4Get(mat,2,1) + tmp_8 * m4Get(mat,3,1)));
+            (tmp_0 * m4Get(mat,0,1) + tmp_7 * m4Get(mat,2,1) + tmp_8 * m4Get(mat,3,1)));
   float t2 = ((tmp_2 * m4Get(mat,0,1) + tmp_7 * m4Get(mat,1,1) + tmp_10 * m4Get(mat,3,1)) -
-	    (tmp_3 * m4Get(mat,0,1) + tmp_6 * m4Get(mat,1,1) + tmp_11 * m4Get(mat,3,1)));
+            (tmp_3 * m4Get(mat,0,1) + tmp_6 * m4Get(mat,1,1) + tmp_11 * m4Get(mat,3,1)));
   float t3 = ((tmp_5 * m4Get(mat,0,1) + tmp_8 * m4Get(mat,1,1) + tmp_11 * m4Get(mat,2,1)) -
-	    (tmp_4 * m4Get(mat,0,1) + tmp_9 * m4Get(mat,1,1) + tmp_10 * m4Get(mat,2,1)));
+            (tmp_4 * m4Get(mat,0,1) + tmp_9 * m4Get(mat,1,1) + tmp_10 * m4Get(mat,2,1)));
 
   float d = 1.0 / (m4Get(mat,0,0) * t0 + m4Get(mat,1,0) * t1 + m4Get(mat,2,0) * t2 + m4Get(mat,3,0) * t3);
 
@@ -314,31 +314,31 @@ m4Invert (float *mat) {
   float out_03 = d * t3;
 
   float out_10 = d * ((tmp_1 * m4Get(mat,1,0) + tmp_2 * m4Get(mat,2,0) + tmp_5 * m4Get(mat,3,0)) -
-		    (tmp_0 * m4Get(mat,1,0) + tmp_3 * m4Get(mat,2,0) + tmp_4 * m4Get(mat,3,0)));
+                    (tmp_0 * m4Get(mat,1,0) + tmp_3 * m4Get(mat,2,0) + tmp_4 * m4Get(mat,3,0)));
   float out_11 = d * ((tmp_0 * m4Get(mat,0,0) + tmp_7 * m4Get(mat,2,0) + tmp_8 * m4Get(mat,3,0)) -
-		    (tmp_1 * m4Get(mat,0,0) + tmp_6 * m4Get(mat,2,0) + tmp_9 * m4Get(mat,3,0)));
+                    (tmp_1 * m4Get(mat,0,0) + tmp_6 * m4Get(mat,2,0) + tmp_9 * m4Get(mat,3,0)));
   float out_12 = d * ((tmp_3 * m4Get(mat,0,0) + tmp_6 * m4Get(mat,1,0) + tmp_11 * m4Get(mat,3,0)) -
-		    (tmp_2 * m4Get(mat,0,0) + tmp_7 * m4Get(mat,1,0) + tmp_10 * m4Get(mat,3,0)));
+                    (tmp_2 * m4Get(mat,0,0) + tmp_7 * m4Get(mat,1,0) + tmp_10 * m4Get(mat,3,0)));
   float out_13 = d * ((tmp_4 * m4Get(mat,0,0) + tmp_9 * m4Get(mat,1,0) + tmp_10 * m4Get(mat,2,0)) -
-		    (tmp_5 * m4Get(mat,0,0) + tmp_8 * m4Get(mat,1,0) + tmp_11 * m4Get(mat,2,0)));
+                    (tmp_5 * m4Get(mat,0,0) + tmp_8 * m4Get(mat,1,0) + tmp_11 * m4Get(mat,2,0)));
 
   float out_20 = d * ((tmp_12 * m4Get(mat,1,3) + tmp_15 * m4Get(mat,2,3) + tmp_16 * m4Get(mat,3,3)) -
-		    (tmp_13 * m4Get(mat,1,3) + tmp_14 * m4Get(mat,2,3) + tmp_17 * m4Get(mat,3,3)));
+                    (tmp_13 * m4Get(mat,1,3) + tmp_14 * m4Get(mat,2,3) + tmp_17 * m4Get(mat,3,3)));
   float out_21 = d * ((tmp_13 * m4Get(mat,0,3) + tmp_18 * m4Get(mat,2,3) + tmp_21 * m4Get(mat,3,3)) -
-		    (tmp_12 * m4Get(mat,0,3) + tmp_19 * m4Get(mat,2,3) + tmp_20 * m4Get(mat,3,3)));
+                    (tmp_12 * m4Get(mat,0,3) + tmp_19 * m4Get(mat,2,3) + tmp_20 * m4Get(mat,3,3)));
   float out_22 = d * ((tmp_14 * m4Get(mat,0,3) + tmp_19 * m4Get(mat,1,3) + tmp_22 * m4Get(mat,3,3)) -
-		    (tmp_15 * m4Get(mat,0,3) + tmp_18 * m4Get(mat,1,3) + tmp_23 * m4Get(mat,3,3)));
+                    (tmp_15 * m4Get(mat,0,3) + tmp_18 * m4Get(mat,1,3) + tmp_23 * m4Get(mat,3,3)));
   float out_23 = d * ((tmp_17 * m4Get(mat,0,3) + tmp_20 * m4Get(mat,1,3) + tmp_23 * m4Get(mat,2,3)) -
-		    (tmp_16 * m4Get(mat,0,3) + tmp_21 * m4Get(mat,1,3) + tmp_22 * m4Get(mat,2,3)));
+                    (tmp_16 * m4Get(mat,0,3) + tmp_21 * m4Get(mat,1,3) + tmp_22 * m4Get(mat,2,3)));
 
   float out_30 = d * ((tmp_14 * m4Get(mat,2,2) + tmp_17 * m4Get(mat,3,2) + tmp_13 * m4Get(mat,1,2)) -
-		    (tmp_16 * m4Get(mat,3,2) + tmp_12 * m4Get(mat,1,2) + tmp_15 * m4Get(mat,2,2)));
+                    (tmp_16 * m4Get(mat,3,2) + tmp_12 * m4Get(mat,1,2) + tmp_15 * m4Get(mat,2,2)));
   float out_31 = d * ((tmp_20 * m4Get(mat,3,2) + tmp_12 * m4Get(mat,0,2) + tmp_19 * m4Get(mat,2,2)) -
-		    (tmp_18 * m4Get(mat,2,2) + tmp_21 * m4Get(mat,3,2) + tmp_13 * m4Get(mat,0,2)));
+                    (tmp_18 * m4Get(mat,2,2) + tmp_21 * m4Get(mat,3,2) + tmp_13 * m4Get(mat,0,2)));
   float out_32 = d * ((tmp_18 * m4Get(mat,1,2) + tmp_23 * m4Get(mat,3,2) + tmp_15 * m4Get(mat,0,2)) -
-		    (tmp_22 * m4Get(mat,3,2) + tmp_14 * m4Get(mat,0,2) + tmp_19 * m4Get(mat,1,2)));
+                    (tmp_22 * m4Get(mat,3,2) + tmp_14 * m4Get(mat,0,2) + tmp_19 * m4Get(mat,1,2)));
   float out_33 = d * ((tmp_22 * m4Get(mat,2,2) + tmp_16 * m4Get(mat,0,2) + tmp_21 * m4Get(mat,1,2)) -
-		    (tmp_20 * m4Get(mat,1,2) + tmp_23 * m4Get(mat,2,2) + tmp_17 * m4Get(mat,0,2)));
+                    (tmp_20 * m4Get(mat,1,2) + tmp_23 * m4Get(mat,2,2) + tmp_17 * m4Get(mat,0,2)));
 
   mat[0*4+0] = out_00;
   mat[0*4+1] = out_01;

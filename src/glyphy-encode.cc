@@ -58,7 +58,7 @@ quantize_fits_i16 (double v)
 {
   double q = round (v * GLYPHY_UNITS_PER_EM_UNIT);
   return q >= std::numeric_limits<int16_t>::min () &&
-	 q <= std::numeric_limits<int16_t>::max ();
+         q <= std::numeric_limits<int16_t>::max ();
 }
 
 typedef struct
@@ -125,12 +125,12 @@ glyphy_encoder_destroy (glyphy_encoder_t *encoder)
 
 glyphy_bool_t
 glyphy_encoder_encode (glyphy_encoder_t      *encoder,
-		       const glyphy_curve_t *curves,
-		       unsigned int          num_curves,
-		       glyphy_texel_t       *blob,
-		       unsigned int          blob_size,
-		       unsigned int         *output_len,
-		       glyphy_extents_t     *extents)
+                       const glyphy_curve_t *curves,
+                       unsigned int          num_curves,
+                       glyphy_texel_t       *blob,
+                       unsigned int          blob_size,
+                       unsigned int         *output_len,
+                       glyphy_extents_t     *extents)
 {
   if (!encoder)
     return false;
@@ -185,31 +185,31 @@ glyphy_encoder_encode (glyphy_encoder_t      *encoder,
 
     if (!info.is_horizontal) {
       if (height > 0) {
-	info.hband_lo = (int) floor ((info.min_y - extents->min_y) / hband_size);
-	info.hband_hi = (int) floor ((info.max_y - extents->min_y) / hband_size);
-	info.hband_lo = std::max (info.hband_lo, 0);
-	info.hband_hi = std::min (info.hband_hi, (int) num_hbands - 1);
-	for (int b = info.hband_lo; b <= info.hband_hi; b++)
-	  hband_curve_counts[b]++;
+        info.hband_lo = (int) floor ((info.min_y - extents->min_y) / hband_size);
+        info.hband_hi = (int) floor ((info.max_y - extents->min_y) / hband_size);
+        info.hband_lo = std::max (info.hband_lo, 0);
+        info.hband_hi = std::min (info.hband_hi, (int) num_hbands - 1);
+        for (int b = info.hband_lo; b <= info.hband_hi; b++)
+          hband_curve_counts[b]++;
       } else {
-	info.hband_lo = 0;
-	info.hband_hi = 0;
-	hband_curve_counts[0]++;
+        info.hband_lo = 0;
+        info.hband_hi = 0;
+        hband_curve_counts[0]++;
       }
     }
 
     if (!info.is_vertical) {
       if (width > 0) {
-	info.vband_lo = (int) floor ((info.min_x - extents->min_x) / vband_size);
-	info.vband_hi = (int) floor ((info.max_x - extents->min_x) / vband_size);
-	info.vband_lo = std::max (info.vband_lo, 0);
-	info.vband_hi = std::min (info.vband_hi, (int) num_vbands - 1);
-	for (int b = info.vband_lo; b <= info.vband_hi; b++)
-	  vband_curve_counts[b]++;
+        info.vband_lo = (int) floor ((info.min_x - extents->min_x) / vband_size);
+        info.vband_hi = (int) floor ((info.max_x - extents->min_x) / vband_size);
+        info.vband_lo = std::max (info.vband_lo, 0);
+        info.vband_hi = std::min (info.vband_hi, (int) num_vbands - 1);
+        for (int b = info.vband_lo; b <= info.vband_hi; b++)
+          vband_curve_counts[b]++;
       } else {
-	info.vband_lo = 0;
-	info.vband_hi = 0;
-	vband_curve_counts[0]++;
+        info.vband_lo = 0;
+        info.vband_hi = 0;
+        vband_curve_counts[0]++;
       }
     }
   }
@@ -271,26 +271,26 @@ glyphy_encoder_encode (glyphy_encoder_t      *encoder,
     unsigned int off = hband_offsets[b];
     unsigned int count = hband_curve_counts[b];
     std::sort (hband_curves.begin () + off, hband_curves.begin () + off + count,
-	       [&] (unsigned int a, unsigned int b) {
-		 return curve_infos[a].max_x > curve_infos[b].max_x;
-	       });
+               [&] (unsigned int a, unsigned int b) {
+                 return curve_infos[a].max_x > curve_infos[b].max_x;
+               });
     std::sort (hband_curves_asc.begin () + off, hband_curves_asc.begin () + off + count,
-	       [&] (unsigned int a, unsigned int b) {
-		 return curve_infos[a].min_x < curve_infos[b].min_x;
-	       });
+               [&] (unsigned int a, unsigned int b) {
+                 return curve_infos[a].min_x < curve_infos[b].min_x;
+               });
   }
 
   for (unsigned int b = 0; b < num_vbands; b++) {
     unsigned int off = vband_offsets[b];
     unsigned int count = vband_curve_counts[b];
     std::sort (vband_curves.begin () + off, vband_curves.begin () + off + count,
-	       [&] (unsigned int a, unsigned int b) {
-		 return curve_infos[a].max_y > curve_infos[b].max_y;
-	       });
+               [&] (unsigned int a, unsigned int b) {
+                 return curve_infos[a].max_y > curve_infos[b].max_y;
+               });
     std::sort (vband_curves_asc.begin () + off, vband_curves_asc.begin () + off + count,
-	       [&] (unsigned int a, unsigned int b) {
-		 return curve_infos[a].min_y < curve_infos[b].min_y;
-	       });
+               [&] (unsigned int a, unsigned int b) {
+                 return curve_infos[a].min_y < curve_infos[b].min_y;
+               });
   }
 
   /* Compute sizes -- two index lists per band */
@@ -304,7 +304,7 @@ glyphy_encoder_encode (glyphy_encoder_t      *encoder,
   unsigned int num_contour_breaks = 0;
   for (unsigned int i = 0; i + 1 < num_curves; i++)
     if (curves[i].p3.x != curves[i + 1].p1.x ||
-	curves[i].p3.y != curves[i + 1].p1.y)
+        curves[i].p3.y != curves[i + 1].p1.y)
       num_contour_breaks++;
 
   /* With sharing: num_curves + (num_contour_breaks + 1) texels
@@ -347,8 +347,8 @@ glyphy_encoder_encode (glyphy_encoder_t      *encoder,
 
   for (unsigned int i = 0; i < num_curves; i++) {
     bool contour_start = (i == 0 ||
-			  curves[i - 1].p3.x != curves[i].p1.x ||
-			  curves[i - 1].p3.y != curves[i].p1.y);
+                          curves[i - 1].p3.x != curves[i].p1.x ||
+                          curves[i - 1].p3.y != curves[i].p1.y);
 
     if (contour_start) {
       curve_texel_offset[i] = texel;
@@ -365,8 +365,8 @@ glyphy_encoder_encode (glyphy_encoder_t      *encoder,
 
     /* Write (p3, p2_next) or (p3, 0) if last in contour */
     bool has_next = (i + 1 < num_curves &&
-		     curves[i].p3.x == curves[i + 1].p1.x &&
-		     curves[i].p3.y == curves[i + 1].p1.y);
+                     curves[i].p3.x == curves[i + 1].p1.x &&
+                     curves[i].p3.y == curves[i + 1].p1.y);
 
     blob[texel].r = quantize (curves[i].p3.x);
     blob[texel].g = quantize (curves[i].p3.y);
@@ -398,16 +398,16 @@ glyphy_encoder_encode (glyphy_encoder_t      *encoder,
       double best_split = (extents->min_x + extents->max_x) * 0.5;
       unsigned int left_count = n;
       for (unsigned int ci = 0; ci < n; ci++) {
-	double split = curve_infos[hband_curves[off + ci]].max_x;
-	unsigned int right_count = ci + 1; /* curves with max_x >= split */
-	while (left_count &&
-	       curve_infos[hband_curves_asc[off + left_count - 1]].min_x > split)
-	  left_count--;
-	unsigned int worst = std::max (right_count, left_count);
-	if (worst < best_worst) {
-	  best_worst = worst;
-	  best_split = split;
-	}
+        double split = curve_infos[hband_curves[off + ci]].max_x;
+        unsigned int right_count = ci + 1; /* curves with max_x >= split */
+        while (left_count &&
+               curve_infos[hband_curves_asc[off + left_count - 1]].min_x > split)
+          left_count--;
+        unsigned int worst = std::max (right_count, left_count);
+        if (worst < best_worst) {
+          best_worst = worst;
+          best_split = split;
+        }
       }
       hband_split = quantize (best_split);
     }
@@ -447,16 +447,16 @@ glyphy_encoder_encode (glyphy_encoder_t      *encoder,
       double best_split = (extents->min_y + extents->max_y) * 0.5;
       unsigned int left_count = n;
       for (unsigned int ci = 0; ci < n; ci++) {
-	double split = curve_infos[vband_curves[off + ci]].max_y;
-	unsigned int right_count = ci + 1;
-	while (left_count &&
-	       curve_infos[vband_curves_asc[off + left_count - 1]].min_y > split)
-	  left_count--;
-	unsigned int worst = std::max (right_count, left_count);
-	if (worst < best_worst) {
-	  best_worst = worst;
-	  best_split = split;
-	}
+        double split = curve_infos[vband_curves[off + ci]].max_y;
+        unsigned int right_count = ci + 1;
+        while (left_count &&
+               curve_infos[vband_curves_asc[off + left_count - 1]].min_y > split)
+          left_count--;
+        unsigned int worst = std::max (right_count, left_count);
+        if (worst < best_worst) {
+          best_worst = worst;
+          best_split = split;
+        }
       }
       vband_split = quantize (best_split);
     }

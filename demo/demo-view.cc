@@ -376,24 +376,24 @@ demo_view_mouse_func (demo_view_t *vu, int button, int action, int mods)
     case GLFW_MOUSE_BUTTON_RIGHT:
       switch (action) {
         case GLFW_PRESS:
-	  if (vu->animate) {
-	    demo_view_toggle_animation (vu);
-	    vu->click_handled = true;
-	  }
-	  break;
+          if (vu->animate) {
+            demo_view_toggle_animation (vu);
+            vu->click_handled = true;
+          }
+          break;
         case GLFW_RELEASE:
-	  if (!vu->animate)
-	    {
-	      if (!vu->dragged && !vu->click_handled)
-		demo_view_toggle_animation (vu);
-	      else if (vu->dt) {
-		double speed = hypot (vu->dx, vu->dy) / vu->dt;
-		if (speed > 0.1)
-		  demo_view_toggle_animation (vu);
-	      }
-	      vu->dx = vu->dy = vu->dt = 0;
-	    }
-	  break;
+          if (!vu->animate)
+            {
+              if (!vu->dragged && !vu->click_handled)
+                demo_view_toggle_animation (vu);
+              else if (vu->dt) {
+                double speed = hypot (vu->dx, vu->dy) / vu->dt;
+                if (speed > 0.1)
+                  demo_view_toggle_animation (vu);
+              }
+              vu->dx = vu->dy = vu->dt = 0;
+            }
+          break;
       }
       break;
   }
@@ -435,8 +435,8 @@ demo_view_motion_func (demo_view_t *vu, double x, double y)
   {
     {
       demo_view_translate (vu,
-			   +2 * (x - vu->lastx) / width,
-			   -2 * (y - vu->lasty) / height);
+                           +2 * (x - vu->lastx) / width,
+                           -2 * (y - vu->lasty) / height);
     }
   }
 
@@ -449,10 +449,10 @@ demo_view_motion_func (demo_view_t *vu, double x, double y)
       /* rotate */
       float dquat[4];
       trackball (dquat,
-		 (2.0*vu->lastx -         width) / width,
-		 (       height - 2.0*vu->lasty) / height,
-		 (        2.0*x -         width) / width,
-		 (       height -         2.0*y) / height );
+                 (2.0*vu->lastx -         width) / width,
+                 (       height - 2.0*vu->lasty) / height,
+                 (        2.0*x -         width) / width,
+                 (       height -         2.0*y) / height );
 
       vu->dx = x - vu->lastx;
       vu->dy = y - vu->lasty;
@@ -462,8 +462,8 @@ demo_view_motion_func (demo_view_t *vu, double x, double y)
 
       if (vu->dt) {
         vcopy (dquat, vu->rot_axis);
-	vnormal (vu->rot_axis);
-	vu->rot_speed = 2 * acos (dquat[3]) / vu->dt;
+        vnormal (vu->rot_axis);
+        vu->rot_speed = 2 * acos (dquat[3]) / vu->dt;
       }
     }
   }
@@ -475,8 +475,8 @@ demo_view_motion_func (demo_view_t *vu, double x, double y)
     demo_view_scale (vu, factor, factor);
     /* adjust translate so we scale centered at the drag-begin mouse position */
     demo_view_translate (vu,
-			 +(2. * vu->beginx / width  - 1) * (1 - factor),
-			 -(2. * vu->beginy / height - 1) * (1 - factor));
+                         +(2. * vu->beginx / width  - 1) * (1 - factor),
+                         -(2. * vu->beginy / height - 1) * (1 - factor));
   }
 
   vu->lastx = x;
@@ -560,12 +560,12 @@ demo_view_display (demo_view_t *vu, demo_buffer_t *buffer)
   glyphy_extents_t extents;
   demo_buffer_extents (buffer, NULL, &extents);
   double content_scale = .9 * std::min (width  / (extents.max_x - extents.min_x),
-				        height / (extents.max_y - extents.min_y));
+                                        height / (extents.max_y - extents.min_y));
   m4Scale (mat, content_scale, content_scale, 1);
   // Center buffer
   m4Translate (mat,
-	       -(extents.max_x + extents.min_x) / 2.,
-	       -(extents.max_y + extents.min_y) / 2., 0);
+               -(extents.max_x + extents.min_x) / 2.,
+               -(extents.max_y + extents.min_y) / 2., 0);
 
   demo_glstate_set_matrix (vu->st, mat);
 

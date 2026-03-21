@@ -34,7 +34,7 @@ extern "C" {
 
 static int
 glyphy_freetype(move_to) (FT_Vector *to,
-			  glyphy_curve_accumulator_t *acc)
+                          glyphy_curve_accumulator_t *acc)
 {
   glyphy_point_t p1 = {(double) to->x, (double) to->y};
   glyphy_curve_accumulator_close_path (acc);
@@ -44,7 +44,7 @@ glyphy_freetype(move_to) (FT_Vector *to,
 
 static int
 glyphy_freetype(line_to) (FT_Vector *to,
-			  glyphy_curve_accumulator_t *acc)
+                          glyphy_curve_accumulator_t *acc)
 {
   glyphy_point_t p1 = {(double) to->x, (double) to->y};
   glyphy_curve_accumulator_line_to (acc, &p1);
@@ -53,7 +53,7 @@ glyphy_freetype(line_to) (FT_Vector *to,
 
 static int
 glyphy_freetype(conic_to) (FT_Vector *control, FT_Vector *to,
-			   glyphy_curve_accumulator_t *acc)
+                           glyphy_curve_accumulator_t *acc)
 {
   glyphy_point_t p1 = {(double) control->x, (double) control->y};
   glyphy_point_t p2 = {(double) to->x, (double) to->y};
@@ -63,7 +63,7 @@ glyphy_freetype(conic_to) (FT_Vector *control, FT_Vector *to,
 
 static int
 glyphy_freetype(cubic_to) (FT_Vector *control1, FT_Vector *control2, FT_Vector *to,
-			   glyphy_curve_accumulator_t *acc)
+                           glyphy_curve_accumulator_t *acc)
 {
   (void) control1; (void) control2;
   (void) to; (void) acc;
@@ -73,7 +73,7 @@ glyphy_freetype(cubic_to) (FT_Vector *control1, FT_Vector *control2, FT_Vector *
 
 static FT_Error
 glyphy_freetype(outline_decompose) (const FT_Outline              *outline,
-				    glyphy_curve_accumulator_t    *acc)
+                                    glyphy_curve_accumulator_t    *acc)
 {
   const FT_Outline_Funcs outline_funcs = {
     (FT_Outline_MoveToFunc) glyphy_freetype(move_to),

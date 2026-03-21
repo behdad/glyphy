@@ -37,11 +37,11 @@ static void
 usage (const char *argv0)
 {
   fprintf (stderr,
-	   "Usage: %s [-r repeats] fontfile\n"
-	   "\n"
-	   "Encode all glyphs in a font and report outline and blob timings.\n"
-	   "Texture upload is not measured.\n",
-	   argv0);
+           "Usage: %s [-r repeats] fontfile\n"
+           "\n"
+           "Encode all glyphs in a font and report outline and blob timings.\n"
+           "Texture upload is not measured.\n",
+           argv0);
 }
 
 static bool
@@ -59,7 +59,7 @@ parse_uint (const char *arg, unsigned int *value)
 
 static glyphy_bool_t
 accumulate_curve (const glyphy_curve_t *curve,
-		  void                 *user_data)
+                  void                 *user_data)
 {
   std::vector<glyphy_curve_t> *curves = (std::vector<glyphy_curve_t> *) user_data;
   curves->push_back (*curve);
@@ -92,7 +92,7 @@ megabytes_per_second (uint64_t bytes, uint64_t ns)
 
 static bench_stats_t
 benchmark_font (hb_face_t    *face,
-		unsigned int  repeats)
+                unsigned int  repeats)
 {
   bench_stats_t stats = {};
   hb_font_t *font = hb_font_create (face);
@@ -124,30 +124,30 @@ benchmark_font (hb_face_t    *face,
       clock::time_point outline_end = clock::now ();
 
       if (!glyphy_curve_accumulator_successful (acc)) {
-	char message[128];
-	snprintf (message, sizeof (message),
-		  "Failed accumulating curves for glyph %u", glyph_index);
-	die (message);
+        char message[128];
+        snprintf (message, sizeof (message),
+                  "Failed accumulating curves for glyph %u", glyph_index);
+        die (message);
       }
 
       clock::time_point encode_start = clock::now ();
       if (!glyphy_encoder_encode (encoder,
-				  curves.empty () ? NULL : &curves[0],
-				  curves.size (),
-				  scratch_buffer.data (),
-				  scratch_buffer.size (),
-				  &output_len,
-				  &extents)) {
-	char message[128];
-	snprintf (message, sizeof (message),
-		  "Failed encoding blob for glyph %u", glyph_index);
-	die (message);
+                                  curves.empty () ? NULL : &curves[0],
+                                  curves.size (),
+                                  scratch_buffer.data (),
+                                  scratch_buffer.size (),
+                                  &output_len,
+                                  &extents)) {
+        char message[128];
+        snprintf (message, sizeof (message),
+                  "Failed encoding blob for glyph %u", glyph_index);
+        die (message);
       }
       clock::time_point encode_end = clock::now ();
 
       stats.glyphs++;
       if (!glyphy_extents_is_empty (&extents))
-	stats.non_empty_glyphs++;
+        stats.non_empty_glyphs++;
       stats.curves += glyphy_curve_accumulator_get_num_curves (acc);
       stats.blob_bytes += (uint64_t) output_len * sizeof (glyphy_texel_t);
       stats.outline_ns += std::chrono::duration_cast<std::chrono::nanoseconds> (outline_end - outline_start).count ();
@@ -177,8 +177,8 @@ main (int argc, char **argv)
     }
     if (!strcmp (argv[i], "-r") || !strcmp (argv[i], "--repeats")) {
       if (++i >= argc || !parse_uint (argv[i], &repeats) || !repeats) {
-	usage (argv[0]);
-	return 1;
+        usage (argv[0]);
+        return 1;
       }
       continue;
     }
@@ -210,23 +210,23 @@ main (int argc, char **argv)
 
   printf ("font: %s\n", font_path);
   printf ("glyphs: %u x %u repeats = %" PRIu64 " processed (%" PRIu64 " non-empty)\n",
-	  glyph_count, repeats, stats.glyphs, stats.non_empty_glyphs);
+          glyph_count, repeats, stats.glyphs, stats.non_empty_glyphs);
   printf ("total blob size: %" PRIu64 " bytes (%.2fkb)\n",
-	  stats.blob_bytes,
-	  stats.blob_bytes / 1024.);
+          stats.blob_bytes,
+          stats.blob_bytes / 1024.);
   printf ("avg curves per glyph: %.2f\n", avg_curves);
   printf ("avg blob size per glyph: %.2fkb\n", avg_blob_kb);
   printf ("outline: %8.3fms total, %.3fus/glyph, %.0f glyphs/s\n",
-	  ns_to_ms (stats.outline_ns),
-	  ns_to_us_per_glyph (stats.outline_ns, stats.glyphs),
-	  glyphs_per_second (stats.glyphs, stats.outline_ns));
+          ns_to_ms (stats.outline_ns),
+          ns_to_us_per_glyph (stats.outline_ns, stats.glyphs),
+          glyphs_per_second (stats.glyphs, stats.outline_ns));
   printf ("encode:  %8.3fms total, %.3fus/glyph, %.0f glyphs/s, %.2f MiB/s\n",
-	  ns_to_ms (stats.encode_ns),
-	  ns_to_us_per_glyph (stats.encode_ns, stats.glyphs),
-	  glyphs_per_second (stats.glyphs, stats.encode_ns),
-	  megabytes_per_second (stats.blob_bytes, stats.encode_ns));
+          ns_to_ms (stats.encode_ns),
+          ns_to_us_per_glyph (stats.encode_ns, stats.glyphs),
+          glyphs_per_second (stats.glyphs, stats.encode_ns),
+          megabytes_per_second (stats.blob_bytes, stats.encode_ns));
   printf ("wall:    %8.3fms total (outline + encode + loop overhead)\n",
-	  ns_to_ms (stats.wall_ns));
+          ns_to_ms (stats.wall_ns));
 
   hb_face_destroy (face);
   hb_blob_destroy (blob);

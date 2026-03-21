@@ -57,12 +57,12 @@
 
 
 #define gl(name) \
-	for (GLint __ee, __ii = 0; \
-	     __ii < 1; \
-	     (__ii++, \
-	      (__ee = glGetError()) && \
-	      (fprintf (stderr, "gl" #name " failed with error %04X on line %d\n", __ee, __LINE__), abort (), 0))) \
-	  gl##name
+        for (GLint __ee, __ii = 0; \
+             __ii < 1; \
+             (__ii++, \
+              (__ee = glGetError()) && \
+              (fprintf (stderr, "gl" #name " failed with error %04X on line %d\n", __ee, __LINE__), abort (), 0))) \
+          gl##name
 
 
 static inline void

@@ -34,7 +34,7 @@ static demo_buffer_t *buffer;
 static int isroot(const char *path)
 {
   return ((strlen(path) == 1 && path[0] == '/') ||
-	  (strlen(path) == 3 && isalpha(path[0]) && path[1] == ':' && (path[2] == '/' || path[2] == '\\')));
+          (strlen(path) == 3 && isalpha(path[0]) && path[1] == ':' && (path[2] == '/' || path[2] == '\\')));
 }
 
 static char *basename(char *path)
@@ -43,8 +43,8 @@ static char *basename(char *path)
     return (char *)".";
 
   while ((path[strlen(path)-1] == '/' ||
-	  path[strlen(path)-1] == '\\') &&
-	 !isroot(path))
+          path[strlen(path)-1] == '\\') &&
+         !isroot(path))
     path[strlen(path)-1] = '\0';
 
   if (isroot(path))
@@ -158,14 +158,14 @@ show_usage(const char *path)
   name = basename(p);
 
   printf("Usage:\n"
-	 "  %s [fontfile [text]]\n"
-	 "or:\n"
-	 "  %s [-h] [-f fontfile] [-t text]\n"
-	 "\n"
-	 "  -h             show this help message and exit;\n"
-	 "  -t text        the text string to be rendered;     \n"
-	 "  -f fontfile    the font file (e.g. /Library/Fonts/Microsoft/Verdana.ttf)\n"
-	 "\n", name, name);
+         "  %s [fontfile [text]]\n"
+         "or:\n"
+         "  %s [-h] [-f fontfile] [-t text]\n"
+         "\n"
+         "  -h             show this help message and exit;\n"
+         "  -t text        the text string to be rendered;     \n"
+         "  -f fontfile    the font file (e.g. /Library/Fonts/Microsoft/Verdana.ttf)\n"
+         "\n", name, name);
 
   demo_view_print_help (NULL);
 
@@ -185,8 +185,8 @@ contains_case_insensitive (const char *haystack, const char *needle)
   for (const char *h = haystack; *h; h++) {
     size_t i = 0;
     while (i < needle_len &&
-	   h[i] &&
-	   tolower ((unsigned char) h[i]) == tolower ((unsigned char) needle[i]))
+           h[i] &&
+           tolower ((unsigned char) h[i]) == tolower ((unsigned char) needle[i]))
       i++;
     if (i == needle_len)
       return true;
@@ -353,7 +353,7 @@ main (int argc, char** argv)
 #else
     #include "default-font.h"
     blob = hb_blob_create ((const char *) default_font, sizeof (default_font),
-			   HB_MEMORY_MODE_READONLY, NULL, NULL);
+                           HB_MEMORY_MODE_READONLY, NULL, NULL);
 #endif
   }
   if (!blob)

@@ -58,8 +58,8 @@ demo_buffer_clear (demo_buffer_t *buffer)
 
 void
 demo_buffer_extents (demo_buffer_t    *buffer,
-		     glyphy_extents_t *ink_extents,
-		     glyphy_extents_t *logical_extents)
+                     glyphy_extents_t *ink_extents,
+                     glyphy_extents_t *logical_extents)
 {
   if (ink_extents)
     *ink_extents = buffer->ink_extents;
@@ -69,16 +69,16 @@ demo_buffer_extents (demo_buffer_t    *buffer,
 
 void
 demo_buffer_move_to (demo_buffer_t        *buffer,
-		     const glyphy_point_t *p)
+                     const glyphy_point_t *p)
 {
   buffer->cursor = *p;
 }
 
 void
 demo_buffer_add_text (demo_buffer_t        *buffer,
-		      const char           *utf8,
-		      demo_font_t          *font,
-		      double                font_size)
+                      const char           *utf8,
+                      demo_font_t          *font,
+                      double                font_size)
 {
   hb_face_t *hb_face = demo_font_get_face (font);
   hb_font_t *hb_font = demo_font_get_font (font);
@@ -146,8 +146,8 @@ demo_buffer_draw (demo_buffer_t *buffer)
   glBindBuffer (GL_ARRAY_BUFFER, buffer->buf_name);
   if (buffer->dirty) {
     glBufferData (GL_ARRAY_BUFFER,
-		  sizeof (glyph_vertex_t) * buffer->vertices->size (),
-		  (const char *) &(*buffer->vertices)[0], GL_STATIC_DRAW);
+                  sizeof (glyph_vertex_t) * buffer->vertices->size (),
+                  (const char *) &(*buffer->vertices)[0], GL_STATIC_DRAW);
     buffer->dirty = false;
   }
 
@@ -157,31 +157,31 @@ demo_buffer_draw (demo_buffer_t *buffer)
   GLint loc_pos = glGetAttribLocation (program, "a_position");
   glEnableVertexAttribArray (loc_pos);
   glVertexAttribPointer (loc_pos, 2, GL_FLOAT, GL_FALSE, stride,
-			 (const void *) offsetof (glyph_vertex_t, x));
+                         (const void *) offsetof (glyph_vertex_t, x));
 
   /* a_texcoord: vec2 at offset 8 */
   GLint loc_tex = glGetAttribLocation (program, "a_texcoord");
   glEnableVertexAttribArray (loc_tex);
   glVertexAttribPointer (loc_tex, 2, GL_FLOAT, GL_FALSE, stride,
-			 (const void *) offsetof (glyph_vertex_t, tx));
+                         (const void *) offsetof (glyph_vertex_t, tx));
 
   /* a_corner: vec2 */
   GLint loc_corner = glGetAttribLocation (program, "a_corner");
   glEnableVertexAttribArray (loc_corner);
   glVertexAttribPointer (loc_corner, 2, GL_FLOAT, GL_FALSE, stride,
-			 (const void *) offsetof (glyph_vertex_t, cx));
+                         (const void *) offsetof (glyph_vertex_t, cx));
 
   /* a_texPerPos: vec2 */
   GLint loc_tpp = glGetAttribLocation (program, "a_texPerPos");
   glEnableVertexAttribArray (loc_tpp);
   glVertexAttribPointer (loc_tpp, 2, GL_FLOAT, GL_FALSE, stride,
-			 (const void *) offsetof (glyph_vertex_t, tpx));
+                         (const void *) offsetof (glyph_vertex_t, tpx));
 
   /* a_glyphLoc: uint */
   GLint loc_glyph = glGetAttribLocation (program, "a_glyphLoc");
   glEnableVertexAttribArray (loc_glyph);
   glVertexAttribIPointer (loc_glyph, 1, GL_UNSIGNED_INT, stride,
-			  (const void *) offsetof (glyph_vertex_t, atlas_offset));
+                          (const void *) offsetof (glyph_vertex_t, atlas_offset));
 
   glDrawArrays (GL_TRIANGLES, 0, buffer->vertices->size ());
 

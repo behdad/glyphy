@@ -81,8 +81,8 @@ demo_atlas_set_uniforms (demo_atlas_t *at)
 
 unsigned int
 demo_atlas_alloc (demo_atlas_t    *at,
-		  glyphy_texel_t  *data,
-		  unsigned int     len)
+                  glyphy_texel_t  *data,
+                  unsigned int     len)
 {
   if (at->cursor + len > at->capacity)
     die ("Ran out of atlas memory");
@@ -92,9 +92,9 @@ demo_atlas_alloc (demo_atlas_t    *at,
 
   glBindBuffer (GL_TEXTURE_BUFFER, at->buf_name);
   glBufferSubData (GL_TEXTURE_BUFFER,
-		   offset * sizeof (glyphy_texel_t),
-		   len * sizeof (glyphy_texel_t),
-		   data);
+                   offset * sizeof (glyphy_texel_t),
+                   len * sizeof (glyphy_texel_t),
+                   data);
 
   return offset;
 }

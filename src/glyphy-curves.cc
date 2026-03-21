@@ -76,8 +76,8 @@ glyphy_curve_accumulator_reference (glyphy_curve_accumulator_t *acc)
 
 void
 glyphy_curve_accumulator_set_callback (glyphy_curve_accumulator_t *acc,
-				       glyphy_curve_accumulator_callback_t callback,
-				       void                       *user_data)
+                                       glyphy_curve_accumulator_callback_t callback,
+                                       void                       *user_data)
 {
   acc->callback = callback;
   acc->user_data = user_data;
@@ -85,8 +85,8 @@ glyphy_curve_accumulator_set_callback (glyphy_curve_accumulator_t *acc,
 
 void
 glyphy_curve_accumulator_get_callback (glyphy_curve_accumulator_t  *acc,
-				       glyphy_curve_accumulator_callback_t *callback,
-				       void                       **user_data)
+                                       glyphy_curve_accumulator_callback_t *callback,
+                                       void                       **user_data)
 {
   *callback = acc->callback;
   *user_data = acc->user_data;
@@ -122,8 +122,8 @@ emit (glyphy_curve_accumulator_t *acc, const glyphy_curve_t *curve)
 
 static void
 emit_conic (glyphy_curve_accumulator_t *acc,
-	    const glyphy_point_t *p2,
-	    const glyphy_point_t *p3)
+            const glyphy_point_t *p2,
+            const glyphy_point_t *p3)
 {
   if (acc->current_point.x == p3->x && acc->current_point.y == p3->y)
     return;
@@ -140,7 +140,7 @@ emit_conic (glyphy_curve_accumulator_t *acc,
 
 void
 glyphy_curve_accumulator_move_to (glyphy_curve_accumulator_t *acc,
-				  const glyphy_point_t *p0)
+                                  const glyphy_point_t *p0)
 {
   acc->need_moveto = true;
   acc->current_point = *p0;
@@ -148,7 +148,7 @@ glyphy_curve_accumulator_move_to (glyphy_curve_accumulator_t *acc,
 
 void
 glyphy_curve_accumulator_line_to (glyphy_curve_accumulator_t *acc,
-				  const glyphy_point_t *p1)
+                                  const glyphy_point_t *p1)
 {
   /* Line as degenerate quadratic: p2 = p1 (start point).
    * This gives a = p3 - p1 (never near zero for non-horizontal lines),
@@ -159,8 +159,8 @@ glyphy_curve_accumulator_line_to (glyphy_curve_accumulator_t *acc,
 
 void
 glyphy_curve_accumulator_conic_to (glyphy_curve_accumulator_t *acc,
-				   const glyphy_point_t *p1,
-				   const glyphy_point_t *p2)
+                                   const glyphy_point_t *p1,
+                                   const glyphy_point_t *p2)
 {
   emit_conic (acc, p1, p2);
 }
@@ -181,8 +181,8 @@ glyphy_curve_accumulator_close_path (glyphy_curve_accumulator_t *acc)
 
 void
 glyphy_curve_list_extents (const glyphy_curve_t *curves,
-			   unsigned int          num_curves,
-			   glyphy_extents_t     *extents)
+                           unsigned int          num_curves,
+                           glyphy_extents_t     *extents)
 {
   glyphy_extents_clear (extents);
   for (unsigned int i = 0; i < num_curves; i++) {
