@@ -169,6 +169,8 @@ typedef struct {
   short a;
 } glyphy_texel_t;
 
+typedef struct glyphy_encoder_t glyphy_encoder_t;
+
 /*
  * Shader source code
  */
@@ -180,13 +182,20 @@ GLYPHY_API const char *
 glyphy_vertex_shader_source (void);
 
 
+GLYPHY_API glyphy_encoder_t *
+glyphy_encoder_create (void);
+
+GLYPHY_API void
+glyphy_encoder_destroy (glyphy_encoder_t *encoder);
+
 GLYPHY_API glyphy_bool_t
-glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
-			       unsigned int          num_curves,
-			       glyphy_texel_t       *blob,
-			       unsigned int          blob_size,
-			       unsigned int         *output_len,
-			       glyphy_extents_t     *extents);
+glyphy_encoder_encode (glyphy_encoder_t      *encoder,
+		       const glyphy_curve_t *curves,
+		       unsigned int          num_curves,
+		       glyphy_texel_t       *blob,
+		       unsigned int          blob_size,
+		       unsigned int         *output_len,
+		       glyphy_extents_t     *extents);
 
 
 #ifdef __cplusplus

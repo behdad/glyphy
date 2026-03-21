@@ -96,6 +96,7 @@ benchmark_font (hb_face_t    *face,
 {
   bench_stats_t stats = {};
   hb_font_t *font = hb_font_create (face);
+  glyphy_encoder_t *encoder = glyphy_encoder_create ();
   glyphy_curve_accumulator_t *acc = glyphy_curve_accumulator_create ();
   std::vector<glyphy_curve_t> curves;
   std::vector<glyphy_texel_t> scratch_buffer (1u << 20);
@@ -130,12 +131,13 @@ benchmark_font (hb_face_t    *face,
       }
 
       clock::time_point encode_start = clock::now ();
-      if (!glyphy_curve_list_encode_blob (curves.empty () ? NULL : &curves[0],
-					  curves.size (),
-					  scratch_buffer.data (),
-					  scratch_buffer.size (),
-					  &output_len,
-					  &extents)) {
+      if (!glyphy_encoder_encode (encoder,
+				  curves.empty () ? NULL : &curves[0],
+				  curves.size (),
+				  scratch_buffer.data (),
+				  scratch_buffer.size (),
+				  &output_len,
+				  &extents)) {
 	char message[128];
 	snprintf (message, sizeof (message),
 		  "Failed encoding blob for glyph %u", glyph_index);
@@ -155,6 +157,7 @@ benchmark_font (hb_face_t    *face,
 
   stats.wall_ns = std::chrono::duration_cast<std::chrono::nanoseconds> (clock::now () - wall_start).count ();
 
+  glyphy_encoder_destroy (encoder);
   glyphy_curve_accumulator_destroy (acc);
   hb_font_destroy (font);
 

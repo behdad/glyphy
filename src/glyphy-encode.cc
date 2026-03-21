@@ -94,22 +94,55 @@ curve_info (const glyphy_curve_t *c)
   return info;
 }
 
+struct glyphy_encoder_t
+{
+  std::vector<curve_info_t> curve_infos;
+  std::vector<unsigned int> hband_curve_counts;
+  std::vector<unsigned int> vband_curve_counts;
+  std::vector<unsigned int> hband_offsets;
+  std::vector<unsigned int> vband_offsets;
+  std::vector<unsigned int> hband_curves;
+  std::vector<unsigned int> hband_curves_asc;
+  std::vector<unsigned int> vband_curves;
+  std::vector<unsigned int> vband_curves_asc;
+  std::vector<unsigned int> hband_cursors;
+  std::vector<unsigned int> vband_cursors;
+  std::vector<unsigned int> curve_texel_offset;
+};
+
+glyphy_encoder_t *
+glyphy_encoder_create (void)
+{
+  return new glyphy_encoder_t;
+}
+
+void
+glyphy_encoder_destroy (glyphy_encoder_t *encoder)
+{
+  delete encoder;
+}
+
 
 glyphy_bool_t
-glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
-			       unsigned int          num_curves,
-			       glyphy_texel_t       *blob,
-			       unsigned int          blob_size,
-			       unsigned int         *output_len,
-			       glyphy_extents_t     *extents)
+glyphy_encoder_encode (glyphy_encoder_t      *encoder,
+		       const glyphy_curve_t *curves,
+		       unsigned int          num_curves,
+		       glyphy_texel_t       *blob,
+		       unsigned int          blob_size,
+		       unsigned int         *output_len,
+		       glyphy_extents_t     *extents)
 {
+  if (!encoder)
+    return false;
+
   if (num_curves == 0) {
     glyphy_extents_clear (extents);
     *output_len = 0;
     return true;
   }
 
-  std::vector<curve_info_t> curve_infos (num_curves);
+  std::vector<curve_info_t> &curve_infos = encoder->curve_infos;
+  curve_infos.resize (num_curves);
   glyphy_extents_clear (extents);
   for (unsigned int i = 0; i < num_curves; i++) {
     curve_infos[i] = curve_info (&curves[i]);
@@ -142,8 +175,10 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
   double hband_size = height / num_hbands;
   double vband_size = width / num_vbands;
 
-  std::vector<unsigned int> hband_curve_counts (num_hbands, 0);
-  std::vector<unsigned int> vband_curve_counts (num_vbands, 0);
+  std::vector<unsigned int> &hband_curve_counts = encoder->hband_curve_counts;
+  std::vector<unsigned int> &vband_curve_counts = encoder->vband_curve_counts;
+  hband_curve_counts.assign (num_hbands, 0);
+  vband_curve_counts.assign (num_vbands, 0);
 
   for (unsigned int i = 0; i < num_curves; i++) {
     curve_info_t &info = curve_infos[i];
@@ -179,8 +214,10 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
     }
   }
 
-  std::vector<unsigned int> hband_offsets (num_hbands);
-  std::vector<unsigned int> vband_offsets (num_vbands);
+  std::vector<unsigned int> &hband_offsets = encoder->hband_offsets;
+  std::vector<unsigned int> &vband_offsets = encoder->vband_offsets;
+  hband_offsets.resize (num_hbands);
+  vband_offsets.resize (num_vbands);
   unsigned int total_hband_indices = 0;
   unsigned int total_vband_indices = 0;
 
@@ -195,12 +232,18 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
   }
 
   /* Assign curves to bands */
-  std::vector<unsigned int> hband_curves (total_hband_indices);
-  std::vector<unsigned int> hband_curves_asc (total_hband_indices);
-  std::vector<unsigned int> vband_curves (total_vband_indices);
-  std::vector<unsigned int> vband_curves_asc (total_vband_indices);
-  std::vector<unsigned int> hband_cursors = hband_offsets;
-  std::vector<unsigned int> vband_cursors = vband_offsets;
+  std::vector<unsigned int> &hband_curves = encoder->hband_curves;
+  std::vector<unsigned int> &hband_curves_asc = encoder->hband_curves_asc;
+  std::vector<unsigned int> &vband_curves = encoder->vband_curves;
+  std::vector<unsigned int> &vband_curves_asc = encoder->vband_curves_asc;
+  std::vector<unsigned int> &hband_cursors = encoder->hband_cursors;
+  std::vector<unsigned int> &vband_cursors = encoder->vband_cursors;
+  hband_curves.resize (total_hband_indices);
+  hband_curves_asc.resize (total_hband_indices);
+  vband_curves.resize (total_vband_indices);
+  vband_curves_asc.resize (total_vband_indices);
+  hband_cursors = hband_offsets;
+  vband_cursors = vband_offsets;
 
   for (unsigned int i = 0; i < num_curves; i++) {
     const curve_info_t &info = curve_infos[i];
@@ -298,7 +341,8 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
 
   /* Pack curve data with shared endpoints.
    * Build curve_texel_offset[i] = texel offset for curve i's first texel. */
-  std::vector<unsigned int> curve_texel_offset (num_curves);
+  std::vector<unsigned int> &curve_texel_offset = encoder->curve_texel_offset;
+  curve_texel_offset.resize (num_curves);
   unsigned int texel = curve_data_offset;
 
   for (unsigned int i = 0; i < num_curves; i++) {
