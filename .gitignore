@@ -1,0 +1,7 @@
+build/
+*.o
+*~
+.*.sw[nop]
+*-glsl.h
+default-font.h
+default-text.h
