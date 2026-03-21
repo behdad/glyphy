@@ -69,6 +69,10 @@ typedef struct
   double max_y;
   bool is_horizontal;
   bool is_vertical;
+  int hband_lo;
+  int hband_hi;
+  int vband_lo;
+  int vband_hi;
 } curve_info_t;
 
 static curve_info_t
@@ -82,6 +86,10 @@ curve_info (const glyphy_curve_t *c)
   info.max_y = std::max (std::max (c->p1.y, c->p2.y), c->p3.y);
   info.is_horizontal = c->p1.y == c->p2.y && c->p2.y == c->p3.y;
   info.is_vertical = c->p1.x == c->p2.x && c->p2.x == c->p3.x;
+  info.hband_lo = 0;
+  info.hband_hi = -1;
+  info.vband_lo = 0;
+  info.vband_hi = -1;
 
   return info;
 }
@@ -138,30 +146,34 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
   std::vector<unsigned int> vband_curve_counts (num_vbands, 0);
 
   for (unsigned int i = 0; i < num_curves; i++) {
-    const curve_info_t &info = curve_infos[i];
+    curve_info_t &info = curve_infos[i];
 
     if (!info.is_horizontal) {
       if (height > 0) {
-	int band_lo = (int) floor ((info.min_y - extents->min_y) / hband_size);
-	int band_hi = (int) floor ((info.max_y - extents->min_y) / hband_size);
-	band_lo = std::max (band_lo, 0);
-	band_hi = std::min (band_hi, (int) num_hbands - 1);
-	for (int b = band_lo; b <= band_hi; b++)
+	info.hband_lo = (int) floor ((info.min_y - extents->min_y) / hband_size);
+	info.hband_hi = (int) floor ((info.max_y - extents->min_y) / hband_size);
+	info.hband_lo = std::max (info.hband_lo, 0);
+	info.hband_hi = std::min (info.hband_hi, (int) num_hbands - 1);
+	for (int b = info.hband_lo; b <= info.hband_hi; b++)
 	  hband_curve_counts[b]++;
       } else {
+	info.hband_lo = 0;
+	info.hband_hi = 0;
 	hband_curve_counts[0]++;
       }
     }
 
     if (!info.is_vertical) {
       if (width > 0) {
-	int band_lo = (int) floor ((info.min_x - extents->min_x) / vband_size);
-	int band_hi = (int) floor ((info.max_x - extents->min_x) / vband_size);
-	band_lo = std::max (band_lo, 0);
-	band_hi = std::min (band_hi, (int) num_vbands - 1);
-	for (int b = band_lo; b <= band_hi; b++)
+	info.vband_lo = (int) floor ((info.min_x - extents->min_x) / vband_size);
+	info.vband_hi = (int) floor ((info.max_x - extents->min_x) / vband_size);
+	info.vband_lo = std::max (info.vband_lo, 0);
+	info.vband_hi = std::min (info.vband_hi, (int) num_vbands - 1);
+	for (int b = info.vband_lo; b <= info.vband_hi; b++)
 	  vband_curve_counts[b]++;
       } else {
+	info.vband_lo = 0;
+	info.vband_hi = 0;
 	vband_curve_counts[0]++;
       }
     }
@@ -189,36 +201,14 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
     /* Horizontal lines never intersect horizontal rays;
      * vertical lines never intersect vertical rays. */
 
-    if (!info.is_horizontal) {
-      if (height > 0) {
-	int band_lo = (int) floor ((info.min_y - extents->min_y) / hband_size);
-	int band_hi = (int) floor ((info.max_y - extents->min_y) / hband_size);
-	band_lo = std::max (band_lo, 0);
-	band_hi = std::min (band_hi, (int) num_hbands - 1);
-	for (int b = band_lo; b <= band_hi; b++) {
-	  hband_curves[b].push_back (i);
-	  hband_curves_asc[b].push_back (i);
-	}
-      } else {
-	hband_curves[0].push_back (i);
-	hband_curves_asc[0].push_back (i);
-      }
+    for (int b = info.hband_lo; b <= info.hband_hi; b++) {
+      hband_curves[b].push_back (i);
+      hband_curves_asc[b].push_back (i);
     }
 
-    if (!info.is_vertical) {
-      if (width > 0) {
-	int band_lo = (int) floor ((info.min_x - extents->min_x) / vband_size);
-	int band_hi = (int) floor ((info.max_x - extents->min_x) / vband_size);
-	band_lo = std::max (band_lo, 0);
-	band_hi = std::min (band_hi, (int) num_vbands - 1);
-	for (int b = band_lo; b <= band_hi; b++) {
-	  vband_curves[b].push_back (i);
-	  vband_curves_asc[b].push_back (i);
-	}
-      } else {
-	vband_curves[0].push_back (i);
-	vband_curves_asc[0].push_back (i);
-      }
+    for (int b = info.vband_lo; b <= info.vband_hi; b++) {
+      vband_curves[b].push_back (i);
+      vband_curves_asc[b].push_back (i);
     }
   }
 
