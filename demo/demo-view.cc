@@ -305,6 +305,9 @@ demo_view_keyboard_func (demo_view_t *vu, unsigned char key, int x, int y)
     case ' ':
       demo_view_toggle_animation (vu);
       break;
+    case '?':
+      demo_view_print_help (vu);
+      break;
     case 'v':
       demo_view_toggle_vsync (vu);
       break;

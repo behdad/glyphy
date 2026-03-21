@@ -167,6 +167,8 @@ show_usage(const char *path)
 	 "  -f fontfile    the font file (e.g. /Library/Fonts/Microsoft/Verdana.ttf)\n"
 	 "\n", name, name);
 
+  demo_view_print_help (NULL);
+
   free(p);
 }
 
