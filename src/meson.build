@@ -42,7 +42,8 @@ endif
 libglyphy = library('glyphy', glyphy_sources + glyphy_headers + glyphy_shader_sources,
   include_directories: [confinc],
   cpp_args: cpp_args,
-  version: '0.0.0',
+  version: meson.project_version(),
+  soversion: '1',
   install: true)
 
 libglyphy_dep = declare_dependency(

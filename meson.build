@@ -1,6 +1,6 @@
 project('glyphy', 'c', 'cpp',
   meson_version: '>= 0.55.0',
-  version: '0.2.0',
+  version: '1.0.0',
   default_options: [
     'cpp_rtti=false',
     'cpp_std=c++11',
