@@ -211,13 +211,18 @@ demo_view_toggle_srgb (demo_view_t *vu)
   glyphy_bool_t srgb = !vu->srgb;
 #if defined(GL_FRAMEBUFFER_SRGB)
   bool available = false;
+#ifdef HAVE_GLFW
+  available = glfwGetWindowAttrib (vu->window, GLFW_SRGB_CAPABLE) == GLFW_TRUE;
+#endif
 #if defined(GL_FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING) && defined(GL_BACK_LEFT)
-  GLint encoding = GL_LINEAR;
-  glGetFramebufferAttachmentParameteriv (GL_FRAMEBUFFER,
-					 GL_BACK_LEFT,
-					 GL_FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING,
-					 &encoding);
-  available = encoding == GL_SRGB;
+  if (!available) {
+    GLint encoding = GL_LINEAR;
+    glGetFramebufferAttachmentParameteriv (GL_FRAMEBUFFER,
+					   GL_BACK_LEFT,
+					   GL_FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING,
+					   &encoding);
+    available = encoding == GL_SRGB;
+  }
 #endif
 #if defined(GL_FRAMEBUFFER_SRGB_CAPABLE_EXT)
   if (!available &&
