@@ -22,6 +22,7 @@ struct demo_font_t {
   glyph_cache_t *glyph_cache;
   demo_atlas_t  *atlas;
   glyphy_curve_accumulator_t *acc;
+  std::vector<glyphy_texel_t> *scratch_buffer;
 
   unsigned int num_glyphs;
   unsigned int sum_curves;
@@ -39,6 +40,7 @@ demo_font_create (hb_face_t    *face,
   font->glyph_cache = new glyph_cache_t ();
   font->atlas = demo_atlas_reference (atlas);
   font->acc = glyphy_curve_accumulator_create ();
+  font->scratch_buffer = new std::vector<glyphy_texel_t> (16384);
 
   return font;
 }
@@ -51,6 +53,7 @@ demo_font_destroy (demo_font_t *font)
 
   glyphy_curve_accumulator_destroy (font->acc);
   demo_atlas_destroy (font->atlas);
+  delete font->scratch_buffer;
   delete font->glyph_cache;
   hb_font_destroy (font->font);
   hb_face_destroy (font->face);
@@ -117,12 +120,11 @@ _demo_font_upload_glyph (demo_font_t *font,
 			 unsigned int glyph_index,
 			 glyph_info_t *glyph_info)
 {
-  glyphy_texel_t buffer[16384];
   unsigned int output_len;
 
   encode_glyph (font,
 		glyph_index,
-		buffer, ARRAY_LEN (buffer),
+		font->scratch_buffer->data (), font->scratch_buffer->size (),
 		&output_len,
 		&glyph_info->extents,
 		&glyph_info->advance);
@@ -130,7 +132,9 @@ _demo_font_upload_glyph (demo_font_t *font,
   glyph_info->upem = hb_face_get_upem (font->face);
   glyph_info->is_empty = glyphy_extents_is_empty (&glyph_info->extents);
   if (!glyph_info->is_empty)
-    glyph_info->atlas_offset = demo_atlas_alloc (font->atlas, buffer, output_len);
+    glyph_info->atlas_offset = demo_atlas_alloc (font->atlas,
+						 font->scratch_buffer->data (),
+						 output_len);
 }
 
 void
