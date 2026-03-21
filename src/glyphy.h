@@ -170,7 +170,7 @@ glyphy_curve_list_extents (const glyphy_curve_t *curves,
 
 
 #ifndef GLYPHY_UNITS_PER_EM_UNIT
-#define GLYPHY_UNITS_PER_EM_UNIT 2
+#define GLYPHY_UNITS_PER_EM_UNIT 4
 #endif
 
 typedef struct {

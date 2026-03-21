@@ -18,7 +18,7 @@
 #endif
 
 #ifndef GLYPHY_UNITS_PER_EM_UNIT
-#define GLYPHY_UNITS_PER_EM_UNIT 2
+#define GLYPHY_UNITS_PER_EM_UNIT 4
 #endif
 
 #define GLYPHY_INV_UNITS float(1.0 / float(GLYPHY_UNITS_PER_EM_UNIT))
