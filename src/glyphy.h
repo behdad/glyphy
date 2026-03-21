@@ -163,6 +163,34 @@ glyphy_curve_list_extents (const glyphy_curve_t *curves,
 			   glyphy_extents_t     *extents);
 
 
+
+/*
+ * Encode curves into blob for GPU rendering
+ */
+
+
+#ifndef GLYPHY_UNITS_PER_EM_UNIT
+#define GLYPHY_UNITS_PER_EM_UNIT 2
+#endif
+
+typedef struct {
+  unsigned short r;
+  unsigned short g;
+  unsigned short b;
+  unsigned short a;
+} glyphy_texel_t;
+
+GLYPHY_API glyphy_bool_t
+glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
+			       unsigned int          num_curves,
+			       glyphy_texel_t       *blob,
+			       unsigned int          blob_size,
+			       unsigned int         *output_len,
+			       unsigned int         *num_hbands,
+			       unsigned int         *num_vbands,
+			       glyphy_extents_t     *extents);
+
+
 #ifdef __cplusplus
 }
 #endif
