@@ -45,6 +45,12 @@ demo_shader_add_glyph_vertices (const glyphy_point_t        &p,
     v[ci].y = (float) (p.y - scale * ey);
     v[ci].tx = (float) ex;
     v[ci].ty = (float) ey;
+    /* Normal points outward from glyph center, length = 1 in object space */
+    v[ci].nx = cx ? 1.f : -1.f;
+    v[ci].ny = cy ? -1.f : 1.f; /* y is flipped: screen y = -object y */
+    /* Inverse Jacobian: d(texcoord) = d(position) * jac */
+    v[ci].jx = (float) (1.0 / scale);
+    v[ci].jy = (float) (-1.0 / scale);
     v[ci].atlas_offset = gi->atlas_offset;
   }
 

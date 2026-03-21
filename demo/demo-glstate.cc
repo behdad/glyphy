@@ -75,5 +75,10 @@ void
 demo_glstate_set_matrix (demo_glstate_t *st, float mat[16])
 {
   glUniformMatrix4fv (glGetUniformLocation (st->program, "u_matViewProjection"), 1, GL_FALSE, mat);
+
+  GLint viewport[4];
+  glGetIntegerv (GL_VIEWPORT, viewport);
+  glUniform2f (glGetUniformLocation (st->program, "u_viewport"),
+	       (float) viewport[2], (float) viewport[3]);
 }
 

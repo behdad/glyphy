@@ -182,6 +182,18 @@ demo_buffer_draw (demo_buffer_t *buffer)
   glVertexAttribPointer (loc_tex, 2, GL_FLOAT, GL_FALSE, stride,
 			 (const void *) offsetof (glyph_vertex_t, tx));
 
+  /* a_normal: vec2 */
+  GLint loc_norm = glGetAttribLocation (program, "a_normal");
+  glEnableVertexAttribArray (loc_norm);
+  glVertexAttribPointer (loc_norm, 2, GL_FLOAT, GL_FALSE, stride,
+			 (const void *) offsetof (glyph_vertex_t, nx));
+
+  /* a_jacobian: vec2 */
+  GLint loc_jac = glGetAttribLocation (program, "a_jacobian");
+  glEnableVertexAttribArray (loc_jac);
+  glVertexAttribPointer (loc_jac, 2, GL_FLOAT, GL_FALSE, stride,
+			 (const void *) offsetof (glyph_vertex_t, jx));
+
   /* a_glyphLoc: uint */
   GLint loc_glyph = glGetAttribLocation (program, "a_glyphLoc");
   glEnableVertexAttribArray (loc_glyph);
@@ -192,5 +204,7 @@ demo_buffer_draw (demo_buffer_t *buffer)
 
   glDisableVertexAttribArray (loc_pos);
   glDisableVertexAttribArray (loc_tex);
+  glDisableVertexAttribArray (loc_norm);
+  glDisableVertexAttribArray (loc_jac);
   glDisableVertexAttribArray (loc_glyph);
 }
