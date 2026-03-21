@@ -80,10 +80,12 @@ float glyphy_calc_coverage (float xcov, float ycov, float xwgt, float ywgt)
   return clamp (coverage, 0.0, 1.0);
 }
 
-float glyphy_slug_render (vec2 renderCoord, int glyphLoc)
+float glyphy_slug_render (vec2 renderCoord, uint glyphLoc_)
 {
   vec2 emsPerPixel = fwidth (renderCoord);
   vec2 pixelsPerEm = 1.0 / emsPerPixel;
+
+  int glyphLoc = int (glyphLoc_);
 
   /* Read blob header */
   ivec4 header0 = texelFetch (u_atlas, glyphLoc);

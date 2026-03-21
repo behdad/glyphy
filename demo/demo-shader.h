@@ -22,11 +22,8 @@ struct glyph_vertex_t {
   /* Em-space texture coordinates */
   GLfloat tx;
   GLfloat ty;
-  /* Glyph data (constant across glyph, opaque to client) */
-  GLint atlas_offset;
-  GLint _reserved1;
-  GLint _reserved2;
-  GLint _reserved3;
+  /* Atlas offset (constant across glyph) */
+  GLuint atlas_offset;
 };
 
 void
