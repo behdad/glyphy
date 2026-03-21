@@ -111,7 +111,10 @@ float glyphy_slug_render (vec2 renderCoord, uint glyphLoc_)
 
   ivec4 hbandData = texelFetch (u_atlas, bandBase + bandIndex.y);
   int hCurveCount = hbandData.r;
-  int hDataOffset = hbandData.g;
+  /* Symmetric: choose rightward (desc) or leftward (asc) sort */
+  float hSplit = float (hbandData.a) * GLYPHY_INV_UNITS;
+  bool hLeftRay = (renderCoord.x < hSplit);
+  int hDataOffset = hLeftRay ? hbandData.b : hbandData.g;
 
   for (int ci = 0; ci < hCurveCount; ci++)
   {
@@ -123,23 +126,29 @@ float glyphy_slug_render (vec2 renderCoord, uint glyphLoc_)
     vec4 p12 = vec4 (raw12) * GLYPHY_INV_UNITS - vec4 (renderCoord, renderCoord);
     vec2 p3 = vec2 (raw3.rg) * GLYPHY_INV_UNITS - renderCoord;
 
-    if (max (max (p12.x, p12.z), p3.x) * pixelsPerEm.x < -0.5)
-      break;
+    if (hLeftRay) {
+      if (min (min (p12.x, p12.z), p3.x) * pixelsPerEm.x > 0.5) break;
+    } else {
+      if (max (max (p12.x, p12.z), p3.x) * pixelsPerEm.x < -0.5) break;
+    }
 
     uint code = glyphy_calc_root_code (p12.y, p12.w, p3.y);
     if (code != 0U)
     {
       vec2 r = glyphy_solve_horiz_poly (p12, p3) * pixelsPerEm.x;
+      /* For leftward ray: saturate(0.5 - r) counts coverage from the left */
+      vec2 cov = hLeftRay ? clamp (vec2 (0.5) - r, 0.0, 1.0)
+			  : clamp (r + vec2 (0.5), 0.0, 1.0);
 
       if ((code & 1U) != 0U)
       {
-	xcov += clamp (r.x + 0.5, 0.0, 1.0);
+	xcov += cov.x;
 	xwgt = max (xwgt, clamp (1.0 - abs (r.x) * 2.0, 0.0, 1.0));
       }
 
       if (code > 1U)
       {
-	xcov -= clamp (r.y + 0.5, 0.0, 1.0);
+	xcov -= cov.y;
 	xwgt = max (xwgt, clamp (1.0 - abs (r.y) * 2.0, 0.0, 1.0));
       }
     }
@@ -150,7 +159,9 @@ float glyphy_slug_render (vec2 renderCoord, uint glyphLoc_)
 
   ivec4 vbandData = texelFetch (u_atlas, bandBase + numHBands + bandIndex.x);
   int vCurveCount = vbandData.r;
-  int vDataOffset = vbandData.g;
+  float vSplit = float (vbandData.a) * GLYPHY_INV_UNITS;
+  bool vLeftRay = (renderCoord.y < vSplit);
+  int vDataOffset = vLeftRay ? vbandData.b : vbandData.g;
 
   for (int ci = 0; ci < vCurveCount; ci++)
   {
@@ -162,23 +173,28 @@ float glyphy_slug_render (vec2 renderCoord, uint glyphLoc_)
     vec4 p12 = vec4 (raw12) * GLYPHY_INV_UNITS - vec4 (renderCoord, renderCoord);
     vec2 p3 = vec2 (raw3.rg) * GLYPHY_INV_UNITS - renderCoord;
 
-    if (max (max (p12.y, p12.w), p3.y) * pixelsPerEm.y < -0.5)
-      break;
+    if (vLeftRay) {
+      if (min (min (p12.y, p12.w), p3.y) * pixelsPerEm.y > 0.5) break;
+    } else {
+      if (max (max (p12.y, p12.w), p3.y) * pixelsPerEm.y < -0.5) break;
+    }
 
     uint code = glyphy_calc_root_code (p12.x, p12.z, p3.x);
     if (code != 0U)
     {
       vec2 r = glyphy_solve_vert_poly (p12, p3) * pixelsPerEm.y;
+      vec2 cov = vLeftRay ? clamp (vec2 (0.5) - r, 0.0, 1.0)
+			  : clamp (r + vec2 (0.5), 0.0, 1.0);
 
       if ((code & 1U) != 0U)
       {
-	ycov -= clamp (r.x + 0.5, 0.0, 1.0);
+	ycov -= cov.x;
 	ywgt = max (ywgt, clamp (1.0 - abs (r.x) * 2.0, 0.0, 1.0));
       }
 
       if (code > 1U)
       {
-	ycov += clamp (r.y + 0.5, 0.0, 1.0);
+	ycov += cov.y;
 	ywgt = max (ywgt, clamp (1.0 - abs (r.y) * 2.0, 0.0, 1.0));
       }
     }
