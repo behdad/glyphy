@@ -71,8 +71,6 @@ compile_shader (GLenum         type,
 		GLsizei        count,
 		const GLchar** sources)
 {
-  TRACE();
-
   GLuint shader;
   GLint compiled;
 
@@ -107,8 +105,6 @@ static GLuint
 link_program (GLuint vshader,
 	      GLuint fshader)
 {
-  TRACE();
-
   GLuint program;
   GLint linked;
 
@@ -142,8 +138,6 @@ link_program (GLuint vshader,
 GLuint
 demo_shader_create_program (void)
 {
-  TRACE();
-
   GLuint vshader, fshader, program;
   const GLchar *vshader_sources[] = {"#version 330\n",
 				     glyphy_vertex_shader_source (),

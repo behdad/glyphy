@@ -27,8 +27,6 @@ demo_atlas_bind_texture (demo_atlas_t *at);
 demo_atlas_t *
 demo_atlas_create (unsigned int capacity)
 {
-  TRACE();
-
   demo_atlas_t *at = (demo_atlas_t *) calloc (1, sizeof (demo_atlas_t));
   at->refcount = 1;
 

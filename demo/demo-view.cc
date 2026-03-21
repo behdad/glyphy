@@ -65,8 +65,6 @@ demo_view_t *static_vu;
 demo_view_t *
 demo_view_create (demo_glstate_t *st)
 {
-  TRACE();
-
   demo_view_t *vu = (demo_view_t *) calloc (1, sizeof (demo_view_t));
 
   vu->st = st;
@@ -508,7 +506,29 @@ demo_view_motion_func (demo_view_t *vu, int x, int y)
 void
 demo_view_print_help (demo_view_t *vu)
 {
-  LOGI ("Welcome to GLyphy demo\n");
+  (void) vu;
+
+  LOGI ("GLyphy demo controls\n");
+  LOGI ("Keyboard:\n");
+  LOGI ("  Esc, q                    Quit\n");
+  LOGI ("  Space                     Toggle animation\n");
+  LOGI ("  f                         Toggle fullscreen\n");
+  LOGI ("  v                         Toggle vsync\n");
+  LOGI ("  =, -                      Zoom in or out\n");
+  LOGI ("  [, ]                      Stretch or shrink horizontally\n");
+  LOGI ("  {, }                      Stretch or shrink vertically\n");
+  LOGI ("  h j k l                   Pan\n");
+  LOGI ("  Arrow keys                Pan\n");
+  LOGI ("  r                         Reset view\n");
+  LOGI ("Mouse:\n");
+  LOGI ("  Left drag                 Pan\n");
+  LOGI ("  Middle drag               Zoom\n");
+  LOGI ("  Wheel                     Zoom\n");
+  LOGI ("  Right drag                Rotate\n");
+  LOGI ("  Shift + right drag        Adjust perspective\n");
+  LOGI ("  Right drag and release    Animate rotation\n");
+  LOGI ("  Right click               Toggle animation\n");
+  LOGI ("\n");
 }
 
 
