@@ -293,6 +293,11 @@ main (int argc, char** argv)
 #ifdef GLUT_SRGB
   display_mode |= GLUT_SRGB;
 #endif
+#ifdef __APPLE__
+#ifdef GLUT_3_2_CORE_PROFILE
+  display_mode |= GLUT_3_2_CORE_PROFILE;
+#endif
+#endif
   glutInitDisplayMode (display_mode);
   int window = glutCreateWindow ("GLyphy Demo");
   glutReshapeFunc (reshape_func);
@@ -303,6 +308,7 @@ main (int argc, char** argv)
   glutMotionFunc (motion_func);
 
   /* Setup glew */
+  glewExperimental = GL_TRUE;
   if (GLEW_OK != glewInit ())
     die ("Failed to initialize GL; something really broken");
   if (!glewIsSupported ("GL_VERSION_3_3"))
