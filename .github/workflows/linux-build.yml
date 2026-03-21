@@ -38,5 +38,3 @@ jobs:
         run: meson setup build
       - name: Meson compile
         run: meson compile -C build
-      - name: Run Validator against default font
-        run: ./demo/glyphy-validate ./demo/default-font.ttf

@@ -204,16 +204,38 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
 
   unsigned int curve_data_offset = band_headers_len + total_curve_indices;
 
-  /* Pack curve data */
+  /* Pack curve data.
+   * Quantize p1 and p3 first, then compute p2 as the average of the
+   * quantized p1 and p3 IF the curve is a line (p2 == midpoint(p1,p3)).
+   * This ensures a = p1 - 2*p2 + p3 = 0 exactly in the shader,
+   * preventing quantization from turning lines into slight curves. */
   for (unsigned int i = 0; i < num_curves; i++) {
     unsigned int off = curve_data_offset + i * 2;
-    blob[off].r = (int16_t) quantize (curves[i].p1.x);
-    blob[off].g = (int16_t) quantize (curves[i].p1.y);
-    blob[off].b = (int16_t) quantize (curves[i].p2.x);
-    blob[off].a = (int16_t) quantize (curves[i].p2.y);
+    int16_t p1x = quantize (curves[i].p1.x);
+    int16_t p1y = quantize (curves[i].p1.y);
+    int16_t p3x = quantize (curves[i].p3.x);
+    int16_t p3y = quantize (curves[i].p3.y);
+    int16_t p2x, p2y;
 
-    blob[off + 1].r = (int16_t) quantize (curves[i].p3.x);
-    blob[off + 1].g = (int16_t) quantize (curves[i].p3.y);
+    /* Check if p2 is midpoint of p1 and p3 (i.e., curve is a line) */
+    double mid_x = (curves[i].p1.x + curves[i].p3.x) * 0.5;
+    double mid_y = (curves[i].p1.y + curves[i].p3.y) * 0.5;
+    if (curves[i].p2.x == mid_x && curves[i].p2.y == mid_y) {
+      /* Line: compute p2 from quantized endpoints to preserve a=0 */
+      p2x = (int16_t) ((p1x + p3x) / 2);
+      p2y = (int16_t) ((p1y + p3y) / 2);
+    } else {
+      p2x = quantize (curves[i].p2.x);
+      p2y = quantize (curves[i].p2.y);
+    }
+
+    blob[off].r = p1x;
+    blob[off].g = p1y;
+    blob[off].b = p2x;
+    blob[off].a = p2y;
+
+    blob[off + 1].r = p3x;
+    blob[off + 1].g = p3y;
     blob[off + 1].b = 0;
     blob[off + 1].a = 0;
   }

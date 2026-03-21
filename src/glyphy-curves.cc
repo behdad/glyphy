@@ -161,12 +161,11 @@ void
 glyphy_curve_accumulator_line_to (glyphy_curve_accumulator_t *acc,
 				  const glyphy_point_t *p1)
 {
-  /* Line as degenerate quadratic: p2 = midpoint(p1, p3) */
-  glyphy_point_t mid = {
-    (acc->current_point.x + p1->x) * 0.5,
-    (acc->current_point.y + p1->y) * 0.5
-  };
-  emit_conic (acc, &mid, p1);
+  /* Line as degenerate quadratic: p2 = p1 (start point).
+   * This gives a = p3 - p1 (never near zero for non-horizontal lines),
+   * b = 0, avoiding float32 precision issues in the GPU solver. */
+  glyphy_point_t p0 = acc->current_point;
+  emit_conic (acc, &p0, p1);
 }
 
 void

@@ -218,3 +218,4 @@ float glyphy_slug_render (vec2 renderCoord, vec4 bandTransform,
 
   return glyphy_calc_coverage (xcov, ycov, xwgt, ywgt);
 }
+
