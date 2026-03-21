@@ -328,6 +328,14 @@ main (int argc, char** argv)
   if (!glewIsSupported ("GL_VERSION_3_3"))
     die ("OpenGL 3.3 not supported");
 
+  /* Set initial viewport from framebuffer size (may differ from window
+   * size on HiDPI displays). */
+  {
+    int fb_width, fb_height;
+    glfwGetFramebufferSize (window, &fb_width, &fb_height);
+    glViewport (0, 0, fb_width, fb_height);
+  }
+
   st = demo_glstate_create ();
   vu = demo_view_create (st, window);
   demo_view_print_help (vu);
@@ -366,12 +374,12 @@ main (int argc, char** argv)
   /* Main loop */
   while (!glfwWindowShouldClose (window))
   {
+    glfwPollEvents ();
+
     if (demo_view_should_redraw (vu))
       demo_view_display (vu, buffer);
     else
       glfwWaitEvents ();
-
-    glfwPollEvents ();
   }
 
   demo_buffer_destroy (buffer);

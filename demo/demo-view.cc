@@ -429,10 +429,10 @@ demo_view_motion_func (demo_view_t *vu, double x, double y)
 
   vu->dragged = true;
 
-  int viewport[4];
-  glGetIntegerv (GL_VIEWPORT, viewport);
-  GLuint width  = viewport[2];
-  GLuint height = viewport[3];
+  /* Use window size, not framebuffer size, since GLFW cursor
+   * positions are in screen coordinates. */
+  int width, height;
+  glfwGetWindowSize (vu->window, &width, &height);
 
   if (vu->buttons & (1 << GLFW_MOUSE_BUTTON_LEFT))
   {
