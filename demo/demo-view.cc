@@ -34,6 +34,7 @@ struct demo_view_t {
   int modifiers;
   bool dragged;
   bool click_handled;
+  double cursorx, cursory;
   double beginx, beginy;
   double lastx, lasty, lastt;
   double dx,dy, dt;
@@ -373,8 +374,7 @@ demo_view_mouse_func (demo_view_t *vu, int button, int action, int mods)
     vu->buttons &= ~(1 << button);
   vu->modifiers = mods;
 
-  double x, y;
-  glfwGetCursorPos (vu->window, &x, &y);
+  double x = vu->cursorx, y = vu->cursory;
 
   switch (button)
   {
@@ -423,6 +423,9 @@ demo_view_scroll_func (demo_view_t *vu, double xoffset, double yoffset)
 void
 demo_view_motion_func (demo_view_t *vu, double x, double y)
 {
+  vu->cursorx = x;
+  vu->cursory = y;
+
   if (!vu->buttons)
     return;
 
