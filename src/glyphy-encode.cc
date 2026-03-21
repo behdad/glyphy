@@ -121,9 +121,54 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
   double hband_size = height / num_hbands;
   double vband_size = width / num_vbands;
 
+  std::vector<unsigned int> hband_curve_counts (num_hbands, 0);
+  std::vector<unsigned int> vband_curve_counts (num_vbands, 0);
+
+  for (unsigned int i = 0; i < num_curves; i++) {
+    const curve_info_t &info = curve_infos[i];
+
+    if (!info.is_horizontal) {
+      if (height > 0) {
+	int band_lo = (int) floor ((info.min_y - extents->min_y) / hband_size);
+	int band_hi = (int) floor ((info.max_y - extents->min_y) / hband_size);
+	band_lo = std::max (band_lo, 0);
+	band_hi = std::min (band_hi, (int) num_hbands - 1);
+	for (int b = band_lo; b <= band_hi; b++)
+	  hband_curve_counts[b]++;
+      } else {
+	hband_curve_counts[0]++;
+      }
+    }
+
+    if (!info.is_vertical) {
+      if (width > 0) {
+	int band_lo = (int) floor ((info.min_x - extents->min_x) / vband_size);
+	int band_hi = (int) floor ((info.max_x - extents->min_x) / vband_size);
+	band_lo = std::max (band_lo, 0);
+	band_hi = std::min (band_hi, (int) num_vbands - 1);
+	for (int b = band_lo; b <= band_hi; b++)
+	  vband_curve_counts[b]++;
+      } else {
+	vband_curve_counts[0]++;
+      }
+    }
+  }
+
   /* Assign curves to bands */
   std::vector<std::vector<unsigned int>> hband_curves (num_hbands);
+  std::vector<std::vector<unsigned int>> hband_curves_asc (num_hbands);
   std::vector<std::vector<unsigned int>> vband_curves (num_vbands);
+  std::vector<std::vector<unsigned int>> vband_curves_asc (num_vbands);
+
+  for (unsigned int b = 0; b < num_hbands; b++) {
+    hband_curves[b].reserve (hband_curve_counts[b]);
+    hband_curves_asc[b].reserve (hband_curve_counts[b]);
+  }
+
+  for (unsigned int b = 0; b < num_vbands; b++) {
+    vband_curves[b].reserve (vband_curve_counts[b]);
+    vband_curves_asc[b].reserve (vband_curve_counts[b]);
+  }
 
   for (unsigned int i = 0; i < num_curves; i++) {
     const curve_info_t &info = curve_infos[i];
@@ -137,10 +182,13 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
 	int band_hi = (int) floor ((info.max_y - extents->min_y) / hband_size);
 	band_lo = std::max (band_lo, 0);
 	band_hi = std::min (band_hi, (int) num_hbands - 1);
-	for (int b = band_lo; b <= band_hi; b++)
+	for (int b = band_lo; b <= band_hi; b++) {
 	  hband_curves[b].push_back (i);
+	  hband_curves_asc[b].push_back (i);
+	}
       } else {
 	hband_curves[0].push_back (i);
+	hband_curves_asc[0].push_back (i);
       }
     }
 
@@ -150,10 +198,13 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
 	int band_hi = (int) floor ((info.max_x - extents->min_x) / vband_size);
 	band_lo = std::max (band_lo, 0);
 	band_hi = std::min (band_hi, (int) num_vbands - 1);
-	for (int b = band_lo; b <= band_hi; b++)
+	for (int b = band_lo; b <= band_hi; b++) {
 	  vband_curves[b].push_back (i);
+	  vband_curves_asc[b].push_back (i);
+	}
       } else {
 	vband_curves[0].push_back (i);
+	vband_curves_asc[0].push_back (i);
       }
     }
   }
@@ -161,11 +212,7 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
   /* Build two sort orders per band for symmetric optimization.
    * Descending max: for rightward/upward ray (current behavior).
    * Ascending min: for leftward/downward ray. */
-  std::vector<std::vector<unsigned int>> hband_curves_asc (num_hbands);
-  std::vector<std::vector<unsigned int>> vband_curves_asc (num_vbands);
-
   for (unsigned int b = 0; b < num_hbands; b++) {
-    hband_curves_asc[b] = hband_curves[b];
     std::sort (hband_curves[b].begin (), hband_curves[b].end (),
 	       [&] (unsigned int a, unsigned int b) {
 		 return curve_infos[a].max_x > curve_infos[b].max_x;
@@ -177,7 +224,6 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
   }
 
   for (unsigned int b = 0; b < num_vbands; b++) {
-    vband_curves_asc[b] = vband_curves[b];
     std::sort (vband_curves[b].begin (), vband_curves[b].end (),
 	       [&] (unsigned int a, unsigned int b) {
 		 return curve_infos[a].max_y > curve_infos[b].max_y;
@@ -190,8 +236,8 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
 
   /* Compute sizes -- two index lists per band */
   unsigned int total_curve_indices = 0;
-  for (auto &band : hband_curves) total_curve_indices += band.size () * 2;
-  for (auto &band : vband_curves) total_curve_indices += band.size () * 2;
+  for (auto count : hband_curve_counts) total_curve_indices += count * 2;
+  for (auto count : vband_curve_counts) total_curve_indices += count * 2;
 
   unsigned int header_len = 2; /* blob header: extents + band counts */
   /* Compute curve data size with shared endpoints.
