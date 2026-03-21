@@ -1,40 +1,37 @@
-GLyphy is a signed-distance-field (SDF) text renderer using OpenGL ES2 shading language.
+GLyphy is a GPU text renderer that renders glyph outlines directly,
+using the [Slug algorithm](https://jcgt.org/published/0006/02/02/)
+by Eric Lengyel for robust winding number calculation.
 
-The main difference between GLyphy and other SDF-based OpenGL renderers is that most other projects sample the SDF into a texture. This has all the usual problems that sampling has. Ie. it distorts the outline and is low quality.
+GLyphy works with quadratic Bezier curves (TrueType outlines) and
+produces pixel-perfect rendering at any scale with proper antialiasing.
 
-GLyphy instead represents the SDF using actual vectors submitted to the GPU. This results in very high quality rendering, though at a much higher runtime cost.
+## Building
 
-See this video for insight to how GLyphy works:
+Requires: meson, OpenGL 3.3+, FreeType, HarfBuzz, GLUT, GLEW.
 
-http://vimeo.com/behdad/glyphy
+```sh
+meson setup build
+meson compile -C build
+build/demo/glyphy-demo
+```
 
-Dicussions happen on:
+## How it works
 
-https://groups.google.com/forum/#!forum/glyphy
+Each glyph's outline is encoded into a compact blob stored in a GPU
+buffer texture. The fragment shader computes a winding number by
+casting horizontal and vertical rays against the quadratic Bezier
+curves, using Lengyel's equivalence class algorithm for numerical
+robustness. Curves are organized into bands for efficient early exit.
 
-----------------------------------------------------------------------
+The vertex shader performs dynamic dilation to ensure edge pixels
+are always shaded for antialiasing.
 
-On GNOME3 and possibly other systems, if the vsync extension is not working (ie. pressing `v` in the demo doesn't have any effect), try running with `vblank_mode=0` env var.
+## Notes
 
-### Compilation instructions on Mac OS X
+On GNOME3 and possibly other systems, if the vsync extension is not
+working (pressing `v` in the demo has no effect), try running with
+`vblank_mode=0`.
 
-1. Install Xcode and command line tools (as of Xcode 4.3.x, from
-   within `Preferences` -> `Downloads`).
-2. Install [MacPorts](https://www.macports.org/install.php).
-3. `sudo port install automake autoconf libtool pkgconfig freetype`
-4. `./autogen.sh`
-5. `make`
+## License
 
-### Compilation instructions on Windows
-
-See [appveyor.yml](https://github.com/behdad/glyphy/blob/master/appveyor.yml), basically first get [vcpkg](https://github.com/Microsoft/vcpkg) and install `glew`, `freetype` and `freeglut` on it, then open win32\glyphy.sln
-with Visual Studio.
-
-### Compilation instructions for emscripten
-
-Assuming you have installed emscripten and have its tools on path,
-
-1. `NOCONFIGURE=1 ./autogen.sh`
-2. `CPPFLAGS='-s USE_FREETYPE=1' LDFLAGS='-s USE_FREETYPE=1' emconfigure ./configure`
-3. `make EXEEXT=.html GL_LIBS= GLUT_LIBS=`
-4. The result will be located on `demo/.libs/glyphy-demo.html` (not `demo/glyphy-demo.html`)
+GLyphy is licensed under the Apache License, Version 2.0.
