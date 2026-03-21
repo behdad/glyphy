@@ -20,20 +20,14 @@ struct demo_atlas_t {
 
   GLuint tex_unit;
   GLuint tex_name;
-  GLuint tex_w;
-  GLuint tex_h;
-  GLuint item_w;
-  GLuint item_h_q;
-  GLuint cursor_x;
-  GLuint cursor_y;
+  GLuint buf_name;
+  GLuint capacity;
+  GLuint cursor;
 };
 
 
 demo_atlas_t *
-demo_atlas_create (unsigned int w,
-		   unsigned int h,
-		   unsigned int item_w,
-		   unsigned int item_h_quantum)
+demo_atlas_create (unsigned int capacity)
 {
   TRACE();
 
@@ -41,20 +35,16 @@ demo_atlas_create (unsigned int w,
   at->refcount = 1;
 
   glGetIntegerv (GL_ACTIVE_TEXTURE, (GLint *) &at->tex_unit);
+  glGenBuffers (1, &at->buf_name);
   glGenTextures (1, &at->tex_name);
-  at->tex_w = w;
-  at->tex_h = h;
-  at->item_w = item_w;
-  at->item_h_q = item_h_quantum;
-  at->cursor_x = 0;
-  at->cursor_y = 0;
+  at->capacity = capacity;
+  at->cursor = 0;
+
+  glBindBuffer (GL_TEXTURE_BUFFER, at->buf_name);
+  glBufferData (GL_TEXTURE_BUFFER, capacity * sizeof (glyphy_texel_t), NULL, GL_STATIC_DRAW);
 
   demo_atlas_bind_texture (at);
-
-  glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-  gl(TexImage2D) (GL_TEXTURE_2D, 0, GL_RGBA16I, at->tex_w, at->tex_h, 0, GL_RGBA_INTEGER, GL_SHORT, NULL);
+  gl(TexBuffer) (GL_TEXTURE_BUFFER, GL_RGBA16I, at->buf_name);
 
   return at;
 }
@@ -73,6 +63,7 @@ demo_atlas_destroy (demo_atlas_t *at)
     return;
 
   glDeleteTextures (1, &at->tex_name);
+  glDeleteBuffers (1, &at->buf_name);
   free (at);
 }
 
@@ -80,7 +71,7 @@ void
 demo_atlas_bind_texture (demo_atlas_t *at)
 {
   glActiveTexture (at->tex_unit);
-  glBindTexture (GL_TEXTURE_2D, at->tex_name);
+  glBindTexture (GL_TEXTURE_BUFFER, at->tex_name);
 }
 
 void
@@ -92,41 +83,22 @@ demo_atlas_set_uniforms (demo_atlas_t *at)
   glUniform1i (glGetUniformLocation (program, "u_atlas"), at->tex_unit - GL_TEXTURE0);
 }
 
-void
+unsigned int
 demo_atlas_alloc (demo_atlas_t    *at,
 		  glyphy_texel_t  *data,
-		  unsigned int     len,
-		  unsigned int    *px,
-		  unsigned int    *py)
+		  unsigned int     len)
 {
-  GLuint w, h, x, y;
-
-  w = at->item_w;
-  h = (len + w - 1) / w;
-
-  if (at->cursor_y + h > at->tex_h) {
-    at->cursor_x += at->item_w;
-    at->cursor_y = 0;
-  }
-
-  if (at->cursor_x + w <= at->tex_w &&
-      at->cursor_y + h <= at->tex_h)
-  {
-    x = at->cursor_x;
-    y = at->cursor_y;
-    at->cursor_y += (h + at->item_h_q - 1) & ~(at->item_h_q - 1);
-  } else
+  if (at->cursor + len > at->capacity)
     die ("Ran out of atlas memory");
 
-  demo_atlas_bind_texture (at);
-  if (w * h == len)
-    gl(TexSubImage2D) (GL_TEXTURE_2D, 0, x, y, w, h, GL_RGBA_INTEGER, GL_SHORT, data);
-  else {
-    gl(TexSubImage2D) (GL_TEXTURE_2D, 0, x, y, w, h - 1, GL_RGBA_INTEGER, GL_SHORT, data);
-    gl(TexSubImage2D) (GL_TEXTURE_2D, 0, x, y + h - 1, len - (w * (h - 1)), 1, GL_RGBA_INTEGER, GL_SHORT,
-		       data + w * (h - 1));
-  }
+  unsigned int offset = at->cursor;
+  at->cursor += len;
 
-  *px = x;
-  *py = y;
+  glBindBuffer (GL_TEXTURE_BUFFER, at->buf_name);
+  glBufferSubData (GL_TEXTURE_BUFFER,
+		   offset * sizeof (glyphy_texel_t),
+		   len * sizeof (glyphy_texel_t),
+		   data);
+
+  return offset;
 }

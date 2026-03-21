@@ -29,8 +29,7 @@ typedef struct {
   unsigned int     upem;
   unsigned int     num_hbands;
   unsigned int     num_vbands;
-  unsigned int     atlas_x;
-  unsigned int     atlas_y;
+  unsigned int     atlas_offset;
 } glyph_info_t;
 
 

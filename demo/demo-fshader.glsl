@@ -6,9 +6,9 @@ out vec4 fragColor;
 
 void main ()
 {
-  ivec2 glyphLoc = v_glyphData.xy;
-  int numHBands = v_glyphData.z;
-  int numVBands = v_glyphData.w;
+  int glyphLoc = v_glyphData.x;
+  int numHBands = v_glyphData.y;
+  int numVBands = v_glyphData.z;
 
   float coverage = glyphy_slug_render (v_texcoord, v_bandTransform,
 				       glyphLoc, numHBands, numVBands);

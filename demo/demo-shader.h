@@ -28,10 +28,10 @@ struct glyph_vertex_t {
   GLfloat band_offset_x;
   GLfloat band_offset_y;
   /* Glyph data (constant across glyph) */
-  GLint atlas_x;
-  GLint atlas_y;
+  GLint atlas_offset;
   GLint num_hbands;
   GLint num_vbands;
+  GLint _padding;
 };
 
 void

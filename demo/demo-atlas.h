@@ -17,10 +17,7 @@
 typedef struct demo_atlas_t demo_atlas_t;
 
 demo_atlas_t *
-demo_atlas_create (unsigned int w,
-		   unsigned int h,
-		   unsigned int item_w,
-		   unsigned int item_h_quantum);
+demo_atlas_create (unsigned int capacity);
 
 demo_atlas_t *
 demo_atlas_reference (demo_atlas_t *at);
@@ -29,12 +26,11 @@ void
 demo_atlas_destroy (demo_atlas_t *at);
 
 
-void
+/* Returns the 1D offset where the data was placed. */
+unsigned int
 demo_atlas_alloc (demo_atlas_t    *at,
 		  glyphy_texel_t  *data,
-		  unsigned int     len,
-		  unsigned int    *px,
-		  unsigned int    *py);
+		  unsigned int     len);
 
 void
 demo_atlas_bind_texture (demo_atlas_t *at);

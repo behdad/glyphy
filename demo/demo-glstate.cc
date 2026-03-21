@@ -30,7 +30,7 @@ demo_glstate_create (void)
   st->refcount = 1;
 
   st->program = demo_shader_create_program ();
-  st->atlas = demo_atlas_create (4096, 4096, 4096, 1);
+  st->atlas = demo_atlas_create (1024 * 1024);
 
   return st;
 }

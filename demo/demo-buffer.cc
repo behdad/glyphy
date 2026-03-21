@@ -192,7 +192,7 @@ demo_buffer_draw (demo_buffer_t *buffer)
   GLint loc_glyph = glGetAttribLocation (program, "a_glyphData");
   glEnableVertexAttribArray (loc_glyph);
   glVertexAttribIPointer (loc_glyph, 4, GL_INT, stride,
-			  (const void *) offsetof (glyph_vertex_t, atlas_x));
+			  (const void *) offsetof (glyph_vertex_t, atlas_offset));
 
   glDrawArrays (GL_TRIANGLES, 0, buffer->vertices->size ());
 

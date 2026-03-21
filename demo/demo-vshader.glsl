@@ -8,7 +8,7 @@ in vec2 a_texcoord;         /* Em-space sample coordinates */
 
 /* Per-vertex but constant across glyph (flat) */
 in vec4 a_bandTransform;    /* (scale_x, scale_y, offset_x, offset_y) */
-in ivec4 a_glyphData;      /* (atlas_x, atlas_y, num_hbands, num_vbands) */
+in ivec4 a_glyphData;      /* (atlas_offset, num_hbands, num_vbands, 0) */
 
 /* Outputs to fragment shader */
 out vec2 v_texcoord;

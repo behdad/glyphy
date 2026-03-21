@@ -65,8 +65,7 @@ demo_shader_add_glyph_vertices (const glyphy_point_t        &p,
     v[ci].band_scale_y = band_scale_y;
     v[ci].band_offset_x = band_offset_x;
     v[ci].band_offset_y = band_offset_y;
-    v[ci].atlas_x = gi->atlas_x;
-    v[ci].atlas_y = gi->atlas_y;
+    v[ci].atlas_offset = gi->atlas_offset;
     v[ci].num_hbands = gi->num_hbands;
     v[ci].num_vbands = gi->num_vbands;
   }
