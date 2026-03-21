@@ -371,6 +371,15 @@ main (int argc, char** argv)
 
   demo_view_setup (vu);
 
+  /* Render initial frame, then
+   * process events so the Wayland compositor
+   * can configure the surface at the correct
+   * content scale, then render a
+   * second frame at the right resolution. */
+  demo_view_display (vu, buffer);
+  glfwPollEvents ();
+  demo_view_display (vu, buffer);
+
   /* Main loop */
   while (!glfwWindowShouldClose (window))
   {

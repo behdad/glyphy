@@ -260,7 +260,6 @@ demo_view_toggle_fullscreen (demo_view_t *vu)
 void
 demo_view_reshape_func (demo_view_t *vu, int width, int height)
 {
-  glViewport (0, 0, width, height);
   vu->needs_redraw = true;
 }
 
@@ -549,10 +548,9 @@ demo_view_display (demo_view_t *vu, demo_buffer_t *buffer)
     }
   }
 
-  int viewport[4];
-  glGetIntegerv (GL_VIEWPORT, viewport);
-  GLint width  = viewport[2];
-  GLint height = viewport[3];
+  int width, height;
+  glfwGetFramebufferSize (vu->window, &width, &height);
+  glViewport (0, 0, width, height);
 
 
   float mat[16];
