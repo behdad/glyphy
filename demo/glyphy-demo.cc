@@ -172,6 +172,79 @@ show_usage(const char *path)
   free(p);
 }
 
+static bool
+contains_case_insensitive (const char *haystack, const char *needle)
+{
+  if (!haystack || !needle)
+    return false;
+
+  size_t needle_len = strlen (needle);
+  if (!needle_len)
+    return true;
+
+  for (const char *h = haystack; *h; h++) {
+    size_t i = 0;
+    while (i < needle_len &&
+	   h[i] &&
+	   tolower ((unsigned char) h[i]) == tolower ((unsigned char) needle[i]))
+      i++;
+    if (i == needle_len)
+      return true;
+  }
+
+  return false;
+}
+
+static bool
+running_on_gnome_desktop (void)
+{
+  const char *desktops[] = {
+    getenv ("XDG_CURRENT_DESKTOP"),
+    getenv ("XDG_SESSION_DESKTOP"),
+    getenv ("DESKTOP_SESSION"),
+  };
+
+  for (unsigned int i = 0; i < ARRAY_LEN (desktops); i++) {
+    if (contains_case_insensitive (desktops[i], "gnome"))
+      return true;
+  }
+
+  return false;
+}
+
+static bool
+using_mesa_gl (void)
+{
+  const char *strings[] = {
+    (const char *) glGetString (GL_VENDOR),
+    (const char *) glGetString (GL_RENDERER),
+    (const char *) glGetString (GL_VERSION),
+  };
+
+  for (unsigned int i = 0; i < ARRAY_LEN (strings); i++) {
+    if (contains_case_insensitive (strings[i], "mesa"))
+      return true;
+  }
+
+  return false;
+}
+
+static void
+warn_about_vsync_override (void)
+{
+  const char *vblank_mode = getenv ("vblank_mode");
+  if (vblank_mode) {
+    LOGW ("Using vblank_mode=%s from the environment.\n", vblank_mode);
+    return;
+  }
+
+  if (!running_on_gnome_desktop () || !using_mesa_gl ())
+    return;
+
+  LOGW ("GNOME/Mesa detected with vblank_mode unset.\n");
+  LOGW ("If toggling vsync with `v` has no effect, restart with `vblank_mode=0`.\n");
+}
+
 int
 main (int argc, char** argv)
 {
@@ -238,6 +311,7 @@ main (int argc, char** argv)
   st = demo_glstate_create ();
   vu = demo_view_create (st);
   demo_view_print_help (vu);
+  warn_about_vsync_override ();
 
   hb_blob_t *blob = NULL;
   if (font_path)
