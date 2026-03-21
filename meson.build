@@ -62,7 +62,19 @@ endif
 harfbuzz_dep = dependency('harfbuzz', version: '>= 4.0.0', required: true)
 gl_dep = dependency('gl', required: true)
 glew_dep = dependency('glew', required: false)
-glut_dep = dependency('GLUT', required: get_option('demo').enabled())
+glut_dep = dependency('glut', method: 'pkg-config', required: false)
+
+if not glut_dep.found()
+  glut_dep = dependency('GLUT', method: 'pkg-config', required: false)
+endif
+
+if not glut_dep.found()
+  glut_dep = dependency('GLUT', method: 'cmake', required: false)
+endif
+
+if not glut_dep.found()
+  glut_dep = dependency('FreeGLUT', method: 'cmake', required: get_option('demo').enabled())
+endif
 
 prefix = get_option('prefix')
 libdir = join_paths(prefix, get_option('libdir'))
