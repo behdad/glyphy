@@ -174,11 +174,22 @@ glyphy_curve_list_extents (const glyphy_curve_t *curves,
 #endif
 
 typedef struct {
-  unsigned short r;
-  unsigned short g;
-  unsigned short b;
-  unsigned short a;
+  short r;
+  short g;
+  short b;
+  short a;
 } glyphy_texel_t;
+
+/*
+ * Shader source code
+ */
+
+GLYPHY_API const char *
+glyphy_slug_shader_source (void);
+
+GLYPHY_API const char *
+glyphy_slug_shader_source_path (void);
+
 
 GLYPHY_API glyphy_bool_t
 glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,

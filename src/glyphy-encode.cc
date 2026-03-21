@@ -121,9 +121,9 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
     return true;
   }
 
-  /* Choose number of bands */
-  unsigned int num_hbands = std::min (num_curves, 32u);
-  unsigned int num_vbands = std::min (num_curves, 32u);
+  /* Choose number of bands (capped at 16 per Slug paper) */
+  unsigned int num_hbands = std::min (num_curves, 16u);
+  unsigned int num_vbands = std::min (num_curves, 16u);
   num_hbands = std::max (num_hbands, 1u);
   num_vbands = std::max (num_vbands, 1u);
 
@@ -207,13 +207,13 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
   /* Pack curve data */
   for (unsigned int i = 0; i < num_curves; i++) {
     unsigned int off = curve_data_offset + i * 2;
-    blob[off].r = (uint16_t) quantize (curves[i].p1.x);
-    blob[off].g = (uint16_t) quantize (curves[i].p1.y);
-    blob[off].b = (uint16_t) quantize (curves[i].p2.x);
-    blob[off].a = (uint16_t) quantize (curves[i].p2.y);
+    blob[off].r = (int16_t) quantize (curves[i].p1.x);
+    blob[off].g = (int16_t) quantize (curves[i].p1.y);
+    blob[off].b = (int16_t) quantize (curves[i].p2.x);
+    blob[off].a = (int16_t) quantize (curves[i].p2.y);
 
-    blob[off + 1].r = (uint16_t) quantize (curves[i].p3.x);
-    blob[off + 1].g = (uint16_t) quantize (curves[i].p3.y);
+    blob[off + 1].r = (int16_t) quantize (curves[i].p3.x);
+    blob[off + 1].g = (int16_t) quantize (curves[i].p3.y);
     blob[off + 1].b = 0;
     blob[off + 1].a = 0;
   }
@@ -222,14 +222,14 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
   unsigned int index_offset = band_headers_len;
 
   for (unsigned int b = 0; b < num_hbands; b++) {
-    blob[b].r = (uint16_t) hband_curves[b].size ();
-    blob[b].g = (uint16_t) index_offset;
+    blob[b].r = (int16_t) hband_curves[b].size ();
+    blob[b].g = (int16_t) index_offset;
     blob[b].b = 0;
     blob[b].a = 0;
 
     for (unsigned int ci = 0; ci < hband_curves[b].size (); ci++) {
       unsigned int curve_off = curve_data_offset + hband_curves[b][ci] * 2;
-      blob[index_offset].r = (uint16_t) curve_off;
+      blob[index_offset].r = (int16_t) curve_off;
       blob[index_offset].g = 0;
       blob[index_offset].b = 0;
       blob[index_offset].a = 0;
@@ -239,14 +239,14 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
 
   for (unsigned int b = 0; b < num_vbands; b++) {
     unsigned int header_off = num_hbands + b;
-    blob[header_off].r = (uint16_t) vband_curves[b].size ();
-    blob[header_off].g = (uint16_t) index_offset;
+    blob[header_off].r = (int16_t) vband_curves[b].size ();
+    blob[header_off].g = (int16_t) index_offset;
     blob[header_off].b = 0;
     blob[header_off].a = 0;
 
     for (unsigned int ci = 0; ci < vband_curves[b].size (); ci++) {
       unsigned int curve_off = curve_data_offset + vband_curves[b][ci] * 2;
-      blob[index_offset].r = (uint16_t) curve_off;
+      blob[index_offset].r = (int16_t) curve_off;
       blob[index_offset].g = 0;
       blob[index_offset].b = 0;
       blob[index_offset].a = 0;
