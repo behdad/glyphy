@@ -124,7 +124,6 @@
 #define ARRAY_LEN(Array) (sizeof (Array) / sizeof (*Array))
 
 
-#define MIN_FONT_SIZE 14
 
 
 #define gl(name) \
