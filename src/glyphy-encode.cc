@@ -192,8 +192,21 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
   for (auto &band : vband_curves) total_curve_indices += band.size ();
 
   unsigned int header_len = 2; /* blob header: extents + band counts */
+  /* Compute curve data size with shared endpoints.
+   * Adjacent curves in a contour share p3/p1: N+1 texels per contour.
+   * Layout per contour: (p1,p2) (p3/p1,p2) ... (p3,0)
+   * The shader reads curveLoc and curveLoc+1, same as before. */
+  unsigned int num_contour_breaks = 0;
+  for (unsigned int i = 0; i + 1 < num_curves; i++)
+    if (curves[i].p3.x != curves[i + 1].p1.x ||
+	curves[i].p3.y != curves[i + 1].p1.y)
+      num_contour_breaks++;
+
+  /* With sharing: num_curves + (num_contour_breaks + 1) texels
+   * (one extra texel per contour for the final p3). */
+  unsigned int curve_data_len = num_curves + num_contour_breaks + 1;
+
   unsigned int band_headers_len = num_hbands + num_vbands;
-  unsigned int curve_data_len = num_curves * 2;
   unsigned int total_len = header_len + band_headers_len + total_curve_indices + curve_data_len;
 
   if (total_len > blob_size)
@@ -201,9 +214,7 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
 
   unsigned int curve_data_offset = header_len + band_headers_len + total_curve_indices;
 
-  /* Pack blob header:
-   * Texel 0: (min_x, min_y, max_x, max_y) - quantized extents
-   * Texel 1: (num_hbands, num_vbands, 0, 0) */
+  /* Pack blob header */
   blob[0].r = quantize (extents->min_x);
   blob[0].g = quantize (extents->min_y);
   blob[0].b = quantize (extents->max_x);
@@ -213,44 +224,48 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
   blob[1].b = 0;
   blob[1].a = 0;
 
-  /* Pack curve data.
-   * Quantize p1 and p3 first, then compute p2 as the average of the
-   * quantized p1 and p3 IF the curve is a line (p2 == midpoint(p1,p3)).
-   * This ensures a = p1 - 2*p2 + p3 = 0 exactly in the shader,
-   * preventing quantization from turning lines into slight curves. */
-  for (unsigned int i = 0; i < num_curves; i++) {
-    unsigned int off = curve_data_offset + i * 2;
-    int16_t p1x = quantize (curves[i].p1.x);
-    int16_t p1y = quantize (curves[i].p1.y);
-    int16_t p3x = quantize (curves[i].p3.x);
-    int16_t p3y = quantize (curves[i].p3.y);
-    int16_t p2x, p2y;
+  /* Pack curve data with shared endpoints.
+   * Build curve_texel_offset[i] = texel offset for curve i's first texel. */
+  std::vector<unsigned int> curve_texel_offset (num_curves);
+  unsigned int texel = curve_data_offset;
 
-    /* Check if p2 is midpoint of p1 and p3 (i.e., curve is a line) */
-    double mid_x = (curves[i].p1.x + curves[i].p3.x) * 0.5;
-    double mid_y = (curves[i].p1.y + curves[i].p3.y) * 0.5;
-    if (curves[i].p2.x == mid_x && curves[i].p2.y == mid_y) {
-      /* Line: compute p2 from quantized endpoints to preserve a=0 */
-      p2x = (int16_t) ((p1x + p3x) / 2);
-      p2y = (int16_t) ((p1y + p3y) / 2);
+  for (unsigned int i = 0; i < num_curves; i++) {
+    bool contour_start = (i == 0 ||
+			  curves[i - 1].p3.x != curves[i].p1.x ||
+			  curves[i - 1].p3.y != curves[i].p1.y);
+
+    if (contour_start) {
+      curve_texel_offset[i] = texel;
+      /* First curve in contour: write (p1, p2) */
+      blob[texel].r = quantize (curves[i].p1.x);
+      blob[texel].g = quantize (curves[i].p1.y);
+      blob[texel].b = quantize (curves[i].p2.x);
+      blob[texel].a = quantize (curves[i].p2.y);
+      texel++;
     } else {
-      p2x = quantize (curves[i].p2.x);
-      p2y = quantize (curves[i].p2.y);
+      /* Non-start curve: p12 is in the previous texel (p3_prev, p2) */
+      curve_texel_offset[i] = texel - 1;
     }
 
-    blob[off].r = p1x;
-    blob[off].g = p1y;
-    blob[off].b = p2x;
-    blob[off].a = p2y;
+    /* Write (p3, p2_next) or (p3, 0) if last in contour */
+    bool has_next = (i + 1 < num_curves &&
+		     curves[i].p3.x == curves[i + 1].p1.x &&
+		     curves[i].p3.y == curves[i + 1].p1.y);
 
-    blob[off + 1].r = p3x;
-    blob[off + 1].g = p3y;
-    blob[off + 1].b = 0;
-    blob[off + 1].a = 0;
+    blob[texel].r = quantize (curves[i].p3.x);
+    blob[texel].g = quantize (curves[i].p3.y);
+    if (has_next) {
+      blob[texel].b = quantize (curves[i + 1].p2.x);
+      blob[texel].a = quantize (curves[i + 1].p2.y);
+    } else {
+      blob[texel].b = 0;
+      blob[texel].a = 0;
+    }
+    texel++;
   }
 
   /* Pack band headers and curve indices.
-   * All offsets are relative to blob start (including header). */
+   * All offsets are relative to blob start. */
   unsigned int index_offset = header_len + band_headers_len;
 
   for (unsigned int b = 0; b < num_hbands; b++) {
@@ -260,7 +275,7 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
     blob[header_len + b].a = 0;
 
     for (unsigned int ci = 0; ci < hband_curves[b].size (); ci++) {
-      unsigned int curve_off = curve_data_offset + hband_curves[b][ci] * 2;
+      unsigned int curve_off = curve_texel_offset[hband_curves[b][ci]];
       blob[index_offset].r = (int16_t) curve_off;
       blob[index_offset].g = 0;
       blob[index_offset].b = 0;
@@ -276,7 +291,7 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
     blob[header_len + num_hbands + b].a = 0;
 
     for (unsigned int ci = 0; ci < vband_curves[b].size (); ci++) {
-      unsigned int curve_off = curve_data_offset + vband_curves[b][ci] * 2;
+      unsigned int curve_off = curve_texel_offset[vband_curves[b][ci]];
       blob[index_offset].r = (int16_t) curve_off;
       blob[index_offset].g = 0;
       blob[index_offset].b = 0;
