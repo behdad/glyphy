@@ -166,6 +166,13 @@ glyphy_curve_accumulator_conic_to (glyphy_curve_accumulator_t *acc,
 }
 
 void
+glyphy_curve_accumulator_get_current_point (glyphy_curve_accumulator_t *acc,
+                                            glyphy_point_t *point)
+{
+  *point = acc->current_point;
+}
+
+void
 glyphy_curve_accumulator_close_path (glyphy_curve_accumulator_t *acc)
 {
   if (!acc->need_moveto &&

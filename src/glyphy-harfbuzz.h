@@ -12,8 +12,6 @@ extern "C" {
 #endif
 
 
-#include <stdlib.h>
-#include <stdio.h>
 #include <hb.h>
 
 
@@ -73,13 +71,10 @@ glyphy_harfbuzz(cubic_to) (hb_draw_funcs_t *dfuncs,
                            float to_x, float to_y,
                            void *user_data)
 {
-  (void) dfuncs; (void) acc; (void) st;
-  (void) control1_x; (void) control1_y;
-  (void) control2_x; (void) control2_y;
-  (void) to_x; (void) to_y;
-  (void) user_data;
-  fprintf (stderr, "glyphy: cubic outlines are unsupported currently\n");
-  abort ();
+  glyphy_point_t p1 = {(double) control1_x, (double) control1_y};
+  glyphy_point_t p2 = {(double) control2_x, (double) control2_y};
+  glyphy_point_t p3 = {(double) to_x, (double) to_y};
+  glyphy_curve_accumulator_cubic_to (acc, &p1, &p2, &p3);
 }
 
 static void

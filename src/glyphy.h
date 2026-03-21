@@ -144,6 +144,16 @@ glyphy_curve_accumulator_conic_to (glyphy_curve_accumulator_t *acc,
                                    const glyphy_point_t *p2);
 
 GLYPHY_API void
+glyphy_curve_accumulator_cubic_to (glyphy_curve_accumulator_t *acc,
+                                   const glyphy_point_t *p1,
+                                   const glyphy_point_t *p2,
+                                   const glyphy_point_t *p3);
+
+GLYPHY_API void
+glyphy_curve_accumulator_get_current_point (glyphy_curve_accumulator_t *acc,
+                                            glyphy_point_t *point);
+
+GLYPHY_API void
 glyphy_curve_accumulator_close_path (glyphy_curve_accumulator_t *acc);
 
 GLYPHY_API void

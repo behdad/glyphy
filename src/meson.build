@@ -1,4 +1,5 @@
 glyphy_sources = [
+  'glyphy-cu2qu.cc',
   'glyphy-curves.cc',
   'glyphy-encode.cc',
   'glyphy-extents.cc',
