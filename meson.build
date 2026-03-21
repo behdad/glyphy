@@ -95,6 +95,7 @@ configure_file(output: 'config.h', configuration: glyphy_conf)
 confinc = include_directories('.', 'src')
 
 subdir('src')
+subdir('bench')
 
 if get_option('demo').enabled()
   subdir('demo')
