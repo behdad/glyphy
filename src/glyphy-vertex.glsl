@@ -23,17 +23,20 @@ void glyphy_dilate (inout vec2 position, inout vec2 texcoord,
 {
   vec4 clipPos = mvp * vec4 (position, 0.0, 1.0);
 
-  /* Half pixel in clip space */
-  vec2 halfPixelClip = clipPos.w / viewport;
+  /* Dilate by half a pixel in NDC. Under perspective, ndc = clip.xy / clip.w,
+   * so the object-space delta must be computed from the projective Jacobian,
+   * not just the affine clip-space transform. */
+  float invW = 1.0 / clipPos.w;
+  vec2 deltaNdc = corner / viewport;
 
-  /* Dilate clip-space position along corner direction */
-  vec2 dClip = corner * halfPixelClip;
+  vec2 dNdcDx = (mvp[0].xy * clipPos.w - clipPos.xy * mvp[0].w) * (invW * invW);
+  vec2 dNdcDy = (mvp[1].xy * clipPos.w - clipPos.xy * mvp[1].w) * (invW * invW);
+  mat2 ndcJacobian = mat2 (dNdcDx, dNdcDy);
 
-  /* Map clip-space dilation back to object space.
-   * For z=0 geometry: clip.xy = pos.x * mvp[0].xy + pos.y * mvp[1].xy + mvp[3].xy
-   * So the 2x2 Jacobian of clip.xy w.r.t. pos.xy is (mvp[0].xy, mvp[1].xy). */
-  mat2 mvp2 = mat2 (mvp[0].xy, mvp[1].xy);
-  vec2 dPos = inverse (mvp2) * dClip;
+  float det = dNdcDx.x * dNdcDy.y - dNdcDx.y * dNdcDy.x;
+  vec2 dPos = abs (det) > 1.0 / 16777216.0
+	    ? inverse (ndcJacobian) * deltaNdc
+	    : vec2 (0.0);
 
   position += dPos;
   texcoord += dPos * texPerPos;

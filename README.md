@@ -26,6 +26,11 @@ robustness. Curves are organized into bands for efficient early exit.
 The vertex shader performs dynamic dilation to ensure edge pixels
 are always shaded for antialiasing.
 
+Unlike Slug's reference vertex path, GLyphy computes dilation from
+the projective Jacobian of NDC with respect to glyph-plane position
+while using its existing quad vertex format, so the half-pixel
+expansion remains perspective-aware.
+
 ## Notes
 
 On GNOME3 and possibly other systems, if the vsync extension is not
