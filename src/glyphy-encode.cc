@@ -95,16 +95,29 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
 			       unsigned int         *output_len,
 			       glyphy_extents_t     *extents)
 {
-  glyphy_curve_list_extents (curves, num_curves, extents);
-
   if (num_curves == 0) {
+    glyphy_extents_clear (extents);
     *output_len = 0;
     return true;
   }
 
   std::vector<curve_info_t> curve_infos (num_curves);
-  for (unsigned int i = 0; i < num_curves; i++)
+  glyphy_extents_clear (extents);
+  for (unsigned int i = 0; i < num_curves; i++) {
     curve_infos[i] = curve_info (&curves[i]);
+
+    if (i == 0) {
+      extents->min_x = curve_infos[i].min_x;
+      extents->max_x = curve_infos[i].max_x;
+      extents->min_y = curve_infos[i].min_y;
+      extents->max_y = curve_infos[i].max_y;
+    } else {
+      extents->min_x = std::min (extents->min_x, curve_infos[i].min_x);
+      extents->max_x = std::max (extents->max_x, curve_infos[i].max_x);
+      extents->min_y = std::min (extents->min_y, curve_infos[i].min_y);
+      extents->max_y = std::max (extents->max_y, curve_infos[i].max_y);
+    }
+  }
 
   /* Choose number of bands (capped at 16 per Slug paper) */
   unsigned int num_hbands = std::min (num_curves, 16u);
