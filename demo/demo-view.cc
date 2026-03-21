@@ -210,37 +210,27 @@ demo_view_toggle_srgb (demo_view_t *vu)
 {
   glyphy_bool_t srgb = !vu->srgb;
 #if defined(GL_FRAMEBUFFER_SRGB)
-  bool available = false;
-#ifdef HAVE_GLFW
-  available = glfwGetWindowAttrib (vu->window, GLFW_SRGB_CAPABLE) == GLFW_TRUE;
-#endif
-#if defined(GL_FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING) && defined(GL_BACK_LEFT)
-  if (!available) {
-    GLint encoding = GL_LINEAR;
-    glGetFramebufferAttachmentParameteriv (GL_FRAMEBUFFER,
-					   GL_BACK_LEFT,
-					   GL_FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING,
-					   &encoding);
-    available = encoding == GL_SRGB;
-  }
-#endif
-#if defined(GL_FRAMEBUFFER_SRGB_CAPABLE_EXT)
-  if (!available &&
-      (glewIsSupported ("GL_ARB_framebuffer_sRGB") || glewIsSupported ("GL_EXT_framebuffer_sRGB"))) {
-    GLboolean ext_available = false;
-    glGetBooleanv (GL_FRAMEBUFFER_SRGB_CAPABLE_EXT, &ext_available);
-    available = ext_available;
-  }
-#endif
-  if (available) {
+  while (glGetError () != GL_NO_ERROR)
+    ;
+
+  if (srgb)
+    glEnable (GL_FRAMEBUFFER_SRGB);
+  else
+    glDisable (GL_FRAMEBUFFER_SRGB);
+
+  if (glGetError () == GL_NO_ERROR) {
     vu->srgb = srgb;
     LOGI ("Setting sRGB framebuffer %s.\n", vu->srgb ? "on" : "off");
+  } else {
+    /* Restore the previous state if the driver rejected the toggle. */
     if (vu->srgb)
       glEnable (GL_FRAMEBUFFER_SRGB);
     else
       glDisable (GL_FRAMEBUFFER_SRGB);
-  } else
-    LOGW ("No sRGB framebuffer extension found; failed to set sRGB framebuffer\n");
+    while (glGetError () != GL_NO_ERROR)
+      ;
+    LOGW ("Failed to set sRGB framebuffer state\n");
+  }
 #else
   LOGW ("No sRGB framebuffer extension found; failed to set sRGB framebuffer\n");
 #endif
