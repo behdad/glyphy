@@ -20,7 +20,6 @@ demo_sources = [
 ]
 
 demo_shaders = [
-  [ 'demo-atlas.glsl', 'demo-atlas-glsl.h', 'demo_atlas_glsl' ],
   [ 'demo-fshader.glsl', 'demo-fshader-glsl.h', 'demo_fshader_glsl' ],
   [ 'demo-vshader.glsl', 'demo-vshader-glsl.h', 'demo_vshader_glsl' ],
   [ 'default-text.txt', 'default-text.h', 'default_text' ],

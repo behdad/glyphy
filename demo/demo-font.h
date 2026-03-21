@@ -26,6 +26,7 @@ typedef struct {
   glyphy_extents_t extents;
   double           advance;
   glyphy_bool_t    is_empty;
+  unsigned int     upem;
   unsigned int     num_hbands;
   unsigned int     num_vbands;
   unsigned int     atlas_x;
