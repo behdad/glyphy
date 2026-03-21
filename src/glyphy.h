@@ -1,19 +1,8 @@
 /*
+
  * Copyright 2012 Google, Inc. All Rights Reserved.
+ * Copyright 2026 Behdad Esfahbod. All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * Google Author(s): Behdad Esfahbod, Maysum Panju
  */
 
 #ifndef GLYPHY_H
@@ -83,289 +72,130 @@ glyphy_extents_scale (glyphy_extents_t *extents,
 
 
 /*
- * Circular arcs
+ * Quadratic Bezier curves
  */
 
 
 typedef struct {
-  glyphy_point_t p0;
   glyphy_point_t p1;
-  double d;
-} glyphy_arc_t;
-
-
-/* Build from a conventional arc representation */
-GLYPHY_API void
-glyphy_arc_from_conventional (const glyphy_point_t *center,
-			      double                radius,
-			      double                angle0,
-			      double                angle1,
-			      glyphy_bool_t         negative,
-			      glyphy_arc_t         *arc);
-
-/* Convert to a conventional arc representation */
-GLYPHY_API void
-glyphy_arc_to_conventional (glyphy_arc_t    arc,
-			    glyphy_point_t *center /* may be NULL */,
-			    double         *radius /* may be NULL */,
-			    double         *angle0 /* may be NULL */,
-			    double         *angle1 /* may be NULL */,
-			    glyphy_bool_t  *negative /* may be NULL */);
-
-GLYPHY_API glyphy_bool_t
-glyphy_arc_is_a_line (glyphy_arc_t arc);
-
-GLYPHY_API void
-glyphy_arc_extents (glyphy_arc_t      arc,
-		    glyphy_extents_t *extents);
-
+  glyphy_point_t p2;
+  glyphy_point_t p3;
+} glyphy_curve_t;
 
 
 /*
- * Approximate single pieces of geometry to/from one arc
+ * Accumulate quadratic Bezier curves from glyph outlines
  */
 
 
-GLYPHY_API void
-glyphy_arc_from_line (const glyphy_point_t *p0,
-		      const glyphy_point_t *p1,
-		      glyphy_arc_t         *arc);
+typedef glyphy_bool_t (*glyphy_curve_accumulator_callback_t) (const glyphy_curve_t *curve,
+							      void                 *user_data);
+
+typedef struct glyphy_curve_accumulator_t glyphy_curve_accumulator_t;
+
+GLYPHY_API glyphy_curve_accumulator_t *
+glyphy_curve_accumulator_create (void);
 
 GLYPHY_API void
-glyphy_arc_from_conic (const glyphy_point_t *p0,
-		       const glyphy_point_t *p1,
-		       const glyphy_point_t *p2,
-		       glyphy_arc_t         *arc,
-		       double               *error);
+glyphy_curve_accumulator_destroy (glyphy_curve_accumulator_t *acc);
+
+GLYPHY_API glyphy_curve_accumulator_t *
+glyphy_curve_accumulator_reference (glyphy_curve_accumulator_t *acc);
 
 GLYPHY_API void
-glyphy_arc_from_cubic (const glyphy_point_t *p0,
-		       const glyphy_point_t *p1,
-		       const glyphy_point_t *p2,
-		       const glyphy_point_t *p3,
-		       glyphy_arc_t         *arc,
-		       double               *error);
-
-GLYPHY_API void
-glyphy_arc_to_cubic (const glyphy_arc_t *arc,
-		     glyphy_point_t     *p0,
-		     glyphy_point_t     *p1,
-		     glyphy_point_t     *p2,
-		     glyphy_point_t     *p3,
-		     double             *error);
-
-
-
-/*
- * Approximate outlines with multiple arcs
- */
-
-
-typedef struct {
-  glyphy_point_t p;
-  double d;
-} glyphy_arc_endpoint_t;
-
-typedef glyphy_bool_t (*glyphy_arc_endpoint_accumulator_callback_t) (glyphy_arc_endpoint_t *endpoint,
-								     void                  *user_data);
-
-
-typedef struct glyphy_arc_accumulator_t glyphy_arc_accumulator_t;
-
-GLYPHY_API glyphy_arc_accumulator_t *
-glyphy_arc_accumulator_create (void);
-
-GLYPHY_API void
-glyphy_arc_accumulator_destroy (glyphy_arc_accumulator_t *acc);
-
-GLYPHY_API glyphy_arc_accumulator_t *
-glyphy_arc_accumulator_reference (glyphy_arc_accumulator_t *acc);
-
-
-GLYPHY_API void
-glyphy_arc_accumulator_reset (glyphy_arc_accumulator_t *acc);
+glyphy_curve_accumulator_reset (glyphy_curve_accumulator_t *acc);
 
 
 /* Configure accumulator */
 
 GLYPHY_API void
-glyphy_arc_accumulator_set_tolerance (glyphy_arc_accumulator_t *acc,
-				      double                    tolerance);
-
-GLYPHY_API double
-glyphy_arc_accumulator_get_tolerance (glyphy_arc_accumulator_t *acc);
+glyphy_curve_accumulator_set_callback (glyphy_curve_accumulator_t *acc,
+				       glyphy_curve_accumulator_callback_t callback,
+				       void                       *user_data);
 
 GLYPHY_API void
-glyphy_arc_accumulator_set_callback (glyphy_arc_accumulator_t *acc,
-				     glyphy_arc_endpoint_accumulator_callback_t callback,
-				     void                     *user_data);
-
-GLYPHY_API void
-glyphy_arc_accumulator_get_callback (glyphy_arc_accumulator_t  *acc,
-				     glyphy_arc_endpoint_accumulator_callback_t *callback,
-				     void                     **user_data);
-
-GLYPHY_API void
-glyphy_arc_accumulator_set_d_metrics (glyphy_arc_accumulator_t *acc,
-				      double                    max_d,
-				      double                    d_bits);
-
-GLYPHY_API void
-glyphy_arc_accumulator_get_d_metrics (glyphy_arc_accumulator_t *acc,
-				      double                   *max_d,
-				      double                   *d_bits);
+glyphy_curve_accumulator_get_callback (glyphy_curve_accumulator_t  *acc,
+				       glyphy_curve_accumulator_callback_t *callback,
+				       void                       **user_data);
 
 
 /* Accumulation results */
 
 GLYPHY_API unsigned int
-glyphy_arc_accumulator_get_num_endpoints (glyphy_arc_accumulator_t *acc);
-
-GLYPHY_API double
-glyphy_arc_accumulator_get_error (glyphy_arc_accumulator_t *acc);
+glyphy_curve_accumulator_get_num_curves (glyphy_curve_accumulator_t *acc);
 
 GLYPHY_API glyphy_bool_t
-glyphy_arc_accumulator_successful (glyphy_arc_accumulator_t *acc);
+glyphy_curve_accumulator_successful (glyphy_curve_accumulator_t *acc);
 
 
 /* Accumulate */
 
 GLYPHY_API void
-glyphy_arc_accumulator_move_to (glyphy_arc_accumulator_t *acc,
-				const glyphy_point_t *p0);
+glyphy_curve_accumulator_move_to (glyphy_curve_accumulator_t *acc,
+				  const glyphy_point_t *p0);
 
 GLYPHY_API void
-glyphy_arc_accumulator_line_to (glyphy_arc_accumulator_t *acc,
-				const glyphy_point_t *p1);
+glyphy_curve_accumulator_line_to (glyphy_curve_accumulator_t *acc,
+				  const glyphy_point_t *p1);
 
 GLYPHY_API void
-glyphy_arc_accumulator_conic_to (glyphy_arc_accumulator_t *acc,
-				 const glyphy_point_t *p1,
-				 const glyphy_point_t *p2);
+glyphy_curve_accumulator_conic_to (glyphy_curve_accumulator_t *acc,
+				   const glyphy_point_t *p1,
+				   const glyphy_point_t *p2);
 
 GLYPHY_API void
-glyphy_arc_accumulator_cubic_to (glyphy_arc_accumulator_t *acc,
-				 const glyphy_point_t *p1,
-				 const glyphy_point_t *p2,
-				 const glyphy_point_t *p3);
+glyphy_curve_accumulator_close_path (glyphy_curve_accumulator_t *acc);
 
 GLYPHY_API void
-glyphy_arc_accumulator_arc_to (glyphy_arc_accumulator_t *acc,
-			       const glyphy_point_t *p1,
-			       double                d);
-
-GLYPHY_API void
-glyphy_arc_accumulator_close_path (glyphy_arc_accumulator_t *acc);
-
-GLYPHY_API void
-glyphy_arc_list_extents (const glyphy_arc_endpoint_t *endpoints,
-			 unsigned int                 num_endpoints,
-			 glyphy_extents_t            *extents);
+glyphy_curve_list_extents (const glyphy_curve_t *curves,
+			   unsigned int          num_curves,
+			   glyphy_extents_t     *extents);
 
 
 
 /*
- * Modify outlines for proper consumption
+ * Encode curves into blob for GPU rendering
  */
 
-GLYPHY_API void
-glyphy_outline_reverse (glyphy_arc_endpoint_t *endpoints,
-			unsigned int           num_endpoints);
 
-/* Returns true if outline was modified */
-GLYPHY_API glyphy_bool_t
-glyphy_outline_winding_from_even_odd (glyphy_arc_endpoint_t *endpoints,
-				      unsigned int           num_endpoints,
-				      glyphy_bool_t          inverse);
-
-
-
-/*
- * Encode an arc outline into binary blob for fast SDF calculation
- */
-
+#ifndef GLYPHY_UNITS_PER_EM_UNIT
+#define GLYPHY_UNITS_PER_EM_UNIT 4
+#endif
 
 typedef struct {
-  unsigned char r;
-  unsigned char g;
-  unsigned char b;
-  unsigned char a;
-} glyphy_rgba_t;
+  short r;
+  short g;
+  short b;
+  short a;
+} glyphy_texel_t;
 
-
-/* TODO make this callback-based also? */
-/* TODO rename to glyphy_blob_encode? */
-GLYPHY_API glyphy_bool_t
-glyphy_arc_list_encode_blob (const glyphy_arc_endpoint_t *endpoints,
-			     unsigned int                 num_endpoints,
-			     glyphy_rgba_t               *blob,
-			     unsigned int                 blob_size,
-			     double                       faraway,
-			     double                       avg_fetch_desired,
-			     double                      *avg_fetch_achieved,
-			     unsigned int                *output_len,
-			     unsigned int                *nominal_width,  /* 6bit */
-			     unsigned int                *nominal_height, /* 6bit */
-			     glyphy_extents_t            *pextents);
-
-GLYPHY_API glyphy_bool_t
-glyphy_arc_list_encode_blob2 (const glyphy_arc_endpoint_t *endpoints,
-			      unsigned int                 num_endpoints,
-			      glyphy_rgba_t               *blob,
-			      unsigned int                 blob_size,
-			      double                       faraway,
-			      double                       grid_unit,
-			      double                       enlighten_max,
-			      double                       embolden_max,
-			      double                      *avg_fetch_achieved,
-			      unsigned int                *output_len,
-			      unsigned int                *nominal_width,  /* 6bit */
-			      unsigned int                *nominal_height, /* 6bit */
-			      glyphy_extents_t            *pextents);
-
-/* TBD _decode_blob */
-
-
-
-/*
- * Calculate signed-distance-field from (encoded) arc list
- */
-
-
-GLYPHY_API double
-glyphy_sdf_from_arc_list (const glyphy_arc_endpoint_t *endpoints,
-			  unsigned int                 num_endpoints,
-			  const glyphy_point_t        *p,
-			  glyphy_point_t              *closest_p /* may be NULL; TBD not implemented yet */);
-
-/* TBD */
-GLYPHY_API double
-glyphy_sdf_from_blob (const glyphy_rgba_t  *blob,
-		      unsigned int          nominal_width,
-		      unsigned int          nominal_height,
-		      const glyphy_point_t *p,
-		      glyphy_point_t       *closest_p /* may be NULL; TBD not implemented yet */);
-
-
+typedef struct glyphy_encoder_t glyphy_encoder_t;
 
 /*
  * Shader source code
  */
 
-
-/* TODO make this enum-based? */
+GLYPHY_API const char *
+glyphy_fragment_shader_source (void);
 
 GLYPHY_API const char *
-glyphy_common_shader_source (void);
+glyphy_vertex_shader_source (void);
 
-GLYPHY_API const char *
-glyphy_common_shader_source_path (void);
 
-GLYPHY_API const char *
-glyphy_sdf_shader_source (void);
+GLYPHY_API glyphy_encoder_t *
+glyphy_encoder_create (void);
 
-GLYPHY_API const char *
-glyphy_sdf_shader_source_path (void);
+GLYPHY_API void
+glyphy_encoder_destroy (glyphy_encoder_t *encoder);
+
+GLYPHY_API glyphy_bool_t
+glyphy_encoder_encode (glyphy_encoder_t      *encoder,
+		       const glyphy_curve_t *curves,
+		       unsigned int          num_curves,
+		       glyphy_texel_t       *blob,
+		       unsigned int          blob_size,
+		       unsigned int         *output_len,
+		       glyphy_extents_t     *extents);
 
 
 #ifdef __cplusplus

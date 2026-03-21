@@ -1,41 +1,33 @@
 /*
+
  * Copyright 2012 Google, Inc. All Rights Reserved.
+ * Copyright 2026 Behdad Esfahbod. All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * Google Author(s): Behdad Esfahbod
  */
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
 
-#include "glyphy-common.hh"
+#include "glyphy.h"
+
+#include <cmath>
+#include <algorithm>
 
 
 void
 glyphy_extents_clear (glyphy_extents_t *extents)
 {
-  extents->min_x =  GLYPHY_INFINITY;
-  extents->min_y =  GLYPHY_INFINITY;
-  extents->max_x = -GLYPHY_INFINITY;
-  extents->max_y = -GLYPHY_INFINITY;
+  extents->min_x =  INFINITY;
+  extents->min_y =  INFINITY;
+  extents->max_x = -INFINITY;
+  extents->max_y = -INFINITY;
 }
 
 glyphy_bool_t
 glyphy_extents_is_empty (const glyphy_extents_t *extents)
 {
-  return isinf (extents->min_x);
+  return std::isinf (extents->min_x);
 }
 
 void

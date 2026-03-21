@@ -4,7 +4,8 @@ project('glyphy', 'c', 'cpp',
   default_options: [
     'cpp_rtti=false',
     'cpp_std=c++11',
-    'wrap_mode=nofallback'
+    'wrap_mode=nofallback',
+    'buildtype=debugoptimized',
   ],
 )
 
@@ -60,9 +61,13 @@ if not freetype_dep.found()
   freetype_dep = dependency('Freetype', method: 'cmake', required: true)
 endif
 harfbuzz_dep = dependency('harfbuzz', version: '>= 4.0.0', required: true)
-gl_dep = dependency('gl', required: true)
-glew_dep = dependency('glew', required: false)
-glut_dep = dependency('GLUT', required: get_option('demo').enabled())
+glew_dep = dependency('glew', required: get_option('demo').enabled())
+glfw_dep = dependency('glfw3', required: get_option('demo').enabled())
+if host_machine.system() == 'darwin'
+  gl_dep = dependency('appleframeworks', modules: ['OpenGL'], required: true)
+else
+  gl_dep = dependency('gl', required: true)
+endif
 
 prefix = get_option('prefix')
 libdir = join_paths(prefix, get_option('libdir'))
@@ -82,8 +87,8 @@ endif
 if glew_dep.found()
   glyphy_conf.set('HAVE_GLEW', 1)
 endif
-if glut_dep.found()
-  glyphy_conf.set('HAVE_GLUT',  1)
+if glfw_dep.found()
+  glyphy_conf.set('HAVE_GLFW',  1)
 endif
 glyphy_conf.set_quoted('PKGDATADIR', pkgdatadir)
 
@@ -91,6 +96,7 @@ configure_file(output: 'config.h', configuration: glyphy_conf)
 confinc = include_directories('.', 'src')
 
 subdir('src')
+subdir('bench')
 
 if get_option('demo').enabled()
   subdir('demo')

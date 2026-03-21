@@ -1,18 +1,6 @@
 /*
  * Copyright 2012 Google, Inc. All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
  * Google Author(s): Behdad Esfahbod, Maysum Panju, Wojciech Baranowski
  */
 
@@ -126,39 +114,39 @@ static int getopt(int argc, char *argv[], char *opts)
 #endif
 
 static void
-reshape_func (int width, int height)
+framebuffer_size_func (GLFWwindow *window, int width, int height)
 {
   demo_view_reshape_func (vu, width, height);
 }
 
 static void
-keyboard_func (unsigned char key, int x, int y)
+key_func (GLFWwindow *window, int key, int scancode, int action, int mods)
 {
-  demo_view_keyboard_func (vu, key, x, y);
+  demo_view_key_func (vu, key, scancode, action, mods);
 }
 
 static void
-special_func (int key, int x, int y)
+char_func (GLFWwindow *window, unsigned int codepoint)
 {
-  demo_view_special_func (vu, key, x, y);
+  demo_view_char_func (vu, codepoint);
 }
 
 static void
-mouse_func (int button, int state, int x, int y)
+mouse_func (GLFWwindow *window, int button, int action, int mods)
 {
-  demo_view_mouse_func (vu, button, state, x, y);
+  demo_view_mouse_func (vu, button, action, mods);
 }
 
 static void
-motion_func (int x, int y)
+scroll_func (GLFWwindow *window, double xoffset, double yoffset)
+{
+  demo_view_scroll_func (vu, xoffset, yoffset);
+}
+
+static void
+cursor_func (GLFWwindow *window, double x, double y)
 {
   demo_view_motion_func (vu, x, y);
-}
-
-static void
-display_func (void)
-{
-  demo_view_display (vu, buffer);
 }
 
 static void
@@ -179,14 +167,95 @@ show_usage(const char *path)
 	 "  -f fontfile    the font file (e.g. /Library/Fonts/Microsoft/Verdana.ttf)\n"
 	 "\n", name, name);
 
+  demo_view_print_help (NULL);
+
   free(p);
+}
+
+static bool
+contains_case_insensitive (const char *haystack, const char *needle)
+{
+  if (!haystack || !needle)
+    return false;
+
+  size_t needle_len = strlen (needle);
+  if (!needle_len)
+    return true;
+
+  for (const char *h = haystack; *h; h++) {
+    size_t i = 0;
+    while (i < needle_len &&
+	   h[i] &&
+	   tolower ((unsigned char) h[i]) == tolower ((unsigned char) needle[i]))
+      i++;
+    if (i == needle_len)
+      return true;
+  }
+
+  return false;
+}
+
+static bool
+running_on_gnome_desktop (void)
+{
+  const char *desktops[] = {
+    getenv ("XDG_CURRENT_DESKTOP"),
+    getenv ("XDG_SESSION_DESKTOP"),
+    getenv ("DESKTOP_SESSION"),
+  };
+
+  for (unsigned int i = 0; i < ARRAY_LEN (desktops); i++) {
+    if (contains_case_insensitive (desktops[i], "gnome"))
+      return true;
+  }
+
+  return false;
+}
+
+static bool
+using_mesa_gl (void)
+{
+  const char *strings[] = {
+    (const char *) glGetString (GL_VENDOR),
+    (const char *) glGetString (GL_RENDERER),
+    (const char *) glGetString (GL_VERSION),
+  };
+
+  for (unsigned int i = 0; i < ARRAY_LEN (strings); i++) {
+    if (contains_case_insensitive (strings[i], "mesa"))
+      return true;
+  }
+
+  return false;
+}
+
+static void
+warn_about_vsync_override (void)
+{
+  const char *vblank_mode = getenv ("vblank_mode");
+  if (vblank_mode) {
+    LOGW ("Using vblank_mode=%s from the environment.\n", vblank_mode);
+    return;
+  }
+
+  if (!running_on_gnome_desktop () || !using_mesa_gl ())
+    return;
+
+  LOGW ("GNOME/Mesa detected with vblank_mode unset.\n");
+  LOGW ("If toggling vsync with `v` has no effect, restart with `vblank_mode=0`.\n");
+}
+
+static void
+glfw_error_callback (int error, const char *description)
+{
+  LOGW ("GLFW error %d: %s\n", error, description);
 }
 
 int
 main (int argc, char** argv)
 {
   /* Process received parameters */
-#   include "default-text.h"
+# include "default-text.h"
   const char *text = NULL;
   const char *font_path = NULL;
   char arg;
@@ -223,27 +292,54 @@ main (int argc, char** argv)
     return 1;
   }
 
-  /* Setup glut */
-  glutInit (&argc, argv);
-  glutInitWindowSize (WINDOW_W, WINDOW_H);
-  glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB);
-  int window = glutCreateWindow ("GLyphy Demo");
-  glutReshapeFunc (reshape_func);
-  glutDisplayFunc (display_func);
-  glutKeyboardFunc (keyboard_func);
-  glutSpecialFunc (special_func);
-  glutMouseFunc (mouse_func);
-  glutMotionFunc (motion_func);
+  /* Setup GLFW */
+  glfwSetErrorCallback (glfw_error_callback);
+  if (!glfwInit ())
+    die ("Failed to initialize GLFW");
 
-  /* Setup glew */
-  if (GLEW_OK != glewInit ())
-    die ("Failed to initialize GL; something really broken");
-  if (!glewIsSupported ("GL_VERSION_2_0"))
-    die ("OpenGL 2.0 not supported");
+  glfwWindowHint (GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint (GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint (GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#ifdef __APPLE__
+  glfwWindowHint (GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
+  glfwWindowHint (GLFW_SRGB_CAPABLE, GLFW_TRUE);
+
+  GLFWwindow *window = glfwCreateWindow (WINDOW_W, WINDOW_H, "GLyphy Demo", NULL, NULL);
+  if (!window) {
+    glfwTerminate ();
+    die ("Failed to create GLFW window");
+  }
+  glfwMakeContextCurrent (window);
+
+  glfwSetFramebufferSizeCallback (window, framebuffer_size_func);
+  glfwSetKeyCallback (window, key_func);
+  glfwSetCharCallback (window, char_func);
+  glfwSetMouseButtonCallback (window, mouse_func);
+  glfwSetScrollCallback (window, scroll_func);
+  glfwSetCursorPosCallback (window, cursor_func);
+
+  /* Setup GLEW */
+  glewExperimental = GL_TRUE;
+  glewInit ();
+  /* glewInit() generates GL_INVALID_ENUM in core profile; clear it. */
+  while (glGetError () != GL_NO_ERROR)
+    ;
+  if (!glewIsSupported ("GL_VERSION_3_3"))
+    die ("OpenGL 3.3 not supported");
+
+  /* Set initial viewport from framebuffer size (may differ from window
+   * size on HiDPI displays). */
+  {
+    int fb_width, fb_height;
+    glfwGetFramebufferSize (window, &fb_width, &fb_height);
+    glViewport (0, 0, fb_width, fb_height);
+  }
 
   st = demo_glstate_create ();
-  vu = demo_view_create (st);
+  vu = demo_view_create (st, window);
   demo_view_print_help (vu);
+  warn_about_vsync_override ();
 
   hb_blob_t *blob = NULL;
   if (font_path)
@@ -274,7 +370,26 @@ main (int argc, char** argv)
   demo_font_print_stats (font);
 
   demo_view_setup (vu);
-  glutMainLoop ();
+
+  /* Render initial frame, then
+   * process events so the Wayland compositor
+   * can configure the surface at the correct
+   * content scale, then render a
+   * second frame at the right resolution. */
+  demo_view_display (vu, buffer);
+  glfwPollEvents ();
+  demo_view_display (vu, buffer);
+
+  /* Main loop */
+  while (!glfwWindowShouldClose (window))
+  {
+    glfwPollEvents ();
+
+    if (demo_view_should_redraw (vu))
+      demo_view_display (vu, buffer);
+    else
+      glfwWaitEvents ();
+  }
 
   demo_buffer_destroy (buffer);
   demo_font_destroy (font);
@@ -285,7 +400,8 @@ main (int argc, char** argv)
   demo_view_destroy (vu);
   demo_glstate_destroy (st);
 
-  glutDestroyWindow (window);
+  glfwDestroyWindow (window);
+  glfwTerminate ();
 
   return 0;
 }

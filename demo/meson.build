@@ -20,9 +20,8 @@ demo_sources = [
 ]
 
 demo_shaders = [
-  [ 'demo-atlas.glsl', 'demo-atlas-glsl.h', 'demo_atlas_glsl' ],
-  [ 'demo-fshader.glsl', 'demo-fshader-glsl.h', 'demo_fshader_glsl' ],
-  [ 'demo-vshader.glsl', 'demo-vshader-glsl.h', 'demo_vshader_glsl' ],
+  [ 'demo-fragment.glsl', 'demo-fragment-glsl.h', 'demo_fragment_glsl' ],
+  [ 'demo-vertex.glsl', 'demo-vertex-glsl.h', 'demo_vertex_glsl' ],
   [ 'default-text.txt', 'default-text.h', 'default_text' ],
 ] 
 
@@ -50,6 +49,6 @@ demo_shader_sources += custom_target('default font',
 glyphy_demo = executable('glyphy-demo', demo_sources + demo_shader_sources,
   cpp_args: [],
   include_directories: [confinc, srcinc],
-  dependencies: [freetype_dep, harfbuzz_dep, gl_dep, glew_dep, glut_dep],
+  dependencies: [freetype_dep, harfbuzz_dep, gl_dep, glew_dep, glfw_dep],
   link_with: [libglyphy],
   install: true)

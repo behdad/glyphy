@@ -1,19 +1,6 @@
 /*
- * Copyright 2012 Google, Inc. All Rights Reserved.
+ * Copyright 2026 Behdad Esfahbod. All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * Google Author(s): Behdad Esfahbod
  */
 
 #ifdef HAVE_CONFIG_H
@@ -22,46 +9,9 @@
 
 #include "demo-shader.h"
 
-#include "demo-atlas-glsl.h"
-#include "demo-vshader-glsl.h"
-#include "demo-fshader-glsl.h"
+#include "demo-vertex-glsl.h"
+#include "demo-fragment-glsl.h"
 
-
-static unsigned int
-glyph_encode (unsigned int atlas_x ,  /* 7 bits */
-	      unsigned int atlas_y,   /* 7 bits */
-	      unsigned int corner_x,  /* 1 bit */
-	      unsigned int corner_y,  /* 1 bit */
-	      unsigned int nominal_w, /* 6 bits */
-	      unsigned int nominal_h  /* 6 bits */)
-{
-  assert (0 == (atlas_x & ~0x7F));
-  assert (0 == (atlas_y & ~0x7F));
-  assert (0 == (corner_x & ~1));
-  assert (0 == (corner_y & ~1));
-  assert (0 == (nominal_w & ~0x3F));
-  assert (0 == (nominal_h & ~0x3F));
-
-  unsigned int x = (((atlas_x << 6) | nominal_w) << 1) | corner_x;
-  unsigned int y = (((atlas_y << 6) | nominal_h) << 1) | corner_y;
-
-  return (x << 16) | y;
-}
-
-static void
-glyph_vertex_encode (double x, double y,
-		     unsigned int corner_x, unsigned int corner_y,
-		     const glyph_info_t *gi,
-		     glyph_vertex_t *v)
-{
-  unsigned int encoded = glyph_encode (gi->atlas_x, gi->atlas_y,
-				       corner_x, corner_y,
-				       gi->nominal_w, gi->nominal_h);
-  v->x = x;
-  v->y = y;
-  v->g16hi = encoded >> 16;
-  v->g16lo = encoded & 0xFFFF;
-}
 
 void
 demo_shader_add_glyph_vertices (const glyphy_point_t        &p,
@@ -73,20 +23,31 @@ demo_shader_add_glyph_vertices (const glyphy_point_t        &p,
   if (gi->is_empty)
     return;
 
+  /* Extents and texcoords are in font design units.
+   * Screen position uses font_size / upem as the scale. */
+  double scale = font_size / gi->upem;
+
   glyph_vertex_t v[4];
 
-#define ENCODE_CORNER(_cx, _cy) \
-  do { \
-    double _vx = p.x + font_size * ((1-_cx) * gi->extents.min_x + _cx * gi->extents.max_x); \
-    double _vy = p.y - font_size * ((1-_cy) * gi->extents.min_y + _cy * gi->extents.max_y); \
-    glyph_vertex_encode (_vx, _vy, _cx, _cy, gi, &v[_cx * 2 + _cy]); \
-  } while (0)
-  ENCODE_CORNER (0, 0);
-  ENCODE_CORNER (0, 1);
-  ENCODE_CORNER (1, 0);
-  ENCODE_CORNER (1, 1);
-#undef ENCODE_CORNER
+  for (int ci = 0; ci < 4; ci++) {
+    int cx = (ci >> 1) & 1;
+    int cy = ci & 1;
 
+    double ex = (1 - cx) * gi->extents.min_x + cx * gi->extents.max_x;
+    double ey = (1 - cy) * gi->extents.min_y + cy * gi->extents.max_y;
+
+    v[ci].x = (float) (p.x + scale * ex);
+    v[ci].y = (float) (p.y - scale * ey);
+    v[ci].tx = (float) ex;
+    v[ci].ty = (float) ey;
+    v[ci].cx = cx ? 1.f : -1.f;
+    v[ci].cy = cy ? 1.f : -1.f; /* top dilates up, bottom dilates down */
+    v[ci].tpx = (float) (1.0 / scale);
+    v[ci].tpy = (float) (-1.0 / scale);
+    v[ci].atlas_offset = gi->atlas_offset;
+  }
+
+  /* Two triangles */
   vertices->push_back (v[0]);
   vertices->push_back (v[1]);
   vertices->push_back (v[2]);
@@ -97,14 +58,12 @@ demo_shader_add_glyph_vertices (const glyphy_point_t        &p,
 
   if (extents) {
     glyphy_extents_clear (extents);
-    for (unsigned int i = 0; i < 4; i++) {
-      glyphy_point_t p = {v[i].x, v[i].y};
-      glyphy_extents_add (extents, &p);
+    for (int i = 0; i < 4; i++) {
+      glyphy_point_t pt = {v[i].x, v[i].y};
+      glyphy_extents_add (extents, &pt);
     }
   }
 }
-
-
 
 
 static GLuint
@@ -112,8 +71,6 @@ compile_shader (GLenum         type,
 		GLsizei        count,
 		const GLchar** sources)
 {
-  TRACE();
-
   GLuint shader;
   GLint compiled;
 
@@ -145,20 +102,18 @@ compile_shader (GLenum         type,
 }
 
 static GLuint
-link_program (GLuint vshader,
-	      GLuint fshader)
+link_program (GLuint vertex_shader,
+	      GLuint fragment_shader)
 {
-  TRACE();
-
   GLuint program;
   GLint linked;
 
   program = glCreateProgram ();
-  glAttachShader (program, vshader);
-  glAttachShader (program, fshader);
+  glAttachShader (program, vertex_shader);
+  glAttachShader (program, fragment_shader);
   glLinkProgram (program);
-  glDeleteShader (vshader);
-  glDeleteShader (fshader);
+  glDeleteShader (vertex_shader);
+  glDeleteShader (fragment_shader);
 
   glGetProgramiv (program, GL_LINK_STATUS, &linked);
   if (!linked) {
@@ -180,33 +135,23 @@ link_program (GLuint vshader,
   return program;
 }
 
-#ifdef GL_ES_VERSION_2_0
-# define GLSL_HEADER_STRING \
-  "#extension GL_OES_standard_derivatives : enable\n" \
-  "precision highp float;\n" \
-  "precision highp int;\n"
-#else
-# define GLSL_HEADER_STRING \
-  "#version 110\n"
-#endif
-
 GLuint
 demo_shader_create_program (void)
 {
-  TRACE();
+  GLuint vertex_shader, fragment_shader, program;
+  const GLchar *vertex_shader_sources[] = {"#version 330\n",
+					   glyphy_vertex_shader_source (),
+					   demo_vertex_glsl};
+  vertex_shader = compile_shader (GL_VERTEX_SHADER,
+				  ARRAY_LEN (vertex_shader_sources),
+				  vertex_shader_sources);
+  const GLchar *fragment_shader_sources[] = {"#version 330\n",
+					     glyphy_fragment_shader_source (),
+					     demo_fragment_glsl};
+  fragment_shader = compile_shader (GL_FRAGMENT_SHADER,
+				    ARRAY_LEN (fragment_shader_sources),
+				    fragment_shader_sources);
 
-  GLuint vshader, fshader, program;
-  const GLchar *vshader_sources[] = {GLSL_HEADER_STRING,
-				     demo_vshader_glsl};
-  vshader = compile_shader (GL_VERTEX_SHADER, ARRAY_LEN (vshader_sources), vshader_sources);
-  const GLchar *fshader_sources[] = {GLSL_HEADER_STRING,
-				     demo_atlas_glsl,
-				     glyphy_common_shader_source (),
-				     "#define GLYPHY_SDF_PSEUDO_DISTANCE 1\n",
-				     glyphy_sdf_shader_source (),
-				     demo_fshader_glsl};
-  fshader = compile_shader (GL_FRAGMENT_SHADER, ARRAY_LEN (fshader_sources), fshader_sources);
-
-  program = link_program (vshader, fshader);
+  program = link_program (vertex_shader, fragment_shader);
   return program;
 }

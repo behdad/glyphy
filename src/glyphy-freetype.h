@@ -1,19 +1,8 @@
 /*
+
  * Copyright 2012 Google, Inc. All Rights Reserved.
+ * Copyright 2026 Behdad Esfahbod. All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * Google Author(s): Behdad Esfahbod, Maysum Panju
  */
 
 /* Intentionally doesn't have include guards */
@@ -25,6 +14,8 @@ extern "C" {
 #endif
 
 
+#include <stdlib.h>
+#include <stdio.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_OUTLINE_H
@@ -43,47 +34,46 @@ extern "C" {
 
 static int
 glyphy_freetype(move_to) (FT_Vector *to,
-			  glyphy_arc_accumulator_t *acc)
+			  glyphy_curve_accumulator_t *acc)
 {
   glyphy_point_t p1 = {(double) to->x, (double) to->y};
-  glyphy_arc_accumulator_close_path (acc);
-  glyphy_arc_accumulator_move_to (acc, &p1);
-  return glyphy_arc_accumulator_successful (acc) ? FT_Err_Ok : FT_Err_Out_Of_Memory;
+  glyphy_curve_accumulator_close_path (acc);
+  glyphy_curve_accumulator_move_to (acc, &p1);
+  return glyphy_curve_accumulator_successful (acc) ? FT_Err_Ok : FT_Err_Out_Of_Memory;
 }
 
 static int
 glyphy_freetype(line_to) (FT_Vector *to,
-			  glyphy_arc_accumulator_t *acc)
+			  glyphy_curve_accumulator_t *acc)
 {
   glyphy_point_t p1 = {(double) to->x, (double) to->y};
-  glyphy_arc_accumulator_line_to (acc, &p1);
-  return glyphy_arc_accumulator_successful (acc) ? FT_Err_Ok : FT_Err_Out_Of_Memory;
+  glyphy_curve_accumulator_line_to (acc, &p1);
+  return glyphy_curve_accumulator_successful (acc) ? FT_Err_Ok : FT_Err_Out_Of_Memory;
 }
 
 static int
 glyphy_freetype(conic_to) (FT_Vector *control, FT_Vector *to,
-			   glyphy_arc_accumulator_t *acc)
+			   glyphy_curve_accumulator_t *acc)
 {
   glyphy_point_t p1 = {(double) control->x, (double) control->y};
   glyphy_point_t p2 = {(double) to->x, (double) to->y};
-  glyphy_arc_accumulator_conic_to (acc, &p1, &p2);
-  return glyphy_arc_accumulator_successful (acc) ? FT_Err_Ok : FT_Err_Out_Of_Memory;
+  glyphy_curve_accumulator_conic_to (acc, &p1, &p2);
+  return glyphy_curve_accumulator_successful (acc) ? FT_Err_Ok : FT_Err_Out_Of_Memory;
 }
 
 static int
 glyphy_freetype(cubic_to) (FT_Vector *control1, FT_Vector *control2, FT_Vector *to,
-			   glyphy_arc_accumulator_t *acc)
+			   glyphy_curve_accumulator_t *acc)
 {
-  glyphy_point_t p1 = {(double) control1->x, (double) control1->y};
-  glyphy_point_t p2 = {(double) control2->x, (double) control2->y};
-  glyphy_point_t p3 = {(double) to->x, (double) to->y};
-  glyphy_arc_accumulator_cubic_to (acc, &p1, &p2, &p3);
-  return glyphy_arc_accumulator_successful (acc) ? FT_Err_Ok : FT_Err_Out_Of_Memory;
+  (void) control1; (void) control2;
+  (void) to; (void) acc;
+  fprintf (stderr, "glyphy: cubic outlines are unsupported currently\n");
+  abort ();
 }
 
 static FT_Error
-glyphy_freetype(outline_decompose) (const FT_Outline         *outline,
-				    glyphy_arc_accumulator_t *acc)
+glyphy_freetype(outline_decompose) (const FT_Outline              *outline,
+				    glyphy_curve_accumulator_t    *acc)
 {
   const FT_Outline_Funcs outline_funcs = {
     (FT_Outline_MoveToFunc) glyphy_freetype(move_to),

@@ -1,14 +1,7 @@
 glyphy_sources = [
-  'glyphy-arc.cc',
-  'glyphy-arc-bezier.hh',
-  'glyphy-arcs.cc',
-  'glyphy-arcs-bezier.hh',
-  'glyphy-blob.cc',
-  'glyphy-common.hh',
+  'glyphy-curves.cc',
+  'glyphy-encode.cc',
   'glyphy-extents.cc',
-  'glyphy-geometry.hh',
-  'glyphy-outline.cc',
-  'glyphy-sdf.cc',
   'glyphy-shaders.cc',
 ]
 
@@ -19,8 +12,8 @@ glyphy_headers = [
 ]
 
 glyphy_shaders = [
-  [ 'glyphy-common.glsl', 'glyphy-common-glsl.h', 'glyphy_common_glsl' ],
-  [ 'glyphy-sdf.glsl', 'glyphy-sdf-glsl.h', 'glyphy_sdf_glsl' ],
+  [ 'glyphy-fragment.glsl', 'glyphy-fragment-glsl.h', 'glyphy_fragment_glsl' ],
+  [ 'glyphy-vertex.glsl', 'glyphy-vertex-glsl.h', 'glyphy_vertex_glsl' ],
 ]
 
 stringize = find_program('stringize')
@@ -59,7 +52,7 @@ libglyphy_dep = declare_dependency(
 meson.override_dependency('glyphy', libglyphy_dep)
 
 libglyphy_pc = pkgmod.generate(libglyphy,
-  description: 'High-quality glyph rendering library using OpenGL ES2 shaders',
+  description: 'High-quality GPU glyph rendering library',
   subdirs: meson.project_name())
 
 install_headers(glyphy_headers, subdir: meson.project_name())
