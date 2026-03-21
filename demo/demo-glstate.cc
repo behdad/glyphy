@@ -10,8 +10,6 @@
 #include "demo-glstate.h"
 
 struct demo_glstate_t {
-  unsigned int   refcount;
-
   GLuint program;
   demo_atlas_t *atlas;
 };
@@ -22,7 +20,6 @@ demo_glstate_create (void)
   TRACE();
 
   demo_glstate_t *st = (demo_glstate_t *) calloc (1, sizeof (demo_glstate_t));
-  st->refcount = 1;
 
   st->program = demo_shader_create_program ();
   st->atlas = demo_atlas_create (1024 * 1024);
@@ -30,17 +27,10 @@ demo_glstate_create (void)
   return st;
 }
 
-demo_glstate_t *
-demo_glstate_reference (demo_glstate_t *st)
-{
-  if (st) st->refcount++;
-  return st;
-}
-
 void
 demo_glstate_destroy (demo_glstate_t *st)
 {
-  if (!st || --st->refcount)
+  if (!st)
     return;
 
   demo_atlas_destroy (st->atlas);
@@ -76,4 +66,3 @@ demo_glstate_set_matrix (demo_glstate_t *st, float mat[16])
   glUniform2f (glGetUniformLocation (st->program, "u_viewport"),
 	       (float) viewport[2], (float) viewport[3]);
 }
-

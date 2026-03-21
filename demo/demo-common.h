@@ -20,20 +20,6 @@
 #include <algorithm>
 #include <vector>
 
-/* Tailor config for various platforms. */
-
-#ifdef EMSCRIPTEN
-/* https://github.com/kripken/emscripten/issues/340 */
-#  undef HAVE_GLEW
-   /* WebGL shaders are ES2 */
-#  define GL_ES_VERSION_2_0 1
-#endif
-
-#if defined(__ANDROID__)
-#  define HAVE_GLES2 1
-#  define HAVE_GLUT 1
-#endif
-
 #ifdef _WIN32
 #  define HAVE_GL 1
 #  define HAVE_GLEW 1
@@ -41,41 +27,20 @@
 #  define HAVE_FREETYPE2 1
 #endif
 
-/* Get Glew out of the way. */
-#ifdef HAVE_GLEW
-#  include <GL/glew.h>
-#else
-#  define GLEW_OK 0
-   static inline int glewInit (void) { return GLEW_OK; }
-   static inline int glewIsSupported (const char *s)
-   { return 0 == strcmp ("GL_VERSION_2_0", s); }
-#endif /* HAVE_GLEW */
+#include <GL/glew.h>
 
 #ifdef __APPLE__
 #  define GL_SILENCE_DEPRECATION
 #endif
 
-/* WTF this block?! */
-#if defined(HAVE_GLES2)
-#  include <GLES2/gl2.h>
-#elif defined(HAVE_GL)
-#  ifndef HAVE_GLEW
-#    define GL_GLEXT_PROTOTYPES 1
-#    if defined(__APPLE__)
-#      include <OpenGL/gl.h>
-#    else
-#      include <GL/gl.h>
-#    endif
-#  endif
+#if defined(HAVE_GL)
 #  if defined(__APPLE__)
 #    include <OpenGL/OpenGL.h>
 #  else
-#    ifdef HAVE_GLEW
-#      ifdef _WIN32
-#	 include <GL/wglew.h>
-#      else
-#	include <GL/glxew.h>
-#      endif
+#    ifdef _WIN32
+#      include <GL/wglew.h>
+#    else
+#      include <GL/glxew.h>
 #    endif
 #  endif
 #endif /* HAVE_GL */
@@ -92,17 +57,9 @@
 
 
 
-/* Logging. */
-#ifdef __ANDROID__
-#  include <android/log.h>
-#  define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "glyphy-demo", __VA_ARGS__))
-#  define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "glyphy-demo", __VA_ARGS__))
-#  define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "glyphy-demo", __VA_ARGS__))
-#else /* !__ANDROID__ */
-#  define LOGI(...) ((void) fprintf (stdout, __VA_ARGS__))
-#  define LOGW(...) ((void) fprintf (stderr, __VA_ARGS__))
-#  define LOGE(...) ((void) fprintf (stderr, __VA_ARGS__), abort ())
-#endif
+#define LOGI(...) ((void) fprintf (stdout, __VA_ARGS__))
+#define LOGW(...) ((void) fprintf (stderr, __VA_ARGS__))
+#define LOGE(...) ((void) fprintf (stderr, __VA_ARGS__), abort ())
 
 
 

@@ -17,9 +17,6 @@ typedef struct demo_glstate_t demo_glstate_t;
 demo_glstate_t *
 demo_glstate_create (void);
 
-demo_glstate_t *
-demo_glstate_reference (demo_glstate_t *st);
-
 void
 demo_glstate_destroy (demo_glstate_t *st);
 

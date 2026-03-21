@@ -11,8 +11,6 @@
 #include "demo-buffer.h"
 
 struct demo_buffer_t {
-  unsigned int   refcount;
-
   glyphy_point_t cursor;
   std::vector<glyph_vertex_t> *vertices;
   glyphy_extents_t ink_extents;
@@ -25,7 +23,6 @@ demo_buffer_t *
 demo_buffer_create (void)
 {
   demo_buffer_t *buffer = (demo_buffer_t *) calloc (1, sizeof (demo_buffer_t));
-  buffer->refcount = 1;
 
   buffer->vertices = new std::vector<glyph_vertex_t>;
   glGenBuffers (1, &buffer->buf_name);
@@ -35,17 +32,10 @@ demo_buffer_create (void)
   return buffer;
 }
 
-demo_buffer_t *
-demo_buffer_reference (demo_buffer_t *buffer)
-{
-  if (buffer) buffer->refcount++;
-  return buffer;
-}
-
 void
 demo_buffer_destroy (demo_buffer_t *buffer)
 {
-  if (!buffer || --buffer->refcount)
+  if (!buffer)
     return;
 
   glDeleteBuffers (1, &buffer->buf_name);
@@ -79,13 +69,6 @@ demo_buffer_move_to (demo_buffer_t        *buffer,
 		     const glyphy_point_t *p)
 {
   buffer->cursor = *p;
-}
-
-void
-demo_buffer_current_point (demo_buffer_t  *buffer,
-			   glyphy_point_t *p)
-{
-  *p = buffer->cursor;
 }
 
 void

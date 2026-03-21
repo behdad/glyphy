@@ -21,8 +21,6 @@ extern "C" {
 #endif
 
 struct demo_view_t {
-  unsigned int   refcount;
-
   demo_glstate_t *st;
 
   /* Output */
@@ -70,7 +68,6 @@ demo_view_create (demo_glstate_t *st)
   TRACE();
 
   demo_view_t *vu = (demo_view_t *) calloc (1, sizeof (demo_view_t));
-  vu->refcount = 1;
 
   vu->st = st;
   demo_view_reset (vu);
@@ -81,17 +78,10 @@ demo_view_create (demo_glstate_t *st)
   return vu;
 }
 
-demo_view_t *
-demo_view_reference (demo_view_t *vu)
-{
-  if (vu) vu->refcount++;
-  return vu;
-}
-
 void
 demo_view_destroy (demo_view_t *vu)
 {
-  if (!vu || --vu->refcount)
+  if (!vu)
     return;
 
   assert (static_vu == vu);
@@ -187,19 +177,9 @@ current_time (void)
 }
 
 static void
-next_frame (demo_view_t *vu)
+next_frame (void)
 {
   glutPostRedisplay ();
-}
-
-static void
-timed_step (int ms)
-{
-  demo_view_t *vu = static_vu;
-  if (vu->animate) {
-    glutTimerFunc (ms, timed_step, ms);
-    next_frame (vu);
-  }
 }
 
 static void
@@ -207,7 +187,7 @@ idle_step (void)
 {
   demo_view_t *vu = static_vu;
   if (vu->animate) {
-    next_frame (vu);
+    next_frame ();
   }
   else
     glutIdleFunc (NULL);
@@ -232,7 +212,6 @@ start_animation (demo_view_t *vu)
 {
   vu->num_frames = 0;
   vu->last_frame_time = vu->fps_start_time = current_time ();
-  //glutTimerFunc (1000/60, timed_step, 1000/60);
   glutIdleFunc (idle_step);
   if (!vu->has_fps_timer) {
     vu->has_fps_timer = true;

@@ -28,9 +28,6 @@ demo_atlas_alloc (demo_atlas_t    *at,
 		  unsigned int     len);
 
 void
-demo_atlas_bind_texture (demo_atlas_t *at);
-
-void
 demo_atlas_set_uniforms (demo_atlas_t *at);
 
 

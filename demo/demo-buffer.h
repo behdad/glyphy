@@ -16,9 +16,6 @@ typedef struct demo_buffer_t demo_buffer_t;
 demo_buffer_t *
 demo_buffer_create (void);
 
-demo_buffer_t *
-demo_buffer_reference (demo_buffer_t *buffer);
-
 void
 demo_buffer_destroy (demo_buffer_t *buffer);
 
@@ -34,10 +31,6 @@ demo_buffer_extents (demo_buffer_t    *buffer,
 void
 demo_buffer_move_to (demo_buffer_t        *buffer,
 		     const glyphy_point_t *p);
-
-void
-demo_buffer_current_point (demo_buffer_t  *buffer,
-			   glyphy_point_t *p);
 
 void
 demo_buffer_add_text (demo_buffer_t        *buffer,

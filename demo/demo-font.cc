@@ -17,8 +17,6 @@
 typedef std::map<unsigned int, glyph_info_t> glyph_cache_t;
 
 struct demo_font_t {
-  unsigned int   refcount;
-
   hb_face_t     *face;
   hb_font_t     *font;
   glyph_cache_t *glyph_cache;
@@ -35,7 +33,6 @@ demo_font_create (hb_face_t    *face,
 		  demo_atlas_t *atlas)
 {
   demo_font_t *font = (demo_font_t *) calloc (1, sizeof (demo_font_t));
-  font->refcount = 1;
 
   font->face = hb_face_reference (face);
   font->font = hb_font_create (face);
@@ -46,17 +43,10 @@ demo_font_create (hb_face_t    *face,
   return font;
 }
 
-demo_font_t *
-demo_font_reference (demo_font_t *font)
-{
-  if (font) font->refcount++;
-  return font;
-}
-
 void
 demo_font_destroy (demo_font_t *font)
 {
-  if (!font || --font->refcount)
+  if (!font)
     return;
 
   glyphy_curve_accumulator_destroy (font->acc);
@@ -78,12 +68,6 @@ hb_font_t *
 demo_font_get_font (demo_font_t *font)
 {
   return font->font;
-}
-
-demo_atlas_t *
-demo_font_get_atlas (demo_font_t *font)
-{
-  return font->atlas;
 }
 
 

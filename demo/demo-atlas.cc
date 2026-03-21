@@ -20,6 +20,9 @@ struct demo_atlas_t {
   GLuint cursor;
 };
 
+static void
+demo_atlas_bind_texture (demo_atlas_t *at);
+
 
 demo_atlas_t *
 demo_atlas_create (unsigned int capacity)
@@ -62,7 +65,7 @@ demo_atlas_destroy (demo_atlas_t *at)
   free (at);
 }
 
-void
+static void
 demo_atlas_bind_texture (demo_atlas_t *at)
 {
   glActiveTexture (at->tex_unit);

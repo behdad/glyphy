@@ -11,12 +11,6 @@
 
 #include <hb.h>
 
-#ifdef _WIN32
-#define DEFAULT_FONT "Calibri"
-#undef near
-#undef far
-#endif
-
 typedef struct {
   glyphy_extents_t extents;
   double           advance;
@@ -32,9 +26,6 @@ demo_font_t *
 demo_font_create (hb_face_t    *face,
 		  demo_atlas_t *atlas);
 
-demo_font_t *
-demo_font_reference (demo_font_t *font);
-
 void
 demo_font_destroy (demo_font_t *font);
 
@@ -44,9 +35,6 @@ demo_font_get_face (demo_font_t *font);
 
 hb_font_t *
 demo_font_get_font (demo_font_t *font);
-
-demo_atlas_t *
-demo_font_get_atlas (demo_font_t *font);
 
 
 void

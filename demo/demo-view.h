@@ -16,9 +16,6 @@ typedef struct demo_view_t demo_view_t;
 demo_view_t *
 demo_view_create (demo_glstate_t *st);
 
-demo_view_t *
-demo_view_reference (demo_view_t *vu);
-
 void
 demo_view_destroy (demo_view_t *vu);
 
