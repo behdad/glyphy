@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include <cmath>
+#include <limits>
 #include <vector>
 #include <algorithm>
 
@@ -18,7 +19,7 @@
 /*
  * Encode quadratic Bezier curves into a blob for GPU rendering.
  *
- * Blob layout (single RGBA16UI texture region):
+ * Blob layout (single RGBA16I texture region):
  *
  *   [H-band headers (num_hbands texels)]
  *   [V-band headers (num_vbands texels)]
@@ -27,9 +28,9 @@
  *
  * Band header texel:
  *   R = curve count
- *   G = offset to curve index list (from blob start)
- *   B = reserved (split value for symmetric bands, future)
- *   A = reserved
+ *   G = offset to descending curve index list (from blob start)
+ *   B = offset to ascending curve index list (from blob start)
+ *   A = split value for symmetric optimization
  *
  * Curve index texel:
  *   R = offset to curve data (from blob start)
@@ -50,6 +51,14 @@ static int16_t
 quantize (double v)
 {
   return (int16_t) round (v * GLYPHY_UNITS_PER_EM_UNIT);
+}
+
+static bool
+quantize_fits_i16 (double v)
+{
+  double q = round (v * GLYPHY_UNITS_PER_EM_UNIT);
+  return q >= std::numeric_limits<int16_t>::min () &&
+	 q <= std::numeric_limits<int16_t>::max ();
 }
 
 static double
@@ -226,6 +235,16 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
   unsigned int total_len = header_len + band_headers_len + total_curve_indices + curve_data_len;
 
   if (total_len > blob_size)
+    return false;
+
+  /* Offsets and counts are stored in signed 16-bit lanes in the atlas. */
+  if (total_len - 1 > (unsigned int) std::numeric_limits<int16_t>::max ())
+    return false;
+
+  if (!quantize_fits_i16 (extents->min_x) ||
+      !quantize_fits_i16 (extents->min_y) ||
+      !quantize_fits_i16 (extents->max_x) ||
+      !quantize_fits_i16 (extents->max_y))
     return false;
 
   unsigned int curve_data_offset = header_len + band_headers_len + total_curve_indices;

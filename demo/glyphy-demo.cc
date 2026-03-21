@@ -226,8 +226,8 @@ main (int argc, char** argv)
   /* Setup glew */
   if (GLEW_OK != glewInit ())
     die ("Failed to initialize GL; something really broken");
-  if (!glewIsSupported ("GL_VERSION_2_0"))
-    die ("OpenGL 2.0 not supported");
+  if (!glewIsSupported ("GL_VERSION_3_3"))
+    die ("OpenGL 3.3 not supported");
 
   st = demo_glstate_create ();
   vu = demo_view_create (st);
