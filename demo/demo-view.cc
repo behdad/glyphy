@@ -48,11 +48,11 @@ struct demo_view_t {
 
   /* Animation */
   float rot_axis[3];
-  float rot_speed;
+  double rot_speed;
   bool animate;
   int num_frames;
-  long fps_start_time;
-  long last_frame_time;
+  double fps_start_time;
+  double last_frame_time;
   bool has_fps_timer;
   double fps_timer_interval;
   double fps_timer_last;
@@ -90,7 +90,7 @@ demo_view_destroy (demo_view_t *vu)
 }
 
 
-#define ANIMATION_SPEED 1. /* Default speed, in radians second. */
+#define ANIMATION_SPEED 1. /* Default speed, in radians per second. */
 void
 demo_view_reset (demo_view_t *vu)
 {
@@ -99,7 +99,7 @@ demo_view_reset (demo_view_t *vu)
   vu->translate.x = vu->translate.y = 0;
   trackball (vu->quat , 0.0, 0.0, 0.0, 0.0);
   vset (vu->rot_axis, 0., 0., 1.);
-  vu->rot_speed = ANIMATION_SPEED / 1000.;
+  vu->rot_speed = ANIMATION_SPEED;
   vu->needs_redraw = true;
 }
 
@@ -169,11 +169,11 @@ demo_view_apply_transform (demo_view_t *vu, float *mat)
 }
 
 
-/* return current time in milli-seconds */
-static long
+/* return current time in seconds */
+static double
 current_time (void)
 {
-  return (long) (glfwGetTime () * 1000.0);
+  return glfwGetTime ();
 }
 
 static void
@@ -182,7 +182,7 @@ start_animation (demo_view_t *vu)
   vu->num_frames = 0;
   vu->last_frame_time = vu->fps_start_time = current_time ();
   vu->fps_timer_interval = 5.0;
-  vu->fps_timer_last = glfwGetTime ();
+  vu->fps_timer_last = current_time ();
   vu->has_fps_timer = true;
 }
 
@@ -522,7 +522,7 @@ demo_view_print_help (demo_view_t *vu)
 
 
 static void
-advance_frame (demo_view_t *vu, long dtime)
+advance_frame (demo_view_t *vu, double dtime)
 {
   if (vu->animate) {
     float dquat[4];
@@ -535,18 +535,17 @@ advance_frame (demo_view_t *vu, long dtime)
 void
 demo_view_display (demo_view_t *vu, demo_buffer_t *buffer)
 {
-  long new_time = current_time ();
+  double new_time = current_time ();
   advance_frame (vu, new_time - vu->last_frame_time);
   vu->last_frame_time = new_time;
 
   /* FPS reporting */
   if (vu->animate && vu->has_fps_timer) {
-    double now = glfwGetTime ();
+    double now = current_time ();
     if (now - vu->fps_timer_last >= vu->fps_timer_interval) {
-      long t = current_time ();
-      LOGI ("%gfps\n", vu->num_frames * 1000. / (t - vu->fps_start_time));
+      LOGI ("%gfps\n", vu->num_frames / (now - vu->fps_start_time));
       vu->num_frames = 0;
-      vu->fps_start_time = t;
+      vu->fps_start_time = now;
       vu->fps_timer_last = now;
     }
   }
