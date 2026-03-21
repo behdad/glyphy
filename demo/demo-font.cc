@@ -144,7 +144,7 @@ _demo_font_upload_glyph (demo_font_t *font,
 			 unsigned int glyph_index,
 			 glyph_info_t *glyph_info)
 {
-  glyphy_texel_t buffer[4096];
+  glyphy_texel_t buffer[16384];
   unsigned int output_len;
 
   encode_glyph (font,
