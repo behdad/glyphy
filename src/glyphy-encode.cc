@@ -61,54 +61,29 @@ quantize_fits_i16 (double v)
 	 q <= std::numeric_limits<int16_t>::max ();
 }
 
-static double
-curve_min_x (const glyphy_curve_t *c)
+typedef struct
 {
-  return fmin (fmin (c->p1.x, c->p2.x), c->p3.x);
-}
+  double min_x;
+  double max_x;
+  double min_y;
+  double max_y;
+  bool is_horizontal;
+  bool is_vertical;
+} curve_info_t;
 
-static double
-curve_max_x (const glyphy_curve_t *c)
+static curve_info_t
+curve_info (const glyphy_curve_t *c)
 {
-  return fmax (fmax (c->p1.x, c->p2.x), c->p3.x);
-}
+  curve_info_t info;
 
-static double
-curve_min_y (const glyphy_curve_t *c)
-{
-  return fmin (fmin (c->p1.y, c->p2.y), c->p3.y);
-}
+  info.min_x = std::min (std::min (c->p1.x, c->p2.x), c->p3.x);
+  info.max_x = std::max (std::max (c->p1.x, c->p2.x), c->p3.x);
+  info.min_y = std::min (std::min (c->p1.y, c->p2.y), c->p3.y);
+  info.max_y = std::max (std::max (c->p1.y, c->p2.y), c->p3.y);
+  info.is_horizontal = c->p1.y == c->p2.y && c->p2.y == c->p3.y;
+  info.is_vertical = c->p1.x == c->p2.x && c->p2.x == c->p3.x;
 
-static double
-curve_max_y (const glyphy_curve_t *c)
-{
-  return fmax (fmax (c->p1.y, c->p2.y), c->p3.y);
-}
-
-static void
-curve_y_range (const glyphy_curve_t *c, double *min_y, double *max_y)
-{
-  *min_y = fmin (fmin (c->p1.y, c->p2.y), c->p3.y);
-  *max_y = fmax (fmax (c->p1.y, c->p2.y), c->p3.y);
-}
-
-static void
-curve_x_range (const glyphy_curve_t *c, double *min_x, double *max_x)
-{
-  *min_x = fmin (fmin (c->p1.x, c->p2.x), c->p3.x);
-  *max_x = fmax (fmax (c->p1.x, c->p2.x), c->p3.x);
-}
-
-static bool
-curve_is_horizontal (const glyphy_curve_t *c)
-{
-  return c->p1.y == c->p2.y && c->p2.y == c->p3.y;
-}
-
-static bool
-curve_is_vertical (const glyphy_curve_t *c)
-{
-  return c->p1.x == c->p2.x && c->p2.x == c->p3.x;
+  return info;
 }
 
 
@@ -126,6 +101,10 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
     *output_len = 0;
     return true;
   }
+
+  std::vector<curve_info_t> curve_infos (num_curves);
+  for (unsigned int i = 0; i < num_curves; i++)
+    curve_infos[i] = curve_info (&curves[i]);
 
   /* Choose number of bands (capped at 16 per Slug paper) */
   unsigned int num_hbands = std::min (num_curves, 16u);
@@ -147,15 +126,15 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
   std::vector<std::vector<unsigned int>> vband_curves (num_vbands);
 
   for (unsigned int i = 0; i < num_curves; i++) {
+    const curve_info_t &info = curve_infos[i];
+
     /* Horizontal lines never intersect horizontal rays;
      * vertical lines never intersect vertical rays. */
 
-    if (!curve_is_horizontal (&curves[i])) {
+    if (!info.is_horizontal) {
       if (height > 0) {
-	double min_y, max_y;
-	curve_y_range (&curves[i], &min_y, &max_y);
-	int band_lo = (int) floor ((min_y - extents->min_y) / hband_size);
-	int band_hi = (int) floor ((max_y - extents->min_y) / hband_size);
+	int band_lo = (int) floor ((info.min_y - extents->min_y) / hband_size);
+	int band_hi = (int) floor ((info.max_y - extents->min_y) / hband_size);
 	band_lo = std::max (band_lo, 0);
 	band_hi = std::min (band_hi, (int) num_hbands - 1);
 	for (int b = band_lo; b <= band_hi; b++)
@@ -165,12 +144,10 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
       }
     }
 
-    if (!curve_is_vertical (&curves[i])) {
+    if (!info.is_vertical) {
       if (width > 0) {
-	double min_x, max_x;
-	curve_x_range (&curves[i], &min_x, &max_x);
-	int band_lo = (int) floor ((min_x - extents->min_x) / vband_size);
-	int band_hi = (int) floor ((max_x - extents->min_x) / vband_size);
+	int band_lo = (int) floor ((info.min_x - extents->min_x) / vband_size);
+	int band_hi = (int) floor ((info.max_x - extents->min_x) / vband_size);
 	band_lo = std::max (band_lo, 0);
 	band_hi = std::min (band_hi, (int) num_vbands - 1);
 	for (int b = band_lo; b <= band_hi; b++)
@@ -191,11 +168,11 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
     hband_curves_asc[b] = hband_curves[b];
     std::sort (hband_curves[b].begin (), hband_curves[b].end (),
 	       [&] (unsigned int a, unsigned int b) {
-		 return curve_max_x (&curves[a]) > curve_max_x (&curves[b]);
+		 return curve_infos[a].max_x > curve_infos[b].max_x;
 	       });
     std::sort (hband_curves_asc[b].begin (), hband_curves_asc[b].end (),
 	       [&] (unsigned int a, unsigned int b) {
-		 return curve_min_x (&curves[a]) < curve_min_x (&curves[b]);
+		 return curve_infos[a].min_x < curve_infos[b].min_x;
 	       });
   }
 
@@ -203,11 +180,11 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
     vband_curves_asc[b] = vband_curves[b];
     std::sort (vband_curves[b].begin (), vband_curves[b].end (),
 	       [&] (unsigned int a, unsigned int b) {
-		 return curve_max_y (&curves[a]) > curve_max_y (&curves[b]);
+		 return curve_infos[a].max_y > curve_infos[b].max_y;
 	       });
     std::sort (vband_curves_asc[b].begin (), vband_curves_asc[b].end (),
 	       [&] (unsigned int a, unsigned int b) {
-		 return curve_min_y (&curves[a]) < curve_min_y (&curves[b]);
+		 return curve_infos[a].min_y < curve_infos[b].min_y;
 	       });
   }
 
@@ -316,11 +293,11 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
       unsigned int best_worst = n;
       double best_split = (extents->min_x + extents->max_x) * 0.5;
       for (unsigned int ci = 0; ci < n; ci++) {
-	double split = curve_max_x (&curves[bc[ci]]);
+	double split = curve_infos[bc[ci]].max_x;
 	unsigned int right_count = ci + 1; /* curves with max_x >= split */
 	unsigned int left_count = 0;
 	for (unsigned int cj = 0; cj < n; cj++)
-	  if (curve_min_x (&curves[bc[cj]]) <= split)
+	  if (curve_infos[bc[cj]].min_x <= split)
 	    left_count++;
 	unsigned int worst = std::max (right_count, left_count);
 	if (worst < best_worst) {
@@ -365,11 +342,11 @@ glyphy_curve_list_encode_blob (const glyphy_curve_t *curves,
       unsigned int best_worst = n;
       double best_split = (extents->min_y + extents->max_y) * 0.5;
       for (unsigned int ci = 0; ci < n; ci++) {
-	double split = curve_max_y (&curves[bc[ci]]);
+	double split = curve_infos[bc[ci]].max_y;
 	unsigned int right_count = ci + 1;
 	unsigned int left_count = 0;
 	for (unsigned int cj = 0; cj < n; cj++)
-	  if (curve_min_y (&curves[bc[cj]]) <= split)
+	  if (curve_infos[bc[cj]].min_y <= split)
 	    left_count++;
 	unsigned int worst = std::max (right_count, left_count);
 	if (worst < best_worst) {
