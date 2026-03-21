@@ -9,8 +9,8 @@
 
 #include "demo-shader.h"
 
-#include "demo-vshader-glsl.h"
-#include "demo-fshader-glsl.h"
+#include "demo-vertex-glsl.h"
+#include "demo-fragment-glsl.h"
 
 
 void
@@ -102,18 +102,18 @@ compile_shader (GLenum         type,
 }
 
 static GLuint
-link_program (GLuint vshader,
-	      GLuint fshader)
+link_program (GLuint vertex_shader,
+	      GLuint fragment_shader)
 {
   GLuint program;
   GLint linked;
 
   program = glCreateProgram ();
-  glAttachShader (program, vshader);
-  glAttachShader (program, fshader);
+  glAttachShader (program, vertex_shader);
+  glAttachShader (program, fragment_shader);
   glLinkProgram (program);
-  glDeleteShader (vshader);
-  glDeleteShader (fshader);
+  glDeleteShader (vertex_shader);
+  glDeleteShader (fragment_shader);
 
   glGetProgramiv (program, GL_LINK_STATUS, &linked);
   if (!linked) {
@@ -138,16 +138,20 @@ link_program (GLuint vshader,
 GLuint
 demo_shader_create_program (void)
 {
-  GLuint vshader, fshader, program;
-  const GLchar *vshader_sources[] = {"#version 330\n",
-				     glyphy_vertex_shader_source (),
-				     demo_vshader_glsl};
-  vshader = compile_shader (GL_VERTEX_SHADER, ARRAY_LEN (vshader_sources), vshader_sources);
-  const GLchar *fshader_sources[] = {"#version 330\n",
-				     glyphy_fragment_shader_source (),
-				     demo_fshader_glsl};
-  fshader = compile_shader (GL_FRAGMENT_SHADER, ARRAY_LEN (fshader_sources), fshader_sources);
+  GLuint vertex_shader, fragment_shader, program;
+  const GLchar *vertex_shader_sources[] = {"#version 330\n",
+					   glyphy_vertex_shader_source (),
+					   demo_vertex_glsl};
+  vertex_shader = compile_shader (GL_VERTEX_SHADER,
+				  ARRAY_LEN (vertex_shader_sources),
+				  vertex_shader_sources);
+  const GLchar *fragment_shader_sources[] = {"#version 330\n",
+					     glyphy_fragment_shader_source (),
+					     demo_fragment_glsl};
+  fragment_shader = compile_shader (GL_FRAGMENT_SHADER,
+				    ARRAY_LEN (fragment_shader_sources),
+				    fragment_shader_sources);
 
-  program = link_program (vshader, fshader);
+  program = link_program (vertex_shader, fragment_shader);
   return program;
 }

@@ -20,8 +20,8 @@ demo_sources = [
 ]
 
 demo_shaders = [
-  [ 'demo-fshader.glsl', 'demo-fshader-glsl.h', 'demo_fshader_glsl' ],
-  [ 'demo-vshader.glsl', 'demo-vshader-glsl.h', 'demo_vshader_glsl' ],
+  [ 'demo-fragment.glsl', 'demo-fragment-glsl.h', 'demo_fragment_glsl' ],
+  [ 'demo-vertex.glsl', 'demo-vertex-glsl.h', 'demo_vertex_glsl' ],
   [ 'default-text.txt', 'default-text.h', 'default_text' ],
 ] 
 
