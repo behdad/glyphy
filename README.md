@@ -31,12 +31,7 @@ the projective Jacobian of NDC with respect to glyph-plane position
 while using its existing quad vertex format, so the half-pixel
 expansion remains perspective-aware.
 
-## Notes
-
-On GNOME3 and possibly other systems, if the vsync extension is not
-working (pressing `v` in the demo has no effect), try running with
-`vblank_mode=0`.
-
 ## License
 
-GLyphy is licensed under the Apache License, Version 2.0.
+GLyphy is licensed under the HarfBuzz Old MIT license.
+See COPYING for details.
