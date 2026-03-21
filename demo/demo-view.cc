@@ -22,6 +22,7 @@ extern "C" {
 
 struct demo_view_t {
   demo_glstate_t *st;
+  GLFWwindow *window;
 
   /* Output */
   GLint vsync;
@@ -52,6 +53,11 @@ struct demo_view_t {
   long fps_start_time;
   long last_frame_time;
   bool has_fps_timer;
+  double fps_timer_interval;
+  double fps_timer_last;
+
+  /* Dirty flag for redraw */
+  bool needs_redraw;
 
   /* Window geometry just before going fullscreen */
   int x;
@@ -60,18 +66,15 @@ struct demo_view_t {
   int height;
 };
 
-demo_view_t *static_vu;
-
 demo_view_t *
-demo_view_create (demo_glstate_t *st)
+demo_view_create (demo_glstate_t *st, GLFWwindow *window)
 {
   demo_view_t *vu = (demo_view_t *) calloc (1, sizeof (demo_view_t));
 
   vu->st = st;
+  vu->window = window;
+  vu->needs_redraw = true;
   demo_view_reset (vu);
-
-  assert (!static_vu);
-  static_vu = vu;
 
   return vu;
 }
@@ -81,9 +84,6 @@ demo_view_destroy (demo_view_t *vu)
 {
   if (!vu)
     return;
-
-  assert (static_vu == vu);
-  static_vu = NULL;
 
   free (vu);
 }
@@ -99,6 +99,7 @@ demo_view_reset (demo_view_t *vu)
   trackball (vu->quat , 0.0, 0.0, 0.0, 0.0);
   vset (vu->rot_axis, 0., 0., 1.);
   vu->rot_speed = ANIMATION_SPEED / 1000.;
+  vu->needs_redraw = true;
 }
 
 
@@ -171,38 +172,7 @@ demo_view_apply_transform (demo_view_t *vu, float *mat)
 static long
 current_time (void)
 {
-  return glutGet (GLUT_ELAPSED_TIME);
-}
-
-static void
-next_frame (void)
-{
-  glutPostRedisplay ();
-}
-
-static void
-idle_step (void)
-{
-  demo_view_t *vu = static_vu;
-  if (vu->animate) {
-    next_frame ();
-  }
-  else
-    glutIdleFunc (NULL);
-}
-
-static void
-print_fps (int ms)
-{
-  demo_view_t *vu = static_vu;
-  if (vu->animate) {
-    glutTimerFunc (ms, print_fps, ms);
-    long t = current_time ();
-    LOGI ("%gfps\n", vu->num_frames * 1000. / (t - vu->fps_start_time));
-    vu->num_frames = 0;
-    vu->fps_start_time = t;
-  } else
-    vu->has_fps_timer = false;
+  return (long) (glfwGetTime () * 1000.0);
 }
 
 static void
@@ -210,11 +180,9 @@ start_animation (demo_view_t *vu)
 {
   vu->num_frames = 0;
   vu->last_frame_time = vu->fps_start_time = current_time ();
-  glutIdleFunc (idle_step);
-  if (!vu->has_fps_timer) {
-    vu->has_fps_timer = true;
-    glutTimerFunc (5000, print_fps, 5000);
-  }
+  vu->fps_timer_interval = 5.0;
+  vu->fps_timer_last = glfwGetTime ();
+  vu->has_fps_timer = true;
 }
 
 static void
@@ -231,30 +199,7 @@ static void
 demo_view_toggle_vsync (demo_view_t *vu)
 {
   GLint vsync = !vu->vsync;
-#if defined(__APPLE__)
-  CGLSetParameter (CGLGetCurrentContext (), kCGLCPSwapInterval, &vsync);
-#elif defined(FREEGLUT)
-  glutSwapInterval (vsync);
-#elif defined(__WGLEW__)
-  if (wglewIsSupported ("WGL_EXT_swap_control"))
-    wglSwapIntervalEXT (vsync);
-  else
-    {
-      LOGW ("WGL_EXT_swap_control not supported; failed to set vsync\n");
-      return;
-    }
-#elif defined(__GLXEW_H__)
-  if (glxewIsSupported ("GLX_SGI_swap_control"))
-    glXSwapIntervalSGI (vsync);
-  else
-    {
-      LOGW ("GLX_SGI_swap_control not supported; failed to set vsync\n");
-      return;
-    }
-#else
-  LOGW ("No vsync extension found; failed to set vsync\n");
-  return;
-#endif
+  glfwSwapInterval (vsync);
   vu->vsync = vsync;
   LOGI ("Setting vsync %s.\n", vu->vsync ? "on" : "off");
 }
@@ -300,14 +245,13 @@ demo_view_toggle_fullscreen (demo_view_t *vu)
 {
   vu->fullscreen = !vu->fullscreen;
   if (vu->fullscreen) {
-    vu->x = glutGet (GLUT_WINDOW_X);
-    vu->y = glutGet (GLUT_WINDOW_Y);
-    vu->width  = glutGet (GLUT_WINDOW_WIDTH);
-    vu->height = glutGet (GLUT_WINDOW_HEIGHT);
-    glutFullScreen ();
+    glfwGetWindowPos (vu->window, &vu->x, &vu->y);
+    glfwGetWindowSize (vu->window, &vu->width, &vu->height);
+    GLFWmonitor *monitor = glfwGetPrimaryMonitor ();
+    const GLFWvidmode *mode = glfwGetVideoMode (monitor);
+    glfwSetWindowMonitor (vu->window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
   } else {
-    glutReshapeWindow (vu->width, vu->height);
-    glutPositionWindow (vu->x, vu->y);
+    glfwSetWindowMonitor (vu->window, NULL, vu->x, vu->y, vu->width, vu->height, 0);
   }
 }
 
@@ -317,37 +261,15 @@ void
 demo_view_reshape_func (demo_view_t *vu, int width, int height)
 {
   glViewport (0, 0, width, height);
-  glutPostRedisplay ();
+  vu->needs_redraw = true;
 }
 
 #define STEP 1.05
 void
-demo_view_keyboard_func (demo_view_t *vu, unsigned char key, int x, int y)
+demo_view_char_func (demo_view_t *vu, unsigned int codepoint)
 {
-  switch (key)
+  switch (codepoint)
   {
-    case '\033':
-    case 'q':
-      exit (0);
-      break;
-
-    case ' ':
-      demo_view_toggle_animation (vu);
-      break;
-    case '?':
-      demo_view_print_help (vu);
-      break;
-    case 's':
-      demo_view_toggle_srgb (vu);
-      break;
-    case 'v':
-      demo_view_toggle_vsync (vu);
-      break;
-
-    case 'f':
-      demo_view_toggle_fullscreen (vu);
-      break;
-
     case '=':
       demo_view_scale (vu, STEP, STEP);
       break;
@@ -382,61 +304,90 @@ demo_view_keyboard_func (demo_view_t *vu, unsigned char key, int x, int y)
       demo_view_translate (vu, -.1, 0);
       break;
 
-    case 'r':
-      demo_view_reset (vu);
-      break;
-
     default:
       return;
   }
-  glutPostRedisplay ();
+  vu->needs_redraw = true;
 }
 
 void
-demo_view_special_func (demo_view_t *vu, int key, int x, int y)
+demo_view_key_func (demo_view_t *vu, int key, int scancode, int action, int mods)
 {
+  if (action != GLFW_PRESS)
+    return;
+
   switch (key)
   {
-    case GLUT_KEY_UP:
+    case GLFW_KEY_ESCAPE:
+    case GLFW_KEY_Q:
+      glfwSetWindowShouldClose (vu->window, GLFW_TRUE);
+      break;
+
+    case GLFW_KEY_SPACE:
+      demo_view_toggle_animation (vu);
+      break;
+    case GLFW_KEY_SLASH:
+      if (mods & GLFW_MOD_SHIFT)
+        demo_view_print_help (vu);
+      break;
+    case GLFW_KEY_S:
+      demo_view_toggle_srgb (vu);
+      break;
+    case GLFW_KEY_V:
+      demo_view_toggle_vsync (vu);
+      break;
+
+    case GLFW_KEY_F:
+      demo_view_toggle_fullscreen (vu);
+      break;
+
+    case GLFW_KEY_R:
+      demo_view_reset (vu);
+      break;
+
+    case GLFW_KEY_UP:
       demo_view_translate (vu, 0, -.1);
       break;
-    case GLUT_KEY_DOWN:
+    case GLFW_KEY_DOWN:
       demo_view_translate (vu, 0, +.1);
       break;
-    case GLUT_KEY_LEFT:
+    case GLFW_KEY_LEFT:
       demo_view_translate (vu, +.1, 0);
       break;
-    case GLUT_KEY_RIGHT:
+    case GLFW_KEY_RIGHT:
       demo_view_translate (vu, -.1, 0);
       break;
 
     default:
       return;
   }
-  glutPostRedisplay ();
+  vu->needs_redraw = true;
 }
 
 void
-demo_view_mouse_func (demo_view_t *vu, int button, int state, int x, int y)
+demo_view_mouse_func (demo_view_t *vu, int button, int action, int mods)
 {
-  if (state == GLUT_DOWN) {
+  if (action == GLFW_PRESS) {
     vu->buttons |= (1 << button);
     vu->click_handled = false;
   } else
     vu->buttons &= ~(1 << button);
-  vu->modifiers = glutGetModifiers ();
+  vu->modifiers = mods;
+
+  double x, y;
+  glfwGetCursorPos (vu->window, &x, &y);
 
   switch (button)
   {
-    case GLUT_RIGHT_BUTTON:
-      switch (state) {
-        case GLUT_DOWN:
+    case GLFW_MOUSE_BUTTON_RIGHT:
+      switch (action) {
+        case GLFW_PRESS:
 	  if (vu->animate) {
 	    demo_view_toggle_animation (vu);
 	    vu->click_handled = true;
 	  }
 	  break;
-        case GLUT_UP:
+        case GLFW_RELEASE:
 	  if (!vu->animate)
 	    {
 	      if (!vu->dragged && !vu->click_handled)
@@ -451,31 +402,31 @@ demo_view_mouse_func (demo_view_t *vu, int button, int state, int x, int y)
 	  break;
       }
       break;
-
-#if !defined(GLUT_WHEEL_UP)
-#define GLUT_WHEEL_UP 3
-#define GLUT_WHEEL_DOWN 4
-#endif
-
-    case GLUT_WHEEL_UP:
-      demo_view_scale (vu, STEP, STEP);
-      break;
-
-    case GLUT_WHEEL_DOWN:
-      demo_view_scale (vu, 1. / STEP, 1. / STEP);
-      break;
   }
 
   vu->beginx = vu->lastx = x;
   vu->beginy = vu->lasty = y;
   vu->dragged = false;
 
-  glutPostRedisplay ();
+  vu->needs_redraw = true;
 }
 
 void
-demo_view_motion_func (demo_view_t *vu, int x, int y)
+demo_view_scroll_func (demo_view_t *vu, double xoffset, double yoffset)
 {
+  if (yoffset > 0)
+    demo_view_scale (vu, STEP, STEP);
+  else if (yoffset < 0)
+    demo_view_scale (vu, 1. / STEP, 1. / STEP);
+  vu->needs_redraw = true;
+}
+
+void
+demo_view_motion_func (demo_view_t *vu, double x, double y)
+{
+  if (!vu->buttons)
+    return;
+
   vu->dragged = true;
 
   int viewport[4];
@@ -483,7 +434,7 @@ demo_view_motion_func (demo_view_t *vu, int x, int y)
   GLuint width  = viewport[2];
   GLuint height = viewport[3];
 
-  if (vu->buttons & (1 << GLUT_LEFT_BUTTON))
+  if (vu->buttons & (1 << GLFW_MOUSE_BUTTON_LEFT))
   {
     {
       demo_view_translate (vu,
@@ -492,9 +443,9 @@ demo_view_motion_func (demo_view_t *vu, int x, int y)
     }
   }
 
-  if (vu->buttons & (1 << GLUT_RIGHT_BUTTON))
+  if (vu->buttons & (1 << GLFW_MOUSE_BUTTON_RIGHT))
   {
-    if (vu->modifiers & GLUT_ACTIVE_SHIFT) {
+    if (vu->modifiers & GLFW_MOD_SHIFT) {
       /* adjust perspective */
       demo_view_scale_perspective (vu, 1 - ((y - vu->lasty) / height) * 5);
     } else {
@@ -520,7 +471,7 @@ demo_view_motion_func (demo_view_t *vu, int x, int y)
     }
   }
 
-  if (vu->buttons & (1 << GLUT_MIDDLE_BUTTON))
+  if (vu->buttons & (1 << GLFW_MOUSE_BUTTON_MIDDLE))
   {
     /* scale */
     double factor = 1 - ((y - vu->lasty) / height) * 5;
@@ -535,7 +486,7 @@ demo_view_motion_func (demo_view_t *vu, int x, int y)
   vu->lasty = y;
   vu->lastt = current_time ();
 
-  glutPostRedisplay ();
+  vu->needs_redraw = true;
 }
 
 void
@@ -586,6 +537,18 @@ demo_view_display (demo_view_t *vu, demo_buffer_t *buffer)
   advance_frame (vu, new_time - vu->last_frame_time);
   vu->last_frame_time = new_time;
 
+  /* FPS reporting */
+  if (vu->animate && vu->has_fps_timer) {
+    double now = glfwGetTime ();
+    if (now - vu->fps_timer_last >= vu->fps_timer_interval) {
+      long t = current_time ();
+      LOGI ("%gfps\n", vu->num_frames * 1000. / (t - vu->fps_start_time));
+      vu->num_frames = 0;
+      vu->fps_start_time = t;
+      vu->fps_timer_last = now;
+    }
+  }
+
   int viewport[4];
   glGetIntegerv (GL_VIEWPORT, viewport);
   GLint width  = viewport[2];
@@ -616,7 +579,8 @@ demo_view_display (demo_view_t *vu, demo_buffer_t *buffer)
 
   demo_buffer_draw (buffer);
 
-  glutSwapBuffers ();
+  glfwSwapBuffers (vu->window);
+  vu->needs_redraw = false;
 }
 
 void
@@ -627,4 +591,10 @@ demo_view_setup (demo_view_t *vu)
   if (!vu->srgb)
     demo_view_toggle_srgb (vu);
   demo_glstate_setup (vu->st);
+}
+
+bool
+demo_view_should_redraw (demo_view_t *vu)
+{
+  return vu->needs_redraw || vu->animate;
 }

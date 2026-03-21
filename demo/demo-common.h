@@ -23,7 +23,7 @@
 #ifdef _WIN32
 #  define HAVE_GL 1
 #  define HAVE_GLEW 1
-#  define HAVE_GLUT 1
+#  define HAVE_GLFW 1
 #  define HAVE_FREETYPE2 1
 #endif
 
@@ -36,30 +36,10 @@
 #if defined(HAVE_GL)
 #  if defined(__APPLE__)
 #    include <OpenGL/OpenGL.h>
-#  else
-#    ifdef _WIN32
-#      include <GL/wglew.h>
-#    else
-#      include <GL/glxew.h>
-#    endif
 #  endif
 #endif /* HAVE_GL */
 
-/* Finally, Glut. */
-#ifdef HAVE_GLUT
-#  if defined(__APPLE__)
-#    include <GLUT/glut.h>
-#  else
-#    include <GL/glut.h>
-#    ifdef __has_include
-#      if __has_include(<GL/freeglut_ext.h>)
-#        include <GL/freeglut_ext.h>
-#      endif
-#    endif
-#  endif
-#endif
-
-
+#include <GLFW/glfw3.h>
 
 
 #define LOGI(...) ((void) fprintf (stdout, __VA_ARGS__))

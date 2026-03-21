@@ -114,39 +114,39 @@ static int getopt(int argc, char *argv[], char *opts)
 #endif
 
 static void
-reshape_func (int width, int height)
+framebuffer_size_func (GLFWwindow *window, int width, int height)
 {
   demo_view_reshape_func (vu, width, height);
 }
 
 static void
-keyboard_func (unsigned char key, int x, int y)
+key_func (GLFWwindow *window, int key, int scancode, int action, int mods)
 {
-  demo_view_keyboard_func (vu, key, x, y);
+  demo_view_key_func (vu, key, scancode, action, mods);
 }
 
 static void
-special_func (int key, int x, int y)
+char_func (GLFWwindow *window, unsigned int codepoint)
 {
-  demo_view_special_func (vu, key, x, y);
+  demo_view_char_func (vu, codepoint);
 }
 
 static void
-mouse_func (int button, int state, int x, int y)
+mouse_func (GLFWwindow *window, int button, int action, int mods)
 {
-  demo_view_mouse_func (vu, button, state, x, y);
+  demo_view_mouse_func (vu, button, action, mods);
 }
 
 static void
-motion_func (int x, int y)
+scroll_func (GLFWwindow *window, double xoffset, double yoffset)
+{
+  demo_view_scroll_func (vu, xoffset, yoffset);
+}
+
+static void
+cursor_func (GLFWwindow *window, double x, double y)
 {
   demo_view_motion_func (vu, x, y);
-}
-
-static void
-display_func (void)
-{
-  demo_view_display (vu, buffer);
 }
 
 static void
@@ -245,11 +245,17 @@ warn_about_vsync_override (void)
   LOGW ("If toggling vsync with `v` has no effect, restart with `vblank_mode=0`.\n");
 }
 
+static void
+glfw_error_callback (int error, const char *description)
+{
+  LOGW ("GLFW error %d: %s\n", error, description);
+}
+
 int
 main (int argc, char** argv)
 {
   /* Process received parameters */
-#   include "default-text.h"
+# include "default-text.h"
   const char *text = NULL;
   const char *font_path = NULL;
   char arg;
@@ -286,28 +292,34 @@ main (int argc, char** argv)
     return 1;
   }
 
-  /* Setup glut */
-  glutInit (&argc, argv);
-  glutInitWindowSize (WINDOW_W, WINDOW_H);
-  unsigned int display_mode = GLUT_DOUBLE | GLUT_RGB;
-#ifdef GLUT_SRGB
-  display_mode |= GLUT_SRGB;
-#endif
-#ifdef __APPLE__
-#ifdef GLUT_3_2_CORE_PROFILE
-  display_mode |= GLUT_3_2_CORE_PROFILE;
-#endif
-#endif
-  glutInitDisplayMode (display_mode);
-  int window = glutCreateWindow ("GLyphy Demo");
-  glutReshapeFunc (reshape_func);
-  glutDisplayFunc (display_func);
-  glutKeyboardFunc (keyboard_func);
-  glutSpecialFunc (special_func);
-  glutMouseFunc (mouse_func);
-  glutMotionFunc (motion_func);
+  /* Setup GLFW */
+  glfwSetErrorCallback (glfw_error_callback);
+  if (!glfwInit ())
+    die ("Failed to initialize GLFW");
 
-  /* Setup glew */
+  glfwWindowHint (GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint (GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint (GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#ifdef __APPLE__
+  glfwWindowHint (GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
+  glfwWindowHint (GLFW_SRGB_CAPABLE, GLFW_TRUE);
+
+  GLFWwindow *window = glfwCreateWindow (WINDOW_W, WINDOW_H, "GLyphy Demo", NULL, NULL);
+  if (!window) {
+    glfwTerminate ();
+    die ("Failed to create GLFW window");
+  }
+  glfwMakeContextCurrent (window);
+
+  glfwSetFramebufferSizeCallback (window, framebuffer_size_func);
+  glfwSetKeyCallback (window, key_func);
+  glfwSetCharCallback (window, char_func);
+  glfwSetMouseButtonCallback (window, mouse_func);
+  glfwSetScrollCallback (window, scroll_func);
+  glfwSetCursorPosCallback (window, cursor_func);
+
+  /* Setup GLEW */
   glewExperimental = GL_TRUE;
   if (GLEW_OK != glewInit ())
     die ("Failed to initialize GL; something really broken");
@@ -315,7 +327,7 @@ main (int argc, char** argv)
     die ("OpenGL 3.3 not supported");
 
   st = demo_glstate_create ();
-  vu = demo_view_create (st);
+  vu = demo_view_create (st, window);
   demo_view_print_help (vu);
   warn_about_vsync_override ();
 
@@ -348,7 +360,17 @@ main (int argc, char** argv)
   demo_font_print_stats (font);
 
   demo_view_setup (vu);
-  glutMainLoop ();
+
+  /* Main loop */
+  while (!glfwWindowShouldClose (window))
+  {
+    if (demo_view_should_redraw (vu))
+      demo_view_display (vu, buffer);
+    else
+      glfwWaitEvents ();
+
+    glfwPollEvents ();
+  }
 
   demo_buffer_destroy (buffer);
   demo_font_destroy (font);
@@ -359,7 +381,8 @@ main (int argc, char** argv)
   demo_view_destroy (vu);
   demo_glstate_destroy (st);
 
-  glutDestroyWindow (window);
+  glfwDestroyWindow (window);
+  glfwTerminate ();
 
   return 0;
 }

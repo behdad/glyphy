@@ -49,6 +49,6 @@ demo_shader_sources += custom_target('default font',
 glyphy_demo = executable('glyphy-demo', demo_sources + demo_shader_sources,
   cpp_args: [],
   include_directories: [confinc, srcinc],
-  dependencies: [freetype_dep, harfbuzz_dep, gl_dep, glew_dep, glut_dep],
+  dependencies: [freetype_dep, harfbuzz_dep, gl_dep, glew_dep, glfw_dep],
   link_with: [libglyphy],
   install: true)

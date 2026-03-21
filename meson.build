@@ -61,24 +61,11 @@ if not freetype_dep.found()
 endif
 harfbuzz_dep = dependency('harfbuzz', version: '>= 4.0.0', required: true)
 glew_dep = dependency('glew', required: get_option('demo').enabled())
+glfw_dep = dependency('glfw3', required: get_option('demo').enabled())
 if host_machine.system() == 'darwin'
   gl_dep = dependency('appleframeworks', modules: ['OpenGL'], required: true)
-  glut_dep = dependency('appleframeworks', modules: ['GLUT'], required: get_option('demo').enabled())
 else
   gl_dep = dependency('gl', required: true)
-  glut_dep = dependency('glut', method: 'pkg-config', required: false)
-
-  if not glut_dep.found()
-    glut_dep = dependency('GLUT', method: 'pkg-config', required: false)
-  endif
-
-  if not glut_dep.found()
-    glut_dep = dependency('GLUT', method: 'cmake', required: false)
-  endif
-
-  if not glut_dep.found()
-    glut_dep = dependency('FreeGLUT', method: 'cmake', required: get_option('demo').enabled())
-  endif
 endif
 
 prefix = get_option('prefix')
@@ -99,8 +86,8 @@ endif
 if glew_dep.found()
   glyphy_conf.set('HAVE_GLEW', 1)
 endif
-if glut_dep.found()
-  glyphy_conf.set('HAVE_GLUT',  1)
+if glfw_dep.found()
+  glyphy_conf.set('HAVE_GLFW',  1)
 endif
 glyphy_conf.set_quoted('PKGDATADIR', pkgdatadir)
 
