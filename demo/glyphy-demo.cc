@@ -321,8 +321,10 @@ main (int argc, char** argv)
 
   /* Setup GLEW */
   glewExperimental = GL_TRUE;
-  if (GLEW_OK != glewInit ())
-    die ("Failed to initialize GL; something really broken");
+  glewInit ();
+  /* glewInit() generates GL_INVALID_ENUM in core profile; clear it. */
+  while (glGetError () != GL_NO_ERROR)
+    ;
   if (!glewIsSupported ("GL_VERSION_3_3"))
     die ("OpenGL 3.3 not supported");
 
