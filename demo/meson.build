@@ -46,9 +46,15 @@ demo_shader_sources += custom_target('default font',
   capture: true,
   command: [ hexify, 'static const char default_font[]', '@INPUT@' ])
 
+demo_deps = [freetype_dep, harfbuzz_dep, gl_dep, glew_dep, glut_dep]
+
+if host_machine.system() == 'darwin'
+  demo_deps += dependency('appleframeworks', modules: ['OpenGL'])
+endif
+
 glyphy_demo = executable('glyphy-demo', demo_sources + demo_shader_sources,
   cpp_args: [],
   include_directories: [confinc, srcinc],
-  dependencies: [freetype_dep, harfbuzz_dep, gl_dep, glew_dep, glut_dep],
+  dependencies: demo_deps,
   link_with: [libglyphy],
   install: true)
