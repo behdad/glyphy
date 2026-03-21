@@ -1,7 +1,8 @@
 /*
- * Copyright 2026 Behdad Esfahbod. All Rights Reserved.
- * Based on the Slug algorithm by Eric Lengyel.
- *
+ * Copyright 2026 Behdad Esfahbod.
+ * Copyright 2017 Eric Lengyel.
+ * Based on the Slug algorithm by Eric Lengyel:
+ * https://github.com/EricLengyel/Slug
  */
 
 
