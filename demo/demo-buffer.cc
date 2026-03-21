@@ -16,6 +16,7 @@ struct demo_buffer_t {
   glyphy_extents_t ink_extents;
   glyphy_extents_t logical_extents;
   bool dirty;
+  GLuint vao_name;
   GLuint buf_name;
 };
 
@@ -25,6 +26,7 @@ demo_buffer_create (void)
   demo_buffer_t *buffer = (demo_buffer_t *) calloc (1, sizeof (demo_buffer_t));
 
   buffer->vertices = new std::vector<glyph_vertex_t>;
+  glGenVertexArrays (1, &buffer->vao_name);
   glGenBuffers (1, &buffer->buf_name);
 
   demo_buffer_clear (buffer);
@@ -38,6 +40,7 @@ demo_buffer_destroy (demo_buffer_t *buffer)
   if (!buffer)
     return;
 
+  glDeleteVertexArrays (1, &buffer->vao_name);
   glDeleteBuffers (1, &buffer->buf_name);
   delete buffer->vertices;
   free (buffer);
@@ -139,6 +142,7 @@ demo_buffer_draw (demo_buffer_t *buffer)
   GLint program;
   glGetIntegerv (GL_CURRENT_PROGRAM, &program);
 
+  glBindVertexArray (buffer->vao_name);
   glBindBuffer (GL_ARRAY_BUFFER, buffer->buf_name);
   if (buffer->dirty) {
     glBufferData (GL_ARRAY_BUFFER,
@@ -186,4 +190,5 @@ demo_buffer_draw (demo_buffer_t *buffer)
   glDisableVertexAttribArray (loc_corner);
   glDisableVertexAttribArray (loc_tpp);
   glDisableVertexAttribArray (loc_glyph);
+  glBindVertexArray (0);
 }
