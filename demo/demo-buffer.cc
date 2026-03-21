@@ -135,7 +135,7 @@ demo_buffer_add_text (demo_buffer_t        *buffer,
       corner.x = buffer->cursor.x;
       corner.y = buffer->cursor.y - font_size;
       glyphy_extents_add (&buffer->logical_extents, &corner);
-      corner.x = buffer->cursor.x + font_size * gi.advance;
+      corner.x = buffer->cursor.x + scale * gi.advance;
       corner.y = buffer->cursor.y;
       glyphy_extents_add (&buffer->logical_extents, &corner);
 

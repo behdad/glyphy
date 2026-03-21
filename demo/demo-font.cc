@@ -126,10 +126,7 @@ encode_glyph (demo_font_t      *font,
 				      extents))
     die ("Failed encoding blob");
 
-  unsigned int upem = hb_face_get_upem (font->face);
-  glyphy_extents_scale (extents, 1. / upem, 1. / upem);
-
-  *advance = hb_font_get_glyph_h_advance (font->font, glyph_index) / (double) upem;
+  *advance = hb_font_get_glyph_h_advance (font->font, glyph_index);
 
   font->num_glyphs++;
   font->sum_curves += glyphy_curve_accumulator_get_num_curves (font->acc);

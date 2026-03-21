@@ -28,12 +28,9 @@ demo_shader_add_glyph_vertices (const glyphy_point_t        &p,
   if (gi->is_empty)
     return;
 
-  /* Texcoords in font design units (extents are normalized, scale back) */
-  double upem = gi->upem;
-  double min_x = gi->extents.min_x * upem;
-  double max_x = gi->extents.max_x * upem;
-  double min_y = gi->extents.min_y * upem;
-  double max_y = gi->extents.max_y * upem;
+  /* Extents and texcoords are in font design units.
+   * Screen position uses font_size / upem as the scale. */
+  double scale = font_size / gi->upem;
 
   glyph_vertex_t v[4];
 
@@ -41,13 +38,13 @@ demo_shader_add_glyph_vertices (const glyphy_point_t        &p,
     int cx = (ci >> 1) & 1;
     int cy = ci & 1;
 
-    double vx = p.x + font_size * ((1 - cx) * gi->extents.min_x + cx * gi->extents.max_x);
-    double vy = p.y - font_size * ((1 - cy) * gi->extents.min_y + cy * gi->extents.max_y);
+    double ex = (1 - cx) * gi->extents.min_x + cx * gi->extents.max_x;
+    double ey = (1 - cy) * gi->extents.min_y + cy * gi->extents.max_y;
 
-    v[ci].x = (float) vx;
-    v[ci].y = (float) vy;
-    v[ci].tx = (float) ((1 - cx) * min_x + cx * max_x);
-    v[ci].ty = (float) ((1 - cy) * min_y + cy * max_y);
+    v[ci].x = (float) (p.x + scale * ex);
+    v[ci].y = (float) (p.y - scale * ey);
+    v[ci].tx = (float) ex;
+    v[ci].ty = (float) ey;
     v[ci].atlas_offset = gi->atlas_offset;
   }
 
