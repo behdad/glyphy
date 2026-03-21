@@ -4,7 +4,8 @@ project('glyphy', 'c', 'cpp',
   default_options: [
     'cpp_rtti=false',
     'cpp_std=c++11',
-    'wrap_mode=nofallback'
+    'wrap_mode=nofallback',
+    'buildtype=debugoptimized',
   ],
 )
 
