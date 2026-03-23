@@ -23,14 +23,6 @@ casting horizontal and vertical rays against the quadratic Bezier
 curves, using Lengyel's equivalence class algorithm for numerical
 robustness. Curves are organized into bands for efficient early exit.
 
-The vertex shader performs dynamic dilation to ensure edge pixels
-are always shaded for antialiasing.
-
-Unlike Slug's reference vertex path, GLyphy computes dilation from
-the projective Jacobian of NDC with respect to glyph-plane position
-while using its existing quad vertex format, so the half-pixel
-expansion remains perspective-aware.
-
 ## License
 
 GLyphy is licensed under the HarfBuzz Old MIT license.

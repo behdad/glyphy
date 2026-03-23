@@ -19,7 +19,7 @@
 uniform isamplerBuffer u_atlas;
 
 
-uint glyphy_calc_root_code (float y1, float y2, float y3)
+uint _glyphy_calc_root_code (float y1, float y2, float y3)
 {
   uint i1 = floatBitsToUint (y1) >> 31U;
   uint i2 = floatBitsToUint (y2) >> 30U;
@@ -31,7 +31,7 @@ uint glyphy_calc_root_code (float y1, float y2, float y3)
   return (0x2E74U >> shift) & 0x0101U;
 }
 
-vec2 glyphy_solve_horiz_poly (vec4 p12, vec2 p3)
+vec2 _glyphy_solve_horiz_poly (vec4 p12, vec2 p3)
 {
   vec2 a = p12.xy - p12.zw * 2.0 + p3;
   vec2 b = p12.xy - p12.zw;
@@ -49,7 +49,7 @@ vec2 glyphy_solve_horiz_poly (vec4 p12, vec2 p3)
 	       (a.x * t2 - b.x * 2.0) * t2 + p12.x);
 }
 
-vec2 glyphy_solve_vert_poly (vec4 p12, vec2 p3)
+vec2 _glyphy_solve_vert_poly (vec4 p12, vec2 p3)
 {
   vec2 a = p12.xy - p12.zw * 2.0 + p3;
   vec2 b = p12.xy - p12.zw;
@@ -67,7 +67,7 @@ vec2 glyphy_solve_vert_poly (vec4 p12, vec2 p3)
 	       (a.y * t2 - b.y * 2.0) * t2 + p12.y);
 }
 
-float glyphy_calc_coverage (float xcov, float ycov, float xwgt, float ywgt)
+float _glyphy_calc_coverage (float xcov, float ycov, float xwgt, float ywgt)
 {
   float coverage = max (abs (xcov * xwgt + ycov * ywgt) /
 			max (xwgt + ywgt, 1.0 / 65536.0),
@@ -76,6 +76,13 @@ float glyphy_calc_coverage (float xcov, float ycov, float xwgt, float ywgt)
   return clamp (coverage, 0.0, 1.0);
 }
 
+/* Render a glyph and return its coverage in [0, 1].
+ *
+ * Requires the u_atlas uniform to be bound to the glyph atlas buffer.
+ *
+ * renderCoord:  em-space sample position (interpolated from vertex shader)
+ * glyphLoc:     offset into u_atlas for this glyph's encoded blob
+ */
 float glyphy_render (vec2 renderCoord, uint glyphLoc_)
 {
   vec2 emsPerPixel = fwidth (renderCoord);
@@ -128,10 +135,10 @@ float glyphy_render (vec2 renderCoord, uint glyphLoc_)
       if (max (max (p12.x, p12.z), p3.x) * pixelsPerEm.x < -0.5) break;
     }
 
-    uint code = glyphy_calc_root_code (p12.y, p12.w, p3.y);
+    uint code = _glyphy_calc_root_code (p12.y, p12.w, p3.y);
     if (code != 0U)
     {
-      vec2 r = glyphy_solve_horiz_poly (p12, p3) * pixelsPerEm.x;
+      vec2 r = _glyphy_solve_horiz_poly (p12, p3) * pixelsPerEm.x;
       /* For leftward ray: saturate(0.5 - r) counts coverage from the left */
       vec2 cov = hLeftRay ? clamp (vec2 (0.5) - r, 0.0, 1.0)
 			  : clamp (r + vec2 (0.5), 0.0, 1.0);
@@ -175,10 +182,10 @@ float glyphy_render (vec2 renderCoord, uint glyphLoc_)
       if (max (max (p12.y, p12.w), p3.y) * pixelsPerEm.y < -0.5) break;
     }
 
-    uint code = glyphy_calc_root_code (p12.x, p12.z, p3.x);
+    uint code = _glyphy_calc_root_code (p12.x, p12.z, p3.x);
     if (code != 0U)
     {
-      vec2 r = glyphy_solve_vert_poly (p12, p3) * pixelsPerEm.y;
+      vec2 r = _glyphy_solve_vert_poly (p12, p3) * pixelsPerEm.y;
       vec2 cov = vLeftRay ? clamp (vec2 (0.5) - r, 0.0, 1.0)
 			  : clamp (r + vec2 (0.5), 0.0, 1.0);
 
@@ -196,5 +203,5 @@ float glyphy_render (vec2 renderCoord, uint glyphLoc_)
     }
   }
 
-  return glyphy_calc_coverage (xcov, ycov, xwgt, ywgt);
+  return _glyphy_calc_coverage (xcov, ycov, xwgt, ywgt);
 }
