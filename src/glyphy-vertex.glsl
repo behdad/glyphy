@@ -47,7 +47,7 @@ void glyphy_dilate (inout vec2 position, inout vec2 texcoord,
 	  ? s2 * (st + sqrt (uv)) / denom
 	  : 0.0;
 
-  vec2 dPos = d * n;
+  vec2 dPos = d * normal;
   position += dPos;
   texcoord += vec2 (dot (dPos, jac.xy), dot (dPos, jac.zw));
 }
