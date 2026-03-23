@@ -17,15 +17,13 @@ struct glyph_vertex_t {
   /* Em-space texture coordinates */
   GLfloat tx;
   GLfloat ty;
-  /* Corner direction for dilation (-1 or +1 per axis) */
-  GLfloat cx;
-  GLfloat cy;
-  /* Texcoord-per-position ratio (constant across glyph) */
-  GLfloat tpx;
-  GLfloat tpy;
+  /* Object-space outward normal at this vertex */
+  GLfloat nx;
+  GLfloat ny;
+  /* Em units per object-space unit (upem / font_size) */
+  GLfloat emPerPos;
   /* Atlas offset (constant across glyph) */
   GLuint atlas_offset;
-  GLuint _padding;
 };
 
 void

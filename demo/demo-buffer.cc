@@ -165,17 +165,17 @@ demo_buffer_draw (demo_buffer_t *buffer)
   glVertexAttribPointer (loc_tex, 2, GL_FLOAT, GL_FALSE, stride,
                          (const void *) offsetof (glyph_vertex_t, tx));
 
-  /* a_corner: vec2 */
-  GLint loc_corner = glGetAttribLocation (program, "a_corner");
-  glEnableVertexAttribArray (loc_corner);
-  glVertexAttribPointer (loc_corner, 2, GL_FLOAT, GL_FALSE, stride,
-                         (const void *) offsetof (glyph_vertex_t, cx));
+  /* a_normal: vec2 */
+  GLint loc_normal = glGetAttribLocation (program, "a_normal");
+  glEnableVertexAttribArray (loc_normal);
+  glVertexAttribPointer (loc_normal, 2, GL_FLOAT, GL_FALSE, stride,
+                         (const void *) offsetof (glyph_vertex_t, nx));
 
-  /* a_texPerPos: vec2 */
-  GLint loc_tpp = glGetAttribLocation (program, "a_texPerPos");
-  glEnableVertexAttribArray (loc_tpp);
-  glVertexAttribPointer (loc_tpp, 2, GL_FLOAT, GL_FALSE, stride,
-                         (const void *) offsetof (glyph_vertex_t, tpx));
+  /* a_emPerPos: float */
+  GLint loc_epp = glGetAttribLocation (program, "a_emPerPos");
+  glEnableVertexAttribArray (loc_epp);
+  glVertexAttribPointer (loc_epp, 1, GL_FLOAT, GL_FALSE, stride,
+                         (const void *) offsetof (glyph_vertex_t, emPerPos));
 
   /* a_glyphLoc: uint */
   GLint loc_glyph = glGetAttribLocation (program, "a_glyphLoc");
@@ -187,8 +187,8 @@ demo_buffer_draw (demo_buffer_t *buffer)
 
   glDisableVertexAttribArray (loc_pos);
   glDisableVertexAttribArray (loc_tex);
-  glDisableVertexAttribArray (loc_corner);
-  glDisableVertexAttribArray (loc_tpp);
+  glDisableVertexAttribArray (loc_normal);
+  glDisableVertexAttribArray (loc_epp);
   glDisableVertexAttribArray (loc_glyph);
   glBindVertexArray (0);
 }
