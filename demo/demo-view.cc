@@ -57,6 +57,9 @@ struct demo_view_t {
   double fps_timer_interval;
   double fps_timer_last;
 
+  /* Vim-style repeat count */
+  unsigned int repeat_count;
+
   /* Dirty flag for redraw */
   bool needs_redraw;
 
@@ -263,44 +266,55 @@ demo_view_reshape_func (demo_view_t *vu, int width, int height)
 void
 demo_view_char_func (demo_view_t *vu, unsigned int codepoint)
 {
-  switch (codepoint)
-  {
-    case '=':
-      demo_view_scale (vu, STEP, STEP);
-      break;
-    case '-':
-      demo_view_scale (vu, 1. / STEP, 1. / STEP);
-      break;
+  /* Accumulate digit prefix for repeat count */
+  if (codepoint >= '0' && codepoint <= '9') {
+    vu->repeat_count = vu->repeat_count * 10 + (codepoint - '0');
+    return;
+  }
 
-    case '[':
-      demo_view_scalex (vu, STEP);
-      break;
-    case ']':
-      demo_view_scalex (vu, 1. / STEP);
-      break;
+  unsigned int count = vu->repeat_count ? vu->repeat_count : 1;
+  vu->repeat_count = 0;
 
-    case '{':
-      demo_view_scaley (vu, STEP);
-      break;
-    case '}':
-      demo_view_scaley (vu, 1. / STEP);
-      break;
+  for (unsigned int i = 0; i < count; i++) {
+    switch (codepoint)
+    {
+      case '=':
+	demo_view_scale (vu, STEP, STEP);
+	break;
+      case '-':
+	demo_view_scale (vu, 1. / STEP, 1. / STEP);
+	break;
 
-    case 'k':
-      demo_view_translate (vu, 0, -.1);
-      break;
-    case 'j':
-      demo_view_translate (vu, 0, +.1);
-      break;
-    case 'h':
-      demo_view_translate (vu, +.1, 0);
-      break;
-    case 'l':
-      demo_view_translate (vu, -.1, 0);
-      break;
+      case '[':
+	demo_view_scalex (vu, STEP);
+	break;
+      case ']':
+	demo_view_scalex (vu, 1. / STEP);
+	break;
 
-    default:
-      return;
+      case '{':
+	demo_view_scaley (vu, STEP);
+	break;
+      case '}':
+	demo_view_scaley (vu, 1. / STEP);
+	break;
+
+      case 'k':
+	demo_view_translate (vu, 0, -.1);
+	break;
+      case 'j':
+	demo_view_translate (vu, 0, +.1);
+	break;
+      case 'h':
+	demo_view_translate (vu, +.1, 0);
+	break;
+      case 'l':
+	demo_view_translate (vu, -.1, 0);
+	break;
+
+      default:
+	return;
+    }
   }
   vu->needs_redraw = true;
 }
@@ -494,23 +508,24 @@ demo_view_print_help (demo_view_t *vu)
   LOGI ("GLyphy demo controls\n");
   LOGI ("Keyboard:\n");
   LOGI ("  Esc, q                    Quit\n");
+  LOGI ("  ?                         This help\n");
   LOGI ("  Space                     Toggle animation\n");
   LOGI ("  f                         Toggle fullscreen\n");
   LOGI ("  s                         Toggle sRGB framebuffer\n");
   LOGI ("  v                         Toggle vsync\n");
-  LOGI ("  =, -                      Zoom in or out\n");
-  LOGI ("  [, ]                      Stretch or shrink horizontally\n");
-  LOGI ("  {, }                      Stretch or shrink vertically\n");
-  LOGI ("  h j k l                   Pan\n");
+  LOGI ("  =, -                      Zoom in/out\n");
+  LOGI ("  [, ]                      Stretch/shrink horizontally\n");
+  LOGI ("  {, }                      Stretch/shrink vertically\n");
+  LOGI ("  h, j, k, l               Pan (vim-style)\n");
   LOGI ("  Arrow keys                Pan\n");
   LOGI ("  r                         Reset view\n");
+  LOGI ("  <N><key>                  Repeat key N times (e.g. 30=)\n");
   LOGI ("Mouse:\n");
   LOGI ("  Left drag                 Pan\n");
-  LOGI ("  Middle drag               Zoom\n");
-  LOGI ("  Wheel                     Zoom\n");
+  LOGI ("  Middle drag / wheel       Zoom\n");
   LOGI ("  Right drag                Rotate\n");
   LOGI ("  Shift + right drag        Adjust perspective\n");
-  LOGI ("  Right drag and release    Animate rotation\n");
+  LOGI ("  Right drag and release    Spin animation\n");
   LOGI ("  Right click               Toggle animation\n");
   LOGI ("\n");
 }
