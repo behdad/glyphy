@@ -57,15 +57,6 @@ parse_uint (const char *arg, unsigned int *value)
   return true;
 }
 
-static glyphy_bool_t
-accumulate_curve (const glyphy_curve_t *curve,
-                  void                 *user_data)
-{
-  std::vector<glyphy_curve_t> *curves = (std::vector<glyphy_curve_t> *) user_data;
-  curves->push_back (*curve);
-  return true;
-}
-
 static double
 ns_to_ms (uint64_t ns)
 {
@@ -96,16 +87,12 @@ benchmark_font (hb_face_t    *face,
 {
   bench_stats_t stats = {};
   hb_font_t *font = hb_font_create (face);
-  glyphy_encoder_t *encoder = glyphy_encoder_create ();
-  glyphy_curve_accumulator_t *acc = glyphy_curve_accumulator_create ();
-  std::vector<glyphy_curve_t> curves;
+  glyphy_t *g = glyphy_create ();
   std::vector<glyphy_texel_t> scratch_buffer (1u << 20);
   unsigned int glyph_count = hb_face_get_glyph_count (face);
 
   if (!glyph_count)
     die ("Font has no glyphs");
-
-  curves.reserve (1024);
 
   typedef std::chrono::steady_clock clock;
   clock::time_point wall_start = clock::now ();
@@ -115,15 +102,13 @@ benchmark_font (hb_face_t    *face,
       unsigned int output_len = 0;
       glyphy_extents_t extents;
 
-      curves.clear ();
-      glyphy_curve_accumulator_reset (acc);
-      glyphy_curve_accumulator_set_callback (acc, accumulate_curve, &curves);
+      glyphy_reset (g);
 
       clock::time_point outline_start = clock::now ();
-      glyphy_harfbuzz(font_get_glyph_shape) (font, glyph_index, acc);
+      glyphy_harfbuzz(font_get_glyph_shape) (font, glyph_index, g);
       clock::time_point outline_end = clock::now ();
 
-      if (!glyphy_curve_accumulator_successful (acc)) {
+      if (!glyphy_successful (g)) {
         char message[128];
         snprintf (message, sizeof (message),
                   "Failed accumulating curves for glyph %u", glyph_index);
@@ -131,13 +116,11 @@ benchmark_font (hb_face_t    *face,
       }
 
       clock::time_point encode_start = clock::now ();
-      if (!glyphy_encoder_encode (encoder,
-                                  curves.empty () ? NULL : &curves[0],
-                                  curves.size (),
-                                  scratch_buffer.data (),
-                                  scratch_buffer.size (),
-                                  &output_len,
-                                  &extents)) {
+      if (!glyphy_encode (g,
+                          scratch_buffer.data (),
+                          scratch_buffer.size (),
+                          &output_len,
+                          &extents)) {
         char message[128];
         snprintf (message, sizeof (message),
                   "Failed encoding blob for glyph %u", glyph_index);
@@ -148,7 +131,7 @@ benchmark_font (hb_face_t    *face,
       stats.glyphs++;
       if (!glyphy_extents_is_empty (&extents))
         stats.non_empty_glyphs++;
-      stats.curves += glyphy_curve_accumulator_get_num_curves (acc);
+      stats.curves += glyphy_get_num_curves (g);
       stats.blob_bytes += (uint64_t) output_len * sizeof (glyphy_texel_t);
       stats.outline_ns += std::chrono::duration_cast<std::chrono::nanoseconds> (outline_end - outline_start).count ();
       stats.encode_ns += std::chrono::duration_cast<std::chrono::nanoseconds> (encode_end - encode_start).count ();
@@ -157,8 +140,7 @@ benchmark_font (hb_face_t    *face,
 
   stats.wall_ns = std::chrono::duration_cast<std::chrono::nanoseconds> (clock::now () - wall_start).count ();
 
-  glyphy_encoder_destroy (encoder);
-  glyphy_curve_accumulator_destroy (acc);
+  glyphy_destroy (g);
   hb_font_destroy (font);
 
   return stats;

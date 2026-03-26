@@ -72,101 +72,8 @@ glyphy_extents_scale (glyphy_extents_t *extents,
 
 
 /*
- * Quadratic Bezier curves
+ * Blob texel
  */
-
-
-typedef struct {
-  glyphy_point_t p1;
-  glyphy_point_t p2;
-  glyphy_point_t p3;
-} glyphy_curve_t;
-
-
-/*
- * Accumulate quadratic Bezier curves from glyph outlines
- */
-
-
-typedef glyphy_bool_t (*glyphy_curve_accumulator_callback_t) (const glyphy_curve_t *curve,
-                                                              void                 *user_data);
-
-typedef struct glyphy_curve_accumulator_t glyphy_curve_accumulator_t;
-
-GLYPHY_API glyphy_curve_accumulator_t *
-glyphy_curve_accumulator_create (void);
-
-GLYPHY_API void
-glyphy_curve_accumulator_destroy (glyphy_curve_accumulator_t *acc);
-
-GLYPHY_API glyphy_curve_accumulator_t *
-glyphy_curve_accumulator_reference (glyphy_curve_accumulator_t *acc);
-
-GLYPHY_API void
-glyphy_curve_accumulator_reset (glyphy_curve_accumulator_t *acc);
-
-
-/* Configure accumulator */
-
-GLYPHY_API void
-glyphy_curve_accumulator_set_callback (glyphy_curve_accumulator_t *acc,
-                                       glyphy_curve_accumulator_callback_t callback,
-                                       void                       *user_data);
-
-GLYPHY_API void
-glyphy_curve_accumulator_get_callback (glyphy_curve_accumulator_t  *acc,
-                                       glyphy_curve_accumulator_callback_t *callback,
-                                       void                       **user_data);
-
-
-/* Accumulation results */
-
-GLYPHY_API unsigned int
-glyphy_curve_accumulator_get_num_curves (glyphy_curve_accumulator_t *acc);
-
-GLYPHY_API glyphy_bool_t
-glyphy_curve_accumulator_successful (glyphy_curve_accumulator_t *acc);
-
-
-/* Accumulate */
-
-GLYPHY_API void
-glyphy_curve_accumulator_move_to (glyphy_curve_accumulator_t *acc,
-                                  const glyphy_point_t *p0);
-
-GLYPHY_API void
-glyphy_curve_accumulator_line_to (glyphy_curve_accumulator_t *acc,
-                                  const glyphy_point_t *p1);
-
-GLYPHY_API void
-glyphy_curve_accumulator_conic_to (glyphy_curve_accumulator_t *acc,
-                                   const glyphy_point_t *p1,
-                                   const glyphy_point_t *p2);
-
-GLYPHY_API void
-glyphy_curve_accumulator_cubic_to (glyphy_curve_accumulator_t *acc,
-                                   const glyphy_point_t *p1,
-                                   const glyphy_point_t *p2,
-                                   const glyphy_point_t *p3);
-
-GLYPHY_API void
-glyphy_curve_accumulator_get_current_point (glyphy_curve_accumulator_t *acc,
-                                            glyphy_point_t *point);
-
-GLYPHY_API void
-glyphy_curve_accumulator_close_path (glyphy_curve_accumulator_t *acc);
-
-GLYPHY_API void
-glyphy_curve_list_extents (const glyphy_curve_t *curves,
-                           unsigned int          num_curves,
-                           glyphy_extents_t     *extents);
-
-
-
-/*
- * Encode curves into blob for GPU rendering
- */
-
 
 #ifndef GLYPHY_UNITS_PER_EM_UNIT
 #define GLYPHY_UNITS_PER_EM_UNIT 4
@@ -179,7 +86,6 @@ typedef struct {
   short a;
 } glyphy_texel_t;
 
-typedef struct glyphy_encoder_t glyphy_encoder_t;
 
 /*
  * Shader source code
@@ -192,20 +98,65 @@ GLYPHY_API const char *
 glyphy_vertex_shader_source (void);
 
 
-GLYPHY_API glyphy_encoder_t *
-glyphy_encoder_create (void);
+/*
+ * Main object: accumulate glyph outlines and encode into GPU blobs
+ */
+
+typedef struct glyphy_t glyphy_t;
+
+GLYPHY_API glyphy_t *
+glyphy_create (void);
 
 GLYPHY_API void
-glyphy_encoder_destroy (glyphy_encoder_t *encoder);
+glyphy_destroy (glyphy_t *g);
+
+GLYPHY_API void
+glyphy_reset (glyphy_t *g);
+
+
+/* Draw into glyphy */
+
+GLYPHY_API void
+glyphy_move_to (glyphy_t *g,
+                const glyphy_point_t *p0);
+
+GLYPHY_API void
+glyphy_line_to (glyphy_t *g,
+                const glyphy_point_t *p1);
+
+GLYPHY_API void
+glyphy_conic_to (glyphy_t *g,
+                 const glyphy_point_t *p1,
+                 const glyphy_point_t *p2);
+
+GLYPHY_API void
+glyphy_cubic_to (glyphy_t *g,
+                 const glyphy_point_t *p1,
+                 const glyphy_point_t *p2,
+                 const glyphy_point_t *p3);
+
+GLYPHY_API void
+glyphy_close_path (glyphy_t *g);
+
+GLYPHY_API void
+glyphy_get_current_point (glyphy_t *g,
+                          glyphy_point_t *point);
+
+GLYPHY_API unsigned int
+glyphy_get_num_curves (glyphy_t *g);
 
 GLYPHY_API glyphy_bool_t
-glyphy_encoder_encode (glyphy_encoder_t      *encoder,
-                       const glyphy_curve_t *curves,
-                       unsigned int          num_curves,
-                       glyphy_texel_t       *blob,
-                       unsigned int          blob_size,
-                       unsigned int         *output_len,
-                       glyphy_extents_t     *extents);
+glyphy_successful (glyphy_t *g);
+
+
+/* Encode accumulated curves into blob */
+
+GLYPHY_API glyphy_bool_t
+glyphy_encode (glyphy_t         *g,
+               glyphy_texel_t   *blob,
+               unsigned int      blob_size,
+               unsigned int     *output_len,
+               glyphy_extents_t *extents);
 
 
 #ifdef __cplusplus

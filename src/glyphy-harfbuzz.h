@@ -28,30 +28,30 @@ extern "C" {
 
 static void
 glyphy_harfbuzz(move_to) (hb_draw_funcs_t *dfuncs,
-                          glyphy_curve_accumulator_t *acc,
+                          glyphy_t *acc,
                           hb_draw_state_t *st,
                           float to_x, float to_y,
                           void *user_data)
 {
   glyphy_point_t p1 = {(double) to_x, (double) to_y};
-  glyphy_curve_accumulator_close_path (acc);
-  glyphy_curve_accumulator_move_to (acc, &p1);
+  glyphy_close_path (acc);
+  glyphy_move_to (acc, &p1);
 }
 
 static void
 glyphy_harfbuzz(line_to) (hb_draw_funcs_t *dfuncs,
-                          glyphy_curve_accumulator_t *acc,
+                          glyphy_t *acc,
                           hb_draw_state_t *st,
                           float to_x, float to_y,
                           void *user_data)
 {
   glyphy_point_t p1 = {(double) to_x, (double) to_y};
-  glyphy_curve_accumulator_line_to (acc, &p1);
+  glyphy_line_to (acc, &p1);
 }
 
 static void
 glyphy_harfbuzz(quadratic_to) (hb_draw_funcs_t *dfuncs,
-                               glyphy_curve_accumulator_t *acc,
+                               glyphy_t *acc,
                                hb_draw_state_t *st,
                                float control_x, float control_y,
                                float to_x, float to_y,
@@ -59,12 +59,12 @@ glyphy_harfbuzz(quadratic_to) (hb_draw_funcs_t *dfuncs,
 {
   glyphy_point_t p1 = {(double) control_x, (double) control_y};
   glyphy_point_t p2 = {(double) to_x, (double) to_y};
-  glyphy_curve_accumulator_conic_to (acc, &p1, &p2);
+  glyphy_conic_to (acc, &p1, &p2);
 }
 
 static void
 glyphy_harfbuzz(cubic_to) (hb_draw_funcs_t *dfuncs,
-                           glyphy_curve_accumulator_t *acc,
+                           glyphy_t *acc,
                            hb_draw_state_t *st,
                            float control1_x, float control1_y,
                            float control2_x, float control2_y,
@@ -74,16 +74,16 @@ glyphy_harfbuzz(cubic_to) (hb_draw_funcs_t *dfuncs,
   glyphy_point_t p1 = {(double) control1_x, (double) control1_y};
   glyphy_point_t p2 = {(double) control2_x, (double) control2_y};
   glyphy_point_t p3 = {(double) to_x, (double) to_y};
-  glyphy_curve_accumulator_cubic_to (acc, &p1, &p2, &p3);
+  glyphy_cubic_to (acc, &p1, &p2, &p3);
 }
 
 static void
 glyphy_harfbuzz(close_path) (hb_draw_funcs_t *dfuncs,
-                             glyphy_curve_accumulator_t *acc,
+                             glyphy_t *acc,
                              hb_draw_state_t *st,
                              void *user_data)
 {
-  glyphy_curve_accumulator_close_path (acc);
+  glyphy_close_path (acc);
 }
 
 static hb_draw_funcs_t *
@@ -108,7 +108,7 @@ glyphy_harfbuzz(get_draw_funcs) (void)
 static void
 glyphy_harfbuzz(font_get_glyph_shape) (hb_font_t *font,
                                        hb_codepoint_t glyph,
-                                       glyphy_curve_accumulator_t *acc)
+                                       glyphy_t *acc)
 {
   hb_font_draw_glyph (font, glyph, glyphy_harfbuzz(get_draw_funcs) (), acc);
 }

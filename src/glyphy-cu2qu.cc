@@ -152,10 +152,10 @@ split_cubic_half (Point c0, Point c1, Point c2, Point c3,
 
 /*
  * Recursively convert a cubic into quadratic segments, emitting each
- * via glyphy_curve_accumulator_conic_to.
+ * via glyphy_conic_to.
  */
 static void
-cubic_to_quadratics (glyphy_curve_accumulator_t *acc,
+cubic_to_quadratics (glyphy_t *acc,
 		     Point c0, Point c1, Point c2, Point c3,
 		     double tolerance, unsigned depth)
 {
@@ -163,14 +163,14 @@ cubic_to_quadratics (glyphy_curve_accumulator_t *acc,
   Point q1;
   if (cubic_approx_quadratic (c0, c1, c2, c3, tolerance, &q1))
   {
-    glyphy_curve_accumulator_conic_to (acc, &q1, &c3);
+    glyphy_conic_to (acc, &q1, &c3);
     return;
   }
 
   /* At max depth, give up and emit a straight line. */
   if (depth >= CU2QU_MAX_DEPTH)
   {
-    glyphy_curve_accumulator_line_to (acc, &c3);
+    glyphy_line_to (acc, &c3);
     return;
   }
 
@@ -187,13 +187,13 @@ cubic_to_quadratics (glyphy_curve_accumulator_t *acc,
  */
 
 void
-glyphy_curve_accumulator_cubic_to (glyphy_curve_accumulator_t *acc,
+glyphy_cubic_to (glyphy_t *acc,
 				   const glyphy_point_t *p1,
 				   const glyphy_point_t *p2,
 				   const glyphy_point_t *p3)
 {
   glyphy_point_t c0;
-  glyphy_curve_accumulator_get_current_point (acc, &c0);
+  glyphy_get_current_point (acc, &c0);
 
   /* Degenerate: cubic collapses to a point. */
   if (c0.x == p3->x && c0.y == p3->y &&

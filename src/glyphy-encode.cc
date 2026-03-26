@@ -8,6 +8,7 @@
 #endif
 
 #include "glyphy.h"
+#include "glyphy.hh"
 
 #include <cstdint>
 #include <cmath>
@@ -94,46 +95,124 @@ curve_info (const glyphy_curve_t *c)
   return info;
 }
 
-struct glyphy_encoder_t
-{
-  std::vector<curve_info_t> curve_infos;
-  std::vector<unsigned int> hband_curve_counts;
-  std::vector<unsigned int> vband_curve_counts;
-  std::vector<unsigned int> hband_offsets;
-  std::vector<unsigned int> vband_offsets;
-  std::vector<unsigned int> hband_curves;
-  std::vector<unsigned int> hband_curves_asc;
-  std::vector<unsigned int> vband_curves;
-  std::vector<unsigned int> vband_curves_asc;
-  std::vector<unsigned int> hband_cursors;
-  std::vector<unsigned int> vband_cursors;
-  std::vector<unsigned int> curve_texel_offset;
-};
+/*
+ * glyphy_t lifecycle and drawing
+ */
 
-glyphy_encoder_t *
-glyphy_encoder_create (void)
+glyphy_t *
+glyphy_create (void)
 {
-  return new glyphy_encoder_t;
+  glyphy_t *g = new glyphy_t;
+  glyphy_reset (g);
+  return g;
 }
 
 void
-glyphy_encoder_destroy (glyphy_encoder_t *encoder)
+glyphy_destroy (glyphy_t *g)
 {
-  delete encoder;
+  delete g;
+}
+
+void
+glyphy_reset (glyphy_t *g)
+{
+  g->start_point = g->current_point = {0, 0};
+  g->need_moveto = true;
+  g->num_curves = 0;
+  g->success = true;
+  g->curves.clear ();
+}
+
+static void
+emit (glyphy_t *g, const glyphy_curve_t *curve)
+{
+  g->curves.push_back (*curve);
+  g->num_curves++;
+  g->current_point = curve->p3;
+}
+
+static void
+emit_conic (glyphy_t *g,
+            const glyphy_point_t *p2,
+            const glyphy_point_t *p3)
+{
+  if (g->current_point.x == p3->x && g->current_point.y == p3->y)
+    return;
+
+  if (g->need_moveto) {
+    g->start_point = g->current_point;
+    g->need_moveto = false;
+  }
+
+  glyphy_curve_t curve = {g->current_point, *p2, *p3};
+  emit (g, &curve);
+}
+
+void
+glyphy_move_to (glyphy_t *g, const glyphy_point_t *p0)
+{
+  g->need_moveto = true;
+  g->current_point = *p0;
+}
+
+void
+glyphy_line_to (glyphy_t *g, const glyphy_point_t *p1)
+{
+  glyphy_point_t p0 = g->current_point;
+  emit_conic (g, &p0, p1);
+}
+
+void
+glyphy_conic_to (glyphy_t *g,
+                 const glyphy_point_t *p1,
+                 const glyphy_point_t *p2)
+{
+  emit_conic (g, p1, p2);
+}
+
+/* glyphy_cubic_to is in glyphy-cu2qu.cc */
+
+void
+glyphy_close_path (glyphy_t *g)
+{
+  if (!g->need_moveto &&
+      (g->current_point.x != g->start_point.x ||
+       g->current_point.y != g->start_point.y))
+    glyphy_line_to (g, &g->start_point);
+}
+
+void
+glyphy_get_current_point (glyphy_t *g, glyphy_point_t *point)
+{
+  *point = g->current_point;
+}
+
+unsigned int
+glyphy_get_num_curves (glyphy_t *g)
+{
+  return g->num_curves;
+}
+
+glyphy_bool_t
+glyphy_successful (glyphy_t *g)
+{
+  return g->success;
 }
 
 
+/*
+ * Encode accumulated curves into blob
+ */
+
 glyphy_bool_t
-glyphy_encoder_encode (glyphy_encoder_t      *encoder,
-                       const glyphy_curve_t *curves,
-                       unsigned int          num_curves,
-                       glyphy_texel_t       *blob,
-                       unsigned int          blob_size,
-                       unsigned int         *output_len,
-                       glyphy_extents_t     *extents)
+glyphy_encode (glyphy_t         *g,
+               glyphy_texel_t   *blob,
+               unsigned int      blob_size,
+               unsigned int     *output_len,
+               glyphy_extents_t *extents)
 {
-  if (!encoder)
-    return false;
+  const glyphy_curve_t *curves = g->curves.data ();
+  unsigned int num_curves = g->curves.size ();
 
   if (num_curves == 0) {
     glyphy_extents_clear (extents);
@@ -141,7 +220,7 @@ glyphy_encoder_encode (glyphy_encoder_t      *encoder,
     return true;
   }
 
-  std::vector<curve_info_t> &curve_infos = encoder->curve_infos;
+  std::vector<curve_info_t> curve_infos;
   curve_infos.resize (num_curves);
   glyphy_extents_clear (extents);
   for (unsigned int i = 0; i < num_curves; i++) {
@@ -175,8 +254,8 @@ glyphy_encoder_encode (glyphy_encoder_t      *encoder,
   double hband_size = height / num_hbands;
   double vband_size = width / num_vbands;
 
-  std::vector<unsigned int> &hband_curve_counts = encoder->hband_curve_counts;
-  std::vector<unsigned int> &vband_curve_counts = encoder->vband_curve_counts;
+  std::vector<unsigned int> hband_curve_counts;
+  std::vector<unsigned int> vband_curve_counts;
   hband_curve_counts.assign (num_hbands, 0);
   vband_curve_counts.assign (num_vbands, 0);
 
@@ -214,8 +293,8 @@ glyphy_encoder_encode (glyphy_encoder_t      *encoder,
     }
   }
 
-  std::vector<unsigned int> &hband_offsets = encoder->hband_offsets;
-  std::vector<unsigned int> &vband_offsets = encoder->vband_offsets;
+  std::vector<unsigned int> hband_offsets;
+  std::vector<unsigned int> vband_offsets;
   hband_offsets.resize (num_hbands);
   vband_offsets.resize (num_vbands);
   unsigned int total_hband_indices = 0;
@@ -232,12 +311,12 @@ glyphy_encoder_encode (glyphy_encoder_t      *encoder,
   }
 
   /* Assign curves to bands */
-  std::vector<unsigned int> &hband_curves = encoder->hband_curves;
-  std::vector<unsigned int> &hband_curves_asc = encoder->hband_curves_asc;
-  std::vector<unsigned int> &vband_curves = encoder->vband_curves;
-  std::vector<unsigned int> &vband_curves_asc = encoder->vband_curves_asc;
-  std::vector<unsigned int> &hband_cursors = encoder->hband_cursors;
-  std::vector<unsigned int> &vband_cursors = encoder->vband_cursors;
+  std::vector<unsigned int> hband_curves;
+  std::vector<unsigned int> hband_curves_asc;
+  std::vector<unsigned int> vband_curves;
+  std::vector<unsigned int> vband_curves_asc;
+  std::vector<unsigned int> hband_cursors;
+  std::vector<unsigned int> vband_cursors;
   hband_curves.resize (total_hband_indices);
   hband_curves_asc.resize (total_hband_indices);
   vband_curves.resize (total_vband_indices);
@@ -341,7 +420,7 @@ glyphy_encoder_encode (glyphy_encoder_t      *encoder,
 
   /* Pack curve data with shared endpoints.
    * Build curve_texel_offset[i] = texel offset for curve i's first texel. */
-  std::vector<unsigned int> &curve_texel_offset = encoder->curve_texel_offset;
+  std::vector<unsigned int> curve_texel_offset;
   curve_texel_offset.resize (num_curves);
   unsigned int texel = curve_data_offset;
 

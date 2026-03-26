@@ -21,8 +21,7 @@ struct demo_font_t {
   hb_font_t     *font;
   glyph_cache_t *glyph_cache;
   demo_atlas_t  *atlas;
-  glyphy_encoder_t *encoder;
-  glyphy_curve_accumulator_t *acc;
+  glyphy_t *g;
   std::vector<glyphy_texel_t> *scratch_buffer;
 
   unsigned int num_glyphs;
@@ -40,8 +39,7 @@ demo_font_create (hb_face_t    *face,
   font->font = hb_font_create (face);
   font->glyph_cache = new glyph_cache_t ();
   font->atlas = demo_atlas_reference (atlas);
-  font->encoder = glyphy_encoder_create ();
-  font->acc = glyphy_curve_accumulator_create ();
+  font->g = glyphy_create ();
   font->scratch_buffer = new std::vector<glyphy_texel_t> (16384);
 
   return font;
@@ -53,8 +51,7 @@ demo_font_destroy (demo_font_t *font)
   if (!font)
     return;
 
-  glyphy_encoder_destroy (font->encoder);
-  glyphy_curve_accumulator_destroy (font->acc);
+  glyphy_destroy (font->g);
   demo_atlas_destroy (font->atlas);
   delete font->scratch_buffer;
   delete font->glyph_cache;
@@ -77,14 +74,6 @@ demo_font_get_font (demo_font_t *font)
 }
 
 
-static glyphy_bool_t
-accumulate_curve (const glyphy_curve_t           *curve,
-                  std::vector<glyphy_curve_t>    *curves)
-{
-  curves->push_back (*curve);
-  return true;
-}
-
 static void
 encode_glyph (demo_font_t      *font,
               unsigned int      glyph_index,
@@ -94,28 +83,19 @@ encode_glyph (demo_font_t      *font,
               glyphy_extents_t *extents,
               double           *advance)
 {
-  std::vector<glyphy_curve_t> curves;
+  glyphy_reset (font->g);
 
-  glyphy_curve_accumulator_reset (font->acc);
-  glyphy_curve_accumulator_set_callback (font->acc,
-                                         (glyphy_curve_accumulator_callback_t) accumulate_curve,
-                                         &curves);
-
-  glyphy_harfbuzz(font_get_glyph_shape) (font->font, glyph_index, font->acc);
-  if (!glyphy_curve_accumulator_successful (font->acc))
+  glyphy_harfbuzz(font_get_glyph_shape) (font->font, glyph_index, font->g);
+  if (!glyphy_successful (font->g))
     die ("Failed accumulating curves");
 
-  if (!glyphy_encoder_encode (font->encoder,
-                              curves.size () ? &curves[0] : NULL, curves.size (),
-                              buffer, buffer_len,
-                              output_len,
-                              extents))
+  if (!glyphy_encode (font->g, buffer, buffer_len, output_len, extents))
     die ("Failed encoding blob");
 
   *advance = hb_font_get_glyph_h_advance (font->font, glyph_index);
 
   font->num_glyphs++;
-  font->sum_curves += glyphy_curve_accumulator_get_num_curves (font->acc);
+  font->sum_curves += glyphy_get_num_curves (font->g);
   font->sum_bytes += (*output_len * sizeof (glyphy_texel_t));
 }
 
