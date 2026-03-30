@@ -5,6 +5,10 @@ by Eric Lengyel for robust winding number calculation.
 GLyphy works with quadratic Bezier curves (TrueType outlines) and
 produces pixel-perfect rendering at any scale with proper antialiasing.
 
+Note: GLyphy is deprecated in favor of the
+[HarfBuzz](https://github.com/harfbuzz/harfbuzz) GPU module, which
+supports shaders for all major platforms.
+
 ## Building
 
 Requires: meson, OpenGL 3.3+, FreeType, HarfBuzz, GLUT, GLEW.
